@@ -7,7 +7,7 @@ PCB tasarımı için çevrim içi mühendislik karar destek araçları. Tüm hes
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:3000
 npm run build    # dist/ klasörüne üretir
 ```
 
