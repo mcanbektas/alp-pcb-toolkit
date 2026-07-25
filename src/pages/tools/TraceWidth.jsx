@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom'
 import NumberField from '../../components/NumberField'
 import SelectField from '../../components/SelectField'
 import Segmented from '../../components/Segmented'
-import { parseNum, fmt, fmtOhm, fmtVolt, fmtWatt } from '../../lib/num'
+import {
+  parseNum, parseNumResult, NUM_ERR_THOUSANDS, THOUSANDS_MESSAGE,
+  fmt, fmtOhm, fmtVolt, fmtWatt,
+} from '../../lib/num'
 import {
   OZ_TABLE, MIL, MIL2_TO_MM2,
   areaForCurrent_mil2, currentForArea, kCoeff,
@@ -16,6 +19,30 @@ const W_TO_MM = { mm: 1, mil: MIL }
 function copperUm(f) {
   if (f.oz === 'custom') return parseNum(f.tCustom)
   return OZ_TABLE.find((o) => o.key === f.oz)?.um ?? NaN
+}
+
+// Bu modda gerçekten okunan sayısal alanlar; hata mesajında alan adı göstermek için
+function activeFields(mode, f) {
+  const list = [
+    ['I', 'Akım (I)'],
+    ['dT', 'Sıcaklık artışı (ΔT)'],
+    ['Ta', 'Ortam sıcaklığı (Tₐ)'],
+    ['L', 'Yol uzunluğu (L)'],
+  ]
+  if (f.oz === 'custom') list.push(['tCustom', 'Özel bakır kalınlığı'])
+  if (mode === 'ana') list.push(['W', 'Yol genişliği (W)'])
+  if (mode === 'syn') list.push(['margin', 'Güvenlik marjı (M)'])
+  if (String(f.Vs).trim() !== '') list.push(['Vs', 'Besleme gerilimi'])
+  if (f.tol) {
+    list.push(['wTol', 'Genişlik toleransı'], ['tTol', 'Bakır kalınlığı toleransı'])
+  }
+  return list
+}
+
+function thousandsFields(mode, f) {
+  return activeFields(mode, f)
+    .filter(([k]) => parseNumResult(f[k]).error === NUM_ERR_THOUSANDS)
+    .map(([, label]) => label)
 }
 
 // Belirli bir genişlik (mm) için tüm elektriksel sonuçları üretir
@@ -38,6 +65,10 @@ function electricals(W_mm, t_um, L_m, I, Ta, dT, Vs) {
 }
 
 function compute(mode, f) {
+  // Belirsiz binlik ayırıcı sessizce yorumlanmaz; hesap yerine uyarı gösterilir
+  const ambiguous = thousandsFields(mode, f)
+  if (ambiguous.length) return { invalid: true, ambiguous }
+
   const Iraw = parseNum(f.I)
   const I = f.Iu === 'mA' ? Iraw / 1000 : Iraw
   const dT = parseNum(f.dT)
@@ -264,10 +295,16 @@ export default function TraceWidth() {
           <h2>Sonuç</h2>
 
           {r.invalid ? (
-            <p className="empty-note">
-              Tüm zorunlu alanlara pozitif sayısal değer girin. Ondalık için nokta veya virgül
-              kullanabilirsiniz (0.25 = 0,25).
-            </p>
+            r.ambiguous ? (
+              <p className="empty-note warn">
+                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
+              </p>
+            ) : (
+              <p className="empty-note">
+                Tüm zorunlu alanlara pozitif sayısal değer girin. Ondalık için nokta veya virgül
+                kullanabilirsiniz (0.25 = 0,25).
+              </p>
+            )
           ) : (
             <>
               {r.mode === 'syn' ? (
@@ -287,6 +324,10 @@ export default function TraceWidth() {
               )}
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
+
+              <p className="method-note">
+                Klasik ampirik yöntem — veri tabanlı hesapla eşdeğer değildir.
+              </p>
 
               <table className="result-table">
                 <tbody>

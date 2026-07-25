@@ -1,13 +1,38 @@
 // Sayı ayrıştırma ve biçimlendirme.
 // Ondalık ayracı olarak hem nokta hem virgül kabul edilir (0.25 == 0,25).
+// Binlik ayırıcı yorumlanmaz: "1.000" bin mi yoksa 1.0 mı olduğu belirsiz
+// olduğundan sessizce 1 döndürmek yerine geçersiz sayılır.
+
+export const NUM_ERR_EMPTY = 'empty'
+export const NUM_ERR_THOUSANDS = 'thousands'
+export const NUM_ERR_INVALID = 'invalid'
+
+export const THOUSANDS_MESSAGE =
+  'Binlik ayırıcı belirsiz; ondalık için nokta veya virgül kullanın.'
+
+// Belirsiz kalıp: tek ayırıcı, ardından tam üç basamak, tam kısım 1–3 basamaklı
+// ve sıfırla başlamıyor. "1.000" ve "250,000" girer; "0.250" ve "1000.000" girmez.
+const THOUSANDS_SHAPE = /^-?[1-9]\d{0,2}[.,]\d{3}$/
+const NUMBER_SHAPE = /^-?(\d+\.?\d*|\.\d+)(e-?\d+)?$/i
+
+// Ayrıştırma sonucunu nedeniyle birlikte döner: { value, error }
+export function parseNumResult(s) {
+  if (typeof s === 'number') return { value: s, error: null }
+  if (s === null || s === undefined) return { value: NaN, error: NUM_ERR_EMPTY }
+  const t = String(s).trim()
+  if (t === '') return { value: NaN, error: NUM_ERR_EMPTY }
+  // Birden fazla ayırıcı ("1.000.000") ya da belirsiz üçlü grup → binlik ayırıcı
+  const sepCount = (t.match(/[.,]/g) || []).length
+  if (sepCount > 1 || THOUSANDS_SHAPE.test(t)) {
+    return { value: NaN, error: NUM_ERR_THOUSANDS }
+  }
+  const d = t.replace(',', '.')
+  if (!NUMBER_SHAPE.test(d)) return { value: NaN, error: NUM_ERR_INVALID }
+  return { value: parseFloat(d), error: null }
+}
 
 export function parseNum(s) {
-  if (typeof s === 'number') return s
-  if (s === null || s === undefined) return NaN
-  const t = String(s).trim().replace(',', '.')
-  if (t === '') return NaN
-  if (!/^-?(\d+\.?\d*|\.\d+)(e-?\d+)?$/i.test(t)) return NaN
-  return parseFloat(t)
+  return parseNumResult(s).value
 }
 
 // Anlamlı basamağa göre biçimlendirir; ara değerlerde asla kullanılmaz,

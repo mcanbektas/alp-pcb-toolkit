@@ -28,7 +28,8 @@ kombinasyonu repo adından bağımsız çalışmayı sağlar; ikisini de değiş
 Üç katman, sıkı ayrım:
 
 1. **`src/lib/`** — saf hesap fonksiyonları. React'e, DOM'a, birim string'lerine bağımlı değil.
-   - `num.js` — `parseNum` (giriş ayrıştırma), `fmt`/`fmtOhm`/`fmtVolt`/`fmtWatt` (gösterim).
+   - `num.js` — `parseNum` / `parseNumResult` (giriş ayrıştırma),
+     `fmt`/`fmtOhm`/`fmtVolt`/`fmtWatt` (gösterim).
    - `traceCalc.js` — trace hesap motoru; sabitler (`RHO20`, `ALPHA`, `OZ_TABLE`, `MIL`) burada.
 2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`). State
    tutmaz, hesap yapmaz.
@@ -36,6 +37,12 @@ kombinasyonu repo adından bağımsız çalışmayı sağlar; ikisini de değiş
 
 `src/data/categories.js` tek kaynak: 7 kategori ve araç listesi. Bir aracın `path` alanı varsa
 aktif, yoksa "yakında" olarak gösterilir — `Home.jsx` ve `CategoryPage.jsx` bu alana bakar.
+
+**Bilinçli sapma:** `categories.js` 24 araç kaydı içerir, `docs/spec.md` §15 ise 21 ekran
+sayar. Fark kasıtlıdır, düzeltilmemeli: spec'in 2. ekranı (*Trace Resistance, Voltage Drop
+and Power Loss*) ayrı araç değil, `TraceWidth.jsx` içinde birleşik; spec'in 21. ekranı
+(*BGA, Stack-Up and Thermal Relief*) `bga`, `stackup` ve `thermal-relief` olarak üçe
+bölünmüştür.
 
 ### Yeni araç ekleme
 
@@ -61,7 +68,26 @@ tamamlama; eksik olduğunu söyle ve sor.
   istisnaları kodda yorumla açıkça belirtilmeli.
 - **Ara değerlerde asla yuvarlama yapılmaz.** `fmt*` yalnızca JSX içinde, ekrana yazarken
   çağrılır.
+- **Binlik ayırıcı yorumlanmaz.** `"1.000"` bin mi 1.0 mı belirsizdir; `parseNumResult`
+  bunu `NUM_ERR_THOUSANDS` ile geçersiz sayar, sessizce `1` döndürmez. Araç sayfası bu
+  durumda hesap yerine `THOUSANDS_MESSAGE` uyarısını ve etkilenen alan adlarını gösterir
+  (`TraceWidth.jsx` → `thousandsFields`).
 - Geçersiz giriş `{ invalid: true }` döner; sayfa hesap yerine `.empty-note` gösterir.
+
+### Trace hesap motoru — mevcut durum ve planlanan yol
+
+`traceCalc.js` şu an tek motor kullanıyor: klasik ampirik ısınma denklemi
+`I = k·ΔT^0.44·A^0.725`. `docs/spec.md` §4.1.4 bunun yerine veri-interpolasyon + sayısal kök
+çözümü istiyor ve ampirik denklemi legacy sayıyor (§4.1.5). Tek motorla devam kararı
+bilinçlidir — spec'in istediği veri seti lisanslıdır ve repoya giremez.
+
+Bu yüzden sonuç panelinde `.method-note` etiketi zorunludur: *"Klasik ampirik yöntem — veri
+tabanlı hesapla eşdeğer değildir."* Ampirik sonucu veri tabanlı yöntemin sonucuymuş gibi
+sunma.
+
+Planlanan yol: kullanıcı kendi veri setini JSON olarak içe aktarabilecek, veri `localStorage`
+içinde tutulacak, **repoya hiç girmeyecek**. Veri seti yüklendiğinde interpolasyon motoru
+devreye girecek ve `.method-note` metni buna göre değişecek.
 
 ## Kurallar
 
@@ -91,8 +117,16 @@ tamamlama; eksik olduğunu söyle ve sor.
   `:root` bloğuna değişken ekle. Aynı kural fontlar için de geçerli: `var(--font-mono)`,
   `var(--font-display)`, `var(--font-body)`.
 - **Ondalık girişlerde hem nokta hem virgül kabul edilecek.** Her sayısal giriş
-  `src/lib/num.js` içindeki `parseNum` ile ayrıştırılır (`0.25` == `0,25`); `parseFloat` veya
-  `Number()` doğrudan kullanılmaz.
+  `src/lib/num.js` içindeki `parseNum` ile ayrıştırılır (`0.25` == `0,25`); hata nedeni
+  gerekiyorsa `parseNumResult`. `parseFloat` veya `Number()` doğrudan kullanılmaz.
+- **Ters hesaplarda Newton–Raphson tek başına kullanılmaz.** Brent veya bisection ile
+  sınırlandırılmış kök arama yapılır. Newton–Raphson başlangıç noktasına bağlı olarak negatif
+  genişlik, negatif aralık gibi fiziksel olmayan sonuçlara yakınsayabilir (`docs/spec.md`
+  §3.3). Arama aralığı fiziksel olarak geçerli sınırlarla kapatılmalıdır.
+- **Lisanslı standart tabloları repoya kopyalanmaz.** Karar tabloları, eğri verisi ve
+  benzeri lisanslı içerik `src/` veya `docs/` altına gömülmez. Bunun yerine kullanıcının
+  içe aktardığı profil/veri seti kullanılır ve `localStorage`'da tutulur. Böyle bir veri
+  yokken sonuç, standart tabanlı doğrulanmış gibi sunulmaz.
 
 ## Sonuç sunumu
 

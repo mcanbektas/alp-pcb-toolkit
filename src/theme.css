@@ -249,6 +249,14 @@ a:hover { text-decoration: underline; }
 }
 
 .empty-note { color: var(--muted); font-size: 0.86rem; }
+.empty-note.warn { color: var(--warn); }
+
+.method-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
 
 /* ---------- Detail panel ---------- */
 
