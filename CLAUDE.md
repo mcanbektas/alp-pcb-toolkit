@@ -43,6 +43,10 @@ Formüller ve gereksinimler için kaynak: **`docs/spec.md`**. Yeni bir araç yaz
 dosyanın ilgili bölümünü oku; denklemleri, sabitleri veya geçerlilik sınırlarını hafızadan
 veya başka kaynaktan uydurma. Spec ile mevcut kod çelişirse dur ve sor.
 
+Uyarı: spec'teki bazı formül blokları markdown dönüşümünde bozulmuş — açılış köşeli parantezi
+düşmüş, araya `##` girmiş veya `*` işaretleri ifadeyi yemiş durumda. Bozuk bir bloğu tahminle
+tamamlama; eksik olduğunu söyle ve sor.
+
 1. `src/pages/tools/<Ad>.jsx` yaz (aşağıdaki 3 panelli deseni izle).
 2. `src/App.jsx` içine `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
 3. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver.
@@ -61,13 +65,19 @@ veya başka kaynaktan uydurma. Spec ile mevcut kod çelişirse dur ve sor.
 
 ## Kurallar
 
-- **Sitede hiçbir yerde "ipc" ifadesi geçmeyecek.** Ne kullanıcıya görünen metinde, ne kod
-  yorumlarında, ne değişken/dosya adlarında, ne README'de. Standart adı gerektiğinde tarif
-  edilerek anılır — örn. `traceCalc.js`'te "klasik ampirik iletken ısınma denklemi". Yeni
-  metin yazdıktan sonra kontrol et:
+- **Sitede hiçbir yerde "ipc" ifadesi geçmeyecek.** Bu yasak `src/` ve kullanıcıya görünen
+  tüm metinler için geçerli — arayüz metni, kod yorumu, değişken/dosya adı, README dahil.
+  `docs/` altındaki dahili referans dosyaları kapsam dışıdır. Standart adı gerektiğinde
+  yöntem tarif edilerek anılır — örn. `traceCalc.js`'te "klasik ampirik iletken ısınma
+  denklemi". Yeni metin yazdıktan sonra kontrol et:
   ```bash
-  grep -rin "ipc" --exclude-dir=node_modules --exclude-dir=.git .
+  # kuralın kendi metni sayılmasın diye CLAUDE.md hariç; çıktı boşsa temiz
+  grep -rin "ipc" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=docs \
+    --exclude=CLAUDE.md .
   ```
+  Sonuç: `docs/spec.md` bazı sonuç etiketlerini ve uyarı metinlerini standart adıyla birebir
+  şart koşar (örn. veri aralığı dışı uyarısı, legacy yöntem etiketi). Bu metinler UI'da
+  standart adı olmadan, yöntemi tarif ederek yazılır.
 - **Yeni araçlar `src/pages/tools/TraceWidth.jsx`'teki 3 panelli deseni takip edecek:**
   `.tool-header` (başlık + açıklama) → `.tool-grid` içinde üç `.panel` (sol: *Girdiler*,
   orta: *Sonuç*, sağ: `.panel-detail` → *Teknik detay* + *Geçerlilik ve varsayımlar*) →
