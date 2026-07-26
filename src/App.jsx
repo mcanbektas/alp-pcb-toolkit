@@ -13,6 +13,10 @@ import ThermalVia from './pages/tools/ThermalVia'
 import SingleEnded from './pages/tools/SingleEnded'
 import DiffPair from './pages/tools/DiffPair'
 import PropDelay from './pages/tools/PropDelay'
+import CriticalLength from './pages/tools/CriticalLength'
+import Skew from './pages/tools/Skew'
+import Crosstalk from './pages/tools/Crosstalk'
+import Termination from './pages/tools/Termination'
 
 function Layout({ children }) {
   return (
@@ -57,6 +61,10 @@ export default function App() {
           <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
           <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
           <Route path="/arac/yayilma-gecikmesi" element={<PropDelay />} />
+          <Route path="/arac/kritik-hat-uzunlugu" element={<CriticalLength />} />
+          <Route path="/arac/skew" element={<Skew />} />
+          <Route path="/arac/crosstalk" element={<Crosstalk />} />
+          <Route path="/arac/terminasyon" element={<Termination />} />
         </Routes>
       </Layout>
     </HashRouter>

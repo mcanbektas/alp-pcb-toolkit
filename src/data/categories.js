@@ -35,10 +35,10 @@ export const CATEGORIES = [
     desc: 'Yayılma gecikmesi, kritik hat uzunluğu, skew, crosstalk ve terminasyon',
     tools: [
       { id: 'prop-delay', name: 'Propagation Delay & Wavelength', path: '/arac/yayilma-gecikmesi' },
-      { id: 'critical-length', name: 'Critical Trace Length' },
-      { id: 'skew', name: 'Differential Skew & Length Matching' },
-      { id: 'crosstalk', name: 'Crosstalk Estimator' },
-      { id: 'termination', name: 'Termination Calculator' },
+      { id: 'critical-length', name: 'Critical Trace Length', path: '/arac/kritik-hat-uzunlugu' },
+      { id: 'skew', name: 'Differential Skew & Length Matching', path: '/arac/skew' },
+      { id: 'crosstalk', name: 'Crosstalk Estimator', path: '/arac/crosstalk' },
+      { id: 'termination', name: 'Termination Calculator', path: '/arac/terminasyon' },
     ],
   },
   {
