@@ -1,0 +1,591 @@
+/* ALP PCB Toolkit — "Instrument"
+   Açık zemin, ölçüm cihazı / veri sayfası estetiği.
+
+   Kimlik üç şeyden kurulur: kağıt beyazı panel, kılcal ayraç, tek koyu mavi
+   vurgu. Kutu çizgisi yerine boşluk ve hiyerarşi taşır; renk yalnızca anlam
+   taşıdığı yerde görünür (vurgu, durum, grafik serisi).
+
+   Sınıf sözlüğü değiştirilmez — 24 ekran bu adlara bağlı. Değişen yalnızca
+   kuralların gövdesi. */
+
+:root {
+  /* PALET KAYNAĞI: direnç renk kodu (spec §9.1).
+     Arayüzdeki her renk bir direnç bandının TONUNDAN türetildi. Bantların
+     kendi hex değerleri değişmedi — onlar fiziksel komponent renkleri ve
+     lib/codes.js onlara bağlı. Buradaki türetme yalnızca tonu alıyor,
+     açıklık ve kromayı yüzeye göre oturtuyor.
+
+     akromatik bantlar → nötr roller     kromatik bantlar → vurgu ve seriler
+       beyaz  (9) → panel yüzeyi           mavi   (6) → vurgu, seri 1
+       gümüş      → zemin, ayraç           turuncu(3) → seri 2
+       gri    (8) → ikincil metin          mor    (7) → seri 3
+       siyah  (0) → mürekkep               yeşil  (5) → seri 4
+                                           altın      → uyarı
+                                           kırmızı(2) → tehlike */
+
+  /* --- Yüzeyler: beyaz ve gümüş bantları --- */
+  --bg: #ecf1f2;
+  --surface: #ffffff;
+  --raised: #f3f8f8;
+  --line: #d2dbdc;
+  --line-strong: #b4c1c1;
+
+  /* --- Vurgu: mavi bandı (ton 242°) --- */
+  --accent: #005a93;      /* beyaz üzerinde 7.28:1 */
+  --accent-dim: #388ec8;
+  --accent-soft: #e5f2fd;
+  --on-accent: #ffffff;
+
+  /* --- Metin: siyah ve gri bantları --- */
+  --text: #1f1d18;        /* 16.84:1 */
+  --muted: #5f6c6d;       /* 5.45:1 */
+
+  /* --- Durum: altın ve kırmızı bantları --- */
+  --warn: #845b00;        /* 6.04:1 */
+  --danger: #a52015;      /* 7.45:1 */
+  --warn-soft: #fbf3dd;
+  --danger-soft: #ffede9;
+
+  /* Grafik serisi — mavi, turuncu, mor, yeşil bantlarının tonları.
+     Sıralama keyfi değil: mor turuncu ile yeşilin arasına konuyor, çünkü
+     kırmızı-yeşil komşuluğu protan/deutan altında çakışıyor.
+     Beyaz yüzeye karşı doğrulandı, beş kontrolün hepsi geçiyor:
+       açıklık bandı  L 0.43–0.77 içinde
+       kroma tabanı   dördü de C >= 0.10
+       CVD ayrımı     en kötü komşu ΔE 18.8 (deutan), tritan 18.4
+       normal görüş   en kötü komşu ΔE 25.8
+       kontrast       dördü de >= 3:1
+     Kimlik yine de yalnız renge bırakılmıyor: LineChart her seriye ayrı
+     desen veriyor ve seri adını eğrinin ucuna yazıyor. */
+  --series-1: #006fb0;
+  --series-2: #cf550e;
+  --series-3: #863ca4;
+  --series-4: #008c46;
+
+  /* Direnç bant renkleri — fiziksel komponent renkleri, tema kararı değil.
+     lib/codes.js yalnızca bant anahtarını bilir, rengi buradan gelir. */
+  --band-black: #111111;
+  --band-brown: #6b3f1d;
+  --band-red: #c0392b;
+  --band-orange: #d35400;
+  --band-yellow: #d4ac0d;
+  --band-green: #1e8449;
+  --band-blue: #1f618d;
+  --band-violet: #6c3483;
+  --band-grey: #7f8c8d;
+  --band-white: #ecf0f1;
+  --band-gold: #b8860b;
+  --band-silver: #aab7b8;
+
+  /* Sistem font yığını — dış istek yok, GitHub Pages'de ilk boyamada hazır.
+     Ayrım yüz değişikliğiyle değil ağırlık ve harf aralığıyla kuruluyor. */
+  --font-display: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgb(31 29 24 / 0.05), 0 1px 1px rgb(31 29 24 / 0.04);
+  --shadow-hover: 0 4px 12px rgb(0 90 147 / 0.12);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sayılar her yerde hizalı okunsun — tablo, sonuç, grafik ekseni */
+.result-table td:last-child, .pick-table td, .big-result .value,
+.chart-tick, .row-list-item .cell input, .field-row input {
+  font-variant-numeric: tabular-nums;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.container { max-width: 1360px; margin: 0 auto; padding: 0 24px; }
+
+/* ---------- Header ---------- */
+
+.site-header { background: var(--surface); border-bottom: 1px solid var(--line); }
+.site-header .container {
+  display: flex; align-items: baseline; gap: 16px;
+  padding-top: 20px; padding-bottom: 0;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 1.1rem; letter-spacing: -0.015em;
+  color: var(--text);
+}
+.wordmark:hover { text-decoration: none; color: var(--accent); }
+.tagline { color: var(--muted); font-size: 0.84rem; }
+
+.trace-motif { display: block; width: 100%; height: 26px; background: var(--surface); }
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  margin-top: 64px; padding: 22px 0 36px;
+  color: var(--muted); font-size: 0.82rem;
+}
+
+/* ---------- Home ---------- */
+
+.hero { padding: 56px 0 14px; }
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4.4vw, 2.9rem);
+  font-weight: 700; letter-spacing: -0.025em; line-height: 1.1;
+  margin: 0 0 12px;
+}
+.hero h1 .accent { color: var(--accent); }
+.hero p { color: var(--muted); max-width: 640px; margin: 0; font-size: 1rem; }
+
+.card-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  padding: 34px 0 0;
+}
+
+.cat-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.cat-card:hover {
+  text-decoration: none;
+  border-color: var(--accent-dim);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+.cat-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.05rem; font-weight: 650; letter-spacing: -0.012em;
+  margin: 0 0 6px;
+}
+.cat-card .desc { color: var(--muted); font-size: 0.85rem; margin: 0 0 14px; }
+.cat-card .meta {
+  display: flex; gap: 8px; align-items: center;
+  font-family: var(--font-mono); font-size: 0.71rem; color: var(--muted);
+}
+
+.chip {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  background: var(--raised); border: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 0.69rem;
+  color: var(--muted); white-space: nowrap;
+}
+.chip.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+
+/* ---------- Category page ---------- */
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.7rem; font-weight: 700; letter-spacing: -0.022em;
+  margin: 44px 0 6px;
+}
+.page-sub { color: var(--muted); margin: 0 0 26px; }
+
+.tool-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px; }
+.tool-row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 14px 16px; color: var(--text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tool-row.active:hover {
+  text-decoration: none; border-color: var(--accent-dim); background: var(--raised);
+}
+.tool-row.soon { color: var(--muted); background: transparent; border-style: dashed; }
+.tool-row .name { font-weight: 500; }
+
+.backlink {
+  font-size: 0.85rem; color: var(--muted);
+  display: inline-block; margin-top: 32px;
+}
+.backlink:hover { color: var(--accent); }
+
+/* ---------- Tool layout ---------- */
+
+.tool-header { margin: 40px 0 22px; }
+.tool-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.6rem; font-weight: 700; letter-spacing: -0.022em;
+  margin: 0 0 6px;
+}
+.tool-header p { color: var(--muted); margin: 0; font-size: 0.92rem; max-width: 68ch; }
+
+.tool-grid { display: grid; gap: 16px; grid-template-columns: 1fr; padding-bottom: 32px; }
+@media (min-width: 980px) {
+  .tool-grid { grid-template-columns: 340px 1fr; align-items: start; }
+  .panel-detail { grid-column: 1 / -1; }
+}
+@media (min-width: 1320px) {
+  .tool-grid { grid-template-columns: 330px 1fr 360px; }
+  .panel-detail { grid-column: auto; }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+/* Panel başlığı ayracıyla birlikte gelir — kutu yerine çizgi hiyerarşisi */
+.panel h2 {
+  font-family: var(--font-mono);
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--muted);
+  margin: 0 0 16px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.panel h2.section { margin-top: 26px; }
+
+/* ---------- Fields ---------- */
+
+.field { display: block; margin-bottom: 14px; }
+.field-label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+.field-row { display: flex; gap: 8px; }
+.field-row input, .field-row select, .select-only {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 9px 11px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.field-row input { flex: 1; min-width: 0; }
+.field-row input:focus, .field-row select:focus, .select-only:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.field-row select { flex: 0 0 auto; }
+.select-only { width: 100%; }
+.field-hint { display: block; font-size: 0.73rem; color: var(--muted); margin-top: 5px; }
+
+.seg {
+  display: flex; background: var(--raised);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 3px; gap: 3px; margin-bottom: 18px;
+}
+.seg button {
+  flex: 1; background: transparent; color: var(--muted);
+  border: none; border-radius: 4px; padding: 8px 6px; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.82rem; font-weight: 500;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.seg button:hover:not(.on) { color: var(--text); }
+.seg button.on { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Satır listesi ---------- */
+
+.row-list { display: block; margin-bottom: 16px; }
+.row-list-head, .row-list-item {
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr 22px;
+  gap: 6px; align-items: center;
+}
+.row-list-head {
+  font-family: var(--font-mono); font-size: 0.64rem;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 6px;
+}
+.row-list-item { margin-bottom: 6px; }
+.row-list-item .idx {
+  font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); text-align: right;
+}
+.row-list-item .cell { display: flex; gap: 4px; min-width: 0; }
+.row-list-item .cell input,
+.row-list-item .cell select {
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: 5px; color: var(--text); font-family: var(--font-mono);
+  padding: 6px 8px;
+}
+.row-list-item .cell input { flex: 1; min-width: 0; font-size: 0.84rem; }
+.row-list-item .cell select { flex: 0 0 auto; font-size: 0.78rem; padding: 6px 4px; }
+.row-list-item .cell input:focus, .row-list-item .cell select:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.row-list-item button.act {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--muted); font-size: 1rem; line-height: 1;
+}
+.row-list-item button.act:hover:not(:disabled) { color: var(--danger); }
+.row-list-item button.act:disabled { opacity: 0.3; cursor: default; }
+
+.row-add {
+  margin-top: 6px;
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); color: var(--muted); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.78rem; padding: 7px 12px;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.row-add:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.row-add:disabled { opacity: 0.4; cursor: default; }
+
+.check-row {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 0.85rem; color: var(--muted);
+  margin: 16px 0 10px; cursor: pointer;
+}
+.check-row input { accent-color: var(--accent); }
+
+/* ---------- Results ---------- */
+
+.big-result { margin-bottom: 8px; }
+.big-result .label {
+  font-size: 0.72rem; color: var(--muted);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+.big-result .value {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 2.6rem; letter-spacing: -0.03em;
+  color: var(--text); line-height: 1.15; margin-top: 2px;
+}
+.big-result .alt {
+  font-family: var(--font-mono); font-size: 0.84rem;
+  color: var(--muted); margin-top: 4px;
+}
+
+/* Durum çipi dolgulu — açık zeminde kontur çip zayıf kalıyor */
+.status {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 12px 0 16px; padding: 4px 11px;
+  border-radius: 999px; font-family: var(--font-mono); font-size: 0.73rem;
+  border: 1px solid transparent;
+}
+.status::before {
+  content: ''; width: 6px; height: 6px; border-radius: 999px;
+  background: currentColor; flex: 0 0 auto;
+}
+.status.ok { color: var(--accent); background: var(--accent-soft); }
+.status.warn { color: var(--warn); background: var(--warn-soft); }
+.status.danger { color: var(--danger); background: var(--danger-soft); }
+
+.result-table { width: 100%; border-collapse: collapse; }
+.result-table td {
+  padding: 8px 0; border-top: 1px solid var(--line);
+  font-size: 0.86rem; vertical-align: top;
+}
+.result-table tr:first-child td { border-top: none; }
+.result-table td:first-child { color: var(--muted); padding-right: 14px; }
+.result-table td:last-child {
+  text-align: right; font-family: var(--font-mono); white-space: nowrap;
+}
+.result-table td .sub { color: var(--muted); font-size: 0.76rem; }
+
+.mini-head td {
+  font-family: var(--font-mono); font-size: 0.66rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--muted); padding-top: 16px;
+}
+
+.empty-note { color: var(--muted); font-size: 0.86rem; }
+.empty-note.warn { color: var(--warn); }
+
+/* Yöntem notu — sonucun nereden geldiğini söyleyen satır. Tasarımda
+   susturulmaz: sol kenar çizgisi onu gövde metninden ayırır. */
+.method-note {
+  margin: 0 0 14px; padding: 8px 0 8px 12px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.73rem; line-height: 1.6;
+}
+
+/* ---------- Detail panel ---------- */
+
+.formula {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.79rem;
+  line-height: 1.75;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0 0 16px;
+  color: var(--text);
+}
+.detail-list { margin: 0 0 14px; padding-left: 18px; font-size: 0.82rem; color: var(--muted); }
+.detail-list li { margin-bottom: 6px; }
+.detail-list.warn-list li { color: var(--warn); }
+.detail-list .w { color: var(--warn); }
+
+/* ---------- Devre şeması ---------- */
+
+.schematic {
+  margin: 0 0 18px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 12px 10px;
+}
+.schematic svg { display: block; width: 100%; height: auto; }
+.schematic figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.67rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 8px;
+}
+.sch-wire { stroke: var(--accent-dim); stroke-width: 2; fill: none; stroke-linecap: round; }
+.sch-part { stroke: var(--accent); stroke-width: 2; fill: var(--surface); }
+.sch-part.off { stroke: var(--line-strong); }
+.sch-dash { stroke-dasharray: 4 3; }
+.sch-node { fill: var(--accent); }
+.sch-body { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1; }
+/* Açık zeminde bantlar kılcal konturla çevrilir — beyaz ve gümüş bant
+   aksi hâlde beyaz gövdenin üzerinde kaybolur. */
+.sch-band { stroke: var(--line-strong); stroke-width: 0.5; }
+.band-black { fill: var(--band-black); }
+.band-brown { fill: var(--band-brown); }
+.band-red { fill: var(--band-red); }
+.band-orange { fill: var(--band-orange); }
+.band-yellow { fill: var(--band-yellow); }
+.band-green { fill: var(--band-green); }
+.band-blue { fill: var(--band-blue); }
+.band-violet { fill: var(--band-violet); }
+.band-grey { fill: var(--band-grey); }
+.band-white { fill: var(--band-white); }
+.band-gold { fill: var(--band-gold); }
+.band-silver { fill: var(--band-silver); }
+
+.sch-dielectric { fill: var(--bg); stroke: var(--line-strong); stroke-width: 1; }
+.sch-copper { fill: var(--accent); stroke: var(--accent); stroke-width: 1; }
+.sch-copper-fill { fill: var(--accent-soft); stroke: var(--accent-dim); stroke-width: 1; }
+.sch-dim { stroke: var(--muted); stroke-width: 1; }
+.sch-hole { fill: var(--surface); }
+.sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
+.sch-arrow-head { fill: var(--accent); }
+.sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; }
+.sch-label.dim { fill: var(--muted); }
+.sch-value { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+
+/* ---------- Mühendislik yorumu ---------- */
+
+.commentary { list-style: none; margin: 18px 0 0; padding: 0; }
+.commentary li {
+  display: flex; gap: 10px; align-items: baseline;
+  font-size: 0.845rem; line-height: 1.55;
+  padding: 9px 0; border-top: 1px solid var(--line);
+  color: var(--text);
+}
+.commentary .mark {
+  flex: 0 0 auto; width: 1.1em;
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600;
+}
+.commentary li.ok .mark { color: var(--accent); }
+.commentary li.warn .mark { color: var(--warn); }
+.commentary li.danger .mark { color: var(--danger); }
+
+/* ---------- Grafik ---------- */
+
+.panel-chart { margin-bottom: 32px; }
+.chart-head {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.chart-head .seg { margin-bottom: 0; flex: 0 1 auto; }
+.chart-head h2 { margin: 0; padding-bottom: 0; border-bottom: none; }
+.chart-figure { margin: 0; }
+.chart-figure svg { display: block; width: 100%; height: auto; touch-action: none; }
+.chart-figure figcaption {
+  font-size: 0.79rem; color: var(--muted); margin-top: 12px; max-width: 82ch;
+}
+
+/* Seri tonu tek değişken üzerinden dağıtılır: eleman `tone-N` sınıfını alır,
+   çizim kuralları var(--tone) kullanır. JSX içine renk yazılmaz. */
+.tone-1 { --tone: var(--series-1); }
+.tone-2 { --tone: var(--series-2); }
+.tone-3 { --tone: var(--series-3); }
+.tone-4 { --tone: var(--series-4); }
+.tone-muted { --tone: var(--muted); }
+.tone-accent { --tone: var(--accent); }
+
+.chart-grid { stroke: var(--line); stroke-width: 1; }
+.chart-axis { stroke: var(--line-strong); stroke-width: 1; }
+.chart-tick { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-axis-label { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-line { fill: none; stroke: var(--tone); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-band { stroke: none; fill: var(--tone); opacity: 0.14; }
+.chart-dot { fill: var(--tone); }
+.chart-ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 4; fill: none; }
+.chart-ref-label { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+/* Üst üste binen işaretleri yüzeyden ayıran halka */
+.chart-marker-ring { fill: none; stroke: var(--surface); stroke-width: 2; }
+.chart-crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-tip-box { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1; }
+.chart-tip-text { fill: var(--text); font-family: var(--font-mono); font-size: 11px; }
+.chart-tip-text.dim { fill: var(--muted); }
+.chart-empty { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.chart-marker { fill: var(--accent); }
+
+.chart-legend {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  font-size: 0.78rem; color: var(--text);
+}
+.chart-legend .item { display: inline-flex; align-items: center; gap: 7px; }
+.chart-legend .swatch {
+  width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto;
+  background: var(--tone);
+}
+.chart-legend .swatch.line { height: 3px; border-radius: 1px; }
+.chart-legend .swatch.faded { opacity: 0.3; }
+
+.chart-data { margin-top: 16px; }
+.chart-data summary {
+  cursor: pointer; font-family: var(--font-mono); font-size: 0.7rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.chart-data summary:hover { color: var(--accent); }
+.chart-data .scroll { max-height: 260px; overflow: auto; margin-top: 12px; }
+
+/* ---------- Aday çift tablosu ---------- */
+
+.pick-table { width: 100%; border-collapse: collapse; }
+.pick-table th {
+  font-family: var(--font-mono); font-size: 0.66rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  text-align: right; padding: 0 0 8px; border-bottom: 1px solid var(--line-strong);
+}
+.pick-table th:first-child, .pick-table td:first-child { text-align: left; }
+.pick-table td {
+  padding: 7px 0; border-top: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 0.8rem; text-align: right;
+}
+.pick-table tr.pick { cursor: pointer; }
+.pick-table tr.pick:hover td { background: var(--raised); }
+.pick-table tr.on td { color: var(--accent); background: var(--accent-soft); }
+.pick-table td .flag { color: var(--warn); }
+.pick-table th + th, .pick-table td + td { padding-left: 12px; }
+.pick-table + .method-note { margin-top: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
