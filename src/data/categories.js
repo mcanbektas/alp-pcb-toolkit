@@ -16,8 +16,8 @@ export const CATEGORIES = [
     title: 'Via ve Padstack',
     desc: 'Via direnci, akım kapasitesi, via sayısı, endüktans, annular ring, aspect ratio',
     tools: [
-      { id: 'via-props', name: 'Via Properties & Current Capacity' },
-      { id: 'thermal-via', name: 'Thermal Via Array' },
+      { id: 'via-props', name: 'Via Properties & Current Capacity', path: '/arac/via-ozellikleri' },
+      { id: 'thermal-via', name: 'Thermal Via Array', path: '/arac/termal-via' },
     ],
   },
   {

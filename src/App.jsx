@@ -8,6 +8,8 @@ import LedOhmRlc from './pages/tools/LedOhmRlc'
 import TimingCrystal from './pages/tools/TimingCrystal'
 import PowerPlane from './pages/tools/PowerPlane'
 import CopperConverter from './pages/tools/CopperConverter'
+import ViaProperties from './pages/tools/ViaProperties'
+import ThermalVia from './pages/tools/ThermalVia'
 
 function Layout({ children }) {
   return (
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
           <Route path="/arac/guc-duzlemi" element={<PowerPlane />} />
           <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
+          <Route path="/arac/via-ozellikleri" element={<ViaProperties />} />
+          <Route path="/arac/termal-via" element={<ThermalVia />} />
         </Routes>
       </Layout>
     </HashRouter>

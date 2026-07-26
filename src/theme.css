@@ -411,6 +411,8 @@ a:hover { text-decoration: underline; }
 /* Geniş bakır alanı — dolgu, kenarı belirgin */
 .sch-copper-fill { fill: var(--green-deep); stroke: var(--accent-dim); stroke-width: 1; }
 .sch-dim { stroke: var(--muted); stroke-width: 1; }
+/* Delik boşluğu — bakırın olmadığı alan */
+.sch-hole { fill: var(--bg); }
 .sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
 .sch-arrow-head { fill: var(--accent); }
 .sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; }
