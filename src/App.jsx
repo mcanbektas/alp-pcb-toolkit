@@ -10,6 +10,8 @@ import PowerPlane from './pages/tools/PowerPlane'
 import CopperConverter from './pages/tools/CopperConverter'
 import ViaProperties from './pages/tools/ViaProperties'
 import ThermalVia from './pages/tools/ThermalVia'
+import SingleEnded from './pages/tools/SingleEnded'
+import DiffPair from './pages/tools/DiffPair'
 
 function Layout({ children }) {
   return (
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
           <Route path="/arac/via-ozellikleri" element={<ViaProperties />} />
           <Route path="/arac/termal-via" element={<ThermalVia />} />
+          <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
+          <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
         </Routes>
       </Layout>
     </HashRouter>

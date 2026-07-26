@@ -25,8 +25,8 @@ export const CATEGORIES = [
     title: 'Kontrollü Empedans',
     desc: 'Microstrip, stripline, coplanar waveguide ve diferansiyel çift',
     tools: [
-      { id: 'single-ended', name: 'Single-Ended Impedance' },
-      { id: 'diff-pair', name: 'Differential Pair Impedance' },
+      { id: 'single-ended', name: 'Single-Ended Impedance', path: '/arac/tek-uclu-empedans' },
+      { id: 'diff-pair', name: 'Differential Pair Impedance', path: '/arac/diferansiyel-cift' },
     ],
   },
   {
