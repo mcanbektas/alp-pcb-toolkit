@@ -202,6 +202,40 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
 - **İdeal CPW denklemi grounded CPW sonucu olarak sunulmaz** (`docs/spec.md` §6.7). Grounded
   CPW alan çözücü fazına bırakılmıştır; kapalı form fazında bu yapı hiç sunulmaz.
 
+- **Bilinen sapma — diferansiyel çift kuplaj katsayısı.** `impedance.js` içindeki
+  `differentialPair()`, spec §6.8.1'in istediği Maxwell kapasitans matrisi rotasını
+  (`C_odd = C₁₁ − C₁₂`, `C_even = C₁₁ + C₁₂`, `Z = 1/(c·√(C·C₀))`) **uygulamıyor**. `C₁₁` ve
+  `C₁₂` için kapalı form yoktur; kapasitans matrisi alan çözücüden çıkar. Yerine ampirik bir
+  kuplaj katsayısı kullanılıyor:
+
+  ```
+  microstrip: k_c = 0.48·exp(−0.96·S/H)
+  stripline:  k_c = 0.347·exp(−2.9·S/b)
+  Z_odd = Z₀·(1 − k_c),  Z_even = Z₀·(1 + k_c)
+  ```
+
+  **Bu iki ifadenin kaynağı `docs/spec.md`'de yok** — sayısal katsayıları ve geçerlilik
+  aralıkları spec'ten doğrulanamıyor. Kod bunu şu şekilde görünür kılar, üçü de zorunludur:
+  1. Sonuç `method: METHOD_EMPIRICAL` (`'empirical-coupling'`) taşır, `'closed-form'` değil.
+     Tek uçlu formun kendi etiketi ayrıca `singleMethod` alanında döner. Yeni bir kod
+     `method === METHOD_CLOSED_FORM` kontrolü yazarken bu ayrımı bozmamalı.
+  2. `capacitanceMatrix: false` alanı §6.8.1 rotasının uygulanmadığını açıkça bildirir.
+  3. Diferansiyel ekranda hem `METHOD_NOTE` hem `COUPLING_SOURCE_NOTE` gösterilir; sonuç
+     üretim kararı verilecekmiş gibi sunulmaz (yığın onayı / panel çıkışı / empedans kuponu
+     için alan çözücü ya da üretici ölçümü şart).
+
+  Silinmiyor çünkü çift için çalışan tek motor bu. Alan çözücü fazında §6.8.1 rotasıyla
+  bütünüyle değiştirilecek. Bu arada **aynı gerekçeyle yeni ampirik formül eklenmez** —
+  kaynağı spec'te olmayan bir denklem, kapalı formdan gelmiş gibi sunulamaz.
+
+- **Türetilemeyen büyüklük uydurulmaz.** Far-end crosstalk (FEXT) modal hız farkına bağlıdır.
+  Diferansiyel çift motoru tek bir εeff kullanır; bu, iki modun hızını özdeş varsaymak
+  demektir ve o varsayım altında FEXT katsayısı `K_f = −½·t_pd·(C_m/C − L_m/L)` özdeş olarak
+  **sıfır** çıkar. Microstrip'te FEXT genelde baskın crosstalk olduğu için bu sıfır yanlıştır.
+  Bu yüzden `signalIntegrity.js` FEXT'i `Z_odd`/`Z_even`'den türetmez: kullanıcı odd ve even
+  mod εeff değerlerini elle girerse hesaplar, girmezse `SI_ERR_NO_FEXT` döndürür. Kapalı
+  formdan geliyormuş gibi sunulan yanlış bir sayı, sonuç vermemekten kötüdür.
+
 ## Sonuç sunumu
 
 Her sonuç; kullanılan denklem, ara değerler, geçerlilik sınırı ve mühendislik yorumuyla

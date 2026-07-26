@@ -2,7 +2,11 @@
 //
 // SÖZLEŞME: Bu modüldeki her empedans fonksiyonu
 //   { Z0, epsEff, method, ... }
-// döndürür. `method` alanı 'closed-form' | 'field-solver' değerini taşır.
+// döndürür. `method` alanı
+//   'closed-form'        → denklemi spec'te tanımlı kapalı form
+//   'empirical-coupling' → kaynağı spec'te OLMAYAN ampirik yaklaşım
+//   'field-solver'       → alan çözücü
+// değerlerinden birini taşır.
 // Alan çözücü sonradan aynı arayüzün arkasına girer; arayüz değişmez.
 //
 // Kapalı form sonuçları üretim için önerilen sonuç DEĞİLDİR (spec §6.1).
@@ -16,6 +20,12 @@ import { solveBounded } from './solve'
 
 export const METHOD_CLOSED_FORM = 'closed-form'
 export const METHOD_FIELD_SOLVER = 'field-solver'
+
+// Ampirik yaklaşım — kapalı formla AYNI KEFEYE KONMAZ. Kapalı formların
+// denklemi docs/spec.md'de tanımlıdır ve oradan alınmıştır; bu etiketi taşıyan
+// sonucun denklemi spec'te yoktur (bkz. §6.8 kuplaj notu). Arayüz bu ayrımı
+// göstermek zorundadır.
+export const METHOD_EMPIRICAL = 'empirical-coupling'
 
 export const IMP_ERR_INVALID = 'invalid'
 export const IMP_ERR_NO_SOLUTION = 'no-solution'
@@ -188,15 +198,32 @@ export function coplanarWaveguide({ W, S, epsR }) {
 
 // --- §6.8 Diferansiyel çift (kenar bağlı) ---
 //
-// Kapalı form fazında yaygın ampirik kuplaj yaklaşımı kullanılır:
+// BİLİNEN SAPMA — bu blok spec'i uygulamıyor, yerine geçici bir yaklaşım
+// koyuyor. Spec §6.8.1 odd/even empedansları Maxwell kapasitans matrisinden
+// istiyor:
+//   C_odd = C₁₁ − C₁₂, C_even = C₁₁ + C₁₂
+//   Z_odd = 1 / (c·√(C_odd·C₀,odd)),  Z_even = 1 / (c·√(C_even·C₀,even))
+// C₁₁ ve C₁₂ için kapalı form YOKTUR; kapasitans matrisi alan çözücüden çıkar.
+// Çözücü olmadığı için burada bunun yerine ampirik bir kuplaj katsayısı
+// kullanılıyor:
 //   Z_odd  ≈ Z0·(1 − k_c)
 //   Z_even ≈ Z0·(1 + k_c)
 // Microstrip için  k_c = 0.48·exp(−0.96·S/H)
 // Stripline için   k_c = 0.347·exp(−2.9·S/b)
 //
-// Z_diff = 2·Z_odd, Z_common = Z_even / 2 (spec §6.8.1, §16.4).
-// Gerçek kapasitans matrisi alan çözücüden gelir; bu yaklaşım yalnızca
-// simetrik çift ve zayıf-orta kuplaj içindir.
+// Bu iki k_c ifadesinin KAYNAĞI SPEC'TE YOK. Sayısal katsayıları spec'ten
+// doğrulanamıyor, geçerlilik aralıkları da spec'ten gelmiyor. Bu yüzden
+// sonuç `method: METHOD_EMPIRICAL` taşır ve kapalı form sonuçlarıyla aynı
+// güven seviyesinde sunulamaz. Alan çözücü fazında bu blok §6.8.1 rotasıyla
+// bütünüyle değiştirilecektir.
+//
+// Türetilmiş büyüklükler spec'e uygundur: Z_diff = 2·Z_odd,
+// Z_common = Z_even / 2 (spec §6.8.1, §16.4) — sapma yalnızca Z_odd/Z_even'in
+// nereden geldiğindedir.
+//
+// Yaklaşım yalnızca simetrik çift ve zayıf-orta kuplaj içindir. Tek bir εeff
+// kullandığı için iki modun hızını eşit varsayar; modal hız farkı ve dolayısıyla
+// far-end crosstalk bu modelden ÇIKARILAMAZ (bkz. signalIntegrity.js §7.6).
 
 export const COUPLING = {
   microstrip: { a: 0.48, b: 0.96 },
@@ -238,8 +265,14 @@ export function differentialPair({ structure = 'microstrip', W, S, H, t = 0, eps
     // Sözleşme gereği tek uçlu değerler de aynı adlarla döner
     Z0: single.Z0,
     epsEff: single.epsEff,
-    method: METHOD_CLOSED_FORM,
+    // Tek uçlu Z0 kapalı formdan gelse de çiftin sonucunu ampirik kuplaj
+    // belirliyor; sonucun etiketi en zayıf halkayı gösterir.
+    method: METHOD_EMPIRICAL,
+    // Tek uçlu formun yöntemi ayrıca taşınır ki arayüz ikisini ayırabilsin
+    singleMethod: single.method,
     model: `${single.model}+empirical-coupling`,
+    // Spec §6.8.1 kapasitans matrisi rotası uygulanmadı
+    capacitanceMatrix: false,
     structure,
     Zodd, Zeven,
     Zdiff: 2 * Zodd,

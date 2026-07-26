@@ -12,33 +12,36 @@ import {
   MODE_ANALYSIS, MODE_SYNTHESIS, compute, buildSweep,
 } from './model'
 import {
-  STRUCT_LABEL, FIXED_LABEL, METHOD_NOTE, CHART_SPACING, CHART_WIDTH,
-  reasonText, commentary,
+  STRUCT_LABEL, FIXED_LABEL, METHOD_NOTE, COUPLING_SOURCE_NOTE,
+  CHART_SPACING, CHART_WIDTH, reasonText, commentary,
 } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const DIM_UNITS = ['mm', 'um', 'mil']
 
-const FORMULA = `Tek uçlu Z₀: yapının kapalı formundan
-  (microstrip → Hammerstad–Jensen,
-   stripline  → eliptik integral)
+const FORMULA = `Tek uçlu Z₀ — kapalı form, spec §6.4/§6.6:
+  microstrip → Hammerstad–Jensen
+  stripline  → eliptik integral
 
-Kuplaj katsayısı (ampirik):
+Kuplaj katsayısı — AMPİRİK, spec'te YOK:
   microstrip: k_c = 0.48·exp(−0.96·S/H)
   stripline:  k_c = 0.347·exp(−2.9·S/b)
 
-Z_odd  = Z₀·(1 − k_c)
-Z_even = Z₀·(1 + k_c)
+  Z_odd  = Z₀·(1 − k_c)
+  Z_even = Z₀·(1 + k_c)
 
-Z_diff   = 2·Z_odd
-Z_common = Z_even / 2
-
-Alan çözücü fazında bunların yerine
-kapasitans matrisi kullanılacak:
+Spec §6.8.1'in istediği rota — UYGULANMADI:
   C_odd  = C₁₁ − C₁₂
   C_even = C₁₁ + C₁₂
-  Z_odd  = 1 / (c·√(C_odd·C₀_odd))`
+  Z_odd  = 1 / (c·√(C_odd·C₀,odd))
+  Z_even = 1 / (c·√(C_even·C₀,even))
+  C₁₁, C₁₂ için kapalı form yok;
+  kapasitans matrisi alan çözücüden çıkar.
+
+Türetilenler spec'e uygun (§6.8.1, §16.4):
+  Z_diff   = 2·Z_odd
+  Z_common = Z_even / 2`
 
 export default function DiffPair() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
@@ -191,6 +194,7 @@ export default function DiffPair() {
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
               <p className="method-note">{METHOD_NOTE}</p>
+              <p className="method-note">{COUPLING_SOURCE_NOTE}</p>
 
               <table className="result-table">
                 <tbody>
@@ -262,7 +266,11 @@ export default function DiffPair() {
 
           {r.ok && (
             <ul className="detail-list">
-              <li>Model: {r.model}; yöntem alanı `{r.method}`.</li>
+              <li>
+                Model: {r.model}. Çiftin yöntem alanı `{r.method}`, tek uçlu formunki
+                `{r.singleMethod}` — ikisi aynı güven seviyesinde değildir.
+              </li>
+              <li>Kapasitans matrisi rotası (spec §6.8.1) uygulandı mı: hayır.</li>
               <li>Kuplaj katsayısı {fmt(r.coupling, 5)}; S/H = {fmt(r.ratio, 4)}.</li>
               {r.mode === MODE_SYNTHESIS && (
                 <li>
@@ -281,14 +289,26 @@ export default function DiffPair() {
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             <li>
-              Kuplaj ampirik bir yaklaşımdır ve simetrik çift içindir. Gerçek odd/even mod
-              empedansları kapasitans matrisinden çıkar; bu alan çözücü fazına bırakılmıştır.
+              <strong>Bilinen sapma:</strong> kuplaj katsayısının kaynağı docs/spec.md'de yok.
+              Sayısal katsayıları ve geçerlilik aralığı spec'ten doğrulanamıyor; sonuç bu
+              nedenle kapalı form sonuçlarıyla aynı kefeye konmaz. Alan çözücü fazında §6.8.1
+              kapasitans matrisi rotasıyla değiştirilecektir.
             </li>
-            <li>Yaklaşım S/H ≥ 0.2 civarında güvenilirdir; çok sıkı kuplajda sapar.</li>
+            <li>
+              Yaklaşım simetrik çift ve zayıf-orta kuplaj içindir; S/H ≥ 0.2 civarında
+              güvenilirdir, çok sıkı kuplajda sapar.
+            </li>
+            <li>
+              Bu ekranın Z_diff değeriyle üretim kararı verilmemelidir. Yığın onayı, panel
+              çıkışı ve empedans kontrol kuponu için alan çözücü sonucu veya üretici ölçümü
+              gerekir.
+            </li>
             <li>Asimetrik diferansiyel stripline ve coplanar diferansiyel çift bu fazda yoktur.</li>
             <li>
               Microstrip'te odd ve even mod hızları farklıdır; bu fark mod dönüşümü ve far-end
-              crosstalk üretir, burada modellenmez.
+              crosstalk üretir. Bu ekran tek bir εeff kullandığı için iki modu aynı hızda kabul
+              eder — modal hız farkı, dolayısıyla far-end crosstalk, buradaki sonuçtan
+              türetilemez. Crosstalk ekranı bu değerleri ayrıca ister.
             </li>
             <li>
               Protokol presetleri yalnızca form alanlarını doldurur; sonuç protokole uygunluk

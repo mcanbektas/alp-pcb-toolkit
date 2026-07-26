@@ -5,7 +5,7 @@ import {
   stripline, coplanarWaveguide,
   differentialPair, couplingFactor,
   solveWidthForZ0, solveSpacingForZdiff, impedanceTolerance,
-  METHOD_CLOSED_FORM, IMP_ERR_INVALID, IMP_ERR_NO_SOLUTION,
+  METHOD_CLOSED_FORM, METHOD_EMPIRICAL, IMP_ERR_INVALID, IMP_ERR_NO_SOLUTION,
 } from './impedance'
 
 const mm = (x) => x * 1e-3
@@ -194,6 +194,26 @@ describe('diferansiyel çift', () => {
 
   it('çok sıkı kuplajda geçerlilik dışı işaretlenir', () => {
     expect(differentialPair({ ...g, S: mm(0.02) }).inRange).toBe(false)
+  })
+
+  // Kuplaj katsayısının kaynağı spec'te yok; sonuç kapalı formla aynı kefeye
+  // konmamalı. Bu ayrım arayüzün etiketlemesinin dayanağıdır.
+  it('ampirik kuplaj kapalı formdan ayrı etiketlenir', () => {
+    const r = differentialPair(g)
+    expect(r.method).toBe(METHOD_EMPIRICAL)
+    expect(r.method).not.toBe(METHOD_CLOSED_FORM)
+    // Tek uçlu form gerçekten kapalı formdur ve ayrı taşınır
+    expect(r.singleMethod).toBe(METHOD_CLOSED_FORM)
+  })
+
+  it('spec §6.8.1 kapasitans matrisi rotasının uygulanmadığını bildirir', () => {
+    expect(differentialPair(g).capacitanceMatrix).toBe(false)
+    expect(differentialPair({ ...g, structure: 'stripline' }).capacitanceMatrix).toBe(false)
+  })
+
+  it('sentez sonucu da ampirik etiketi taşır', () => {
+    const r = solveSpacingForZdiff({ target: 100, W: mm(0.2), H: mm(0.2), epsR: 4.2 })
+    expect(r.method).toBe(METHOD_EMPIRICAL)
   })
 })
 
