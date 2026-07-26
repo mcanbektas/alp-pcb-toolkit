@@ -6,6 +6,8 @@ import VoltageDivider from './pages/tools/VoltageDivider'
 import ResistorCode from './pages/tools/ResistorCode'
 import LedOhmRlc from './pages/tools/LedOhmRlc'
 import TimingCrystal from './pages/tools/TimingCrystal'
+import PowerPlane from './pages/tools/PowerPlane'
+import CopperConverter from './pages/tools/CopperConverter'
 
 function Layout({ children }) {
   return (
@@ -43,6 +45,8 @@ export default function App() {
           <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
           <Route path="/arac/led-ohm-rlc" element={<LedOhmRlc />} />
           <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
+          <Route path="/arac/guc-duzlemi" element={<PowerPlane />} />
+          <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
         </Routes>
       </Layout>
     </HashRouter>

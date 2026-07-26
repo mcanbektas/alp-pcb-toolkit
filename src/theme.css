@@ -245,6 +245,56 @@ a:hover { text-decoration: underline; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button.on { background: var(--green-deep); color: var(--text); }
 
+/* ---------- Satır listesi ---------- */
+
+.row-list { display: block; margin-bottom: 16px; }
+.row-list-head, .row-list-item {
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr 22px;
+  gap: 6px; align-items: center;
+}
+.row-list-head {
+  font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 4px;
+}
+.row-list-item { margin-bottom: 6px; }
+.row-list-item .idx {
+  font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); text-align: right;
+}
+.row-list-item .cell { display: flex; gap: 4px; min-width: 0; }
+.row-list-item .cell input {
+  flex: 1; min-width: 0;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--text); font-family: var(--font-mono); font-size: 0.84rem;
+  padding: 6px 8px;
+}
+.row-list-item .cell select {
+  flex: 0 0 auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--text); font-family: var(--font-mono); font-size: 0.78rem;
+  padding: 6px 4px;
+}
+.row-list-item .cell input:focus, .row-list-item .cell select:focus {
+  outline: none; border-color: var(--accent-dim);
+}
+.row-list-item button.act {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--muted); font-size: 1rem; line-height: 1;
+}
+.row-list-item button.act:hover:not(:disabled) { color: var(--danger); }
+.row-list-item button.act:disabled { opacity: 0.3; cursor: default; }
+
+.row-add {
+  margin-top: 4px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--muted); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.78rem;
+  padding: 6px 10px;
+}
+.row-add:hover:not(:disabled) { border-color: var(--accent-dim); color: var(--accent); }
+.row-add:disabled { opacity: 0.4; cursor: default; }
+
 .check-row {
   display: flex; align-items: center; gap: 8px;
   font-size: 0.85rem; color: var(--muted);
@@ -358,6 +408,8 @@ a:hover { text-decoration: underline; }
 
 .sch-dielectric { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
 .sch-copper { fill: var(--accent); stroke: var(--accent); stroke-width: 1; }
+/* Geniş bakır alanı — dolgu, kenarı belirgin */
+.sch-copper-fill { fill: var(--green-deep); stroke: var(--accent-dim); stroke-width: 1; }
 .sch-dim { stroke: var(--muted); stroke-width: 1; }
 .sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
 .sch-arrow-head { fill: var(--accent); }

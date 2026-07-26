@@ -7,8 +7,8 @@ export const CATEGORIES = [
     desc: 'Yol genişliği, akım kapasitesi, direnç, gerilim düşümü, güç kaybı, bakır kalınlığı',
     tools: [
       { id: 'trace-width', name: 'Trace Width & Current Capacity', path: '/arac/trace-width' },
-      { id: 'power-plane', name: 'Power Plane & Parallel Trace' },
-      { id: 'cu-converter', name: 'Copper Thickness Converter' },
+      { id: 'power-plane', name: 'Power Plane & Parallel Trace', path: '/arac/guc-duzlemi' },
+      { id: 'cu-converter', name: 'Copper Thickness Converter', path: '/arac/bakir-donusturucu' },
     ],
   },
   {

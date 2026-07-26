@@ -90,6 +90,38 @@ export function readForm(form, specs) {
   return { values, ambiguous, invalid, ok: ambiguous.length === 0 && invalid.length === 0 }
 }
 
+/**
+ * Satır listesi okur (paralel yollar, stack-up katmanları, kapasitör ağı gibi).
+ *
+ * Her satır kendi içinde aynı alan tanımlarını taşır. Hatalı satırın numarası
+ * etikete eklenir, böylece kullanıcı hangi satırı düzelteceğini bilir.
+ *
+ * @returns {{ rows: object[], ambiguous: string[], invalid: string[], ok: boolean }}
+ */
+export function readRows(rows, specs, rowLabel = 'Satır') {
+  const out = []
+  const ambiguous = []
+  const invalid = []
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return { rows: [], ambiguous, invalid: [rowLabel], ok: false }
+  }
+
+  rows.forEach((row, i) => {
+    const values = {}
+    for (const spec of specs) {
+      const label = `${rowLabel} ${i + 1} — ${spec.label}`
+      const r = readField(row, spec)
+      if (r.error === FIELD_ERR_AMBIGUOUS) ambiguous.push(label)
+      else if (r.error) invalid.push(label)
+      else values[spec.key] = r.value
+    }
+    out.push(values)
+  })
+
+  return { rows: out, ambiguous, invalid, ok: ambiguous.length === 0 && invalid.length === 0 }
+}
+
 // Koşullu alan listesi kurmayı okunur kılar:
 //   fieldsFor([ base, when(f.tol, tolFields) ])
 export function when(condition, specs) {
