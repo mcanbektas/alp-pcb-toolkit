@@ -12,6 +12,7 @@ import ViaProperties from './pages/tools/ViaProperties'
 import ThermalVia from './pages/tools/ThermalVia'
 import SingleEnded from './pages/tools/SingleEnded'
 import DiffPair from './pages/tools/DiffPair'
+import PropDelay from './pages/tools/PropDelay'
 
 function Layout({ children }) {
   return (
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/arac/termal-via" element={<ThermalVia />} />
           <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
           <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
+          <Route path="/arac/yayilma-gecikmesi" element={<PropDelay />} />
         </Routes>
       </Layout>
     </HashRouter>
