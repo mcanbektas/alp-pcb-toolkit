@@ -10,6 +10,12 @@ export const SI_ERR_INVALID = 'invalid'
 export const SI_ERR_NEGATIVE_SERIES = 'negative-series'
 export const SI_ERR_NO_FEXT = 'fext-needs-modal-eps'
 
+// impedance.js'teki ayrımın aynısı: denklemi spec'te tanımlı olmayan sonuçlar
+// kapalı formlarla aynı etikete girmez. §7.2 – §7.5 ve §7.7 denklemleri
+// spec'te var; §7.6 crosstalk kestirimi ise yok (aşağıdaki nota bak).
+export const SI_METHOD_CLOSED_FORM = 'closed-form'
+export const SI_METHOD_EMPIRICAL = 'empirical-coupling'
+
 // --- §7.2 Dalga boyu ve elektriksel uzunluk ---
 
 export function wavelength({ f, epsEff }) {
@@ -139,15 +145,33 @@ export function skew({ lengthP, lengthN, epsEff, epsEffN = null, skewMax = null 
 
 // --- §7.6 Crosstalk ---
 //
-// 3W yalnızca geometrik bir tasarım kontrolüdür; crosstalk hesabı değildir.
-// Kapalı form fazında NEXT, bağlı hat modal empedanslarından türetilir:
-//   K_b = (Z_even − Z_odd) / (2·(Z_even + Z_odd))
-// Doyma uzunluğu: L_sat = c·t_r / (2·√εeff). Paralel uzunluk bunun altındaysa
-// NEXT doğrusal ölçeklenir.
+// BİLİNEN SAPMA — bu blok spec'i uygulamıyor. Spec §7.6 çok iletkenli iletim
+// hattı çözümü istiyor: kapasitans matrisi 2B alan çözücüden, L = μ₀ε₀·C₀⁻¹,
+// G ≈ ω·tanδ·C, aggressor sinyali FFT ile frekans alanına, her frekansta
+// e^(−Mℓ) çözümü, IFFT ile zaman alanına. Alan çözücü olmadan bunun hiçbir
+// adımı yapılamaz.
 //
-// FEXT modal hız farkına bağlıdır ve kapalı form bunu vermez. Kullanıcı odd ve
-// even mod εeff değerlerini girerse hesaplanır, girmezse hesaplanmaz —
-// uydurulmaz.
+// Yerine kestirim konuyor. Bu ifadelerin KAYNAĞI SPEC'TE YOK:
+//   K_b   = (Z_even − Z_odd) / (2·(Z_even + Z_odd))     ← NEXT katsayısı
+//   L_sat = t_r / (2·t_pd)                              ← doyma uzunluğu
+//   V_FEXT ≈ (Δt / t_r)·V_agg/2                         ← FEXT tepe gerilimi
+// Paralel uzunluk L_sat altındaysa NEXT doğrusal ölçeklenir.
+//
+// Bu yüzden sonuç `method: SI_METHOD_EMPIRICAL` ve `multiconductorModel: false`
+// taşır; arayüz bunu kapalı form sonuçlarıyla aynı güven seviyesinde
+// sunamaz. Spec'te yalnızca 3W kontrolü (S ≥ 3W) birebir tanımlıdır ve o da
+// açıkça yalnızca geometrik bir kontroldür — crosstalk hesabı değildir,
+// sağlandığında "crosstalk yoktur" denmez.
+//
+// FEXT modal hız farkına bağlıdır ve mevcut motorların hiçbiri bunu vermez.
+// impedance.js diferansiyel çift bloğu tek bir εeff kullanır; bu iki modun
+// hızını özdeş varsaymak demektir ve o varsayım altında FEXT katsayısı
+//   K_f = −½·t_pd·(C_m/C − L_m/L)
+// özdeş olarak SIFIR çıkar. Microstrip'te FEXT genelde baskın crosstalk
+// olduğundan bu sıfır yanlıştır; kapalı formdan geliyormuş gibi sunulan yanlış
+// bir sayı, sonuç vermemekten kötüdür.
+// Bu yüzden: kullanıcı odd ve even mod εeff değerlerini girerse hesaplanır,
+// girmezse hesaplanmaz — Z_odd/Z_even'den türetilmez, uydurulmaz.
 
 // Geometri karşılaştırması bağıl toleransla yapılır: kullanıcı W = 0.2 mm ve
 // S = 0.6 mm girdiğinde 3·W ile S kayan noktada son bitte ayrışır ve tam
@@ -192,6 +216,10 @@ export function crosstalk({
   const Vnext = kb.Kb * Vagg * scale
 
   const out = {
+    // Denklemleri spec'te olmayan kestirim; §7.6'nın istediği çok iletkenli
+    // model uygulanmadı
+    method: SI_METHOD_EMPIRICAL,
+    multiconductorModel: false,
     Kb: kb.Kb,
     Lsat,
     saturated,
@@ -206,7 +234,9 @@ export function crosstalk({
 
   // FEXT yalnızca modal hızlar farklıysa vardır. Homojen dielektrikte
   // (stripline) iki mod aynı hızda ilerler ve FEXT sıfırdır.
-  if (epsEffOdd > 0 && epsEffEven > 0) {
+  // εeff < 1 fiziksel değil (mod ışıktan hızlı olurdu); NEXT tarafındaki
+  // εeff kontrolüyle aynı eşik uygulanır.
+  if (epsEffOdd >= 1 && epsEffEven >= 1) {
     const tpdOdd = delayPerLength(epsEffOdd)
     const tpdEven = delayPerLength(epsEffEven)
     const dt = Math.abs(tpdEven - tpdOdd) * coupledLength

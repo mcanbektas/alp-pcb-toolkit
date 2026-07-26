@@ -5,6 +5,7 @@ import {
   threeWRule, nextCoupling, crosstalk,
   seriesTermination, parallelTermination, theveninTermination,
   SI_ERR_INVALID, SI_ERR_NEGATIVE_SERIES, SI_ERR_NO_FEXT,
+  SI_METHOD_CLOSED_FORM, SI_METHOD_EMPIRICAL,
 } from './signalIntegrity'
 import { delayPerLength } from './epsEff'
 import { C0 } from './units'
@@ -205,6 +206,30 @@ describe('crosstalk', () => {
     const r = crosstalk({ ...base, epsEffOdd: 3.2, epsEffEven: 3.2 })
     expect(r.fext.homogeneous).toBe(true)
     expect(r.fext.Vfext).toBeCloseTo(0, 15)
+  })
+
+  it('εeff < 1 fiziksel değildir: FEXT hesaplanmaz', () => {
+    // 0 < εeff < 1 mod hızını c'nin üstüne çıkarır; NEXT tarafındaki
+    // eşikle aynı kontrol uygulanır.
+    for (const bad of [{ epsEffOdd: 0.5, epsEffEven: 3.4 }, { epsEffOdd: 3.0, epsEffEven: 0.9 }]) {
+      const r = crosstalk({ ...base, ...bad })
+      expect(r.fext.available).toBe(false)
+      expect(r.fext.reason).toBe(SI_ERR_NO_FEXT)
+    }
+  })
+
+  it('εeff = 1 sınırı kabul edilir (hava)', () => {
+    const r = crosstalk({ ...base, epsEffOdd: 1, epsEffEven: 1.4 })
+    expect(r.fext.available).toBe(true)
+  })
+
+  // §7.6 çok iletkenli çözümü uygulanmadı; K_b, L_sat ve V_FEXT ifadelerinin
+  // kaynağı spec'te yok. Etiket bunu görünür kılar.
+  it('kestirim olduğunu ve §7.6 modelinin uygulanmadığını bildirir', () => {
+    const r = crosstalk(base)
+    expect(r.method).toBe(SI_METHOD_EMPIRICAL)
+    expect(r.method).not.toBe(SI_METHOD_CLOSED_FORM)
+    expect(r.multiconductorModel).toBe(false)
   })
 })
 

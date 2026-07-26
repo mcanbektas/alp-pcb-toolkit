@@ -228,6 +228,16 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   bütünüyle değiştirilecek. Bu arada **aynı gerekçeyle yeni ampirik formül eklenmez** —
   kaynağı spec'te olmayan bir denklem, kapalı formdan gelmiş gibi sunulamaz.
 
+- **Bilinen sapma — crosstalk kestirimi.** `signalIntegrity.js` `crosstalk()` de spec'i
+  uygulamıyor. Spec §7.6 çok iletkenli iletim hattı çözümü istiyor (kapasitans matrisi 2B alan
+  çözücüden, `L = μ₀ε₀·C₀⁻¹`, `G ≈ ω·tanδ·C`, aggressor sinyali FFT → her frekansta `e^(−Mℓ)`
+  → IFFT). Alan çözücü olmadan hiçbir adımı yapılamıyor. Yerine kullanılan
+  `K_b = (Z_even − Z_odd)/(2·(Z_even + Z_odd))`, `L_sat = t_r/(2·t_pd)` ve
+  `V_FEXT ≈ (Δt/t_r)·V_agg/2` ifadelerinin **kaynağı spec'te yok**. Sonuç bu yüzden
+  `method: SI_METHOD_EMPIRICAL` ve `multiconductorModel: false` taşır; arayüz bunu kapalı form
+  sonuçlarıyla aynı kefeye koymaz. Spec'te birebir tanımlı tek şey 3W kontrolüdür (`S ≥ 3W`) ve
+  o da yalnızca geometrik bir kontroldür — sağlandığında **"crosstalk yoktur" denmez**.
+
 - **Türetilemeyen büyüklük uydurulmaz.** Far-end crosstalk (FEXT) modal hız farkına bağlıdır.
   Diferansiyel çift motoru tek bir εeff kullanır; bu, iki modun hızını özdeş varsaymak
   demektir ve o varsayım altında FEXT katsayısı `K_f = −½·t_pd·(C_m/C − L_m/L)` özdeş olarak
