@@ -4,6 +4,8 @@ import CategoryPage from './pages/CategoryPage'
 import TraceWidth from './pages/tools/TraceWidth'
 import VoltageDivider from './pages/tools/VoltageDivider'
 import ResistorCode from './pages/tools/ResistorCode'
+import LedOhmRlc from './pages/tools/LedOhmRlc'
+import TimingCrystal from './pages/tools/TimingCrystal'
 
 function Layout({ children }) {
   return (
@@ -39,6 +41,8 @@ export default function App() {
           <Route path="/arac/trace-width" element={<TraceWidth />} />
           <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
           <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
+          <Route path="/arac/led-ohm-rlc" element={<LedOhmRlc />} />
+          <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
         </Routes>
       </Layout>
     </HashRouter>

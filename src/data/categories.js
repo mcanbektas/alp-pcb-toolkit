@@ -58,8 +58,8 @@ export const CATEGORIES = [
     tools: [
       { id: 'resistor-code', name: 'Resistor & SMD Code Decoder', path: '/arac/direnc-kodu' },
       { id: 'divider', name: 'Voltage Divider & E-Series Finder', path: '/arac/gerilim-bolucu' },
-      { id: 'led-ohm-rlc', name: 'LED, Ohm Kanunu & RLC' },
-      { id: 'rc-crystal', name: 'RC/RL Zaman Sabiti & Kristal' },
+      { id: 'led-ohm-rlc', name: 'LED, Ohm Kanunu & RLC', path: '/arac/led-ohm-rlc' },
+      { id: 'rc-crystal', name: 'RC/RL Zaman Sabiti & Kristal', path: '/arac/rc-kristal' },
     ],
   },
   {
