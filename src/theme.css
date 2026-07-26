@@ -340,6 +340,22 @@ a:hover { text-decoration: underline; }
 .sch-part.off { stroke: var(--line); }
 .sch-dash { stroke-dasharray: 4 3; }
 .sch-node { fill: var(--accent); }
+/* Direnç gövdesi ve bantları */
+.sch-body { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
+.sch-band { stroke: none; }
+.band-black { fill: var(--band-black); }
+.band-brown { fill: var(--band-brown); }
+.band-red { fill: var(--band-red); }
+.band-orange { fill: var(--band-orange); }
+.band-yellow { fill: var(--band-yellow); }
+.band-green { fill: var(--band-green); }
+.band-blue { fill: var(--band-blue); }
+.band-violet { fill: var(--band-violet); }
+.band-grey { fill: var(--band-grey); }
+.band-white { fill: var(--band-white); }
+.band-gold { fill: var(--band-gold); }
+.band-silver { fill: var(--band-silver); }
+
 .sch-dielectric { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
 .sch-copper { fill: var(--accent); stroke: var(--accent); stroke-width: 1; }
 .sch-dim { stroke: var(--muted); stroke-width: 1; }

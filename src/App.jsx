@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import CategoryPage from './pages/CategoryPage'
 import TraceWidth from './pages/tools/TraceWidth'
 import VoltageDivider from './pages/tools/VoltageDivider'
+import ResistorCode from './pages/tools/ResistorCode'
 
 function Layout({ children }) {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/kategori/:slug" element={<CategoryPage />} />
           <Route path="/arac/trace-width" element={<TraceWidth />} />
           <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
+          <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
         </Routes>
       </Layout>
     </HashRouter>

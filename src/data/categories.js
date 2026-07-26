@@ -56,7 +56,7 @@ export const CATEGORIES = [
     title: 'Komponent ve Devre Hesapları',
     desc: 'Direnç renkleri, SMD kodları, bölücüler, LED, RLC ve kristal kondansatörleri',
     tools: [
-      { id: 'resistor-code', name: 'Resistor & SMD Code Decoder' },
+      { id: 'resistor-code', name: 'Resistor & SMD Code Decoder', path: '/arac/direnc-kodu' },
       { id: 'divider', name: 'Voltage Divider & E-Series Finder', path: '/arac/gerilim-bolucu' },
       { id: 'led-ohm-rlc', name: 'LED, Ohm Kanunu & RLC' },
       { id: 'rc-crystal', name: 'RC/RL Zaman Sabiti & Kristal' },
