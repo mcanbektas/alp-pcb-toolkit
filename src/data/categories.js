@@ -46,9 +46,9 @@ export const CATEGORIES = [
     title: 'Güç Bütünlüğü ve Termal',
     desc: 'PDN hedef empedansı, decoupling, junction sıcaklığı, soğutucu ve termal via',
     tools: [
-      { id: 'pdn', name: 'PDN Target Impedance' },
-      { id: 'decoupling', name: 'Decoupling Network' },
-      { id: 'junction', name: 'Junction Temperature & Heatsink' },
+      { id: 'pdn', name: 'PDN Target Impedance', path: '/arac/pdn-hedef-empedans' },
+      { id: 'decoupling', name: 'Decoupling Network', path: '/arac/decoupling' },
+      { id: 'junction', name: 'Junction Temperature & Heatsink', path: '/arac/junction-sicakligi' },
     ],
   },
   {

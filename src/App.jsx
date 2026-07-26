@@ -17,6 +17,9 @@ import CriticalLength from './pages/tools/CriticalLength'
 import Skew from './pages/tools/Skew'
 import Crosstalk from './pages/tools/Crosstalk'
 import Termination from './pages/tools/Termination'
+import Pdn from './pages/tools/Pdn'
+import Decoupling from './pages/tools/Decoupling'
+import Junction from './pages/tools/Junction'
 
 function Layout({ children }) {
   return (
@@ -65,6 +68,9 @@ export default function App() {
           <Route path="/arac/skew" element={<Skew />} />
           <Route path="/arac/crosstalk" element={<Crosstalk />} />
           <Route path="/arac/terminasyon" element={<Termination />} />
+          <Route path="/arac/pdn-hedef-empedans" element={<Pdn />} />
+          <Route path="/arac/decoupling" element={<Decoupling />} />
+          <Route path="/arac/junction-sicakligi" element={<Junction />} />
         </Routes>
       </Layout>
     </HashRouter>
