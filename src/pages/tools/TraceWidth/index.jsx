@@ -1,175 +1,52 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import NumberField from '../../components/NumberField'
-import SelectField from '../../components/SelectField'
-import Segmented from '../../components/Segmented'
+import NumberField from '../../../components/NumberField'
+import SelectField from '../../../components/SelectField'
+import Segmented from '../../../components/Segmented'
+import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
+import useToolForm from '../../../hooks/useToolForm'
+import { fmt, fmtEng, fmtOhm, fmtVolt, fmtWatt, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { OZ_TABLE, rhoAt } from '../../../lib/traceCalc'
+import { LENGTH } from '../../../lib/units'
+import TraceSchematic from './schematic'
 import {
-  parseNum, parseNumResult, NUM_ERR_THOUSANDS, THOUSANDS_MESSAGE,
-  fmt, fmtOhm, fmtVolt, fmtWatt,
-} from '../../lib/num'
-import {
-  OZ_TABLE, MIL, MIL2_TO_MM2,
-  areaForCurrent_mil2, currentForArea, kCoeff,
-  rhoAt, traceResistance, validityWarnings,
-} from '../../lib/traceCalc'
+  INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS, compute, buildSweep,
+} from './model'
+import { reasonText, METHOD_NOTE, CHART_CAPTION, LAYER_LABEL } from './text'
 
-const LEN_TO_M = { mm: 1e-3, cm: 1e-2, mil: 25.4e-6, inch: 0.0254 }
-const W_TO_MM = { mm: 1, mil: MIL }
-
-function copperUm(f) {
-  if (f.oz === 'custom') return parseNum(f.tCustom)
-  return OZ_TABLE.find((o) => o.key === f.oz)?.um ?? NaN
-}
-
-// Bu modda gerçekten okunan sayısal alanlar; hata mesajında alan adı göstermek için
-function activeFields(mode, f) {
-  const list = [
-    ['I', 'Akım (I)'],
-    ['dT', 'Sıcaklık artışı (ΔT)'],
-    ['Ta', 'Ortam sıcaklığı (Tₐ)'],
-    ['L', 'Yol uzunluğu (L)'],
-  ]
-  if (f.oz === 'custom') list.push(['tCustom', 'Özel bakır kalınlığı'])
-  if (mode === 'ana') list.push(['W', 'Yol genişliği (W)'])
-  if (mode === 'syn') list.push(['margin', 'Güvenlik marjı (M)'])
-  if (String(f.Vs).trim() !== '') list.push(['Vs', 'Besleme gerilimi'])
-  if (f.tol) {
-    list.push(['wTol', 'Genişlik toleransı'], ['tTol', 'Bakır kalınlığı toleransı'])
-  }
-  return list
-}
-
-function thousandsFields(mode, f) {
-  return activeFields(mode, f)
-    .filter(([k]) => parseNumResult(f[k]).error === NUM_ERR_THOUSANDS)
-    .map(([, label]) => label)
-}
-
-// Belirli bir genişlik (mm) için tüm elektriksel sonuçları üretir
-function electricals(W_mm, t_um, L_m, I, Ta, dT, Vs) {
-  const W_m = W_mm * 1e-3
-  const t_m = t_um * 1e-6
-  const A_m2 = W_m * t_m
-  const Tavg = Ta + dT / 2
-  const Tmax = Ta + dT
-  const R20 = traceResistance(L_m, W_m, t_m, 20)
-  const Ravg = traceResistance(L_m, W_m, t_m, Tavg)
-  const Rmax = traceResistance(L_m, W_m, t_m, Tmax)
-  const VdropAvg = I * Ravg
-  const VdropMax = I * Rmax
-  const Ploss = I * I * Ravg
-  const J = I / A_m2 / 1e6 // A/mm²
-  const pctAvg = Number.isFinite(Vs) && Vs > 0 ? (100 * VdropAvg) / Vs : null
-  const pctMax = Number.isFinite(Vs) && Vs > 0 ? (100 * VdropMax) / Vs : null
-  return { A_mm2: A_m2 * 1e6, Tavg, Tmax, R20, Ravg, Rmax, VdropAvg, VdropMax, Ploss, J, pctAvg, pctMax }
-}
-
-function compute(mode, f) {
-  // Belirsiz binlik ayırıcı sessizce yorumlanmaz; hesap yerine uyarı gösterilir
-  const ambiguous = thousandsFields(mode, f)
-  if (ambiguous.length) return { invalid: true, ambiguous }
-
-  const Iraw = parseNum(f.I)
-  const I = f.Iu === 'mA' ? Iraw / 1000 : Iraw
-  const dT = parseNum(f.dT)
-  const Ta = parseNum(f.Ta)
-  const t_um = copperUm(f)
-  const L_m = parseNum(f.L) * (LEN_TO_M[f.Lu] ?? NaN)
-  const Vs = parseNum(f.Vs) // opsiyonel
-
-  if (![I, dT, Ta, t_um, L_m].every(Number.isFinite) || I <= 0 || dT <= 0 || t_um <= 0 || L_m <= 0) {
-    return { invalid: true }
-  }
-
-  const warnings = validityWarnings(I, dT)
-  const t_mil = t_um / 25.4
-  const out = { I, dT, Ta, t_um, t_mil, L_m, warnings, k: kCoeff(f.layer) }
-
-  const tolOn = f.tol
-  const wTol = tolOn ? parseNum(f.wTol) / 100 : 0
-  const tTol = tolOn ? parseNum(f.tTol) / 100 : 0
-  const tolValid = tolOn && Number.isFinite(wTol) && Number.isFinite(tTol) && wTol >= 0 && tTol >= 0
-
-  if (mode === 'syn') {
-    const M = parseNum(f.margin)
-    if (!Number.isFinite(M) || M < 0) return { invalid: true }
-
-    const A_mil2 = areaForCurrent_mil2(I, dT, f.layer)
-    const Wmin_mil = A_mil2 / t_mil
-    const Wmin_mm = Wmin_mil * MIL
-    const Wrec_mm = Wmin_mm * (1 + M / 100)
-
-    const e = electricals(Wrec_mm, t_um, L_m, I, Ta, dT, Vs)
-
-    let tol = null
-    if (tolValid) {
-      // Worst-case: en dar genişlik + en ince bakır → en düşük kapasite
-      const Wwc_mm = Wrec_mm * (1 - wTol)
-      const twc_um = t_um * (1 - tTol)
-      const Awc_mil2 = (Wwc_mm / MIL) * (twc_um / 25.4)
-      const ImaxWc = currentForArea(Awc_mil2, dT, f.layer)
-      tol = { Wwc_mm, twc_um, ImaxWc, sufficient: ImaxWc >= I }
-    }
-
-    return { ...out, mode, A_mil2, A_mm2: A_mil2 * MIL2_TO_MM2, Wmin_mm, Wmin_mil, Wrec_mm, M, e, tol }
-  }
-
-  // Analiz modu
-  const W_mm = parseNum(f.W) * (W_TO_MM[f.Wu] ?? NaN)
-  if (!Number.isFinite(W_mm) || W_mm <= 0) return { invalid: true }
-
-  const A_mil2 = (W_mm / MIL) * t_mil
-  const Imax = currentForArea(A_mil2, dT, f.layer)
-  const util = I / Imax
-  const e = electricals(W_mm, t_um, L_m, I, Ta, dT, Vs)
-
-  let tol = null
-  if (tolValid) {
-    const AminMil2 = ((W_mm * (1 - wTol)) / MIL) * ((t_um * (1 - tTol)) / 25.4)
-    const AmaxMil2 = ((W_mm * (1 + wTol)) / MIL) * ((t_um * (1 + tTol)) / 25.4)
-    const Wmin_m = W_mm * (1 - wTol) * 1e-3
-    const Wmax_m = W_mm * (1 + wTol) * 1e-3
-    const tmin_m = t_um * (1 - tTol) * 1e-6
-    const tmax_m = t_um * (1 + tTol) * 1e-6
-    tol = {
-      ImaxMin: currentForArea(AminMil2, dT, f.layer),
-      ImaxMax: currentForArea(AmaxMil2, dT, f.layer),
-      R20Max: traceResistance(L_m, Wmin_m, tmin_m, 20), // en dar/ince → en yüksek direnç
-      R20Min: traceResistance(L_m, Wmax_m, tmax_m, 20),
-    }
-  }
-
-  return { ...out, mode, W_mm, A_mil2, A_mm2: A_mil2 * MIL2_TO_MM2, Imax, util, e, tol }
-}
+// Gösterim dönüşümleri — hesaplar SI'de yapılır, yalnızca ekranda çevrilir
+const mm = (m) => m / LENGTH.mm
+const mil = (m) => m / LENGTH.mil
+const axisMm = (v) => fmt(v, 3)
 
 export default function TraceWidth() {
-  const [mode, setMode] = useState('syn')
-  const [f, setF] = useState({
-    I: '1', Iu: 'A',
-    dT: '10', Ta: '25',
-    layer: 'external',
-    oz: '1', tCustom: '35',
-    L: '50', Lu: 'mm',
-    W: '0.5', Wu: 'mm',
-    Vs: '',
-    margin: '20',
-    tol: false, wTol: '10', tTol: '10',
-  })
-  const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
+  const [mode, setMode] = useState(MODE_SYNTHESIS)
+  const { f, set } = useToolForm(INITIAL_FORM)
+
   const r = useMemo(() => compute(mode, f), [mode, f])
+  const s = useMemo(() => buildSweep(r), [r])
 
   const status = useMemo(() => {
-    if (r.invalid) return null
-    if (r.mode === 'syn') {
+    if (!r.ok) return null
+    if (r.mode === MODE_SYNTHESIS) {
       if (r.tol && !r.tol.sufficient) {
         return { cls: 'warn', text: 'Tolerans sonrası worst-case kapasite hedef akımın altında — marjı artırın' }
       }
-      return { cls: 'ok', text: 'Hesaplandı' }
+      return { cls: 'ok', text: 'Tüm kontroller geçti' }
     }
-    if (r.util > 1) return { cls: 'danger', text: `Yetersiz — akım, kapasitenin %${fmt(r.util * 100, 3)}'i` }
-    if (r.util > 0.8) return { cls: 'warn', text: `Sınıra yakın — kapasitenin %${fmt(r.util * 100, 3)}'i kullanılıyor` }
-    return { cls: 'ok', text: `Güvenli — kapasitenin %${fmt(r.util * 100, 3)}'i kullanılıyor` }
+    const pct = fmt(r.util * 100, 3)
+    if (r.util > 1) return { cls: 'danger', text: `Yetersiz — akım, kapasitenin %${pct}'i` }
+    if (r.util > 0.8) return { cls: 'warn', text: `Sınıra yakın — kapasitenin %${pct}'i kullanılıyor` }
+    return { cls: 'ok', text: `Güvenli — kapasitenin %${pct}'i kullanılıyor` }
   }, [r])
+
+  const otherLayer = r.ok ? (r.layer === 'external' ? 'internal' : 'external') : 'internal'
+  const chartSeries = s
+    ? [
+        { key: 'now', name: `${LAYER_LABEL[r.layer]} katman`, tone: toneClass(0), points: s.points },
+        { key: 'other', name: `${LAYER_LABEL[otherLayer]} katman`, tone: toneClass(1), points: s.otherPoints },
+      ]
+    : []
 
   return (
     <>
@@ -186,12 +63,14 @@ export default function TraceWidth() {
         <section className="panel">
           <h2>Girdiler</h2>
 
+          <TraceSchematic r={r} />
+
           <Segmented
             value={mode}
             onChange={setMode}
             options={[
-              { value: 'syn', label: 'Sentez — genişlik bul' },
-              { value: 'ana', label: 'Analiz — kapasite bul' },
+              { value: MODE_SYNTHESIS, label: 'Sentez — genişlik bul' },
+              { value: MODE_ANALYSIS, label: 'Analiz — kapasite bul' },
             ]}
           />
 
@@ -201,7 +80,7 @@ export default function TraceWidth() {
             units={['A', 'mA']} unit={f.Iu} onUnit={set('Iu')}
           />
 
-          {mode === 'ana' && (
+          {mode === MODE_ANALYSIS && (
             <NumberField
               label="Yol genişliği (W)"
               value={f.W} onChange={set('W')}
@@ -260,7 +139,7 @@ export default function TraceWidth() {
             placeholder="örn. 3.3"
           />
 
-          {mode === 'syn' && (
+          {mode === MODE_SYNTHESIS && (
             <NumberField
               label="Güvenlik marjı (M)"
               value={f.margin} onChange={set('margin')}
@@ -294,40 +173,35 @@ export default function TraceWidth() {
         <section className="panel">
           <h2>Sonuç</h2>
 
-          {r.invalid ? (
+          {!r.ok ? (
             r.ambiguous ? (
               <p className="empty-note warn">
                 {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
               </p>
             ) : (
-              <p className="empty-note">
-                Tüm zorunlu alanlara pozitif sayısal değer girin. Ondalık için nokta veya virgül
-                kullanabilirsiniz (0.25 = 0,25).
-              </p>
+              <p className="empty-note">{reasonText(r.reason)}</p>
             )
           ) : (
             <>
-              {r.mode === 'syn' ? (
+              {r.mode === MODE_SYNTHESIS ? (
                 <div className="big-result">
-                  <div className="label">Önerilen üretim genişliği (marj dahil, %{fmt(r.M, 3)})</div>
-                  <div className="value">{fmt(r.Wrec_mm)} mm</div>
+                  <div className="label">Önerilen üretim genişliği (marj dahil, %{fmt(r.M * 100, 3)})</div>
+                  <div className="value">{fmt(mm(r.Wrec_m))} mm</div>
                   <div className="alt">
-                    = {fmt(r.Wrec_mm / MIL)} mil &nbsp;·&nbsp; minimum: {fmt(r.Wmin_mm)} mm ({fmt(r.Wmin_mil)} mil)
+                    = {fmt(mil(r.Wrec_m))} mil &nbsp;·&nbsp; minimum: {fmt(mm(r.Wmin_m))} mm
                   </div>
                 </div>
               ) : (
                 <div className="big-result">
                   <div className="label">Maksimum sürekli akım (ΔT = {fmt(r.dT, 3)} °C için)</div>
                   <div className="value">{fmt(r.Imax)} A</div>
-                  <div className="alt">W = {fmt(r.W_mm)} mm ({fmt(r.W_mm / MIL)} mil)</div>
+                  <div className="alt">W = {fmt(mm(r.W_m))} mm ({fmt(mil(r.W_m))} mil)</div>
                 </div>
               )}
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">
-                Klasik ampirik yöntem — veri tabanlı hesapla eşdeğer değildir.
-              </p>
+              <p className="method-note">{METHOD_NOTE}</p>
 
               <table className="result-table">
                 <tbody>
@@ -366,6 +240,10 @@ export default function TraceWidth() {
                     <td>{fmtWatt(r.e.Ploss)}</td>
                   </tr>
                   <tr>
+                    <td>Birim uzunluk başına kayıp</td>
+                    <td>{fmtEng(r.e.PperLength, 'W/m', 3)}</td>
+                  </tr>
+                  <tr>
                     <td>Akım yoğunluğu</td>
                     <td>{fmt(r.e.J)} A/mm²</td>
                   </tr>
@@ -376,14 +254,14 @@ export default function TraceWidth() {
                 </tbody>
               </table>
 
-              {r.tol && r.mode === 'syn' && (
+              {r.tol && r.mode === MODE_SYNTHESIS && (
                 <>
-                  <h2 style={{ marginTop: 20 }}>Tolerans — worst-case</h2>
+                  <h2 className="section">Tolerans — worst-case</h2>
                   <table className="result-table">
                     <tbody>
                       <tr>
                         <td>En dar üretilmiş genişlik</td>
-                        <td>{fmt(r.tol.Wwc_mm)} mm</td>
+                        <td>{fmt(mm(r.tol.Wwc_m))} mm</td>
                       </tr>
                       <tr>
                         <td>En ince bakır</td>
@@ -401,15 +279,11 @@ export default function TraceWidth() {
                 </>
               )}
 
-              {r.tol && r.mode === 'ana' && (
+              {r.tol && r.mode === MODE_ANALYSIS && (
                 <>
-                  <h2 style={{ marginTop: 20 }}>Tolerans — min / nominal / maks</h2>
+                  <h2 className="section">Tolerans — min · nominal · maks</h2>
                   <table className="result-table">
                     <tbody>
-                      <tr className="mini-head">
-                        <td></td>
-                        <td>min · nom · maks</td>
-                      </tr>
                       <tr>
                         <td>Akım kapasitesi</td>
                         <td>{fmt(r.tol.ImaxMin)} · {fmt(r.Imax)} · {fmt(r.tol.ImaxMax)} A</td>
@@ -438,28 +312,68 @@ R(T) = ρ₂₀·[1 + α(T − 20)] · L / (W·t)
     ρ₂₀ = 1.724×10⁻⁸ Ω·m
     α = 0.00393 /°C`}</pre>
 
-          {!r.invalid && (
+          {r.ok && (
             <ul className="detail-list">
               <li>Yöntem: klasik ampirik iletken ısınma denklemi + sıcaklık düzeltmeli DC direnç modeli.</li>
-              <li>Kullanılan katsayı: k = {r.k} ({f.layer === 'external' ? 'dış' : 'iç'} katman).</li>
+              <li>Kullanılan katsayı: k = {r.k} ({LAYER_LABEL[r.layer]} katman).</li>
               <li>Bakır kalınlığı: {fmt(r.t_um)} µm = {fmt(r.t_mil)} mil.</li>
               <li>Özdirenç @ T<sub>avg</sub>: {fmt(rhoAt(r.e.Tavg) * 1e8)} ×10⁻⁸ Ω·m.</li>
               <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
             </ul>
           )}
 
-          <h2>Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
-            {!r.invalid && r.warnings.map((w, i) => (
-              <li key={i} className="w">{w}</li>
-            ))}
+            {r.ok && r.warnings.map((w) => <li key={w} className="w">{w}</li>)}
             <li>Yaklaşık geçerlilik: I ≤ ~35 A, ΔT 10–100 °C, tekil düz hat.</li>
             <li>Bitişik sıcak hatlar, bakır düzlemler, hava akışı ve kart kalınlığı modelde yoktur.</li>
             <li>İç katman katsayısı konservatiftir; gerçek kapasite kart yapısına göre değişir.</li>
+            <li>Kesit dikdörtgen kabul edilir; aşındırmadan gelen trapez kesit modelde yoktur.</li>
             <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
           </ul>
         </section>
       </div>
+
+      {/* ---------- Alt: Parametrik grafik ---------- */}
+      <section className="panel panel-chart">
+        <div className="chart-head">
+          <h2>Parametrik grafik</h2>
+        </div>
+
+        {s ? (
+          <>
+            <ChartLegend
+              items={[
+                { label: `${LAYER_LABEL[r.layer]} katman`, tone: toneClass(0), kind: 'line' },
+                { label: `${LAYER_LABEL[otherLayer]} katman`, tone: toneClass(1), kind: 'line' },
+                { label: `hedef akım ${fmt(r.I, 3)} A`, tone: 'tone-muted', kind: 'line' },
+              ]}
+            />
+
+            <LineChart
+              xScale="log"
+              xLabel="Yol genişliği W (mm)"
+              yLabel="Kapasite (A)"
+              series={chartSeries}
+              refLines={[{ key: 'target', y: s.target, label: `hedef ${fmt(r.I, 3)} A` }]}
+              marker={{ ...s.marker, label: 'çalışma noktası' }}
+              formatX={axisMm}
+              formatY={(v) => fmt(v, 3)}
+              caption={CHART_CAPTION}
+            />
+
+            <ChartDataTable
+              xLabel="Yol genişliği W (mm)"
+              series={chartSeries}
+              every={5}
+              formatX={(v) => `${fmt(v, 3)} mm`}
+              formatY={(v) => `${fmt(v, 3)} A`}
+            />
+          </>
+        ) : (
+          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+        )}
+      </section>
 
       <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
     </>

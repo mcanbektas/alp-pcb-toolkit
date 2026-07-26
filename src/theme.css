@@ -13,6 +13,43 @@
   --warn: #e5b45a;
   --danger: #e0605a;
 
+  /* Grafik serisi renkleri — sabit sırayla atanır, asla döngüye alınmaz.
+     Varsayılan grafik yeşil + nötr; koyu yeşil üçüncü seri, sıcak vurgu
+     yalnızca dördüncü seri kaçınılmazsa.
+
+     Koyu yüzey (--surface) üzerinde doğrulandı. Ayrımı belirleyen üç kontrolün
+     hepsi geçiyor: renk körlüğü ayrımı ΔE 9.4, normal görüş ΔE 16.8, kontrast.
+
+     İki kontrol bilerek karşılanmıyor:
+     - Kroma tabanı: --series-2 nötr, tanımı gereği kromasız. Kontrol her
+       serinin ayrı bir renk tonu olmasını varsayar; nötr seri kasıtlı olarak
+       ton değil, referans/ikincil seridir.
+     - Açıklık bandı: açık yeşil ve nötr, bandın üstünde kalıyor. Bu koyu
+       yüzeyde okunurluğu artırıyor ve markanın --accent tonuyla hizalı.
+
+     Kroma tabanı karşılanmadığı için kimlik hiçbir zaman yalnız renge
+     bırakılmaz: LineChart her seriye ayrı çizgi deseni verir ve seri adını
+     doğrudan eğrinin ucuna yazar. */
+  --series-1: #45c882;
+  --series-2: #c3cec6;
+  --series-3: #237a52;
+  --series-4: #c58318;
+
+  /* Direnç bant renkleri — fiziksel komponent renkleri, tema kararı değil.
+     lib/codes.js yalnızca bant anahtarını bilir, rengi buradan gelir. */
+  --band-black: #111111;
+  --band-brown: #6b3f1d;
+  --band-red: #c0392b;
+  --band-orange: #d35400;
+  --band-yellow: #d4ac0d;
+  --band-green: #1e8449;
+  --band-blue: #1f618d;
+  --band-violet: #6c3483;
+  --band-grey: #7f8c8d;
+  --band-white: #ecf0f1;
+  --band-gold: #b8860b;
+  --band-silver: #aab7b8;
+
   --font-display: 'Chakra Petch', sans-serif;
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -171,6 +208,8 @@ a:hover { text-decoration: underline; }
   text-transform: uppercase; color: var(--muted);
   margin: 0 0 14px;
 }
+/* Aynı panel içindeki ikinci ve sonraki başlıklar — inline style yerine */
+.panel h2.section { margin-top: 22px; }
 
 /* ---------- Fields ---------- */
 
@@ -277,6 +316,136 @@ a:hover { text-decoration: underline; }
 .detail-list li { margin-bottom: 5px; }
 .detail-list.warn-list li { color: var(--warn); }
 .detail-list .w { color: var(--warn); }
+
+/* ---------- Devre şeması ---------- */
+
+.schematic {
+  margin: 0 0 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 10px 8px;
+}
+.schematic svg { display: block; width: 100%; height: auto; }
+.schematic figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 6px;
+}
+/* Şema çizgileri ve etiketleri — renk literal yazılmaz, hepsi değişkenden */
+.sch-wire { stroke: var(--accent-dim); stroke-width: 2; fill: none; stroke-linecap: round; }
+.sch-part { stroke: var(--accent); stroke-width: 2; fill: var(--surface); }
+.sch-part.off { stroke: var(--line); }
+.sch-dash { stroke-dasharray: 4 3; }
+.sch-node { fill: var(--accent); }
+.sch-dielectric { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
+.sch-copper { fill: var(--accent); stroke: var(--accent); stroke-width: 1; }
+.sch-dim { stroke: var(--muted); stroke-width: 1; }
+.sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
+.sch-arrow-head { fill: var(--accent); }
+.sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; }
+.sch-label.dim { fill: var(--muted); }
+.sch-value { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+
+/* ---------- Mühendislik yorumu ---------- */
+
+.commentary { list-style: none; margin: 16px 0 0; padding: 0; }
+.commentary li {
+  display: flex; gap: 9px; align-items: baseline;
+  font-size: 0.84rem; line-height: 1.5;
+  padding: 7px 0; border-top: 1px solid var(--line);
+  color: var(--text);
+}
+.commentary .mark {
+  flex: 0 0 auto; width: 1.1em;
+  font-family: var(--font-mono); font-size: 0.8rem;
+}
+.commentary li.ok .mark { color: var(--accent); }
+.commentary li.warn .mark { color: var(--warn); }
+.commentary li.danger .mark { color: var(--danger); }
+
+/* ---------- Grafik ---------- */
+
+.panel-chart { margin-bottom: 30px; }
+.chart-head {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.chart-head .seg { margin-bottom: 0; flex: 0 1 auto; }
+.chart-head h2 { margin: 0; }
+.chart-figure { margin: 0; }
+.chart-figure svg { display: block; width: 100%; height: auto; touch-action: none; }
+.chart-figure figcaption {
+  font-size: 0.78rem; color: var(--muted); margin-top: 10px;
+}
+
+/* Seri tonu tek bir değişken üzerinden dağıtılır: eleman `tone-N` sınıfını
+   alır, çizim kuralları var(--tone) kullanır. Böylece JSX içine renk yazılmaz. */
+.tone-1 { --tone: var(--series-1); }
+.tone-2 { --tone: var(--series-2); }
+.tone-3 { --tone: var(--series-3); }
+.tone-4 { --tone: var(--series-4); }
+.tone-muted { --tone: var(--muted); }
+.tone-accent { --tone: var(--accent); }
+
+.chart-grid { stroke: var(--line); stroke-width: 1; }
+.chart-axis { stroke: var(--line); stroke-width: 1; }
+.chart-tick { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-axis-label { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-line { fill: none; stroke: var(--tone); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-band { stroke: none; fill: var(--tone); opacity: 0.16; }
+.chart-dot { fill: var(--tone); }
+.chart-ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 4; fill: none; }
+.chart-ref-label { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-marker-ring { fill: none; stroke: var(--surface); stroke-width: 2; }
+.chart-crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-tip-box { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
+.chart-tip-text { fill: var(--text); font-family: var(--font-mono); font-size: 11px; }
+.chart-tip-text.dim { fill: var(--muted); }
+.chart-empty { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+
+.chart-legend {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  font-size: 0.78rem; color: var(--text);
+}
+.chart-legend .item { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend .swatch {
+  width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto;
+  background: var(--tone);
+}
+.chart-legend .swatch.line { height: 3px; border-radius: 1px; }
+.chart-legend .swatch.faded { opacity: 0.3; }
+.chart-marker { fill: var(--accent); }
+
+.chart-data { margin-top: 14px; }
+.chart-data summary {
+  cursor: pointer; font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.chart-data .scroll { max-height: 260px; overflow: auto; margin-top: 10px; }
+
+/* ---------- Aday çift tablosu ---------- */
+
+.pick-table { width: 100%; border-collapse: collapse; }
+.pick-table th {
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  text-align: right; padding: 0 0 6px; border-bottom: 1px solid var(--line);
+}
+.pick-table th:first-child, .pick-table td:first-child { text-align: left; }
+.pick-table td {
+  padding: 6px 0; border-top: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 0.8rem; text-align: right;
+}
+.pick-table tr.pick { cursor: pointer; }
+.pick-table tr.pick:hover td { background: var(--raised); }
+.pick-table tr.on td { color: var(--accent); }
+.pick-table td .flag { color: var(--warn); }
+.pick-table th + th, .pick-table td + td { padding-left: 10px; }
+.pick-table + .method-note { margin-top: 10px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }

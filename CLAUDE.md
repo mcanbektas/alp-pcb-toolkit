@@ -15,25 +15,63 @@ npm install
 npm run dev      # http://localhost:3000  (vite.config.js: port 3000, strictPort)
 npm run build    # dist/
 npm run preview
+npm test         # vitest run — yalnızca src/lib/ altındaki saf hesap fonksiyonları
+npm run test:watch
 ```
 
-Test altyapısı ve linter kurulu değil. Doğrulama `npm run build` + tarayıcıda elle kontrol ile
-yapılır. Yeni bir test/lint aracı eklemek istersen önce sor.
+Linter kurulu değil. Test kapsamı bilinçli olarak dar: **yalnızca `src/lib/` altındaki saf
+hesap fonksiyonları test edilir. React bileşeni testi yazılmaz** — arayüz doğrulaması
+`npm run build` + tarayıcıda elle kontrol ile yapılır. Yeni bir test/lint aracı eklemek
+istersen önce sor.
+
+**Yeni bir hesap motoru eklendiğinde `docs/spec.md` §13'te karşılığı varsa, testi de aynı
+commit'te yazılır.** §13'ün altı referans testi (microstrip, via direnci, PDN hedef empedansı,
+junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor eklendiğinde teste dönüşür;
+motor testsiz merge edilmez.
 
 `main`'e her push → `.github/workflows/deploy.yml` → GitHub Pages. `base: './'` + `HashRouter`
 kombinasyonu repo adından bağımsız çalışmayı sağlar; ikisini de değiştirme.
 
 ## Mimari
 
-Üç katman, sıkı ayrım:
+Bağımlılık yönü tek yönlüdür ve asla tersine çevrilmez:
 
-1. **`src/lib/`** — saf hesap fonksiyonları. React'e, DOM'a, birim string'lerine bağımlı değil.
-   - `num.js` — `parseNum` / `parseNumResult` (giriş ayrıştırma),
-     `fmt`/`fmtOhm`/`fmtVolt`/`fmtWatt` (gösterim).
-   - `traceCalc.js` — trace hesap motoru; sabitler (`RHO20`, `ALPHA`, `OZ_TABLE`, `MIL`) burada.
-2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`). State
-   tutmaz, hesap yapmaz.
-3. **`src/pages/tools/*.jsx`** — araç sayfaları. Form state'i + `compute()` çağrısı + düzen.
+```
+pages → components → hooks → lib
+                              ↑
+                        services (bileşim kökü)
+```
+
+1. **`src/lib/`** — saf hesap fonksiyonları. React, DOM, tarayıcı API'si ve kullanıcıya
+   görünen metin bilmez. Hata durumunda `{ error: <kod> }` döner; kodu metne çeviren taraf
+   ekranın `text.js` dosyasıdır.
+   - `num.js` — giriş ayrıştırma (`parseNum`, `parseNumResult`) ve gösterim
+     (`fmt`, `fmtEng`, `fmtRes`, `fmtAmp`, `fmtPow`, `fmtPct`, `fmtOhm`, `fmtVolt`, `fmtWatt`).
+   - `units.js` — fiziksel sabitler (`C0`, `EPS0`, `MU0`, `ETA0`, `RHO_CU_20`, `K_CU`) ve
+     birim → SI çarpan tabloları (`LENGTH`, `CAPACITANCE`, `FREQUENCY`, …) + `toSI`/`fromSI`.
+     Yeni sabit buraya eklenir, araç dosyasına gömülmez.
+   - `fields.js` — form alanı okuma: birim çevirme, belirsiz binlik ayırıcı yakalama,
+     eksik/geçersiz alanı ada göre bildirme. Her ekran bunu kullanır, kendi ayrıştırmasını
+     yazmaz.
+   - `solve.js` — sınırlandırılmış kök arama (`brent`, `bisection`, `expandBracket`,
+     `solveBounded`). Tüm ters (sentez) hesaplar buradan geçer.
+   - `storage.js` — kalıcı depolama **portu** (`read`/`write`/`remove`). `browserStorage`,
+     `memoryStorage`, `nullStorage` uygulamaları burada.
+   - `dataProfiles.js` — profil şeması ve doğrulaması + `createProfileStore(storage)`.
+     `localStorage`'ı tanımaz, portu parametre olarak alır.
+   - Hesap motorları: `traceCalc.js`, `ohm.js`, `divider.js`, `led.js`, `reactance.js`,
+     `timing.js`, `crystal.js`, `codes.js`, `eseries.js`.
+2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`,
+   `Schematic`, `LineChart`). State tutmaz, hesap yapmaz.
+3. **`src/hooks/`** — `useToolForm` yalnızca React state'ini yönetir; hesap bilgisi taşımaz.
+4. **`src/services/`** — bileşim kökü. Somut bağımlılıklar (örn. `browserStorage`) yalnızca
+   burada birbirine bağlanır.
+5. **`src/pages/tools/<Ad>/`** — araç ekranı, dört dosya:
+   - `index.jsx` — düzen ve state. Hesap yapmaz, metin üretmez.
+   - `model.js` — alan tanımları + `compute()` + `buildSweep()`. Saf, test edilebilir.
+   - `schematic.jsx` — devre/geometri SVG'si.
+   - `text.js` — bulgu ve hata kodlarının Türkçe karşılıkları. İkinci dil gerekirse
+     değişecek tek dosya budur.
 
 `src/data/categories.js` tek kaynak: 7 kategori ve araç listesi. Bir aracın `path` alanı varsa
 aktif, yoksa "yakında" olarak gösterilir — `Home.jsx` ve `CategoryPage.jsx` bu alana bakar.
@@ -54,10 +92,15 @@ Uyarı: spec'teki bazı formül blokları markdown dönüşümünde bozulmuş �
 düşmüş, araya `##` girmiş veya `*` işaretleri ifadeyi yemiş durumda. Bozuk bir bloğu tahminle
 tamamlama; eksik olduğunu söyle ve sor.
 
-1. `src/pages/tools/<Ad>.jsx` yaz (aşağıdaki 3 panelli deseni izle).
-2. `src/App.jsx` içine `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
-3. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver.
-4. Hesap mantığını `src/lib/` altına ayrı bir modül olarak koy, JSX içine gömme.
+1. Hesap motorunu `src/lib/<konu>.js` olarak yaz. Motor kod döner, metin döndürmez.
+2. `src/pages/tools/<Ad>/` klasörünü dört dosyayla kur: `model.js`, `text.js`,
+   `schematic.jsx`, `index.jsx`.
+3. `src/App.jsx` içine `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
+4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver.
+5. `docs/spec.md` §13'te karşılığı varsa testi aynı commit'te yaz.
+
+Referans ekran: `src/pages/tools/VoltageDivider/`. Yeni ekran yazarken panel düzenini,
+terminolojiyi ve tablo yoğunluğunu oradan birebir kopyala.
 
 ### Birim ve sayı akışı
 
@@ -116,17 +159,48 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   `var(--warn)`, `var(--danger)` vb. kullan. Yeni bir renk gerekiyorsa önce `theme.css`
   `:root` bloğuna değişken ekle. Aynı kural fontlar için de geçerli: `var(--font-mono)`,
   `var(--font-display)`, `var(--font-body)`.
+  Grafik serileri renk stringi taşımaz: eleman `tone-1`…`tone-4` / `tone-muted` sınıfını alır,
+  çizim kuralları `var(--tone)` kullanır. `toneClass(i)` yardımcısı `LineChart`'tan gelir.
+
+- **Ekrana özel CSS yazma ve inline style kullanma.** Tüm görsel kararlar `theme.css`
+  değişkenleri ve mevcut ortak sınıflar üzerinden verilir. Yeni bir görsel desen gerekiyorsa
+  önce ortak bileşen olarak yazılır, tek ekrana gömülmez. Panel içinde ikinci başlık için
+  `<h2 className="section">` kullanılır.
+
+- **Ekranlar arası tutarlılık zorunlu.** Panel düzeni (Girdiler / Sonuç / Teknik detay + alt
+  parametrik grafik), terminoloji (Analiz/Sentez, Nominal, Önerilen, worst-case), durum çipi
+  eşikleri ve tablo yoğunluğu tüm ekranlarda birebir aynı kalır.
+
+- **Durum çipi tek kurala bağlıdır:** ekranın ürettiği bulguların en kötü seviyesi gösterilir
+  (`ok` → "Tüm kontroller geçti", `warn` → "Sınıra yakın — N uyarı", `danger` →
+  "N kontrol sınırın dışında").
 - **Ondalık girişlerde hem nokta hem virgül kabul edilecek.** Her sayısal giriş
   `src/lib/num.js` içindeki `parseNum` ile ayrıştırılır (`0.25` == `0,25`); hata nedeni
   gerekiyorsa `parseNumResult`. `parseFloat` veya `Number()` doğrudan kullanılmaz.
-- **Ters hesaplarda Newton–Raphson tek başına kullanılmaz.** Brent veya bisection ile
-  sınırlandırılmış kök arama yapılır. Newton–Raphson başlangıç noktasına bağlı olarak negatif
-  genişlik, negatif aralık gibi fiziksel olmayan sonuçlara yakınsayabilir (`docs/spec.md`
-  §3.3). Arama aralığı fiziksel olarak geçerli sınırlarla kapatılmalıdır.
+- **Ters hesaplarda Newton–Raphson tek başına kullanılmaz.** `src/lib/solve.js` içindeki
+  `solveBounded` kullanılır (Brent, tökezlerse bisection'a düşer). Newton–Raphson başlangıç
+  noktasına bağlı olarak negatif genişlik, negatif aralık gibi fiziksel olmayan sonuçlara
+  yakınsayabilir (`docs/spec.md` §3.3). Arama aralığı `min`/`max` ile fiziksel olarak geçerli
+  sınırlara kapatılır; sınırlar içinde kök yoksa çözücü hata döner — tahmin üretmez.
 - **Lisanslı standart tabloları repoya kopyalanmaz.** Karar tabloları, eğri verisi ve
   benzeri lisanslı içerik `src/` veya `docs/` altına gömülmez. Bunun yerine kullanıcının
   içe aktardığı profil/veri seti kullanılır ve `localStorage`'da tutulur. Böyle bir veri
   yokken sonuç, standart tabanlı doğrulanmış gibi sunulmaz.
+  İçe aktarma tek yerden geçer: **`src/lib/dataProfiles.js`** — şema doğrulaması, okuma/yazma
+  ve silme orada. Ekran kendi `JSON.parse`/`localStorage` kodunu yazmaz. Profil zarfında
+  `schemaVersion` alanı vardır; format değişirse eski profil sessizce yanlış okunmaz, açık
+  hata döner. Kullanıcıya yönelik şema dokümanı: `docs/veri-profili-semasi.md` (boş iskelet +
+  alan açıklamaları, gerçek veri içermez).
+
+- **Kapalı form empedans sonuçları üretime hazır gibi sunulmaz.** `docs/spec.md` §6.1 üretim
+  için önerilen sonucun alan çözücüden gelmesini istiyor; çözücü henüz yok. Bu yüzden empedans
+  fonksiyonları `{ Z0, epsEff, method }` döndürür ve `method` alanı `'closed-form'` |
+  `'field-solver'` değerini taşır. Arayüz `method`'a bakarak etiketi yazar; çözücü sonradan
+  aynı arayüzün arkasına girdiğinde UI değişmez. Kapalı form sonucu daima **"hızlı denklem
+  modu"** etiketiyle ve geçerlilik sınırlarıyla birlikte gösterilir.
+
+- **İdeal CPW denklemi grounded CPW sonucu olarak sunulmaz** (`docs/spec.md` §6.7). Grounded
+  CPW alan çözücü fazına bırakılmıştır; kapalı form fazında bu yapı hiç sunulmaz.
 
 ## Sonuç sunumu
 

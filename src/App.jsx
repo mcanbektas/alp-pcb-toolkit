@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route, Link } from 'react-router-dom'
 import Home from './pages/Home'
 import CategoryPage from './pages/CategoryPage'
 import TraceWidth from './pages/tools/TraceWidth'
+import VoltageDivider from './pages/tools/VoltageDivider'
 
 function Layout({ children }) {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/kategori/:slug" element={<CategoryPage />} />
           <Route path="/arac/trace-width" element={<TraceWidth />} />
+          <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
         </Routes>
       </Layout>
     </HashRouter>

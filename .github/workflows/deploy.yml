@@ -24,6 +24,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Hesap motorları testten geçmeden yayına çıkmaz
+      - run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

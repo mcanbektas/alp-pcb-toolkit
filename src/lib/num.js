@@ -48,6 +48,33 @@ export function fmt(x, sig = 4) {
   return s
 }
 
+// Mühendislik gösterimi: değeri 1–1000 aralığına getirip SI ön ekiyle yazar.
+// Yalnızca ekrana yazarken çağrılır; ara değerler asla bundan geçmez.
+const SI_PREFIXES = [
+  { e: 9, p: 'G' }, { e: 6, p: 'M' }, { e: 3, p: 'k' }, { e: 0, p: '' },
+  { e: -3, p: 'm' }, { e: -6, p: 'µ' }, { e: -9, p: 'n' }, { e: -12, p: 'p' },
+]
+
+export function fmtEng(x, unit = '', sig = 4) {
+  if (!Number.isFinite(x)) return '—'
+  if (x === 0) return `0${unit ? ` ${unit}` : ''}`
+  const a = Math.abs(x)
+  const step = SI_PREFIXES.find((s) => a >= Math.pow(10, s.e)) ?? SI_PREFIXES[SI_PREFIXES.length - 1]
+  const scaled = x / Math.pow(10, step.e)
+  return `${fmt(scaled, sig)} ${step.p}${unit}`.trimEnd()
+}
+
+export const fmtRes = (x, sig) => fmtEng(x, 'Ω', sig)
+export const fmtAmp = (x, sig) => fmtEng(x, 'A', sig)
+export const fmtPow = (x, sig) => fmtEng(x, 'W', sig)
+
+// Yüzde gösterimi — işaret her zaman yazılır, sapmanın yönü okunabilsin
+export function fmtPct(x, sig = 3) {
+  if (!Number.isFinite(x)) return '—'
+  const s = fmt(Math.abs(x), sig)
+  return `${x < 0 ? '−' : '+'}${s} %`
+}
+
 // Ölçekli birim gösterimleri
 export function fmtOhm(r) {
   if (!Number.isFinite(r)) return '—'
