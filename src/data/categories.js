@@ -71,7 +71,12 @@ export const CATEGORIES = [
       { id: 'bga', name: 'BGA Breakout' },
       { id: 'stackup', name: 'Stack-Up Planner' },
       { id: 'thermal-relief', name: 'Thermal Relief' },
-      { id: 'converters', name: 'Birim Dönüştürücüler' },
+      { id: 'length-conv', name: 'Length Converter', path: '/arac/uzunluk-donusturucu' },
+      { id: 'awg-conv', name: 'AWG Wire Gauge Converter', path: '/arac/awg-donusturucu' },
+      { id: 'freq-conv', name: 'Frequency & Period Converter', path: '/arac/frekans-periyot' },
+      { id: 'db-conv', name: 'Decibel, Gain & dBm Converter', path: '/arac/db-kazanc' },
+      { id: 'temp-conv', name: 'Temperature Converter', path: '/arac/sicaklik-donusturucu' },
+      { id: 'complex-conv', name: 'Complex Number Converter', path: '/arac/kompleks-sayi' },
     ],
   },
 ]

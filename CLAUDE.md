@@ -61,6 +61,10 @@ pages → components → hooks → lib
      `localStorage`'ı tanımaz, portu parametre olarak alır.
    - Hesap motorları: `traceCalc.js`, `ohm.js`, `divider.js`, `led.js`, `reactance.js`,
      `timing.js`, `crystal.js`, `codes.js`, `eseries.js`.
+   - Dönüşüm motorları (`docs/spec.md` §11): `convertLength.js`, `convertAwg.js`,
+     `convertFrequency.js`, `convertDecibel.js`, `convertTemperature.js`, `convertComplex.js`.
+     Bunlar tanım gereği tam bağıntılardır; ampirik yaklaşım içermezler, kök çözücüye
+     ihtiyaç duymazlar ve uç girdide `Infinity` döndürmek yerine aralık hata kodu verirler.
 2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`,
    `Schematic`, `LineChart`). State tutmaz, hesap yapmaz.
 3. **`src/hooks/`** — `useToolForm` yalnızca React state'ini yönetir; hesap bilgisi taşımaz.
@@ -76,11 +80,13 @@ pages → components → hooks → lib
 `src/data/categories.js` tek kaynak: 7 kategori ve araç listesi. Bir aracın `path` alanı varsa
 aktif, yoksa "yakında" olarak gösterilir — `Home.jsx` ve `CategoryPage.jsx` bu alana bakar.
 
-**Bilinçli sapma:** `categories.js` 24 araç kaydı içerir, `docs/spec.md` §15 ise 21 ekran
+**Bilinçli sapma:** `categories.js` 29 araç kaydı içerir, `docs/spec.md` §15 ise 21 ekran
 sayar. Fark kasıtlıdır, düzeltilmemeli: spec'in 2. ekranı (*Trace Resistance, Voltage Drop
 and Power Loss*) ayrı araç değil, `TraceWidth.jsx` içinde birleşik; spec'in 21. ekranı
 (*BGA, Stack-Up and Thermal Relief*) `bga`, `stackup` ve `thermal-relief` olarak üçe
-bölünmüştür.
+bölünmüştür; §11'in altı dönüşüm başlığı ise §15'te hiç sayılmadığı hâlde altı ayrı ekran
+olarak uygulanmıştır (uzunluk, AWG, frekans/periyot, dB, sıcaklık, kompleks sayı) ve
+*PCB Üretim, DFM ve Dönüşümler* kategorisinde durur.
 
 ### Yeni araç ekleme
 

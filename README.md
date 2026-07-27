@@ -65,7 +65,7 @@ Ayrıntılı kurallar ve bilinen sapmalar: [`CLAUDE.md`](CLAUDE.md). Formülleri
 
 ## Araçlar
 
-7 kategori, 24 ekran — 19'u aktif, 5'i planlanmış. `src/data/categories.js` tek kaynaktır:
+7 kategori, 29 ekran — 25'i aktif, 4'ü planlanmış. `src/data/categories.js` tek kaynaktır:
 `path` alanı olan araç aktif, olmayan "yakında" olarak gösterilir.
 
 ### PCB Akım, Güç ve Bakır
@@ -119,8 +119,20 @@ Ayrıntılı kurallar ve bilinen sapmalar: [`CLAUDE.md`](CLAUDE.md). Formülleri
 
 ### PCB Üretim, DFM ve Dönüşümler
 
-Beşi de planlandı, henüz yayında değil: Clearance, Creepage & Padstack · BGA Breakout ·
-Stack-Up Planner · Thermal Relief · Birim Dönüştürücüler.
+| ekran | yol |
+| --- | --- |
+| Length Converter | `/arac/uzunluk-donusturucu` |
+| AWG Wire Gauge Converter | `/arac/awg-donusturucu` |
+| Frequency & Period Converter | `/arac/frekans-periyot` |
+| Decibel, Gain & dBm Converter | `/arac/db-kazanc` |
+| Temperature Converter | `/arac/sicaklik-donusturucu` |
+| Complex Number Converter | `/arac/kompleks-sayi` |
+
+Dönüştürücülerin kaynağı `docs/spec.md` §11; bakır kalınlığı dönüştürücüsü §4.3'tedir ve
+*PCB Akım, Güç ve Bakır* kategorisinde durur.
+
+Dördü planlandı, henüz yayında değil: Clearance, Creepage & Padstack · BGA Breakout ·
+Stack-Up Planner · Thermal Relief.
 
 ## Veri profili içe aktarma
 

@@ -20,6 +20,12 @@ import Termination from './pages/tools/Termination'
 import Pdn from './pages/tools/Pdn'
 import Decoupling from './pages/tools/Decoupling'
 import Junction from './pages/tools/Junction'
+import LengthConverter from './pages/tools/LengthConverter'
+import AwgConverter from './pages/tools/AwgConverter'
+import FrequencyConverter from './pages/tools/FrequencyConverter'
+import DecibelConverter from './pages/tools/DecibelConverter'
+import TemperatureConverter from './pages/tools/TemperatureConverter'
+import ComplexConverter from './pages/tools/ComplexConverter'
 
 function Layout({ children }) {
   return (
@@ -71,6 +77,12 @@ export default function App() {
           <Route path="/arac/pdn-hedef-empedans" element={<Pdn />} />
           <Route path="/arac/decoupling" element={<Decoupling />} />
           <Route path="/arac/junction-sicakligi" element={<Junction />} />
+          <Route path="/arac/uzunluk-donusturucu" element={<LengthConverter />} />
+          <Route path="/arac/awg-donusturucu" element={<AwgConverter />} />
+          <Route path="/arac/frekans-periyot" element={<FrequencyConverter />} />
+          <Route path="/arac/db-kazanc" element={<DecibelConverter />} />
+          <Route path="/arac/sicaklik-donusturucu" element={<TemperatureConverter />} />
+          <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
         </Routes>
       </Layout>
     </HashRouter>
