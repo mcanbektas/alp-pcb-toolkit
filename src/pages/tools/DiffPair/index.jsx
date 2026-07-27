@@ -20,28 +20,37 @@ const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const DIM_UNITS = ['mm', 'um', 'mil']
 
-const FORMULA = `Tek uçlu Z₀ — kapalı form, spec §6.4/§6.6:
-  microstrip → Hammerstad–Jensen
-  stripline  → eliptik integral
+const FORMULA = `Tek uçlu Z₀ — kapalı form,
+  spec §6.4/§6.6:
+    microstrip → Hammerstad–Jensen
+    stripline → eliptik integral
 
-Kuplaj katsayısı — AMPİRİK, spec'te YOK:
-  microstrip: k_c = 0.48·exp(−0.96·S/H)
-  stripline:  k_c = 0.347·exp(−2.9·S/b)
+Kuplaj katsayısı — AMPİRİK,
+  spec'te YOK:
+    microstrip:
+      k_c = 0.48·exp(−0.96·S/H)
+    stripline:
+      k_c = 0.347·exp(−2.9·S/b)
 
-  Z_odd  = Z₀·(1 − k_c)
-  Z_even = Z₀·(1 + k_c)
+    Z_odd = Z₀·(1 − k_c)
+    Z_even = Z₀·(1 + k_c)
 
-Spec §6.8.1'in istediği rota — UYGULANMADI:
-  C_odd  = C₁₁ − C₁₂
-  C_even = C₁₁ + C₁₂
-  Z_odd  = 1 / (c·√(C_odd·C₀,odd))
-  Z_even = 1 / (c·√(C_even·C₀,even))
-  C₁₁, C₁₂ için kapalı form yok;
-  kapasitans matrisi alan çözücüden çıkar.
+Spec §6.8.1'in istediği rota
+  — UYGULANMADI:
+    C_odd = C₁₁ − C₁₂
+    C_even = C₁₁ + C₁₂
+    Z_odd =
+      1 / (c·√(C_odd·C₀,odd))
+    Z_even =
+      1 / (c·√(C_even·C₀,even))
+    C₁₁, C₁₂ için kapalı form yok;
+    kapasitans matrisi alan
+    çözücüden çıkar.
 
-Türetilenler spec'e uygun (§6.8.1, §16.4):
-  Z_diff   = 2·Z_odd
-  Z_common = Z_even / 2`
+Türetilenler spec'e uygun
+  (§6.8.1, §16.4):
+    Z_diff = 2·Z_odd
+    Z_common = Z_even / 2`
 
 export default function DiffPair() {
   const [mode, setMode] = useState(MODE_ANALYSIS)

@@ -233,10 +233,15 @@ export default function CopperConverter() {
           <h2>Teknik detay</h2>
 
           <pre className="formula">{`Yoğunluktan kalınlık:
-  m_A = 0.0283495 kg / 0.092903 m² ≈ 0.30515 kg/m²
-  t   = m_A / ρ_m = 0.30515 / 8960 ≈ 34.06 µm
+  m_A = 0.0283495 kg /
+          0.092903 m²
+      ≈ 0.30515 kg/m²
+  t = m_A / ρ_m
+    = 0.30515 / 8960
+    ≈ 34.06 µm
 
-Nominal tablo:  t[µm] ≈ 35 × oz
+Nominal tablo:
+  t[µm] ≈ 35 × oz
 
 Birim dönüşümleri:
   t[mm]  = t[µm] / 1000
@@ -244,11 +249,14 @@ Birim dönüşümleri:
   t[µm]  = 25.4 × t[mil]
 
 Kesit:
-  Dikdörtgen: A = W·t
-  Trapez:     A = t·(W_üst + W_alt)/2
-              W_üst = W_alt·(1 − E)
+  Dikdörtgen:
+    A = W·t
+  Trapez:
+    A = t·(W_üst + W_alt)/2
+    W_üst = W_alt·(1 − E)
 
-Kare direnci: R_□ = ρ(T) / t`}</pre>
+Kare direnci:
+  R_□ = ρ(T) / t`}</pre>
 
           {r.ok && (
             <ul className="detail-list">

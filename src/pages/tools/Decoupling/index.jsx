@@ -27,28 +27,37 @@ const FORMULA = {
 Minimum ideal kapasite:
   C_min = ΔI·Δt / ΔV
 
-Bu ifade ESR ve ESL etkisini İÇERMEZ.
-Gerçek kapasitörde ESR anlık gerilim
-düşümü, ESL ise akım değişimine direnç
-üretir; ikisi de ripple'ı büyütür.`,
+Bu ifade ESR ve ESL etkisini
+İÇERMEZ. Gerçek kapasitörde ESR
+anlık gerilim düşümü, ESL ise
+akım değişimine direnç üretir;
+ikisi de ripple'ı büyütür.`,
 
-  [MODE_NETWORK]: `Gerçek kapasitör — seri RLC (spec §8.2.1):
-  Z_C   = ESR + j(ω·ESL − 1/(ω·C))
-  |Z_C| = √(ESR² + (ω·ESL − 1/(ω·C))²)
+  [MODE_NETWORK]: `Gerçek kapasitör, seri RLC
+(spec §8.2.1):
+  Z_C = ESR + j(ω·ESL − 1/(ω·C))
+  |Z_C| =
+    √(ESR² + (ω·ESL − 1/(ω·C))²)
 
 Kendi rezonans frekansı:
   SRF = 1 / (2π·√(ESL·C))
-  SRF'de reaktanslar götürür → |Z_C| ≈ ESR
-  SRF üstünde kapasitör endüktiftir
+  SRF'de reaktanslar götürür
+    → |Z_C| ≈ ESR
+  SRF üstünde kapasitör
+  endüktiftir
 
 Paralel ağ (spec §8.2.2):
   Z_ağ(ω) = [ Σ 1/Z_i(ω) ]⁻¹
-  toplam KOMPLEKS admitans üzerinden alınır;
-  anti-rezonans tepeleri böyle görünür
+  toplam KOMPLEKS admitans
+  üzerinden alınır; anti-rezonans
+  tepeleri böyle görünür
 
 N adet aynı kapasitör:
-  C_eq = N·C   ESR_eq = ESR/N   ESL_eq = ESL/N
-  ortak via/dar bağlantı varsa ESL 1/N azalmaz`,
+  C_eq = N·C
+  ESR_eq = ESR/N
+  ESL_eq = ESL/N
+  ortak via/dar bağlantı varsa
+  ESL 1/N azalmaz`,
 }
 
 export default function Decoupling() {

@@ -326,25 +326,32 @@ export default function ViaProperties() {
           <h2>Teknik detay</h2>
 
           <pre className="formula">{`D_o = D_f + 2·t_p
-A   = π/4·(D_o² − D_f²) = π·t_p·(D_f + t_p)
-İnce yaklaşım: A ≈ π·D_f·t_p   (π·t_p² kadar eksik)
+A = π/4·(D_o² − D_f²)
+    = π·t_p·(D_f + t_p)
+İnce yaklaşım:
+    A ≈ π·D_f·t_p
+    (π·t_p² kadar eksik)
 
-R = ρ(T)·H / A       V = I·R       P = I²·R
+R = ρ(T)·H / A
+V = I·R   P = I²·R
 J = I / A
 
 Paralel via sayısı:
   N_I = ⌈I / I_tek⌉
   N_V = ⌈I·R / V_maks⌉
-  N   = max(N_I, N_V, N_kullanıcı)
+  N = max(N_I, N_V, N_kullanıcı)
 
 Annular ring:
-  A_R nominal    = (D_pad − D_matkap) / 2
-  A_R worst-case = nominal − T_konum − T_aşındırma
+  A_R nominal =
+      (D_pad − D_matkap) / 2
+  A_R worst-case = nominal −
+      T_konum − T_aşındırma
 
 Aspect ratio: AR = H / D
 
 L[nH] ≈ 0.2·H[mm]·[ln(4H/D) + 1]
-C[pF] ≈ 0.0555·εr·H·D_pad / (D_antipad − D_pad)`}</pre>
+C[pF] ≈ 0.0555·εr·H·D_pad /
+    (D_antipad − D_pad)`}</pre>
 
           {r.ok && (
             <ul className="detail-list">

@@ -24,38 +24,47 @@ const DIM_UNITS = ['mm', 'um', 'mil']
 const AREA_UNITS = ['mm²', 'mil²', 'm²']
 
 const FORMULA = {
-  [MODE_JUNCTION]: `T_J = T_A + P·θ_JA          (spec §8.3)
+  [MODE_JUNCTION]: `T_J = T_A + P·θ_JA (spec §8.3)
 
 P_max = (T_J,max − T_A) / θ_JA
 kullanım = P / P_max
 
-θ_JA sabit bir paket özelliği DEĞİLDİR:
-  test kartı, bakır alanı, hava akışı ve
-  montaj şartları değeri değiştirir.`,
+θ_JA sabit bir paket özelliği
+DEĞİLDİR:
+  test kartı, bakır alanı, hava
+  akışı ve montaj şartları
+  değeri değiştirir.`,
 
-  [MODE_HEATSINK]: `T_J = T_A + P·(θ_JC + θ_CS + θ_SA)   (spec §8.4)
+  [MODE_HEATSINK]: `T_J = T_A + P·(θ_JC + θ_CS + θ_SA)
+  (spec §8.4)
 
 termal bütçe = (T_J,max − T_A) / P
-θ_SA,max     = bütçe − θ_JC − θ_CS
+θ_SA,max = bütçe − θ_JC − θ_CS
 
-θ_SA,max ≤ 0 → hiçbir soğutucu yetmez;
-  gücü azalt, hava akışını artır veya
-  farklı paket seç.`,
+θ_SA,max ≤ 0 →
+  hiçbir soğutucu yetmez;
+  gücü azalt, hava akışını artır
+  veya farklı paket seç.`,
 
-  [MODE_SURFACE]: `paket üstü: T_J ≈ T_top   + Ψ_JT·P   (spec §8.5)
+  [MODE_SURFACE]: `paket üstü: T_J ≈ T_top + Ψ_JT·P
+  (spec §8.5)
 kart üzeri: T_J ≈ T_board + Ψ_JB·P
 
 Ψ ≠ θ
-  θ_JC tek boyutlu bir yol direncidir.
-  Ψ_JT paketten kaçan ısının yalnızca
-  bir kısmını gören ampirik metriktir.
-  Paket üstü ölçümde θ_JC kullanılmaz.`,
+  θ_JC tek boyutlu bir yol
+  direncidir.
+  Ψ_JT paketten kaçan ısının
+  yalnızca bir kısmını gören
+  ampirik metriktir.
+  Paket üstü ölçümde θ_JC
+  kullanılmaz.`,
 }
 
-const COPPER_FORMULA = `bakır şerit: R_θ = L / (k_Cu·W·t)     (spec §8.6)
-dielektrik:  R_θ = H / (k_FR4·A)
-paralel:     R_θ,eq = [ Σ 1/R_θ,i ]⁻¹
-artış:       ΔT = P · R_θ,eq`
+const COPPER_FORMULA = `bakır şerit: R_θ = L / (k_Cu·W·t)
+  (spec §8.6)
+dielektrik: R_θ = H / (k_FR4·A)
+paralel: R_θ,eq = [ Σ 1/R_θ,i ]⁻¹
+artış: ΔT = P · R_θ,eq`
 
 export default function Junction() {
   const [mode, setMode] = useState(MODE_JUNCTION)

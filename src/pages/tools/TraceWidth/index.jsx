@@ -308,7 +308,8 @@ export default function TraceWidth() {
     A: mil²   I: A   ΔT: °C
     k(dış) = 0.048   k(iç) = 0.024
 
-R(T) = ρ₂₀·[1 + α(T − 20)] · L / (W·t)
+R(T) = ρ₂₀·[1 + α(T − 20)] ·
+    L / (W·t)
     ρ₂₀ = 1.724×10⁻⁸ Ω·m
     α = 0.00393 /°C`}</pre>
 

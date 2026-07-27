@@ -24,7 +24,8 @@ const VOLT_UNITS = ['V', 'mV', 'kV']
 
 const FORMULA = `Seri terminasyon (spec §7.7):
   R_s = Z₀ − R_driver
-  R_s < 0  →  seri terminasyon önerilmez
+  R_s < 0 →
+    seri terminasyon önerilmez
 
 Paralel terminasyon:
   R_T   = Z₀
@@ -37,22 +38,27 @@ Thevenin terminasyonu:
   R_top    = Z₀ / a
            = Z₀ · V_cc / V_bias
   R_bottom = Z₀ / (1 − a)
-           = Z₀ · V_cc / (V_cc − V_bias)
+           = Z₀ · V_cc
+             / (V_cc − V_bias)
 
   R_top ∥ R_bottom = Z₀
-  V_bias = V_cc · R_bottom / (R_top + R_bottom)
+  V_bias = V_cc · R_bottom
+           / (R_top + R_bottom)
 
 Sürekli akım ve güç — OHM YASASI,
 spec §7.7'de TANIMLI DEĞİL:
   paralel:
     I_dc = V / R_T
   Thevenin:
-    I_dc = V_cc / (R_top + R_bottom)
-    P_dc = V_cc² / (R_top + R_bottom)
+    I_dc = V_cc
+           / (R_top + R_bottom)
+    P_dc = V_cc²
+           / (R_top + R_bottom)
 
-Standart çift seçildikten sonra gerçek
-bias ve gerçek paralel direnç yeniden
-hesaplanır — kuantalama ikisini birden
+Standart çift seçildikten sonra
+gerçek bias ve gerçek paralel
+direnç yeniden hesaplanır —
+kuantalama ikisini birden
 kaydırır.`
 
 // Bulgu listesi iki yerde kullanılır: sonuç varken ve seri terminasyonun

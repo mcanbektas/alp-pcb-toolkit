@@ -20,25 +20,32 @@ const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const FORMULA = {
   [TOOL_RC]: `τ = R·C
 
-Şarj:    V_C(t) = V_s·(1 − e^(−t/τ))
-Deşarj:  V_C(t) = V₀·e^(−t/τ)
+Şarj:
+  V_C(t) = V_s·(1 − e^(−t/τ))
+Deşarj:
+  V_C(t) = V₀·e^(−t/τ)
 
-%10 → %90 yükselme:  t_r = τ·ln(9) ≈ 2.2·τ
+%10 → %90 yükselme:
+  t_r = τ·ln(9) ≈ 2.2·τ
 1τ: %63.2   3τ: %95.0   5τ: %99.3`,
   [TOOL_RL]: `τ = L / R
 
-Akım yükselmesi:  I(t) = (V/R)·(1 − e^(−t·R/L))
+Akım yükselmesi:
+  I(t) = (V/R)·(1 − e^(−t·R/L))
 
-%10 → %90 yükselme:  t_r = τ·ln(9) ≈ 2.2·τ
+%10 → %90 yükselme:
+  t_r = τ·ln(9) ≈ 2.2·τ
 1τ: %63.2   3τ: %95.0   5τ: %99.3`,
   [TOOL_CRYSTAL]: `Genel:
-  C_L = (C_IN + C1)(C_OUT + C2)
-        ─────────────────────────  + C_stray
-        C_IN + C1 + C_OUT + C2
+  C_L =
+    (C_IN + C1)(C_OUT + C2)
+    ──────────────────── + C_stray
+    C_IN + C1 + C_OUT + C2
 
-C1 = C2 = C ve giriş kapasiteleri ihmal edilirse:
+C1 = C2 = C ve giriş
+kapasiteleri ihmal edilirse:
   C_L = C/2 + C_stray
-  C   = 2·(C_L − C_stray)`,
+  C = 2·(C_L − C_stray)`,
 }
 
 const ASSUMPTIONS = {

@@ -20,32 +20,41 @@ import {
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `Spec §7.6'da birebir tanımlı TEK ifade —
-yalnızca geometrik kontrol:
+const FORMULA = `Spec §7.6'da birebir tanımlı
+TEK ifade — yalnızca geometrik
+kontrol:
   S ≥ 3·W
 
 Kestirim — KAYNAĞI SPEC'TE YOK:
-  K_b    = (Z_even − Z_odd) / (2·(Z_even + Z_odd))
-  L_sat  = t_r / (2·t'_pd)
-  ölçek  = L ≥ L_sat ? 1 : L / L_sat
+  K_b = (Z_even − Z_odd)
+        / (2·(Z_even + Z_odd))
+  L_sat = t_r / (2·t'_pd)
+  ölçek = L ≥ L_sat
+          ? 1 : L / L_sat
   V_NEXT = K_b · V_agg · ölçek
   t_NEXT = 2·L·t'_pd
 
-  Δt     = |t'_pd,even − t'_pd,odd| · L
+  Δt = |t'_pd,even − t'_pd,odd|
+       · L
   V_FEXT ≈ (Δt / t_r) · V_agg / 2
 
-Spec §7.6'nın istediği rota — UYGULANMADI:
+Spec §7.6'nın istediği rota
+— UYGULANMADI:
   ∂V/∂x = −(R + jωL)·I
   ∂I/∂x = −(G + jωC)·V
   Z = R + jωL,  Y = G + jωC
   M = [[0, Z], [Y, 0]]
   X(ℓ) = e^(−M·ℓ) · X(0)
-  L = μ₀ε₀·C₀⁻¹     (vakum kapasitans matrisinden)
-  G ≈ ω·tanδ·C      (homojen dielektrik yaklaşımı)
-  C matrisi 2B alan çözücüden gelir;
-  aggressor sinyali FFT → her frekansta çözüm
-  → IFFT ile NEXT/FEXT dalga biçimi.
-  Alan çözücü olmadığı için hiçbir adımı yapılamadı.`
+  L = μ₀ε₀·C₀⁻¹
+    (vakum kapasitans matrisinden)
+  G ≈ ω·tanδ·C
+    (homojen dielektrik yaklaşımı)
+  C matrisi 2B alan çözücüden
+  gelir; aggressor sinyali FFT →
+  her frekansta çözüm → IFFT ile
+  NEXT/FEXT dalga biçimi.
+  Alan çözücü olmadığı için
+  hiçbir adımı yapılamadı.`
 
 export default function Crosstalk() {
   const { f, set } = useToolForm(INITIAL_FORM)

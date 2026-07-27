@@ -18,35 +18,46 @@ const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const DIM_UNITS = ['mm', 'um', 'mil']
 
 const FORMULA = {
-  [STRUCT_MICROSTRIP]: `u = W / H       η₀ = 376.7303 Ω
+  [STRUCT_MICROSTRIP]: `u = W / H
+η₀ = 376.7303 Ω
 
-a(u) = 1 + (1/49)·ln[(u⁴+(u/52)²)/(u⁴+0.432)]
-         + (1/18.7)·ln[1+(u/18.1)³]
-b(εr) = 0.564·[(εr−0.9)/(εr+3)]^0.053
+a(u) = 1
+    + (1/49)·ln[(u⁴+(u/52)²)/
+      (u⁴+0.432)]
+    + (1/18.7)·ln[1+(u/18.1)³]
+b(εr) = 0.564·
+    [(εr−0.9)/(εr+3)]^0.053
 
-εeff = (εr+1)/2 + (εr−1)/2·(1+10/u)^(−a·b)
+εeff = (εr+1)/2 +
+    (εr−1)/2·(1+10/u)^(−a·b)
 
-f_u  = 6 + (2π−6)·exp[−(30.666/u)^0.7528]
-Z_air = (η₀/2π)·ln[f_u/u + √(1+(2/u)²)]
-Z₀    = Z_air / √εeff
+f_u = 6 + (2π−6)·
+    exp[−(30.666/u)^0.7528]
+Z_air = (η₀/2π)·
+    ln[f_u/u + √(1+(2/u)²)]
+Z₀ = Z_air / √εeff
 
 Kalınlık düzeltmesi (τ = t/H):
-  Δu₁ = (τ/π)·ln[1 + 4e/(τ·coth²√(6.517u))]
+  Δu₁ = (τ/π)·
+    ln[1 + 4e/(τ·coth²√(6.517u))]
   Δu_r = (Δu₁/2)·[1 + sech√(εr−1)]`,
-  [STRUCT_STRIPLINE]: `k  = tanh(πW / 2b)
+  [STRUCT_STRIPLINE]: `k = tanh(πW / 2b)
 k' = sech(πW / 2b)
 
 Z₀ = (30π / √εr) · K(k') / K(k)
 
-K(k): tam eliptik integral (AGM ile)
-εeff = εr   (homojen dielektrik)`,
-  [STRUCT_CPW]: `k  = W / (W + 2S)
+K(k): tam eliptik integral
+  (AGM ile)
+εeff = εr (homojen dielektrik)`,
+  [STRUCT_CPW]: `k = W / (W + 2S)
 k' = √(1 − k²)
 
-εeff ≈ (εr + 1) / 2      (kalın substrat)
-Z₀   = (30π / √εeff) · K(k') / K(k)
+εeff ≈ (εr + 1) / 2
+  (kalın substrat)
+Z₀ = (30π / √εeff) · K(k') / K(k)
 
-Bu form alt referans düzlemi OLMAYAN yapı içindir.`,
+Bu form alt referans düzlemi
+OLMAYAN yapı içindir.`,
 }
 
 export default function SingleEnded() {

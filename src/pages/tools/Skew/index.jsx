@@ -32,13 +32,20 @@ Aynı katman (εeff,P = εeff,N):
 İzin verilen skew bütçesinden:
   ΔL_max = c·t_skew,max / √εeff
 
-Eşitlemek için gecikmesi küçük olan hatta eklenecek uzunluk:
-  aynı katman   → ΔL_add = | L_P − L_N |
-  farklı katman → ΔL_add = | t_P − t_N | / t'_pd(gecikmesi küçük olan hat)
+Eşitlemek için gecikmesi küçük
+olan hatta eklenecek uzunluk:
+  aynı katman →
+    ΔL_add = | L_P − L_N |
+  farklı katman →
+    ΔL_add = | t_P − t_N |
+      / t'_pd(gecikmesi küçük
+              olan hat)
 
-NOT: spec §7.5'in denklem bloklarının sol tarafları
-markdown dönüşümünde düşmüş. Bloklar tahminle
-tamamlanmadı; yukarıdaki yazım lib/signalIntegrity.js
+NOT: spec §7.5'in denklem
+bloklarının sol tarafları markdown
+dönüşümünde düşmüş. Bloklar
+tahminle tamamlanmadı; yukarıdaki
+yazım lib/signalIntegrity.js
 skew() uygulamasından alındı.`
 
 export default function Skew() {

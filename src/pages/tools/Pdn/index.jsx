@@ -26,35 +26,39 @@ const FORMULA = `Hedef empedans — spec §8.1:
   ΔV_izin = V_ray · T% / 100
   Z_hedef = ΔV_izin / ΔI
 
-  Sabit YATAY hedef. Frekansa bağlı hedef
-  profil spec'te anılıyor ama denklemi
+  Sabit YATAY hedef. Frekansa
+  bağlı hedef profil spec'te
+  anılıyor ama denklemi
   verilmiyor → UYGULANMADI.
 
 Düzlem kapasitesi — spec §8.2.3:
   C_düzlem = ε₀·εr·A / d
   kenar saçılması DENKLEMDE YOK
 
-Toplam PDN empedansı — spec §8.2.4:
+Toplam empedans — spec §8.2.4:
   Z_PDN(ω) = [ 1/Z_VRM
              + 1/Z_kap
              + jω·C_düzlem ]⁻¹
 
   Z_kap(ω) = [ Σ 1/Z_i(ω) ]⁻¹
-  Z_i(ω)   = ESR + j(ω·ESL − 1/(ω·C))
+  Z_i(ω) =
+    ESR + j(ω·ESL − 1/(ω·C))
 
   Z_VRM = R + jωL
-    VRM modeli spec'te TANIMLI DEĞİL;
-    değerler kullanıcıdan gelir.
+    VRM modeli spec'te
+    TANIMLI DEĞİL; değerler
+    kullanıcıdan gelir.
 
   Düzlem yalnızca jωC — KAYIPSIZ.
 
-Bağlantı loop endüktansı — spec §8.2.4:
+Loop endüktansı — spec §8.2.4:
   L_loop = ESL_komponent + L_mount
          + L_via + L_yayılma
 
-  Eğriye DAHİL DEĞİL, ayrı eklenir.
-  Üç terimin denklemi spec'te yok;
-  değerler kullanıcıdan gelir.`
+  Eğriye DAHİL DEĞİL, ayrı
+  eklenir. Üç terimin denklemi
+  spec'te yok; değerler
+  kullanıcıdan gelir.`
 
 export default function Pdn() {
   const { f, set } = useToolForm(INITIAL_FORM)

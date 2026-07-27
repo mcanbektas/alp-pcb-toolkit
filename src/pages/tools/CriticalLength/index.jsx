@@ -20,22 +20,28 @@ import {
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `t'_pd = √εeff / c        (birim uzunluk gecikmesi)
-t_d   = L · t'_pd       (hat gecikmesi)
+const FORMULA = `t'_pd = √εeff / c
+  (birim uzunluk gecikmesi)
+t_d = L · t'_pd
+  (hat gecikmesi)
 
 Kriter — spec §7.4, N ∈ {6, 4, 2}:
-  t_d ≥ t_r / N   →   iletim hattı değerlendirmesi
+  t_d ≥ t_r / N
+    → iletim hattı değerlendirmesi
 
 Kritik uzunluk:
   L_crit = t_r / (N · t'_pd)
          = c · t_r / (N · √εeff)
 
 Oranlar:
-  t_d / t_r      (gecikmenin kenara oranı)
-  L / L_crit     (eşiğe uzaklık)
+  t_d / t_r
+    (gecikmenin kenara oranı)
+  L / L_crit
+    (eşiğe uzaklık)
 
-Yükselme süresi bant genişliği — spec §7.3:
-  f_BW = K / t_r ,  K ∈ [0.35, 0.5]
+Yükselme süresi bant genişliği
+— spec §7.3:
+  f_BW = K / t_r , K ∈ [0.35, 0.5]
   (bu değer VERİ HIZI DEĞİLDİR)`
 
 export default function CriticalLength() {

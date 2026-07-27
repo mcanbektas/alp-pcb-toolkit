@@ -319,11 +319,13 @@ export default function VoltageDivider() {
 
 Yük altında:
   R2_eff = R2 · R_L / (R2 + R_L)
-  V_out  = V_in · R2_eff / (R1 + R2_eff)
+  V_out = V_in · R2_eff /
+    (R1 + R2_eff)
 
-I_div  = V_in / (R1 + R2)
-P₁ = I_div²·R1      P₂ = I_div²·R2
-Z_out  = R1 ∥ R2
+I_div = V_in / (R1 + R2)
+P₁ = I_div²·R1
+P₂ = I_div²·R2
+Z_out = R1 ∥ R2
 
 Hedeften orana:
   k = V_out / V_in

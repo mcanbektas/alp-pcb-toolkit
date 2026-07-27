@@ -198,12 +198,13 @@ export default function ThermalVia() {
           <h2>Teknik detay</h2>
 
           <pre className="formula">{`A_barrel = π·t_p·(D_f + t_p)
-Bakır dolgulu: A = A_barrel + π·D_f²/4
+Bakır dolgulu:
+    A = A_barrel + π·D_f²/4
 
-Tek via:  R_θ = H / (k·A)
-N via:    R_θ,dizi = R_θ / N
+Tek via: R_θ = H / (k·A)
+N via: R_θ,dizi = R_θ / N
 
-İletilen ısı:  Q = ΔT / R_θ
+İletilen ısı: Q = ΔT / R_θ
 
 Gerçek toplam yol:
   R_θ,toplam = R_θ,üst yayılım

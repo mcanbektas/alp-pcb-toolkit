@@ -20,16 +20,16 @@ const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
 const FORMULA = {
-  [TOOL_PLANE]: `R_□ = ρ(T) / t            (kare direnci)
-R   = R_□ · (L / W)      (kare sayısı)
+  [TOOL_PLANE]: `R_□ = ρ(T) / t   (kare direnci)
+R = R_□ · (L / W)   (kare sayısı)
 
 ρ(T) = ρ₂₀·[1 + α(T − 20)]
   ρ₂₀ = 1.724×10⁻⁸ Ω·m
-  α   = 0.00393 /°C
+  α = 0.00393 /°C
 
-V_düşüm = I·R      P = I²·R`,
-  [TOOL_PARALLEL]: `Rᵢ    = ρ(T)·Lᵢ / (Wᵢ·t)
-R_eş  = (Σ 1/Rᵢ)⁻¹
+V_düşüm = I·R   P = I²·R`,
+  [TOOL_PARALLEL]: `Rᵢ = ρ(T)·Lᵢ / (Wᵢ·t)
+R_eş = (Σ 1/Rᵢ)⁻¹
 
 Akım payı:
   Iᵢ = I · (1/Rᵢ) / Σ(1/Rⱼ)

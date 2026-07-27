@@ -25,27 +25,37 @@ const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
 const FORMULA = {
-  [TOOL_OHM]: `V = I·R      I = V/R      R = V/I
-P = V·I      P = I²·R     P = V²/R
+  [TOOL_OHM]: `V = I·R
+I = V/R
+R = V/I
 
-Tutarsızlık oranı (V, I, R birlikte girilirse):
+P = V·I
+P = I²·R
+P = V²/R
+
+Tutarsızlık oranı
+(V, I, R birlikte girilirse):
   E = |V − I·R| / |V|`,
-  [TOOL_LED]: `V_LED = Σ V_f,i          (seri LED'ler)
-R     = (V_s − V_LED) / I_LED
-P_R   = I_LED²·R = (V_s − V_LED)·I_LED
+  [TOOL_LED]: `V_LED = Σ V_f,i
+  (seri LED'ler)
+R = (V_s − V_LED) / I_LED
+P_R = I_LED²·R
+    = (V_s − V_LED)·I_LED
 
 Güvenli güç seçimi:
-  P_nominal ≥ P_R / D      (D: kullanım oranı)`,
-  [TOOL_RLC]: `X_L = 2πfL           X_C = 1/(2πfC)
-Z   = R + j(X_L − X_C)
+  P_nominal ≥ P_R / D
+    (D: kullanım oranı)`,
+  [TOOL_RLC]: `X_L = 2πfL
+X_C = 1/(2πfC)
+Z = R + j(X_L − X_C)
 |Z| = √(R² + (X_L − X_C)²)
-φ   = atan[(X_L − X_C)/R]
+φ = atan[(X_L − X_C)/R]
 
 f₀ = 1/(2π√(LC))
-Q  = ω₀L/R = 1/(ω₀CR)
+Q = ω₀L/R = 1/(ω₀CR)
 BW = f₀/Q`,
-  [TOOL_COMBO]: `Seri:     R_eş = Σ Rᵢ
-Paralel:  R_eş = (Σ 1/Rᵢ)⁻¹
+  [TOOL_COMBO]: `Seri: R_eş = Σ Rᵢ
+Paralel: R_eş = (Σ 1/Rᵢ)⁻¹
 İki için: R_eş = R₁R₂/(R₁+R₂)
 
 Paralelde akım payı:

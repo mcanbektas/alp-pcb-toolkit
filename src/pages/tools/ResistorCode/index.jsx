@@ -301,16 +301,26 @@ export default function ResistorCode() {
         <section className="panel panel-detail">
           <h2>Teknik detay</h2>
 
-          <pre className="formula">{`4 bant:  R = (10·D₁ + D₂) · 10^M
-5 bant:  R = (100·D₁ + 10·D₂ + D₃) · 10^M
-6. bant: R(T) = R₂₅ · [1 + TCR·10⁻⁶·(T − 25)]
+          <pre className="formula">{`4 bant:
+  R = (10·D₁ + D₂) · 10^M
+5 bant:
+  R = (100·D₁ + 10·D₂ + D₃) · 10^M
+6. bant:
+  R(T) = R₂₅ ·
+    [1 + TCR·10⁻⁶·(T − 25)]
 
-SMD 3 hane:  R = (10·D₁ + D₂) · 10^D₃
-SMD 4 hane:  R = (100·D₁ + 10·D₂ + D₃) · 10^D₄
-R işareti:   4R7 = 4.7 Ω,  R22 = 0.22 Ω
-EIA-96:      R = E96[kod] × M[harf]
+SMD 3 hane:
+  R = (10·D₁ + D₂) · 10^D₃
+SMD 4 hane:
+  R = (100·D₁ + 10·D₂ + D₃) ·
+    10^D₄
+R işareti:
+  4R7 = 4.7 Ω, R22 = 0.22 Ω
+EIA-96:
+  R = E96[kod] × M[harf]
 
-Kondansatör: C[pF] = (10·D₁ + D₂) · 10^D₃
+Kondansatör:
+  C[pF] = (10·D₁ + D₂) · 10^D₃
 
 Tolerans sınırları:
   R_min = R·(1 − Tol/100)

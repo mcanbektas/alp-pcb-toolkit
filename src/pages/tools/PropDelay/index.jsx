@@ -12,17 +12,20 @@ import { CHART, reasonText, commentary } from './text'
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `t'_pd = √εeff / c        (birim uzunluk gecikmesi)
-t_pd  = L · √εeff / c
+const FORMULA = `t'_pd = √εeff / c
+  (birim uzunluk gecikmesi)
+t_pd = L · √εeff / c
 
-Pratik: t'_pd ≈ 3.33564·√εeff  ps/mm
+Pratik:
+  t'_pd ≈ 3.33564·√εeff ps/mm
 
 v_p = c / √εeff
 
 λ₀ = c / f
 λg = c / (f·√εeff)
 
-λ/4 = λg / 4      λ/2 = λg / 2
+λ/4 = λg / 4
+λ/2 = λg / 2
 
 Elektriksel uzunluk:
   derece = 360°·(L / λg)
