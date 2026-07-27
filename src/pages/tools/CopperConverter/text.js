@@ -10,7 +10,7 @@ export const SOURCE_LABEL = {
 
 export const CHART = {
   x: 'Bakır ağırlığı (oz/ft²)', y: 'Kare direnci (Ω/□)',
-  caption: 'Kare direnci kalınlıkla ters orantılıdır: bakırı iki katına çıkarmak direnci yarıya indirir. Eğri nominal tabloya (1 oz = 35 µm) göre çizilir.',
+  caption: 'Kare direnci kalınlıkla ters orantılıdır: bakırı iki katına çıkarmak direnci yarıya indirir. Eğri nominal kurala (1 oz = 35 µm) göre çizilir; çalışma noktası bitmiş kalınlığın (folyo + kaplama) eşdeğer bakır ağırlığına konur, bu yüzden dış katmanda imleç girilen folyo ağırlığının sağına düşer ama her zaman eğrinin üstündedir. Tarama aralığı çalışma noktasını kapsayacak biçimde genişletilir.',
 }
 
 export function reasonText(reason) {

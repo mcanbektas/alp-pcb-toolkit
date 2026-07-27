@@ -107,17 +107,45 @@ export function compute(f) {
 export function buildSweep(r) {
   if (!r.ok) return null
 
+  // İmlecin x'i koşulsuz olarak BİTMİŞ kalınlıktan türetilir.
+  //
+  // Eğri y = R_□(nominalThickness(oz)) bağıntısından çizilir, imlecin y'si ise
+  // R_□(bitmiş kalınlık)'tır. Ağırlık kaynağında x olarak ham `r.oz` girişi
+  // kullanılınca bu iki kalınlık farklı oluyordu: `r.oz` yalnızca folyoyu
+  // anlatır, kaplamayı içermez. Varsayılan formda (1 oz folyo + 25 µm kaplama)
+  // imleç eğrinin belirgin biçimde altına düşüyordu.
+  //
+  // `units.finished.ozNominal = t_bitmiş / (35 µm)` nominal kuralın tersidir ve
+  // nominal tablo değerleri tam olarak 35·oz olduğundan
+  //   nominalThickness(markerOz) === t_bitmiş
+  // olur; yani imleç her iki kaynakta da eğrinin tam üstüne oturur.
+  const markerOz = r.units.finished?.ozNominal ?? NaN
+
+  // Tarama aralığı çalışma noktasını her zaman kapsar. LineChart x eksenini
+  // yalnızca seri noktalarından türettiği için, sabit 0.25–6 oz aralığının
+  // dışında kalan bir çalışma noktası (ör. 10 oz ağır bakır) grafiğin dışına
+  // düşüp görünmez oluyordu.
+  const spans = Number.isFinite(markerOz) && markerOz > 0
+  const from = spans ? Math.min(0.25, markerOz * 0.8) : 0.25
+  const to = spans ? Math.max(6, markerOz * 1.2) : 6
+
   const steps = 60
-  const from = 0.25
-  const to = 6
-  const rows = []
-  for (let i = 0; i < steps; i++) {
-    const oz = from + ((to - from) * i) / (steps - 1)
-    const t = nominalThickness(oz)
-    rows.push({ x: oz, y: sheetResistance(t, r.T) })
+  const xs = []
+  for (let i = 0; i < steps; i++) xs.push(from + ((to - from) * i) / (steps - 1))
+
+  // Çalışma noktasının x'i örnek noktalardan biri yapılır. Eğri 1/t biçiminde
+  // olduğu için düzgün aralıklı örnekleme sol uçta kabadır; iki örnek arasını
+  // birleştiren doğru parçası eğrinin altında kalır ve imleç ince bakırda
+  // çizgiden ayrık görünürdü. Tam bu x'te bir örnek olunca imleç çizilen
+  // poligonun üstünde durur.
+  if (spans && !xs.some((x) => Math.abs(x - markerOz) <= 1e-12 * Math.max(1, markerOz))) {
+    // Aralık tanımı gereği from < markerOz < to, yani ekleme yeri her zaman var;
+    // yine de bulunamazsa dizi sıralı kalsın diye ekleme yapılmaz.
+    const at = xs.findIndex((x) => x > markerOz)
+    if (at > 0) xs.splice(at, 0, markerOz)
   }
 
-  const markerOz = r.oz ?? r.units.finished.ozNominal
+  const rows = xs.map((oz) => ({ x: oz, y: sheetResistance(nominalThickness(oz), r.T) }))
 
   return {
     rows,
