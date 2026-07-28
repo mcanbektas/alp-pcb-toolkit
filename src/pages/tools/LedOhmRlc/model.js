@@ -10,6 +10,7 @@ import { ledResistor, LED_ERR_HEADROOM } from '../../../lib/led'
 import { seriesRLC } from '../../../lib/reactance'
 import { nearestValue } from '../../../lib/eseries'
 import { solveBounded } from '../../../lib/solve'
+import { parseValueList } from '../../../lib/valueList'
 
 export const TOOL_OHM = 'ohm'
 export const TOOL_LED = 'led'
@@ -30,6 +31,7 @@ export const REASON_INCOMPLETE = 'incomplete'
 export const REASON_OHM_INSUFFICIENT = 'ohm-insufficient'
 export const REASON_LED_HEADROOM = 'led-headroom'
 export const REASON_NO_SOLUTION = 'no-solution'
+export const REASON_VALUE_LIST = 'value-list'
 
 export const INITIAL_FORM = {
   tool: TOOL_OHM,
@@ -56,7 +58,8 @@ export const INITIAL_FORM = {
 
   // Seri / paralel
   combo: COMBO_PARALLEL,
-  values: '10k, 22k, 47k',
+  // Ayırıcı boşluk: virgül ondalık ayracıdır (4,7k = 4.7 kΩ), listeyi bölmez.
+  values: '10k 22k 47k',
 }
 
 const PCT = { '%': 1 }
@@ -93,27 +96,9 @@ export function formFields(tool, mode, f) {
   ])
 }
 
-// "10k, 22k, 4.7M" gibi bir listeyi ohm dizisine çevirir.
-// Ayrıştırma burada yapılır çünkü sonuç sayısaldır; hata kodu döner, metin değil.
-export function parseValueList(text) {
-  const parts = String(text).split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean)
-  if (parts.length === 0) return { error: 'empty' }
-
-  const out = []
-  for (const part of parts) {
-    const m = part.match(/^(-?[\d.,]+)\s*([kKmMgG])?$/)
-    if (!m) return { error: 'invalid', at: part }
-
-    // Ondalık ayracı olarak virgül de kabul edilir; liste ayracı zaten virgüldür,
-    // bu yüzden ayrıştırma parçalara bölündükten sonra yapılır.
-    const n = parseFloat(m[1].replace(',', '.'))
-    if (!Number.isFinite(n) || n < 0) return { error: 'invalid', at: part }
-
-    const scale = { k: 1e3, K: 1e3, m: 1e6, M: 1e6, g: 1e9, G: 1e9 }[m[2]] ?? 1
-    out.push(n * scale)
-  }
-  return { values: out }
-}
+// "10k 22k 4,7M" gibi bir listenin ayrıştırılması lib/valueList.js'e taşındı: buradaki
+// eski uygulama girdiyi ÖNCE virgülden bölüyordu, bu yüzden "4,7k" iki dirence (4 Ω ve
+// 7 kΩ) ayrılıyor ve paralel bağlamada ~1000× yanlış sonuç sessizce geçerli görünüyordu.
 
 function computeOhm(v) {
   const r = ohmsLaw({ V: v.V, I: v.I, R: v.R, P: v.P })
@@ -173,7 +158,7 @@ function computeRlc(mode, v) {
 
 function computeCombo(f) {
   const parsed = parseValueList(f.values)
-  if (parsed.error) return { ok: false, reason: REASON_INCOMPLETE, at: parsed.at }
+  if (parsed.error) return { ok: false, reason: REASON_VALUE_LIST, valueList: parsed.error, at: parsed.at }
 
   const values = parsed.values
   const equivalent = f.combo === COMBO_SERIES

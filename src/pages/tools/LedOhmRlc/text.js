@@ -6,6 +6,10 @@ import {
   COMBO_SERIES,
   REASON_OHM_INSUFFICIENT, REASON_LED_HEADROOM, REASON_NO_SOLUTION,
 } from './model'
+import {
+  VALUE_LIST_ERR_EMPTY, VALUE_LIST_ERR_INVALID, VALUE_LIST_ERR_THOUSANDS,
+  VALUE_LIST_ERR_COMMA_SEPARATOR, VALUE_LIST_ERR_NEGATIVE,
+} from '../../../lib/valueList'
 
 export const TOOL_LABEL = {
   [TOOL_OHM]: 'Ohm kanunu ve güç',
@@ -48,10 +52,25 @@ export function reasonText(reason, r) {
   }
 }
 
-export function valueListError(at) {
-  return at
-    ? `Değer listesi okunamadı: "${at}". Beklenen biçim: 10k, 22k, 4.7M (virgülle ayrılmış).`
-    : 'Değer listesi boş. En az bir direnç girin, örn. 10k, 22k.'
+// Ayrıştırıcı yalnızca kod döndürür; Türkçe karşılığı burada kurulur.
+export function valueListError(code, at) {
+  switch (code) {
+    case VALUE_LIST_ERR_EMPTY:
+      return 'Değer listesi boş. En az bir direnç girin, örn. 10k 22k.'
+    case VALUE_LIST_ERR_COMMA_SEPARATOR:
+      return 'Virgül burada ondalık ayracıdır (4,7k = 4.7 kΩ), değerleri ayırmaz. '
+        + 'Değerleri boşlukla veya noktalı virgülle ayırın: 10k 22k 4,7M.'
+    case VALUE_LIST_ERR_THOUSANDS:
+      return `"${at}" belirsiz: nokta binlik ayracı mı ondalık mı, anlaşılmıyor. `
+        + 'Binlik ayracı kullanmayın; 1000 yerine 1k yazabilirsiniz.'
+    case VALUE_LIST_ERR_NEGATIVE:
+      return `"${at}" negatif. Direnç değeri sıfır veya daha büyük olmalı.`
+    default:
+      return at
+        ? `Değer listesi okunamadı: "${at}". Beklenen biçim: 10k 22k 4,7M `
+          + '(boşluk veya noktalı virgülle ayrılmış, k/M/G soneki yapışık).'
+        : 'Değer listesi okunamadı. Beklenen biçim: 10k 22k 4,7M.'
+  }
 }
 
 export function commentary(r) {

@@ -14,7 +14,7 @@ import {
   INITIAL_FORM, TOOLS, TOOL_OHM, TOOL_LED, TOOL_RLC, TOOL_COMBO,
   MODE_ANALYSIS, MODE_SYNTHESIS, HAS_MODES,
   COMBO_SERIES, COMBO_PARALLEL,
-  REASON_INCOMPLETE,
+  REASON_VALUE_LIST,
   compute, buildSweep,
 } from './model'
 import {
@@ -257,7 +257,7 @@ export default function LedOhmRlc() {
               <TextField
                 label="Direnç değerleri"
                 value={f.values} onChange={set('values')}
-                hint="Virgülle ayırın; k ve M son eki kullanılabilir: 10k, 22k, 4.7M"
+                hint="Boşluk veya noktalı virgülle ayırın; k/M/G soneki yapışık yazılır: 10k 22k 4,7M. Virgül ondalık ayracıdır (4,7k = 4.7 kΩ)"
               />
             </>
           )}
@@ -274,8 +274,8 @@ export default function LedOhmRlc() {
               </p>
             ) : (
               <p className="empty-note">
-                {f.tool === TOOL_COMBO && r.reason === REASON_INCOMPLETE
-                  ? valueListError(r.at)
+                {r.reason === REASON_VALUE_LIST
+                  ? valueListError(r.valueList, r.at)
                   : reasonText(r.reason, r)}
               </p>
             )
