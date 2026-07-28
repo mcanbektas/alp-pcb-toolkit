@@ -14,12 +14,12 @@ export const MODE_LABEL = {
 // Sonuç panelinde .method-note olarak durur — sonucun neyi içermediğini
 // sonucun yanında söyler.
 export const NOTE_MIN =
-  'İdeal kapasite — ESR ve ESL etkisini içermez (spec §8.2). Başlangıç noktasıdır, ' +
+  'İdeal kapasite — ESR ve ESL etkisini içermez. Başlangıç noktasıdır, ' +
   'kapasitör seçimi değildir.'
 
 export const NOTE_NETWORK =
   'Seri RLC modeli yalnızca kapasitörün kendisini tanımlar. Montaj pedi, via ve düzlem ' +
-  'yayılma endüktansı bu sonuca DAHİL DEĞİLDİR; ayrıca eklenmeli (spec §8.2.4).'
+  'yayılma endüktansı bu sonuca DAHİL DEĞİLDİR; ayrıca eklenmeli.'
 
 // Minimum kapasite grafiğinin x ekseni bu birimde çizilir. Model SI (V) üretir;
 // çarpan units.js VOLTAGE tablosundan fromSI ile gelir. Eksen etiketi ve ölçek
@@ -111,7 +111,7 @@ function minNotes(r) {
 
   out.push({
     level: 'warn',
-    text: 'Decoupling değeri işlemci clock frekansından tek başına seçilmez (spec §16 kritik uyarılar). Ani akım, izin verilen ripple, ESR, ESL ve bağlantı endüktansı birlikte değerlendirilir.',
+    text: 'Decoupling değeri işlemci clock frekansından tek başına seçilmez; bu yaygın ve kritik bir tasarım hatasıdır. Ani akım, izin verilen ripple, ESR, ESL ve bağlantı endüktansı birlikte değerlendirilir.',
   })
 
   out.push({
@@ -173,17 +173,17 @@ function networkNotes(r) {
 
   out.push({
     level: 'warn',
-    text: `ESR/N ve ESL/N ölçeklemesi yalnızca kapasitörlerin bağımsız ve eşit bağlantı yolları varsa geçerlidir (spec §8.2.2). Ortak via veya ortak dar bir bağlantı varsa ESL tam olarak 1/N azalmaz. Motorun bildirdiği ideal paylaşım varsayımı: ${r.idealSharing ? 'evet' : 'hayır'} — bu bir varsayım bildirimidir, yerleşimin doğrulaması değildir.`,
+    text: `ESR/N ve ESL/N ölçeklemesi yalnızca kapasitörlerin bağımsız ve eşit bağlantı yolları varsa geçerlidir. Ortak via veya ortak dar bir bağlantı varsa ESL tam olarak 1/N azalmaz. Motorun bildirdiği ideal paylaşım varsayımı: ${r.idealSharing ? 'evet' : 'hayır'} — bu bir varsayım bildirimidir, yerleşimin doğrulaması değildir.`,
   })
 
   out.push({
     level: 'warn',
-    text: 'Sonuç yalnızca kapasitörlerin kendisini içerir. Montaj pedi, via ve düzlem yayılma endüktansı toplam bağlantı loop endüktansına eklenmelidir (spec §8.2.4); o hesap PDN ekranındadır ve yüksek frekansta baskın terim genellikle odur.',
+    text: 'Sonuç yalnızca kapasitörlerin kendisini içerir. Montaj pedi, via ve düzlem yayılma endüktansı toplam bağlantı loop endüktansına eklenmelidir; o hesap PDN ekranındadır ve yüksek frekansta baskın terim genellikle odur.',
   })
 
   out.push({
     level: 'warn',
-    text: 'Decoupling değeri işlemci clock frekansından tek başına seçilmez (spec §16 kritik uyarılar). Ani akım, izin verilen ripple, ESR, ESL ve bağlantı endüktansı birlikte değerlendirilir.',
+    text: 'Decoupling değeri işlemci clock frekansından tek başına seçilmez; bu yaygın ve kritik bir tasarım hatasıdır. Ani akım, izin verilen ripple, ESR, ESL ve bağlantı endüktansı birlikte değerlendirilir.',
   })
 
   if (r.aboveCount > 0) {

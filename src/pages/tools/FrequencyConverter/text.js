@@ -21,14 +21,14 @@ export const CHART = {
   caption: 'Periyot frekansın tersidir. Logaritmik frekans ekseninde eğri, çalışma noktasının iki yanında birer dekat gösterir; işaretli nokta girilen değerdir.',
 }
 
-// --- Kaynak ve tanım bilgisi (spec §1: "Standart veya kaynak bilgisi") ---
+// --- Kaynak ve tanım bilgisi ---
 //
-// Sağ panelde "Kaynak ve tanımlar" başlığı altında listelenir. Kaynak
-// dokümanda olmayan bir bağıntı varsa bu listede açıkça söylenir.
+// Sağ panelde "Kaynak ve tanımlar" başlığı altında listelenir. Kullanıcıya
+// basılan metin dahili doküman göndermesi içermez; tanımın kendisini söyler.
 export const SOURCE_NOTES = [
-  'Kaynak: docs/spec.md §11.3. Bölüm bu ekran için yalnızca iki bağıntı verir: f = 1/T ve T = 1/f. İkisi de tanım gereği tamdır — ampirik katsayı, eğri uydurma ya da tablo içermezler.',
+  'Ekranın çekirdek dönüşümü iki bağıntıdan oluşur: f = 1/T ve T = 1/f. İkisi de tanım gereği tamdır — ampirik katsayı, eğri uydurma ya da tablo içermezler.',
   'Tanım: frekans birim zamandaki tam çevrim sayısıdır (Hz = 1/s), periyot ise bir tam çevrimin süresidir (s). Bu yüzden f = 1/T bir yaklaşıklık değil, iki büyüklüğün tanımının doğrudan sonucudur.',
-  'Açısal frekans ω = 2π·f kaynak dokümanın §11.3 bölümünde YOKTUR; bu ekrana tanım gereği eklenmiştir. Bir tam çevrim 2π radyana karşılık geldiği için ω = 2π·f ve f = ω/(2π) yazılır. Sayısal bir katsayı seçimi değildir, ancak kaynak dokümandan doğrulanmış bir madde de değildir.',
+  'Açısal frekans ω = 2π·f tanım gereğidir; frekans–periyot çiftine ek olarak verilir. Bir tam çevrim 2π radyana karşılık geldiği için ω = 2π·f ve f = ω/(2π) yazılır. 2π bir katsayı seçimi değil, çevrim başına radyan sayısıdır.',
   'Birim çarpanları ondalık SI önekleridir ve 10\'un tam kuvvetleridir: 1 kHz = 10³ Hz, 1 MHz = 10⁶ Hz, 1 GHz = 10⁹ Hz; 1 ms = 10⁻³ s, 1 µs = 10⁻⁶ s, 1 ns = 10⁻⁹ s, 1 ps = 10⁻¹² s. Çarpanlar yuvarlanmış değerler değildir.',
 ]
 

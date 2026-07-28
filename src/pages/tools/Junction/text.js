@@ -17,8 +17,9 @@ export const MARGIN_WARN_C = 10
 
 export const MARGIN_THRESHOLD_NOTE =
   `Marj eşiği (${MARGIN_WARN_C} °C altı uyarı) bu ekranın mühendislik yorumudur; ` +
-  'docs/spec.md böyle bir sınır tanımlamıyor. Gereken marj ortam sıcaklığı aralığına, ' +
-  'θ değerlerindeki üretim saçılmasına ve komponentin ömür hedefine göre değişir.'
+  'kullanılan termal direnç denklemleri böyle bir sınır tanımlamaz. Gereken marj ortam ' +
+  'sıcaklığı aralığına, θ değerlerindeki üretim saçılmasına ve komponentin ömür hedefine ' +
+  'göre değişir.'
 
 export const MODE_LABEL = {
   [MODE_JUNCTION]: 'Junction (θ_JA)',

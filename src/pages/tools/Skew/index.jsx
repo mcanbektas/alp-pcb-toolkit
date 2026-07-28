@@ -41,12 +41,11 @@ olan hatta eklenecek uzunluk:
       / t'_pd(gecikmesi küçük
               olan hat)
 
-NOT: spec §7.5'in denklem
-bloklarının sol tarafları markdown
-dönüşümünde düşmüş. Bloklar
-tahminle tamamlanmadı; yukarıdaki
-yazım lib/signalIntegrity.js
-skew() uygulamasından alındı.`
+NOT: yukarıdaki yazım hesabın
+birebir yaptığı işlemdir. Bağımsız
+bir referans denkleme karşı
+doğrulanmadı; eksik hiçbir adım
+tahminle tamamlanmadı.`
 
 export default function Skew() {
   const { f, set } = useToolForm(INITIAL_FORM)
@@ -263,10 +262,10 @@ export default function Skew() {
                 kendi sınırını motor döndürmüyor.
               </li>
               <li>
-                Spec §7.5 eklenecek uzunluğu yalnızca |L_P − L_N| olarak tanımlar ve farklı
-                katman durumunda ne ekleneceğini söylemez. Motor o durumda gecikmeyi eşitleyen
-                uzunluğu döndürür — bu, spec'te karşılığı olmayan bir genişletmedir ve burada
-                olduğu gibi işaretlenir.
+                Eklenecek uzunluğun standart tanımı yalnızca aynı katman içindir: |L_P − L_N|.
+                Farklı katman durumunda ne ekleneceğinin yerleşik bir tanımı yoktur; motor o
+                durumda gecikmeyi eşitleyen uzunluğu döndürür — bu, standart tanımın uygulanması
+                değil, bu ekranın genişletmesidir ve burada olduğu gibi işaretlenir.
               </li>
               <li>
                 Bu ekran skew bütçesini her zaman motora geçirir; motorun bütçesiz dalı
@@ -284,9 +283,8 @@ export default function Skew() {
               yerel yığın da εeff'i ayırır ve eşit uzunluk eşit gecikme vermez.
             </li>
             <li>
-              Farklı katman seçildiğinde eşitlenen büyüklük fiziksel uzunluk değil gecikmedir.
-              Spec §7.5 bu durumu açıkça uyarır: yalnızca fiziksel uzunluk eşitlemek yeterli
-              olmayabilir.
+              Farklı katman seçildiğinde eşitlenen büyüklük fiziksel uzunluk değil gecikmedir:
+              yalnızca fiziksel uzunluk eşitlemek yeterli olmayabilir.
             </li>
             <li>
               Eşitleme serpantin (meander) ile yapıldığında serpantinin kendi kuplajı devreye

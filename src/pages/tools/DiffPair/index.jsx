@@ -20,13 +20,12 @@ const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const DIM_UNITS = ['mm', 'µm', 'mil']
 
-const FORMULA = `Tek uçlu Z₀ — kapalı form,
-  spec §6.4/§6.6:
+const FORMULA = `Tek uçlu Z₀ — kapalı form:
     microstrip → Hammerstad–Jensen
     stripline → eliptik integral
 
 Kuplaj katsayısı — AMPİRİK,
-  spec'te YOK:
+  doğrulanmış kaynağa dayanmıyor:
     microstrip:
       k_c = 0.48·exp(−0.96·S/H)
     stripline:
@@ -35,7 +34,7 @@ Kuplaj katsayısı — AMPİRİK,
     Z_odd = Z₀·(1 − k_c)
     Z_even = Z₀·(1 + k_c)
 
-Spec §6.8.1'in istediği rota
+Maxwell kapasitans matrisi rotası
   — UYGULANMADI:
     C_odd = C₁₁ − C₁₂
     C_even = C₁₁ + C₁₂
@@ -47,8 +46,8 @@ Spec §6.8.1'in istediği rota
     kapasitans matrisi alan
     çözücüden çıkar.
 
-Türetilenler spec'e uygun
-  (§6.8.1, §16.4):
+Türetilen dönüşümler
+  — tanım gereği tam:
     Z_diff = 2·Z_odd
     Z_common = Z_even / 2`
 
@@ -278,10 +277,10 @@ export default function DiffPair() {
           {r.ok && (
             <ul className="detail-list">
               <li>
-                Model: {r.model}. Çiftin yöntem alanı `{r.method}`, tek uçlu formunki
+                Model: {r.model}. Çiftin yöntem etiketi `{r.method}`, tek uçlu formunki
                 `{r.singleMethod}` — ikisi aynı güven seviyesinde değildir.
               </li>
-              <li>Kapasitans matrisi rotası (spec §6.8.1) uygulandı mı: hayır.</li>
+              <li>Maxwell kapasitans matrisi rotası uygulandı mı: hayır.</li>
               <li>Kuplaj katsayısı {fmt(r.coupling, 5)}; S/H = {fmt(r.ratio, 4)}.</li>
               {r.mode === MODE_SYNTHESIS && (
                 <li>
@@ -291,7 +290,7 @@ export default function DiffPair() {
               )}
               <li>
                 Tek bir hedef empedans hem W hem S bilinmiyorsa sonsuz çözüm üretir; bu yüzden
-                biri sabitlenir (spec §6.8.2).
+                biri sabitlenir.
               </li>
               <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
             </ul>
@@ -300,10 +299,10 @@ export default function DiffPair() {
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             <li>
-              <strong>Bilinen sapma:</strong> kuplaj katsayısının kaynağı docs/spec.md'de yok.
-              Sayısal katsayıları ve geçerlilik aralığı spec'ten doğrulanamıyor; sonuç bu
-              nedenle kapalı form sonuçlarıyla aynı kefeye konmaz. Alan çözücü fazında §6.8.1
-              kapasitans matrisi rotasıyla değiştirilecektir.
+              <strong>Bilinen sapma:</strong> kuplaj katsayısı ampiriktir. Sayısal katsayıları ve
+              geçerlilik aralığı doğrulanmış bir kaynağa dayanmıyor; sonuç bu nedenle kapalı form
+              sonuçlarıyla aynı kefeye konmaz. Alan çözücü devreye girdiğinde Maxwell kapasitans
+              matrisi rotasıyla değiştirilecektir.
             </li>
             <li>
               Yaklaşım simetrik çift ve zayıf-orta kuplaj içindir; S/H ≥ 0.2 civarında

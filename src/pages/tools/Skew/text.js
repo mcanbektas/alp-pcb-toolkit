@@ -22,12 +22,14 @@ export const METHOD_NOTE =
   'izin verilen değer dışarıdan girilir.'
 
 // Spec eksikliği açıkça görünür kılınıyor: §7.5'in denklem blokları markdown
-// dönüşümünde bozulmuş, tahminle tamamlanmadı.
+// dönüşümünde bozulmuş, tahminle tamamlanmadı. Kullanıcıya dahili kaynak
+// gönderilmez; not yöntemi tarif eder.
 export const SPEC_NOTE =
-  'docs/spec.md §7.5\'teki formül bloklarının bir kısmı markdown dönüşümünde bozulmuş: ' +
-  'skew, izin verilen maksimum uzunluk farkı, eklenecek uzunluk ve farklı katman ' +
-  'ifadelerinin sol tarafları düşmüş durumda. Bloklar tahminle tamamlanmadı; bu ekranın ' +
-  'gösterdiği denklemler src/lib/signalIntegrity.js içindeki skew() uygulamasından alındı.'
+  'Bu ekranda gösterilen denklemler hesabın birebir yaptığı işlemlerdir: skew, izin verilen ' +
+  'maksimum uzunluk farkı, eklenecek uzunluk ve farklı katman durumu doğrudan iki hattın ' +
+  'gecikme farkından türetilir. İfadeler bağımsız bir referans denkleme karşı ' +
+  'doğrulanmamıştır; eksik kalan hiçbir adım tahminle tamamlanmadı, kullanılan yazım olduğu ' +
+  'gibi gösteriliyor.'
 
 // εeff kaynağı ortak bileşenden geliyor; yorum metni bu ekranda da aynı
 // terminolojiyi kullanır. Ekranlar arasında paylaşılan durum yoktur.

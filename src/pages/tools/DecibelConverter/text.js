@@ -61,15 +61,16 @@ export const METHOD_NOTE =
 export const EQUAL_Z_NOTE =
   '20·log₁₀(V₂/V₁) biçimi yalnızca giriş ve çıkış empedansları eşitken güç kazancına eşittir. Empedanslar farklıysa gerilim oranından bulunan dB, güç kazancını vermez; güç oranı doğrudan 10·log₁₀ ile hesaplanmalıdır.'
 
-// --- Kaynak ve tanım bilgisi (spec §1: "Standart veya kaynak bilgisi") ---
+// --- Kaynak ve tanım bilgisi ---
 //
-// Sağ panelde "Kaynak ve tanımlar" başlığı altında listelenir.
+// Sağ panelde "Kaynak ve tanımlar" başlığı altında listelenir. Kullanıcıya
+// basılan metin dahili doküman göndermesi içermez; tanımın kendisini söyler.
 export const SOURCE_NOTES = [
-  'Kaynak: docs/spec.md §11.4. Bölüm bu ekranın kullandığı bağıntıların hepsini verir: güç oranı 10·log₁₀(P₂/P₁), gerilim oranı 20·log₁₀(V₂/V₁), ters dönüşümler 10^(G/10) ile 10^(G/20), ve dBm için 10·log₁₀(P_mW), 10^(P_dBm/10), 10^((P_dBm − 30)/10).',
-  'Gerilim oranının geçerlilik koşulu kaynak dokümanda başlığın kendisinde yazılıdır: 20·log₁₀(V₂/V₁) biçimi "empedanslar eşitse" güç kazancına eşittir. Koşul sağlanmıyorsa gerilim oranından bulunan sayı bir gerilim oranı olarak doğru kalır ama güç kazancı DEĞİLDİR; o durumda güç kazancı doğrudan 10·log₁₀(P₂/P₁) ile hesaplanmalıdır. Ekran giriş ve çıkış empedanslarını bilmediği için bu koşulu doğrulayamaz — koşulun sağlandığını kullanıcı garanti eder.',
-  'dBm kaynak dokümanda 10·log₁₀(P_mW) olarak tanımlıdır. P_mW gücün miliwatt cinsinden değeri olduğu için referans 1 mW\'tır: dBm bir oran değil, bu referansa bağlı MUTLAK bir seviyedir. 0 dBm tam olarak 1 mW demektir; negatif dBm 1 mW\'ın altını gösterir. Aynı bölümdeki P_W = 10^((P_dBm − 30)/10) bağıntısındaki 30 dB, watt ile miliwatt arasındaki 1000 çarpanının dB karşılığıdır.',
+  'Ekran yalnızca dB tanımından çıkan bağıntıları kullanır: güç oranı 10·log₁₀(P₂/P₁), gerilim oranı 20·log₁₀(V₂/V₁), ters dönüşümler 10^(G/10) ile 10^(G/20), ve dBm için 10·log₁₀(P_mW), 10^(P_dBm/10), 10^((P_dBm − 30)/10). Hiçbiri ampirik katsayı, eğri uydurma ya da tablo içermez.',
+  'Gerilim oranı biçiminin geçerlilik koşulu tanımın bir parçasıdır: 20·log₁₀(V₂/V₁) yalnızca empedanslar eşitken güç kazancına eşittir. Koşul sağlanmıyorsa gerilim oranından bulunan sayı bir gerilim oranı olarak doğru kalır ama güç kazancı DEĞİLDİR; o durumda güç kazancı doğrudan 10·log₁₀(P₂/P₁) ile hesaplanmalıdır. Ekran giriş ve çıkış empedanslarını bilmediği için bu koşulu doğrulayamaz — koşulun sağlandığını kullanıcı garanti eder.',
+  'dBm tanım gereği 10·log₁₀(P_mW)\'dır. P_mW gücün miliwatt cinsinden değeri olduğu için referans 1 mW\'tır: dBm bir oran değil, bu referansa bağlı MUTLAK bir seviyedir. 0 dBm tam olarak 1 mW demektir; negatif dBm 1 mW\'ın altını gösterir. Ters bağıntı P_W = 10^((P_dBm − 30)/10) içindeki 30 dB, watt ile miliwatt arasındaki 1000 çarpanının dB karşılığıdır.',
   'Buradan çıkan ayrım toplama kuralını belirler: dB birimsiz bir orandır ve bir seviyeye eklenebilir (P_çıkış[dBm] = P_giriş[dBm] + G[dB]), dBm ise seviyedir ve iki seviye birbirine eklenemez.',
-  'Referans empedanstaki RMS gerilim §11.4\'ten değil, §9.4\'teki P = V²/R bağıntısından gelir: V_RMS = √(P·Z₀). Kaynak doküman bu ekran için bir referans empedans değeri şart koşmaz; Z₀ kullanıcı girdisidir.',
+  'Referans empedanstaki RMS gerilim dB tanımından değil, güç bağıntısı P = V²/R\'den gelir: V_RMS = √(P·Z₀). Dönüşüm listesine ek olarak verilir ve belirli bir referans empedansa bağlı değildir; Z₀ kullanıcı girdisidir.',
 ]
 
 // --- Sayısal geçerlilik aralığı (spec §12: "Geçerlilik aralığı") ---

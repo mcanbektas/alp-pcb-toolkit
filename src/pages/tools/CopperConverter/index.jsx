@@ -699,8 +699,8 @@ Kare direnci:
             </li>
             <li>
               Kare direnci 20 °C referanslı doğrusal modelle düzeltilir:
-              ρ(T) = 1.724×10⁻⁸ · [1 + 0.00393·(T − 20)] Ω·m. Kaynak doküman bu model için sayısal
-              bir sıcaklık üst sınırı vermiyor; oda sıcaklığından uzaklaştıkça doğrusallık bozulur.
+              ρ(T) = 1.724×10⁻⁸ · [1 + 0.00393·(T − 20)] Ω·m. Bu doğrusal modelin tanımlı bir
+              sayısal sıcaklık üst sınırı yoktur; oda sıcaklığından uzaklaştıkça doğrusallık bozulur.
             </li>
           </ul>
 
@@ -720,8 +720,8 @@ Kare direnci:
             </li>
             <li>
               1 oz/ft² ≈ 35 µm eşitliği fizikten değil, endüstri nominal folyo tablosundan gelir.
-              Lisanslı bir tablo bu depoya kopyalanmadı; yalnızca kaynak dokümanda verilen altı
-              basamak kullanılıyor.
+              Lisanslı tablonun tamamı kullanılmaz; hesap yalnızca yaygın olarak yayımlanan altı
+              nominal basamağa dayanır.
             </li>
             <li>
               Bakır özdirenci ρ₂₀ = 1.724×10⁻⁸ Ω·m ve sıcaklık katsayısı α = 0.00393 1/°C —
@@ -758,7 +758,7 @@ Kare direnci:
               2³ = 8 köşenin hepsi hesaplanır. Sonuçların üçü de her girişte monoton olduğundan
               köşeler gerçek uçları verir. Toleranslar bağımsız ve eşit olasılıklı sayılmaz;
               istatistiksel bir dağılım varsayılmaz, bu yüzden üçlü bir olasılık aralığı değil,
-              mutlak sınırdır. Kaynak doküman bu ekran için sayısal bir tolerans değeri vermiyor —
+              mutlak sınırdır. Bu hesabın varsayılan bir sayısal tolerans değeri yoktur —
               yüzdeler üreticinin kendi verisinden girilmelidir.
             </li>
             <li>

@@ -20,7 +20,7 @@ const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
 const FORMULA = {
-  [MODE_MIN]: `Çekilen yük (spec §8.2):
+  [MODE_MIN]: `Çekilen yük:
   ΔQ = ΔI·Δt
   ΔQ = C·ΔV
 
@@ -33,8 +33,7 @@ anlık gerilim düşümü, ESL ise
 akım değişimine direnç üretir;
 ikisi de ripple'ı büyütür.`,
 
-  [MODE_NETWORK]: `Gerçek kapasitör, seri RLC
-(spec §8.2.1):
+  [MODE_NETWORK]: `Gerçek kapasitör, seri RLC:
   Z_C = ESR + j(ω·ESL − 1/(ω·C))
   |Z_C| =
     √(ESR² + (ω·ESL − 1/(ω·C))²)
@@ -46,7 +45,7 @@ Kendi rezonans frekansı:
   SRF üstünde kapasitör
   endüktiftir
 
-Paralel ağ (spec §8.2.2):
+Paralel ağ:
   Z_ağ(ω) = [ Σ 1/Z_i(ω) ]⁻¹
   toplam KOMPLEKS admitans
   üzerinden alınır; anti-rezonans
@@ -430,7 +429,7 @@ export default function Decoupling() {
             <li>
               Seri RLC modeli yalnızca <strong>kapasitörün kendisini</strong> modeller. Bağlantı
               endüktansı — montaj pedi, via ve düzlem yayılma endüktansı — bu sonuca DAHİL
-              DEĞİLDİR ve ayrıca eklenmelidir (spec §8.2.4); o hesap PDN ekranındadır. Yüksek
+              DEĞİLDİR ve ayrıca eklenmelidir; o hesap PDN ekranındadır. Yüksek
               frekansta baskın terim genellikle kapasitörün kendi ESL'si değil, bu bağlantıdır.
             </li>
             <li>
@@ -449,7 +448,7 @@ export default function Decoupling() {
             </li>
             <li>
               ESR/N ve ESL/N ölçeklemesi bağımsız ve eşit bağlantı yolları varsayar. Ortak via
-              veya ortak dar bağlantı varsa ESL tam olarak 1/N azalmaz (spec §8.2.2).
+              veya ortak dar bağlantı varsa ESL tam olarak 1/N azalmaz.
             </li>
             <li>
               Düzlem kapasitansı ve VRM empedansı bu ekranda yoktur; toplam PDN eğrisi ve hedef

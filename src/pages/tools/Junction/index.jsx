@@ -24,7 +24,9 @@ const DIM_UNITS = ['mm', 'µm', 'mil']
 const AREA_UNITS = ['mm²', 'mil²', 'm²']
 
 const FORMULA = {
-  [MODE_JUNCTION]: `T_J = T_A + P·θ_JA (spec §8.3)
+  [MODE_JUNCTION]: `T_J = T_A + P·θ_JA
+  kararlı hâl, tek boyutlu
+  termal direnç modeli
 
 P_max = (T_J,max − T_A) / θ_JA
 kullanım = P / P_max
@@ -36,7 +38,7 @@ DEĞİLDİR:
   değeri değiştirir.`,
 
   [MODE_HEATSINK]: `T_J = T_A + P·(θ_JC + θ_CS + θ_SA)
-  (spec §8.4)
+  seri termal direnç zinciri
 
 termal bütçe = (T_J,max − T_A) / P
 θ_SA,max = bütçe − θ_JC − θ_CS
@@ -47,8 +49,8 @@ termal bütçe = (T_J,max − T_A) / P
   veya farklı paket seç.`,
 
   [MODE_SURFACE]: `paket üstü: T_J ≈ T_top + Ψ_JT·P
-  (spec §8.5)
 kart üzeri: T_J ≈ T_board + Ψ_JB·P
+  ampirik Ψ metriğiyle tahmin
 
 Ψ ≠ θ
   θ_JC tek boyutlu bir yol
@@ -60,8 +62,8 @@ kart üzeri: T_J ≈ T_board + Ψ_JB·P
   kullanılmaz.`,
 }
 
-const COPPER_FORMULA = `bakır şerit: R_θ = L / (k_Cu·W·t)
-  (spec §8.6)
+const COPPER_FORMULA = `ilk derece termal ağ:
+bakır şerit: R_θ = L / (k_Cu·W·t)
 dielektrik: R_θ = H / (k_FR4·A)
 paralel: R_θ,eq = [ Σ 1/R_θ,i ]⁻¹
 artış: ΔT = P · R_θ,eq`

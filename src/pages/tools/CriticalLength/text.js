@@ -26,25 +26,26 @@ export const DIVISOR_SHORT = {
 
 // Sonuç panelinde .big-result'ın hemen altında duran yöntem etiketleri.
 export const METHOD_NOTE =
-  'Sonuç yükselme süresi kriterinden gelir (spec §7.4): L_crit = c·t_r / (N·√εeff). ' +
+  'Sonuç yükselme süresi kriterinden gelir: L_crit = c·t_r / (N·√εeff). ' +
   'Bu bir tasarım eşiğidir, mutlak fiziksel sınır değildir — eşiğin altındaki hat da ' +
   'iletim hattıdır, yalnızca yansımaların etkisi çoğu tasarımda ihmal edilebilir sayılır.'
 
 // Spec §7.4 artık aktif olarak sürdürülmeyen bir kılavuz yönteminden de söz
 // ediyor. O yöntem bu araçta uygulanmadı; sessizce atlanmıyor, ekranda yazıyor.
 export const LEGACY_METHOD_NOTE =
-  'Spec §7.4 maksimum hat uzunluğu için ayrıca artık aktif olarak sürdürülmeyen bir ' +
-  'kılavuz dokümanına ve frekans alanı yöntemine değiniyor. Bu araçta o yöntem ' +
-  'UYGULANMADI: buradaki sonuç yalnızca yükselme süresi kriterinden gelir, kılavuz ' +
-  'yönteminin sonucuymuş gibi okunmamalıdır.'
+  'Maksimum hat uzunluğu, artık aktif olarak sürdürülmeyen bir kılavuza dayanan frekans ' +
+  'alanı yöntemiyle de kestirilebilir. Bu araçta o yöntem UYGULANMADI: buradaki sonuç ' +
+  'yalnızca yükselme süresi kriterinden gelir, kılavuz yönteminin sonucuymuş gibi ' +
+  'okunmamalıdır.'
 
 // Yorum satırlarının seviyesini belirleyen iki ek eşik spec'te yok; kaynağı
 // gizlenmesin diye ekranda .method-note olarak yazılıyor.
 export const LEVEL_SOURCE_NOTE =
   'Yorum satırlarının seviyesi hesaplanan eşiğin yanında iki ek orana bakar: ' +
   'L > 2·L_crit "sınırın dışında", eşiğin altında kalan hatlarda L > 0.5·L_crit ' +
-  '"sınıra yakın" sayılır. Bu iki oran spec §7.4\'te YOK — spec yalnızca 1/6, 1/4, 1/2 ' +
-  'bölenlerini ve L ile L_crit karşılaştırmasını tanımlar. "2 kat" ve "0.5 oranı" bu ' +
+  '"sınıra yakın" sayılır. Bu iki oranın yerleşik bir kaynağı YOK — yaygın kriter ' +
+  'yalnızca 1/6, 1/4, 1/2 bölenlerini ve L ile L_crit karşılaştırmasını tanımlar. ' +
+  '"2 kat" ve "0.5 oranı" bu ' +
   'aracın kendi mühendislik yargısıdır; hesaplanan kritik uzunluğu değiştirmez, yalnızca ' +
   'yorumun vurgusunu belirler.'
 
@@ -116,7 +117,7 @@ export function commentary(r) {
 
   out.push({
     level: 'warn',
-    text: 'Bu kriter mutlak fiziksel sınır değil, tasarım eşiğidir (spec §7.4). Eşiğin altındaki hat iletim hattı olmaktan çıkmaz; yalnızca yansımaların etkisi çoğu tasarımda ihmal edilebilir kabul edilir. Saat, reset ve hızlı kenarlı kontrol hatlarında eşiğin altında da sonlandırma gerekebilir.',
+    text: 'Bu kriter mutlak fiziksel sınır değil, tasarım eşiğidir. Eşiğin altındaki hat iletim hattı olmaktan çıkmaz; yalnızca yansımaların etkisi çoğu tasarımda ihmal edilebilir kabul edilir. Saat, reset ve hızlı kenarlı kontrol hatlarında eşiğin altında da sonlandırma gerekebilir.',
   })
 
   if (r.hasLength) {

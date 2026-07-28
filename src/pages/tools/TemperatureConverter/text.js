@@ -73,16 +73,16 @@ export const REF_LABEL = {
   absZero: (y, unit) => `mutlak sıfır ${fmt(y, SIG)} ${unit}`,
 }
 
-// --- Kaynak ve tanım bilgisi (spec §1: "Standart veya kaynak bilgisi") ---
+// --- Kaynak ve tanım bilgisi ---
 //
-// Sağ panelde "Kaynak ve tanımlar" başlığı altında listelenir. Kaynak
-// dokümanda olmayan bir madde varsa bu listede açıkça söylenir.
+// Sağ panelde "Kaynak ve tanımlar" başlığı altında listelenir. Kullanıcıya
+// basılan metin dahili doküman göndermesi içermez; tanımın kendisini söyler.
 export const SOURCE_NOTES = [
-  'Kaynak: docs/spec.md §11.5. Bölüm üç bağıntı verir ve ekran yalnızca bunları kullanır: T_F = (9/5)·T_C + 32, T_C = (5/9)·(T_F − 32) ve T_K = T_C + 273.15.',
-  'Kelvin ofseti 273.15 doğrudan §11.5\'ten alınmıştır; ekranın hiçbir yerinde başka bir ofset (273 gibi yuvarlanmış bir değer) kullanılmaz. Fahrenheit ofseti 32 ve eğim 9/5 = 1.8 de aynı bölümden gelir.',
-  'Kaynak doküman ölçek tanımları için bir dış standart adı vermez: °C, °F ve K bu ekranda yalnızca §11.5\'teki üç bağıntıyla tanımlıdır. Mutlak sıfırın ölçek karşılıkları da ayrı bir tablodan alınmamış, aynı bağıntılara T_K = 0 konarak türetilmiştir: T_C = 0 − 273.15 = −273.15 °C ve T_F = 1.8·(−273.15) + 32 = −459.67 °F.',
-  'Sıcaklık FARKININ kuralı §11.5\'te ayrıca yazılmaz. Kaynak dokümanın §3.1 bölümü dahili sıcaklık birimini "santigrat derece veya kelvin farkı" olarak tanımlar — fark büyüklüğünde ikisi zaten özdeştir. ΔT_F = 1.8·ΔT_C ise mutlak bağıntının eğiminden çıkar: iki mutlak sıcaklığın farkı alındığında 32 ofseti sadeleşir, geriye yalnızca 9/5 eğimi kalır. Uydurulmuş bir katsayı değildir, §11.5\'in doğrudan sonucudur.',
-  'Sonuç panelindeki referans noktalarından yalnızca 20 °C kaynak dokümanda geçer (§4.1.6 — bakır özdirenci referansı ρ₂₀). Suyun 1 atm\'deki donma ve kaynama noktaları ile 25 °C veri sayfası sıcaklığı kaynak dokümanda tanımlı değildir; tabloda hesap girdisi olarak değil, yalnızca yaygın çevrim örneği olarak durur.',
+  'Ekran mutlak dönüşüm için yalnızca üç bağıntı kullanır: T_F = (9/5)·T_C + 32, T_C = (5/9)·(T_F − 32) ve T_K = T_C + 273.15. Üçü de ölçek tanımının doğrudan sonucudur; ampirik katsayı içermezler.',
+  'Kelvin ofseti tam olarak 273.15\'tir; ekranın hiçbir yerinde yuvarlanmış bir ofset (273 gibi) kullanılmaz. Fahrenheit ofseti 32 ve eğim 9/5 = 1.8 de tanım gereği tam değerlerdir.',
+  '°C, °F ve K bu ekranda yalnızca yukarıdaki üç bağıntıyla tanımlıdır; ayrı bir dönüşüm tablosu kullanılmaz. Mutlak sıfırın ölçek karşılıkları da tablodan okunmamış, aynı bağıntılara T_K = 0 konarak türetilmiştir: T_C = 0 − 273.15 = −273.15 °C ve T_F = 1.8·(−273.15) + 32 = −459.67 °F.',
+  'Sıcaklık FARKININ kuralı mutlak dönüşümden ayrı yazılır ama ondan türer: fark büyüklüğünde santigrat derece ile kelvin özdeş olduğu için sıcaklık farkları bu araç setinde ikisinden biriyle verilir. ΔT_F = 1.8·ΔT_C ise mutlak bağıntının eğiminden çıkar: iki mutlak sıcaklığın farkı alındığında 32 ofseti sadeleşir, geriye yalnızca 9/5 eğimi kalır. Uydurulmuş bir katsayı değil, mutlak bağıntının doğrudan sonucudur.',
+  'Sonuç panelindeki referans noktalarından yalnızca 20 °C bir hesap referansıdır: bakır özdirencinin ρ₂₀ referans sıcaklığı, araç genelinde iletken direnci hesabında kullanılır. Suyun 1 atm\'deki donma ve kaynama noktaları ile 25 °C veri sayfası sıcaklığı bu ekranda hesap girdisi değildir; tabloda yalnızca yaygın çevrim örneği olarak durur.',
 ]
 
 // --- ΔT modunun ayrı kuralı (spec §12: "Geçerlilik aralığı") ---

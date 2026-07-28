@@ -22,7 +22,7 @@ const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const VOLT_UNITS = ['V', 'mV', 'kV']
 
-const FORMULA = `Seri terminasyon (spec §7.7):
+const FORMULA = `Seri terminasyon:
   R_s = Z₀ − R_driver
   R_s < 0 →
     seri terminasyon önerilmez
@@ -46,7 +46,8 @@ Thevenin terminasyonu:
            / (R_top + R_bottom)
 
 Sürekli akım ve güç — OHM YASASI,
-spec §7.7'de TANIMLI DEĞİL:
+terminasyon denklemlerinin
+parçası DEĞİL:
   paralel:
     I_dc = V / R_T
   Thevenin:
@@ -429,7 +430,7 @@ export default function Termination() {
 
             <li>
               Sapma eşikleri {DEV_WARN_PCT} % ve {DEV_DANGER_PCT} % olarak alınmıştır; bu
-              değerler mühendislik yorumudur, spec'ten gelmez.
+              değerler mühendislik yorumudur, kullanılan denklemlerden türemez.
             </li>
             <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
           </ul>
@@ -462,11 +463,10 @@ export default function Termination() {
             </li>
             <li>{DEV_THRESHOLD_NOTE}</li>
             <li>
-              docs/spec.md §7.7'deki formül blokları markdown dönüşümünde kısmen bozulmuş
-              (seri terminasyonun açılış köşeli parantezi düşmüş, Thevenin çözümündeki iki
-              satırın başına başlık işareti girmiş). İfadeler yine de okunabildiği ve motor
-              bunlarla birebir örtüştüğü için tahminle tamamlama yapılmadı; eksik bir
-              büyüklük uydurulmadı.
+              Teknik detayda gösterilen denklemler motorun uyguladığı ifadelerle birebir
+              aynıdır: belirsiz kalan bir büyüklük tahminle tamamlanmadı, kaynağı
+              doğrulanamayan bir katsayı eklenmedi. Sürekli akım ve güç Ohm yasasından
+              gelir, terminasyon denklemlerinin parçası değildir.
             </li>
             <li>
               Paralel terminasyonda gerilim tek bir değer olarak alınır: direnç toprağa değil

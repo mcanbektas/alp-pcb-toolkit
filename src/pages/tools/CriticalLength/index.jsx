@@ -25,7 +25,7 @@ const FORMULA = `t'_pd = √εeff / c
 t_d = L · t'_pd
   (hat gecikmesi)
 
-Kriter — spec §7.4, N ∈ {6, 4, 2}:
+Kriter — N ∈ {6, 4, 2}:
   t_d ≥ t_r / N
     → iletim hattı değerlendirmesi
 
@@ -40,7 +40,7 @@ Oranlar:
     (eşiğe uzaklık)
 
 Yükselme süresi bant genişliği
-— spec §7.3:
+— yaklaşık bağıntı:
   f_BW = K / t_r , K ∈ [0.35, 0.5]
   (bu değer VERİ HIZI DEĞİLDİR)`
 
@@ -248,7 +248,7 @@ export default function CriticalLength() {
               </li>
               <li>
                 f_BW yalnızca bilgi amaçlıdır: kritik uzunluk hesabına girmez, ayrı bir yan
-                sonuçtur (spec §7.3).
+                sonuçtur.
               </li>
               <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
             </ul>
@@ -257,16 +257,15 @@ export default function CriticalLength() {
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             <li>
-              <strong>Kriter eşiktir, sınır değildir.</strong> Spec §7.4 bunu açıkça yazıyor:
-              1/6, 1/4 ve 1/2 uygulamada kullanılan farklı tasarım eşikleridir. Eşiğin altındaki
+              <strong>Kriter eşiktir, sınır değildir.</strong> 1/6, 1/4 ve 1/2 uygulamada
+              kullanılan farklı tasarım eşikleridir. Eşiğin altındaki
               hat da fiziksel olarak iletim hattıdır; yalnızca yansımaların etkisi çoğu tasarımda
               ihmal edilebilir kabul edilir.
             </li>
             <li>
-              <strong>Uygulanmayan yöntem:</strong> spec §7.4 maksimum hat uzunluğu için artık
-              aktif olarak sürdürülmeyen bir kılavuz dokümanına ve frekans alanı yöntemine de
-              değiniyor. O yöntem bu araçta uygulanmadı; sonuç yalnızca yükselme süresi
-              kriterinden gelir.
+              <strong>Uygulanmayan yöntem:</strong> maksimum hat uzunluğu, artık aktif olarak
+              sürdürülmeyen bir kılavuza dayanan frekans alanı yöntemiyle de kestirilebilir.
+              O yöntem bu araçta uygulanmadı; sonuç yalnızca yükselme süresi kriterinden gelir.
             </li>
             <li>
               <strong>f_BW veri hızı değildir.</strong> K/t_r ifadesi sürücü kenarının kapladığı

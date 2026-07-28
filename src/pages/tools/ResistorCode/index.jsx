@@ -7,7 +7,6 @@ import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
 import { fmt, fmtRes, fmtPct, THOUSANDS_MESSAGE } from '../../../lib/num'
-import { COLOR_BY_KEY } from '../../../lib/codes'
 import CodeSchematic from './schematic'
 import {
   INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS,
@@ -15,7 +14,7 @@ import {
   compute, buildSweep, bandRoles,
 } from './model'
 import {
-  KIND_LABEL, ROLE_LABEL, SMD_KIND_LABEL, CHART_CAPTION, reasonText, commentary,
+  COLOR_NAME, KIND_LABEL, ROLE_LABEL, SMD_KIND_LABEL, CHART_CAPTION, reasonText, commentary,
 } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
@@ -112,7 +111,7 @@ export default function ResistorCode() {
                 key={role.index}
                 label={ROLE_LABEL[role.role](role.index)}
                 value={f[`b${role.index}`]} onChange={set(`b${role.index}`)}
-                options={role.options.map((c) => ({ value: c.key, label: c.name }))}
+                options={role.options.map((c) => ({ value: c.key, label: COLOR_NAME[c.key] }))}
               />
             ))
           ) : f.kind === KIND_SMD ? (
@@ -194,7 +193,7 @@ export default function ResistorCode() {
                   <tbody>
                     <tr>
                       <td>Bantlar (soldan sağa)</td>
-                      <td>{r.bands.map((b) => COLOR_BY_KEY[b].name).join(' · ')}</td>
+                      <td>{r.bands.map((b) => COLOR_NAME[b]).join(' · ')}</td>
                     </tr>
                     <tr>
                       <td>İstenen değer</td>
@@ -214,7 +213,7 @@ export default function ResistorCode() {
                     {r.mode === MODE_ANALYSIS && r.kind === KIND_COLOR && (
                       <tr>
                         <td>Bantlar (soldan sağa)</td>
-                        <td>{r.bands.map((b) => COLOR_BY_KEY[b].name).join(' · ')}</td>
+                        <td>{r.bands.map((b) => COLOR_NAME[b]).join(' · ')}</td>
                       </tr>
                     )}
                     {r.kind === KIND_SMD && (

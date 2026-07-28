@@ -28,8 +28,8 @@ export const LOOP_TERM_LABEL = {
 // Sonuç panelinde her zaman duran yöntem etiketi: hedef sabit ve yataydır.
 export const FLAT_TARGET_NOTE =
   'Sabit yatay hedef empedans yaklaşımı — tek bir Z_hedef değeri tüm frekanslar için ' +
-  'kullanılır. Frekansa bağlı hedef profil bu araçta YOK: spec §8.1 böyle bir profilin ' +
-  'kullanılabileceğini söylüyor ama denklemini vermiyor, o yüzden uydurulmadı.'
+  'kullanılır. Frekansa bağlı hedef profil bu araçta YOK: gelişmiş tasarımda böyle bir ' +
+  'profil kullanılabilir ama doğrulanmış bir denklemi olmadığı için uydurulmadı.'
 
 // Eğri çizildiğinde eklenen ikinci etiket (spec §8.2.4).
 export const MOUNTING_NOTE =
@@ -57,7 +57,7 @@ export const CHART_EMPTY =
   'PDN eğrisi çizilmedi. Eğri için soldaki "PDN eğrisini de çiz" seçimini açın; en az ' +
   'bir kapasitör satırı (kapasite, ESR > 0, ESL, adet), bir çalışma frekansı ve ' +
   'isteğe bağlı olarak VRM direnci/endüktansı ile düzlem verisi gerekir. Grafik, ' +
-  'eğriyi hedef empedans çizgisiyle aynı eksende gösterir (spec §8.2.4).'
+  'eğriyi hedef empedans çizgisiyle aynı eksende gösterir.'
 
 export function reasonText(reason) {
   if (reason === REASON_TARGET) {
@@ -103,7 +103,7 @@ export function commentary(r) {
 
   out.push({
     level: 'warn',
-    text: 'Bu hedef SABİT YATAY bir yaklaşımdır: bütün frekanslarda tek bir Z_hedef geçerli sayılır. Gelişmiş tasarımda frekansa bağlı hedef profil kullanılabilir; spec §8.1 bundan söz ediyor ama denklemini vermiyor, bu yüzden araçta uygulanmadı ve hafızadan tamamlanmadı.',
+    text: 'Bu hedef SABİT YATAY bir yaklaşımdır: bütün frekanslarda tek bir Z_hedef geçerli sayılır. Gelişmiş tasarımda frekansa bağlı hedef profil kullanılabilir; böyle bir profilin doğrulanmış bir denklemi olmadığı için araçta uygulanmadı ve hafızadan tamamlanmadı.',
   })
 
   // --- Düzlem kapasitesi ---
@@ -114,7 +114,7 @@ export function commentary(r) {
     })
     out.push({
       level: 'warn',
-      text: 'Düzlem kapasitesi denkleminde kenar saçılması YOK (spec §8.2.3). Gerçek kapasite bu değerin biraz üzerindedir; küçük alan / kalın dielektrik durumunda fark büyür.',
+      text: 'Düzlem kapasitesi kenar saçılmasını İÇERMEYEN paralel plaka denklemidir: yalnızca A/d oranını görür. Gerçek kapasite bu değerin biraz üzerindedir; küçük alan / kalın dielektrik durumunda fark büyür.',
     })
   }
 
@@ -168,30 +168,30 @@ export function commentary(r) {
     if (c.z.losslessPlane) {
       out.push({
         level: 'warn',
-        text: 'Düzlem KAYIPSIZ modellendi (spec §8.2.4 düzlemi yalnızca jωC olarak yazıyor). Kayıpsız düzlemin ürettiği anti-rezonans tepesi sönümsüzdür; gerçek düzlemde dielektrik ve bakır kaybı vardır ve gerçek tepe buradakinden ALÇAKTIR. Bu eğrideki tepe yüksekliğini üst sınır olarak okuyun.',
+        text: 'Düzlem KAYIPSIZ modellendi: eğriye yalnızca jωC terimi olarak girer. Kayıpsız düzlemin ürettiği anti-rezonans tepesi sönümsüzdür; gerçek düzlemde dielektrik ve bakır kaybı vardır ve gerçek tepe buradakinden ALÇAKTIR. Bu eğrideki tepe yüksekliğini üst sınır olarak okuyun.',
       })
     }
 
     out.push({
       level: 'warn',
-      text: 'Eğri, kapasitörlerin bağlantı loop endüktansını İÇERMEZ (spec §8.2.4 bunu ayrı eklenecek bir terim olarak yazıyor). Gerçek eğri, montaj ve via endüktansı yüzünden yüksek frekansta buradakinden daha yüksektir.',
+      text: 'Eğri, kapasitörlerin bağlantı loop endüktansını İÇERMEZ; bu endüktans eğriye girmeyen, ayrı toplanan bir terimdir. Gerçek eğri, montaj ve via endüktansı yüzünden yüksek frekansta buradakinden daha yüksektir.',
     })
 
     if (c.shared) {
       out.push({
         level: 'warn',
-        text: `Bankada aynı satırda birden çok kapasitör var (toplam ${fmt(c.capCount, 4)} adet). Model, N adet kapasitörün ESL'ini 1/N ile ölçekler; bu yalnızca her kapasitörün BAĞIMSIZ ve eşit bir bağlantı yolu varsa geçerlidir. Ortak via veya ortak dar bir bağlantı varsa ESL 1/N azalmaz (spec §8.2.2) ve gerçek empedans daha yüksek çıkar.`,
+        text: `Bankada aynı satırda birden çok kapasitör var (toplam ${fmt(c.capCount, 4)} adet). Model, N adet kapasitörün ESL'ini 1/N ile ölçekler; bu yalnızca her kapasitörün BAĞIMSIZ ve eşit bir bağlantı yolu varsa geçerlidir. Ortak via veya ortak dar bir bağlantı varsa ESL 1/N azalmaz ve gerçek empedans daha yüksek çıkar.`,
       })
     }
 
     out.push({
       level: 'warn',
-      text: 'VRM modeli spec\'te TANIMLI DEĞİL. Burada girilen değerlerle R + jωL alındı; ωL endüktif reaktansın tanımıdır, uydurulmuş bir VRM modeli değildir. Gerçek VRM kontrol döngüsünün bant genişliği bu basit modelde yoktur.',
+      text: 'VRM için doğrulanmış bir model YOK. Burada girilen değerlerle R + jωL alındı; ωL endüktif reaktansın tanımıdır, uydurulmuş bir VRM modeli değildir. Gerçek VRM kontrol döngüsünün bant genişliği bu basit modelde yoktur.',
     })
   } else {
     out.push({
       level: 'ok',
-      text: 'PDN eğrisi çizilmedi; ekran yalnızca hedef empedansı veriyor. Hedefin karşılanıp karşılanmadığını görmek için VRM, kapasitör bankası ve düzlem verisiyle eğriyi açın (spec §8.2.4 eğrinin hedef çizgisiyle aynı grafikte gösterilmesini istiyor).',
+      text: 'PDN eğrisi çizilmedi; ekran yalnızca hedef empedansı veriyor. Hedefin karşılanıp karşılanmadığını görmek için VRM, kapasitör bankası ve düzlem verisiyle eğriyi açın; eğri hedef çizgisiyle aynı grafikte gösterilir.',
     })
   }
 
@@ -203,11 +203,11 @@ export function commentary(r) {
     })
     out.push({
       level: 'warn',
-      text: 'Bu toplam PDN eğrisine DAHİL DEĞİLDİR ve ayrı değerlendirilmelidir (spec §8.2.4). Loop endüktansı, kapasitörün veri sayfasındaki ESL değerinden bağımsız olarak yüksek frekansta empedansın gerçek tabanını belirler.',
+      text: 'Bu toplam PDN eğrisine DAHİL DEĞİLDİR ve ayrı değerlendirilmelidir. Loop endüktansı, kapasitörün veri sayfasındaki ESL değerinden bağımsız olarak yüksek frekansta empedansın gerçek tabanını belirler.',
     })
     out.push({
       level: 'warn',
-      text: 'Spec dört terimin toplandığını söylüyor ama L_mount, L_via ve L_yayılma için denklem VERMİYOR. Bu değerler kullanıcıdan ya da alan çözücüden gelir; araç bunları hesaplamaz, yalnızca toplar ve payları gösterir.',
+      text: 'Dört terim yalnızca TOPLANIR; L_mount, L_via ve L_yayılma için bu araçta bir denklem YOK. Bu değerler kullanıcıdan ya da alan çözücüden gelir; araç bunları hesaplamaz, yalnızca toplar ve payları gösterir.',
     })
   }
 

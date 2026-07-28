@@ -179,7 +179,7 @@ export function validityNotes(r) {
   }
 
   if (r.ok && r.tolerance && !r.tolerance.error && r.tolerance.active) {
-    out.push('Tolerans bandı basit worst-case yaklaşımıdır (spec §3.4): çapın iki ucu alınır, kesit bu uçlardan hesaplanır; olasılık dağılımı varsayılmaz. Tolerans değeri uygulamanın kendi verisi değildir, üreticinin veri sayfasından girilir.')
+    out.push('Tolerans bandı basit worst-case yaklaşımıdır: çapın iki ucu alınır, kesit bu uçlardan hesaplanır; olasılık dağılımı varsayılmaz. Tolerans değeri uygulamanın kendi verisi değildir, üreticinin veri sayfasından girilir.')
   }
 
   return out

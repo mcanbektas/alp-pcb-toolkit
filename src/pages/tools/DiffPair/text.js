@@ -15,8 +15,8 @@ export const FIXED_LABEL = {
 
 export const METHOD_NOTE =
   'Kaba yaklaşım — tek uçlu empedans kapalı formdan geliyor, ama çiftin odd/even ayrımı ' +
-  'kaynağı belirsiz ampirik bir kuplaj katsayısından geliyor. Spec §6.8.1\'in istediği ' +
-  'kapasitans matrisi rotası uygulanmadı. Bu Z_diff ile üretim kararı vermeyin: ' +
+  'kaynağı belirsiz ampirik bir kuplaj katsayısından geliyor. Maxwell kapasitans matrisi ' +
+  'rotası uygulanmadı. Bu Z_diff ile üretim kararı vermeyin: ' +
   'yığın onayı, panel çıkışı veya empedans kontrol kuponu için alan çözücü sonucu ya da ' +
   'üretici ölçümü gerekir.'
 
@@ -24,8 +24,8 @@ export const METHOD_NOTE =
 // Sonuç panelinde METHOD_NOTE'un hemen altında durur.
 export const COUPLING_SOURCE_NOTE =
   'Kuplaj katsayısı k_c = 0.48·exp(−0.96·S/H) (stripline: 0.347·exp(−2.9·S/b)) ' +
-  'docs/spec.md\'de yer almıyor — sayısal katsayıları ve geçerlilik aralığı spec\'ten ' +
-  'doğrulanamıyor. Bu yüzden sonucun yöntem alanı `empirical-coupling`, kapalı form ' +
+  'AMPİRİKTİR — sayısal katsayıları ve geçerlilik aralığı doğrulanmış bir kaynağa ' +
+  'dayanmıyor. Bu yüzden sonucun yöntem etiketi `empirical-coupling`, kapalı form ' +
   'sonuçlarının taşıdığı `closed-form` değil.'
 
 export const CHART_SPACING = {
@@ -89,17 +89,17 @@ export function commentary(r) {
 
   out.push({
     level: 'warn',
-    text: 'Bu ekranın odd/even ayrımı kaba bir yaklaşımdır: kuplaj katsayısı ampiriktir ve kaynağı spec\'te yoktur. Sonuç yığın onayı, panel çıkışı veya empedans kuponu kararı için kullanılmamalıdır.',
+    text: 'Bu ekranın odd/even ayrımı kaba bir yaklaşımdır: kuplaj katsayısı ampiriktir ve doğrulanmış bir kaynağa dayanmıyor. Sonuç yığın onayı, panel çıkışı veya empedans kuponu kararı için kullanılmamalıdır.',
   })
 
   out.push({
     level: 'warn',
-    text: 'Spec §6.8.1 odd/even empedansları Maxwell kapasitans matrisinden istiyor (C_odd = C₁₁ − C₁₂, C_even = C₁₁ + C₁₂). Bu rota uygulanmadı — C₁₁ ve C₁₂ için kapalı form yok, alan çözücü gerekiyor. Alan çözücü fazında bu ekranın motoru §6.8.1 ile değiştirilecek.',
+    text: 'Odd/even empedanslarının tam çözümü Maxwell kapasitans matrisinden geçer (C_odd = C₁₁ − C₁₂, C_even = C₁₁ + C₁₂). Bu rota uygulanmadı — C₁₁ ve C₁₂ için kapalı form yok, alan çözücü gerekiyor. Alan çözücü devreye girdiğinde bu ekranın hesabı o rotayla değiştirilecek.',
   })
 
   out.push({
     level: 'ok',
-    text: `Z_diff = 2·Z_odd ve Z_common = Z_even / 2 dönüşümleri spec §6.8.1 ile uyumludur; sapma yalnızca Z_odd ve Z_even'in nereden geldiğindedir. Yöntem alanı bu yüzden \`${r.method}\`, tek uçlu formunki ise \`${r.singleMethod}\`.`,
+    text: `Z_diff = 2·Z_odd ve Z_common = Z_even / 2 dönüşümleri tanım gereği tam bağıntılardır; sapma yalnızca Z_odd ve Z_even'in nereden geldiğindedir. Bu sonucun yöntem etiketi bu yüzden \`${r.method}\`, tek uçlu formunki ise \`${r.singleMethod}\`.`,
   })
 
   if (r.structure === STRUCT_MICROSTRIP) {

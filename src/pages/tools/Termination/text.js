@@ -29,8 +29,8 @@ export const DEV_DANGER_PCT = 10
 
 export const DEV_THRESHOLD_NOTE =
   `Sapma eşikleri (%${DEV_WARN_PCT} üzeri uyarı, %${DEV_DANGER_PCT} üzeri sınır dışı) bu ` +
-  'ekranın mühendislik yorumudur; docs/spec.md §7.7 böyle bir sınır tanımlamıyor. Kabul ' +
-  'edilebilir sapma tasarımın gürültü ve gerilim bütçesine göre değişir.'
+  'ekranın mühendislik yorumudur; kullanılan DC tasarım denklemleri böyle bir sınır ' +
+  'tanımlamaz. Kabul edilebilir sapma tasarımın gürültü ve gerilim bütçesine göre değişir.'
 
 function deviationLevel(pct) {
   const a = Math.abs(pct)
@@ -43,7 +43,7 @@ function deviationLevel(pct) {
 // --- Yöntem etiketleri ---
 
 export const METHOD_NOTE =
-  'DC tasarım denklemleri (docs/spec.md §7.7). Motor yalnızca kalıcı davranışı hesaplar: ' +
+  'DC tasarım denklemleri. Motor yalnızca kalıcı davranışı hesaplar: ' +
   'yansıma, çınlama, kapasitif yük, sürücü kenar hızı ve sap etkileri modellenmez. ' +
   'Sonuç bir başlangıç değeridir, zaman alanı simülasyonunun yerini tutmaz.'
 

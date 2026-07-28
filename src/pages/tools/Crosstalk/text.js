@@ -16,26 +16,26 @@ export const NEXT_PCT_DANGER = 15
 
 export const THRESHOLD_NOTE =
   'NEXT ve FEXT yüzdesi için kullanılan %5 ve %15 eşikleri bu ekranın mühendislik yorumudur; ' +
-  'docs/spec.md bu sayıları vermez. Gerçek sınır alıcının gürültü bütçesinden çıkar.'
+  'bir kabul kriterinden gelmez. Gerçek sınır alıcının gürültü bütçesinden çıkar.'
 
 export const METHOD_NOTE =
-  'Kestirim modu — spec §7.6\'nın istediği çok iletkenli iletim hattı çözümü UYGULANMADI. ' +
-  'Spec kapasitans matrisini 2B alan çözücüden, endüktans matrisini L = μ₀ε₀·C₀⁻¹ ile, ' +
-  'iletkenlik matrisini G ≈ ω·tanδ·C ile istiyor; aggressor sinyali FFT ile frekans alanına ' +
-  'taşınacak, her frekansta e^(−Mℓ) çözülecek ve IFFT ile NEXT/FEXT dalga biçimi üretilecekti. ' +
-  'Alan çözücü olmadığı için bu adımların hiçbiri yapılmadı. Buradaki sayı bir dalga biçimi ' +
-  'değil, kaba bir tepe değer kestirimidir.'
+  'Kestirim modu — bu sonuç çok iletkenli iletim hattı çözümünden GELMEZ. O çözüm kapasitans ' +
+  'matrisini 2B alan çözücüden alır, endüktans matrisini L = μ₀ε₀·C₀⁻¹ ile, iletkenlik ' +
+  'matrisini G ≈ ω·tanδ·C ile kurar; aggressor sinyalini FFT ile frekans alanına taşır, her ' +
+  'frekansta e^(−Mℓ) çözer ve IFFT ile NEXT/FEXT dalga biçimini üretir. Alan çözücü olmadığı ' +
+  'için bu adımların hiçbiri yapılmıyor. Buradaki sayı bir dalga biçimi değil, kaba bir tepe ' +
+  'değer kestirimidir.'
 
 export const SOURCE_NOTE =
   'Kullanılan K_b = (Z_even − Z_odd)/(2·(Z_even + Z_odd)), L_sat = t_r/(2·t\'_pd) ve ' +
-  'V_FEXT ≈ (Δt/t_r)·V_agg/2 ifadelerinin KAYNAĞI docs/spec.md\'de YOK — sayısal biçimleri ' +
-  've geçerlilik aralıkları spec\'ten doğrulanamıyor. Sonucun yöntem alanı bu yüzden ' +
+  'V_FEXT ≈ (Δt/t_r)·V_agg/2 ifadeleri AMPİRİKTİR — sayısal biçimleri ve geçerlilik aralıkları ' +
+  'doğrulanmış bir kaynağa dayanmıyor. Sonucun yöntem etiketi bu yüzden ' +
   '`empirical-coupling`, kapalı form sonuçlarının taşıdığı `closed-form` değil. Bu ekranla ' +
   'üretim kararı vermeyin.'
 
 export const THREE_W_NOTE =
-  'Spec §7.6\'da birebir tanımlı tek ifade S ≥ 3·W geometrik kontrolüdür ve spec bunun ' +
-  'yalnızca görsel bir tasarım kontrolü olduğunu, crosstalk hesabı olmadığını açıkça söyler. ' +
+  'S ≥ 3·W bu ekranda tanımı belirsizlik taşımayan tek ifadedir, ama yalnızca geometrik bir ' +
+  'tasarım kontrolüdür — crosstalk hesabı değildir. ' +
   'Sağlandığında "3W geometrik kuralı sağlandı" denir; "crosstalk yoktur" DENMEZ.'
 
 export const MODAL_EPS_HINT =
@@ -48,15 +48,15 @@ export const CHART = {
   x: 'Paralel uzunluk (mm)',
   y: 'NEXT tepe gerilimi (V)',
   caption:
-    'Spec §7.6\'nın çıktı listesi HAT ARALIĞI DUYARLILIK GRAFİĞİ istiyor; burada onun yerine ' +
-    'paralel uzunluk taraması çiziliyor. Nedeni: bu ekranda Z_odd ve Z_even kullanıcıdan gelir ' +
-    've hat aralığına bağlı bir modelleri yoktur — aralık süpürüldüğünde K_b hiç değişmez, ' +
-    'dolayısıyla duyarlılık eğrisi üretilemez. Aralık duyarlılığı için Z_odd/Z_even\'in aralıkla ' +
-    'birlikte değişmesi gerekir; o da kapasitans matrisi, yani 2B alan çözücü işidir. ' +
+    'Bu grafik HAT ARALIĞI DUYARLILIĞI DEĞİL, paralel uzunluk taramasıdır. Nedeni: bu ekranda ' +
+    'Z_odd ve Z_even kullanıcıdan gelir ve hat aralığına bağlı bir modelleri yoktur — aralık ' +
+    'süpürüldüğünde K_b hiç değişmez, dolayısıyla duyarlılık eğrisi üretilemez. Aralık ' +
+    'duyarlılığı için Z_odd/Z_even\'in aralıkla birlikte değişmesi gerekir; o da kapasitans ' +
+    'matrisi, yani 2B alan çözücü işidir. ' +
     'Çizilen eğri: paralel uzunluk arttıkça NEXT doğrusal büyür, doyma uzunluğu ' +
     'L_sat = t_r/(2·t\'_pd) noktasından sonra artmaz — daha uzun kuplaj yalnızca darbeyi uzatır, ' +
     'tepesini yükseltmez. Eğrinin sağ tarafındaki düzlük budur. Bu davranış kestirimin ' +
-    'varsayımıdır; spec\'in istediği çok iletkenli çözümden gelmez.',
+    'varsayımıdır; çok iletkenli hat çözümünden gelmez.',
 }
 
 export function reasonText(reason) {
@@ -137,7 +137,7 @@ export function commentary(r) {
   if (r.geom.satisfied) {
     out.push({
       level: 'ok',
-      text: `3W geometrik kuralı sağlandı: S/W = ${fmt(r.geom.ratio, 4)} ≥ 3. Bu YALNIZCA geometrik bir kontroldür — spec bunun crosstalk hesabı olmadığını açıkça söyler. Sağlanmış olması "crosstalk yoktur" anlamına gelmez; yukarıdaki NEXT kestirimi geçerliliğini korur.`,
+      text: `3W geometrik kuralı sağlandı: S/W = ${fmt(r.geom.ratio, 4)} ≥ 3. Bu YALNIZCA geometrik bir tasarım kontrolüdür, crosstalk hesabı değildir. Sağlanmış olması "crosstalk yoktur" anlamına gelmez; yukarıdaki NEXT kestirimi geçerliliğini korur.`,
     })
   } else {
     out.push({
@@ -173,12 +173,12 @@ export function commentary(r) {
   // --- Yöntem ve kaynak ---
   out.push({
     level: 'warn',
-    text: `Bu sonuç spec §7.6'nın istediği model DEĞİLDİR. Çok iletkenli iletim hattı çözümü (kapasitans matrisi, e^(−Mℓ), FFT/IFFT) uygulanmadı; sonucun yöntem alanı \`${r.method}\`, çok iletkenli model bayrağı ise ${r.multiconductorModel ? 'evet' : 'hayır'}.`,
+    text: `Bu sonuç çok iletkenli iletim hattı modelinden GELMEZ: kapasitans matrisi, e^(−Mℓ) ve FFT/IFFT adımlarının hiçbiri uygulanmadı. Sonucun yöntem etiketi \`${r.method}\`, çok iletkenli model kullanıldı mı: ${r.multiconductorModel ? 'evet' : 'hayır'}.`,
   })
 
   out.push({
     level: 'warn',
-    text: 'K_b, L_sat ve V_FEXT ifadelerinin kaynağı docs/spec.md\'de yok. Sayıları spec\'ten doğrulanamadığı için bu ekran kapalı form sonuçlarıyla aynı güven seviyesinde değildir; yığın onayı, gürültü bütçesi kapatma veya kart çıkışı kararı için alan çözücü sonucu ya da ölçüm gerekir.',
+    text: 'K_b, L_sat ve V_FEXT ifadeleri ampiriktir; sayısal biçimleri ve geçerlilik aralıkları doğrulanmış bir kaynağa dayanmıyor. Bu yüzden bu ekran kapalı form sonuçlarıyla aynı güven seviyesinde değildir; yığın onayı, gürültü bütçesi kapatma veya kart çıkışı kararı için alan çözücü sonucu ya da ölçüm gerekir.',
   })
 
   out.push({

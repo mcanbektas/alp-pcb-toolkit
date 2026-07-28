@@ -22,20 +22,20 @@ import {
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `Hedef empedans — spec §8.1:
+const FORMULA = `Hedef empedans:
   ΔV_izin = V_ray · T% / 100
   Z_hedef = ΔV_izin / ΔI
 
   Sabit YATAY hedef. Frekansa
-  bağlı hedef profil spec'te
-  anılıyor ama denklemi
-  verilmiyor → UYGULANMADI.
+  bağlı hedef profilin
+  doğrulanmış denklemi yok
+  → UYGULANMADI.
 
-Düzlem kapasitesi — spec §8.2.3:
+Düzlem kapasitesi — paralel plaka:
   C_düzlem = ε₀·εr·A / d
   kenar saçılması DENKLEMDE YOK
 
-Toplam empedans — spec §8.2.4:
+Toplam empedans — paralel ağ:
   Z_PDN(ω) = [ 1/Z_VRM
              + 1/Z_kap
              + jω·C_düzlem ]⁻¹
@@ -45,19 +45,19 @@ Toplam empedans — spec §8.2.4:
     ESR + j(ω·ESL − 1/(ω·C))
 
   Z_VRM = R + jωL
-    VRM modeli spec'te
-    TANIMLI DEĞİL; değerler
+    VRM için doğrulanmış
+    model YOK; değerler
     kullanıcıdan gelir.
 
   Düzlem yalnızca jωC — KAYIPSIZ.
 
-Loop endüktansı — spec §8.2.4:
+Loop endüktansı — yalnızca toplam:
   L_loop = ESL_komponent + L_mount
          + L_via + L_yayılma
 
   Eğriye DAHİL DEĞİL, ayrı
   eklenir. Üç terimin denklemi
-  spec'te yok; değerler
+  bu araçta yok; değerler
   kullanıcıdan gelir.`
 
 export default function Pdn() {
@@ -480,8 +480,8 @@ export default function Pdn() {
           {r.ok && (
             <ul className="detail-list">
               <li>
-                Hedef empedans sabit yatay yaklaşımdan geliyor; sonucun `flatTarget` alanı bunu
-                taşır ve arayüz frekansa bağlı bir profil varmış gibi göstermez.
+                Hedef empedans sabit yatay yaklaşımdan geliyor; hesap bunu açıkça bir yaklaşım
+                olarak işaretler ve arayüz frekansa bağlı bir profil varmış gibi göstermez.
               </li>
               <li>
                 ΔV kaynağı: {r.fromTolerance
@@ -490,8 +490,8 @@ export default function Pdn() {
               </li>
               {r.plane && (
                 <li>
-                  Düzlem kapasitesi ε₀·εr·A/d ile hesaplandı; `fringingIncluded` alanı false —
-                  kenar saçılması denklemde yok.
+                  Düzlem kapasitesi ε₀·εr·A/d ile hesaplandı; kenar saçılması denklemde yok ve
+                  sonuç bunu açıkça bildiriyor.
                 </li>
               )}
               {r.curve && (
@@ -503,14 +503,14 @@ export default function Pdn() {
               )}
               {r.curve && (
                 <li>
-                  VRM {r.curve.vrm ? 'R + jωL olarak modellendi' : 'girilmedi'}; bu model spec'te
-                  tanımlı değildir ve değerleri kullanıcıdan gelir.
+                  VRM {r.curve.vrm ? 'R + jωL olarak modellendi' : 'girilmedi'}; bu modelin
+                  doğrulanmış bir tanımı yoktur ve değerleri kullanıcıdan gelir.
                 </li>
               )}
               {r.loop && (
                 <li>
-                  Loop endüktansı yalnızca toplanır; L_mount, L_via ve L_yayılma için denklem
-                  spec'te yok, değerler kullanıcıdan ya da alan çözücüden gelir.
+                  Loop endüktansı yalnızca toplanır; L_mount, L_via ve L_yayılma için bu araçta
+                  denklem yok, değerler kullanıcıdan ya da alan çözücüden gelir.
                 </li>
               )}
               <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
@@ -522,7 +522,7 @@ export default function Pdn() {
             <li>
               Hedef empedans yalnızca bir yaklaşımdır: sabit ve yatay kabul edilir. Gerçek
               tasarımda yük akımının spektrumu düz değildir; frekansa bağlı bir hedef profil daha
-              doğrudur ama denklemi docs/spec.md'de verilmediği için bu araçta yoktur.
+              doğrudur ama doğrulanmış bir denklemi olmadığı için bu araçta yoktur.
             </li>
             <li>
               Düzlem kapasitesi denkleminde kenar saçılması bulunmaz; gerçek kapasite hesaplanandan
@@ -533,7 +533,7 @@ export default function Pdn() {
               dar bir bağlantı varsa bu azalma gerçekleşmez ve gerçek empedans daha yüksek olur.
             </li>
             <li>
-              VRM modeli docs/spec.md'de tanımlı değildir. Burada kullanıcının girdiği değerlerle
+              VRM modelinin doğrulanmış bir tanımı yoktur. Burada kullanıcının girdiği değerlerle
               R + jωL alınmıştır; kontrol döngüsü bant genişliği, yük geçiş yanıtı ve anahtarlama
               frekansı modelde yoktur.
             </li>
@@ -543,8 +543,8 @@ export default function Pdn() {
               okunmalıdır.
             </li>
             <li>
-              Bağlantı loop endüktansı PDN eğrisine dahil edilmez; sonucun `mountingIncluded` alanı
-              false döner. Yüksek frekans davranışı için ayrıca değerlendirilmelidir.
+              Bağlantı loop endüktansı PDN eğrisine dahil edilmez; sonuç bunu açıkça bildirir.
+              Yüksek frekans davranışı için ayrıca değerlendirilmelidir.
             </li>
             <li>
               Kapasitörlerin yerleşimi, düzlem yayılma direnci ve dielektrik kaybı modelde yoktur;

@@ -20,12 +20,13 @@ import {
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `Spec §7.6'da birebir tanımlı
+const FORMULA = `Tanımı belirsizlik taşımayan
 TEK ifade — yalnızca geometrik
 kontrol:
   S ≥ 3·W
 
-Kestirim — KAYNAĞI SPEC'TE YOK:
+Kestirim — AMPİRİK, doğrulanmış
+kaynağa dayanmıyor:
   K_b = (Z_even − Z_odd)
         / (2·(Z_even + Z_odd))
   L_sat = t_r / (2·t'_pd)
@@ -38,7 +39,7 @@ Kestirim — KAYNAĞI SPEC'TE YOK:
        · L
   V_FEXT ≈ (Δt / t_r) · V_agg / 2
 
-Spec §7.6'nın istediği rota
+Çok iletkenli hat çözümü
 — UYGULANMADI:
   ∂V/∂x = −(R + jωL)·I
   ∂I/∂x = −(G + jωC)·V
@@ -85,8 +86,8 @@ export default function Crosstalk() {
         <p>
           Paralel iki hat arasındaki near-end crosstalk tepe gerilimini, doyma uzunluğunu ve NEXT
           süresini kestirir; S ≥ 3·W geometrik kontrolünü yapar. Modal εeff değerleri girilirse
-          far-end crosstalk da hesaplanır. Sonuç spec §7.6'nın istediği çok iletkenli iletim hattı
-          çözümü değildir — kaba bir kestirimdir.
+          far-end crosstalk da hesaplanır. Sonuç çok iletkenli iletim hattı çözümünden gelmez —
+          kaba bir kestirimdir.
         </p>
       </div>
 
@@ -354,7 +355,7 @@ export default function Crosstalk() {
           {r.ok && (
             <ul className="detail-list">
               <li>
-                Sonucun yöntem alanı `{r.method}`; çok iletkenli model uygulandı mı:{' '}
+                Sonucun yöntem etiketi `{r.method}`; çok iletkenli model uygulandı mı:{' '}
                 {r.multiconductorModel ? 'evet' : 'hayır'}. Bu etiket kapalı form sonuçlarının
                 taşıdığı `closed-form` etiketiyle aynı güven seviyesinde değildir.
               </li>
@@ -383,22 +384,22 @@ export default function Crosstalk() {
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             <li>
-              <strong>Bilinen sapma — spec §7.6 uygulanmadı.</strong> Spec çok iletkenli iletim
-              hattı çözümü istiyor: kapasitans matrisi 2B alan çözücüden, endüktans matrisi
-              L = μ₀ε₀·C₀⁻¹, iletkenlik matrisi G ≈ ω·tanδ·C, aggressor sinyali FFT ile frekans
-              alanına, her frekansta e^(−Mℓ), IFFT ile zaman alanına. Alan çözücü olmadığı için
-              bu adımların hiçbiri yapılmadı. Bu ekran dalga biçimi üretmez.
+              <strong>Bilinen sapma — çok iletkenli hat çözümü uygulanmadı.</strong> O çözüm
+              kapasitans matrisini 2B alan çözücüden alır, endüktans matrisini L = μ₀ε₀·C₀⁻¹,
+              iletkenlik matrisini G ≈ ω·tanδ·C ile kurar; aggressor sinyalini FFT ile frekans
+              alanına taşır, her frekansta e^(−Mℓ) çözer, IFFT ile zaman alanına döner. Alan
+              çözücü olmadığı için bu adımların hiçbiri yapılmadı. Bu ekran dalga biçimi üretmez.
             </li>
             <li>
-              <strong>Kullanılan ifadelerin kaynağı spec'te yok.</strong> K_b, L_sat ve V_FEXT
-              bağıntılarının sayısal biçimi ve geçerlilik aralığı docs/spec.md'den
-              doğrulanamıyor. Sonuç bu yüzden `empirical-coupling` etiketi ve
+              <strong>Kullanılan ifadeler ampiriktir.</strong> K_b, L_sat ve V_FEXT
+              bağıntılarının sayısal biçimi ve geçerlilik aralığı doğrulanmış bir kaynağa
+              dayanmıyor. Sonuç bu yüzden `empirical-coupling` etiketi ve
               "çok iletkenli model: hayır" bayrağı taşır.
             </li>
             <li>
-              <strong>Hat aralığı duyarlılık grafiği üretilmedi.</strong> Spec §7.6'nın çıktı
-              listesi hat aralığı duyarlılık grafiği istiyor; alttaki parametrik grafik onun
-              yerine paralel uzunluk taraması çiziyor. Nedeni: bu ekranda Z_odd ve Z_even
+              <strong>Hat aralığı duyarlılık grafiği üretilmedi.</strong> Alttaki parametrik
+              grafik hat aralığı duyarlılığı yerine paralel uzunluk taraması
+              çiziyor. Nedeni: bu ekranda Z_odd ve Z_even
               kullanıcıdan gelir ve hat aralığına bağlı bir modelleri yoktur — aralık
               süpürüldüğünde K_b hiç değişmez, dolayısıyla duyarlılık eğrisi üretilemez. Aralık
               duyarlılığı için Z_odd/Z_even'in aralıkla birlikte değişmesi gerekir; o da
@@ -406,8 +407,8 @@ export default function Crosstalk() {
               3W geometrik kontrolüne girer.
             </li>
             <li>
-              <strong>3W yalnızca geometrik bir kontroldür.</strong> Spec'te birebir tanımlı tek
-              şey S ≥ 3·W ifadesidir ve spec bunun görsel bir tasarım kontrolü olduğunu söyler.
+              <strong>3W yalnızca geometrik bir kontroldür.</strong> Bu ekranda tanımı belirsizlik
+              taşımayan tek ifade S ≥ 3·W'dir ve o da görsel bir tasarım kontrolüdür.
               Sağlandığında "3W geometrik kuralı sağlandı" denir; "crosstalk yoktur" denmez.
             </li>
             <li>
@@ -416,8 +417,8 @@ export default function Crosstalk() {
             </li>
             <li>
               Z_even ve Z_odd kullanıcıdan gelir. Diferansiyel çift ekranından alındıysa o
-              değerler de kaynağı spec'te olmayan ampirik bir kuplaj katsayısından türemiştir;
-              belirsizlik buraya doğrudan geçer.
+              değerler de ampirik bir kuplaj katsayısından türemiştir; belirsizlik buraya
+              doğrudan geçer.
             </li>
             <li>
               Far-end crosstalk modal hız farkına bağlıdır ve Z_odd/Z_even değerlerinden
@@ -436,8 +437,8 @@ export default function Crosstalk() {
               baskın olabilir.
             </li>
             <li>
-              Victim hattının sonlandırması, kaynak ve yük empedansları modele girmez. Spec §7.6
-              bunları girdi olarak sayar; bu kestirim onları kullanamaz.
+              Victim hattının sonlandırması, kaynak ve yük empedansları modele girmez. Çok
+              iletkenli hat çözümü bunları girdi olarak kullanır; bu kestirim kullanamaz.
             </li>
             <li>
               Kayıp (R, G) ve dispersiyon ihmal edilir; εeff frekanstan bağımsız alınır.
