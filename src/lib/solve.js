@@ -26,20 +26,28 @@ function brackets(fa, fb) {
   return Number.isFinite(fa) && Number.isFinite(fb) && fa * fb <= 0
 }
 
+// Aralık geçerli mi? a === b'ye izin verilir: expandBracket, F(x0) tam sıfır
+// olduğunda kökü daha ilk adımda yakalamış olur ve [x0, x0] döner. Bu bozuk bir
+// aralık değil, yakınsamış bir köktür. Sıfır olup olmadığını brackets() karara
+// bağlar — F(a) sıfır değilse dejenere aralıkta kök yoktur ve NO_BRACKET döner,
+// asla uydurma bir değer dönmez.
+function invalidRange(a, b) {
+  return !Number.isFinite(a) || !Number.isFinite(b) || a > b
+}
+
 // Brent yöntemi: ters kuadratik interpolasyon + güvenlik için bisection'a düşme.
 // Bisection'ın garantili yakınsamasını korur, çoğu durumda ondan çok daha hızlıdır.
 // Döner: { value, iterations, method } veya { error }
 export function brent(F, a, b, opts = {}) {
   const { tol, maxIter } = options(opts)
-  if (!(a < b) || !Number.isFinite(a) || !Number.isFinite(b)) {
-    return { error: SOLVE_ERR_INVALID }
-  }
+  if (invalidRange(a, b)) return { error: SOLVE_ERR_INVALID }
 
   let fa = F(a)
   let fb = F(b)
   if (!brackets(fa, fb)) return { error: SOLVE_ERR_NO_BRACKET }
 
-  // Kök tam sınırdaysa erken dön
+  // Kök tam sınırdaysa erken dön. Dejenere aralık (a === b) da buraya düşer:
+  // brackets() ancak F(a) tam sıfırken doğru olduğu için sonuç kökün kendisidir.
   if (fa === 0) return { value: a, iterations: 0, method: 'brent' }
   if (fb === 0) return { value: b, iterations: 0, method: 'brent' }
 
@@ -118,15 +126,21 @@ export function brent(F, a, b, opts = {}) {
 // gürültülüyse Brent'in interpolasyonu tökezleyebilir; bu her zaman yakınsar.
 export function bisection(F, a, b, opts = {}) {
   const { tol, maxIter } = options(opts)
-  if (!(a < b) || !Number.isFinite(a) || !Number.isFinite(b)) {
-    return { error: SOLVE_ERR_INVALID }
-  }
+  if (invalidRange(a, b)) return { error: SOLVE_ERR_INVALID }
 
   let lo = a
   let hi = b
   let flo = F(lo)
   const fhi = F(hi)
   if (!brackets(flo, fhi)) return { error: SOLVE_ERR_NO_BRACKET }
+
+  // Kök tam sınırdaysa erken dön. Bu şart: aşağıdaki daraltma `flo * fmid < 0`
+  // ile karar veriyor ve F(lo) sıfırken bu çarpım hiçbir zaman negatif olmadığı
+  // için alt sınır sürekli yukarı kayar — kök elde varken sessizce kaybedilir.
+  // Dejenere aralık (a === b) da buraya düşer; brackets() ancak F(a) tam
+  // sıfırken doğru olduğundan sonuç kökün kendisidir.
+  if (flo === 0) return { value: lo, iterations: 0, method: 'bisection' }
+  if (fhi === 0) return { value: hi, iterations: 0, method: 'bisection' }
 
   for (let i = 1; i <= maxIter; i++) {
     const mid = (lo + hi) / 2
@@ -159,6 +173,9 @@ export function expandBracket(F, x0, { factor = 1.6, maxIter = 60, min = 0, max 
   if (!Number.isFinite(flo)) return { error: SOLVE_ERR_INVALID }
 
   for (let i = 0; i < maxIter; i++) {
+    // İlk turda lo === hi === x0'dır; brackets() burada ancak F(x0) tam sıfırken
+    // doğru olur. O hâlde dönen [x0, x0] "genişletilemedi" değil, "kök zaten
+    // elde" demektir; brent/bisection bu dejenere aralığı kök olarak kabul eder.
     if (brackets(flo, fhi)) return { a: lo, b: hi }
 
     // Sınıra dayanmadıkça iki yöne de aç
