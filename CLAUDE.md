@@ -38,15 +38,18 @@ Bağımlılık yönü tek yönlüdür ve asla tersine çevrilmez:
 
 ```
 pages → components → hooks → lib
-                              ↑
-                        services (bileşim kökü)
 ```
+
+Somut bağımlılık (tarayıcı depolaması gibi) `hooks/` katmanında bağlanır; `lib/` yalnızca
+soyut portu bilir.
 
 1. **`src/lib/`** — saf hesap fonksiyonları. React, DOM, tarayıcı API'si ve kullanıcıya
    görünen metin bilmez. Hata durumunda `{ error: <kod> }` döner; kodu metne çeviren taraf
    ekranın `text.js` dosyasıdır.
    - `num.js` — giriş ayrıştırma (`parseNum`, `parseNumResult`) ve gösterim
      (`fmt`, `fmtEng`, `fmtRes`, `fmtAmp`, `fmtPow`, `fmtPct`, `fmtOhm`, `fmtVolt`, `fmtWatt`).
+     Araç ekranları tembel yüklenir (`src/App.jsx` içinde `lazy`), bu yüzden her ekran yalnızca
+     kendi motorunu paketine çeker.
    - `units.js` — fiziksel sabitler (`C0`, `EPS0`, `MU0`, `ETA0`, `RHO_CU_20`, `K_CU`) ve
      birim → SI çarpan tabloları (`LENGTH`, `CAPACITANCE`, `FREQUENCY`, …) + `toSI`/`fromSI`.
      Yeni sabit buraya eklenir, araç dosyasına gömülmez.
@@ -57,8 +60,8 @@ pages → components → hooks → lib
      `solveBounded`). Tüm ters (sentez) hesaplar buradan geçer.
    - `storage.js` — kalıcı depolama **portu** (`read`/`write`/`remove`). `browserStorage`,
      `memoryStorage`, `nullStorage` uygulamaları burada.
-   - `dataProfiles.js` — profil şeması ve doğrulaması + `createProfileStore(storage)`.
-     `localStorage`'ı tanımaz, portu parametre olarak alır.
+   - `thicknessRecords.js` — bakır kalınlığı kayıtları: şema adı, `schemaVersion`, doğrulama,
+     liste/kaydet/sil. `localStorage`'ı tanımaz, portu parametre olarak alır.
    - Hesap motorları: `traceCalc.js`, `ohm.js`, `divider.js`, `led.js`, `reactance.js`,
      `timing.js`, `crystal.js`, `codes.js`, `eseries.js`.
    - Dönüşüm motorları (`docs/spec.md` §11): `convertLength.js`, `convertAwg.js`,
@@ -68,9 +71,8 @@ pages → components → hooks → lib
 2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`,
    `Schematic`, `LineChart`). State tutmaz, hesap yapmaz.
 3. **`src/hooks/`** — `useToolForm` yalnızca React state'ini yönetir; hesap bilgisi taşımaz.
-4. **`src/services/`** — bileşim kökü. Somut bağımlılıklar (örn. `browserStorage`) yalnızca
-   burada birbirine bağlanır.
-5. **`src/pages/tools/<Ad>/`** — araç ekranı, dört dosya:
+   `useSavedThickness` somut depolama portunu bağlar — tarayıcı API'si yalnızca burada görünür.
+4. **`src/pages/tools/<Ad>/`** — araç ekranı, dört dosya:
    - `index.jsx` — düzen ve state. Hesap yapmaz, metin üretmez.
    - `model.js` — alan tanımları + `compute()` + `buildSweep()`. Saf, test edilebilir.
    - `schematic.jsx` — devre/geometri SVG'si.
@@ -101,7 +103,8 @@ tamamlama; eksik olduğunu söyle ve sor.
 1. Hesap motorunu `src/lib/<konu>.js` olarak yaz. Motor kod döner, metin döndürmez.
 2. `src/pages/tools/<Ad>/` klasörünü dört dosyayla kur: `model.js`, `text.js`,
    `schematic.jsx`, `index.jsx`.
-3. `src/App.jsx` içine `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
+3. `src/App.jsx` içine `const Ad = lazy(() => import('./pages/tools/Ad'))` ve
+   `<Route path="/arac/<slug>" element={<Ad />} />` ekle — ekranlar tembel yüklenir.
 4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver.
 5. `docs/spec.md` §13'te karşılığı varsa testi aynı commit'te yaz.
 
@@ -158,17 +161,19 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   orta: *Sonuç*, sağ: `.panel-detail` → *Teknik detay* + *Geçerlilik ve varsayımlar*) →
   kategoriye dönen `.backlink`. Orta panel bir `.big-result`, bir `.status` çipi ve bir
   `.result-table` içerir; sağ panel kullanılan denklemleri `.formula` bloğunda gösterir.
-  Düzen kırılımları `theme.css` içindeki `.tool-grid` media query'lerinde tanımlı — yeni
+  Düzen kırılımları `src/themes/*.css` içindeki `.tool-grid` media query'lerinde tanımlı — yeni
   araç için grid yazmaya gerek yok.
-- **Renkler her zaman `src/theme.css`'teki CSS değişkenlerinden gelecek.** JSX veya CSS içine
+- **Renkler her zaman tema değişkenlerinden gelecek.** JSX veya CSS içine
   literal renk (`#4ade80`, `rgb(...)`, `green`) yazma; `var(--accent)`, `var(--muted)`,
-  `var(--warn)`, `var(--danger)` vb. kullan. Yeni bir renk gerekiyorsa önce `theme.css`
-  `:root` bloğuna değişken ekle. Aynı kural fontlar için de geçerli: `var(--font-mono)`,
-  `var(--font-display)`, `var(--font-body)`.
+  `var(--warn)`, `var(--danger)` vb. kullan. Yeni bir renk gerekiyorsa önce ilgili tema dosyasının
+  `:root` bloğuna değişken ekle — `src/theme.css` yalnızca aktif temayı seçen tek satırlık
+  anahtardır, değişkenler `src/themes/*.css` içindedir ve yeni değişken **dördüne de** eklenir,
+  yoksa tema değiştirildiğinde kural tanımsız kalır. Aynı kural fontlar için de geçerli:
+  `var(--font-mono)`, `var(--font-display)`, `var(--font-body)`.
   Grafik serileri renk stringi taşımaz: eleman `tone-1`…`tone-4` / `tone-muted` sınıfını alır,
   çizim kuralları `var(--tone)` kullanır. `toneClass(i)` yardımcısı `LineChart`'tan gelir.
 
-- **Ekrana özel CSS yazma ve inline style kullanma.** Tüm görsel kararlar `theme.css`
+- **Ekrana özel CSS yazma ve inline style kullanma.** Tüm görsel kararlar tema
   değişkenleri ve mevcut ortak sınıflar üzerinden verilir. Yeni bir görsel desen gerekiyorsa
   önce ortak bileşen olarak yazılır, tek ekrana gömülmez. Panel içinde ikinci başlık için
   `<h2 className="section">` kullanılır.
@@ -192,11 +197,11 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   benzeri lisanslı içerik `src/` veya `docs/` altına gömülmez. Bunun yerine kullanıcının
   içe aktardığı profil/veri seti kullanılır ve `localStorage`'da tutulur. Böyle bir veri
   yokken sonuç, standart tabanlı doğrulanmış gibi sunulmaz.
-  İçe aktarma tek yerden geçer: **`src/lib/dataProfiles.js`** — şema doğrulaması, okuma/yazma
-  ve silme orada. Ekran kendi `JSON.parse`/`localStorage` kodunu yazmaz. Profil zarfında
-  `schemaVersion` alanı vardır; format değişirse eski profil sessizce yanlış okunmaz, açık
-  hata döner. Kullanıcıya yönelik şema dokümanı: `docs/veri-profili-semasi.md` (boş iskelet +
-  alan açıklamaları, gerçek veri içermez).
+  Böyle bir veri saklanacaksa desen hazırdır ve bakır kalınlığı kayıtlarında uygulanıyor:
+  port `src/lib/storage.js`, saf depo `src/lib/thicknessRecords.js` (şema adı, `schemaVersion`,
+  doğrulama; portu parametre alır), somut bağ `src/hooks/useSavedThickness.js`. Ekran kendi
+  `JSON.parse`/`localStorage` kodunu yazmaz. Format değişirse eski kayıt sessizce yanlış
+  okunmaz, açık hata döner.
 
 - **Kapalı form empedans sonuçları üretime hazır gibi sunulmaz.** `docs/spec.md` §6.1 üretim
   için önerilen sonucun alan çözücüden gelmesini istiyor; çözücü henüz yok. Bu yüzden empedans

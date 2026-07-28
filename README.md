@@ -33,9 +33,10 @@ Bağımlılık yönü tek yönlüdür ve asla tersine çevrilmez:
 
 ```
 pages → components → hooks → lib
-                              ↑
-                        services (bileşim kökü)
 ```
+
+Araç ekranları `src/App.jsx` içinde `lazy` ile yüklenir: ilk boyamada yalnızca ana sayfa ve
+kategori sayfası gelir, her araç kendi paketini açıldığında çeker.
 
 **`src/lib/`** — saf hesap fonksiyonları. React, DOM, tarayıcı API'si ve kullanıcıya görünen
 metin bilmez. Hata durumunda `{ error: <kod> }` döner; kodu metne çeviren taraf ekranın
@@ -134,23 +135,25 @@ Dönüştürücülerin kaynağı `docs/spec.md` §11; bakır kalınlığı dön�
 Dördü planlandı, henüz yayında değil: Clearance, Creepage & Padstack · BGA Breakout ·
 Stack-Up Planner · Thermal Relief.
 
-## Veri profili içe aktarma
+## Tarayıcıda saklama
 
 Lisanslı standart tabloları, karar tabloları ve eğri verisi **repoya kopyalanmaz**. Böyle bir
-veri gerektiğinde kullanıcı kendi veri setini JSON olarak içe aktarır; veri `localStorage`
-içinde tutulur ve repoya hiç girmez.
+veri gerektiğinde kullanıcının kendi veri seti kullanılır ve tarayıcıda tutulur; repoya hiç
+girmez. Bugün böyle bir içe aktarma ekranı yoktur — gerektiğinde eklenecektir.
 
-İçe aktarma tek yerden geçer: **`src/lib/dataProfiles.js`**. Şema doğrulaması, okuma, yazma ve
-silme oradadır; ekranlar kendi `JSON.parse`/`localStorage` kodunu yazmaz. Depolama somut bir
-bağımlılık değil, port olarak verilir (`src/lib/storage.js` → `browserStorage`, `memoryStorage`,
-`nullStorage`); somut uygulama yalnızca `src/services/` içinde bağlanır.
+Saklama deseni tek yerde tanımlıdır ve bakır kalınlığı kayıtlarında uygulanır:
 
-Profil zarfında `schemaVersion` alanı vardır — format değişirse eski profil sessizce yanlış
-okunmaz, açık hata döner. Kullanıcıya yönelik şema dokümanı:
-[`docs/veri-profili-semasi.md`](docs/veri-profili-semasi.md) (boş iskelet ve alan açıklamaları
-içerir, gerçek veri içermez).
+| katman | dosya | sorumluluk |
+| --- | --- | --- |
+| port | `src/lib/storage.js` | `read`/`write`/`remove` sözleşmesi + `browserStorage`, `memoryStorage`, `nullStorage` |
+| saf depo | `src/lib/thicknessRecords.js` | şema adı, `schemaVersion`, doğrulama, liste/kaydet/sil — portu parametre alır |
+| bağ | `src/hooks/useSavedThickness.js` | somut portu bağlar, React durumunu yönetir |
 
-Böyle bir veri yüklü değilken sonuç, standart tabanlı doğrulanmış gibi sunulmaz. Örneğin
+Ekran ne `localStorage`'ı ne `JSON.parse`'ı görür. Kayıt zarfında `schemaVersion` vardır; format
+değişirse eski kayıt sessizce yanlış okunmaz, açık hata döner. Depolamaya erişilemediğinde
+(gizli sekme, kapalı site verisi) port `nullStorage`'a düşer ve hesap çalışmaya devam eder.
+
+Standart tabanlı bir veri yüklü değilken sonuç, standart tabanlı doğrulanmış gibi sunulmaz. Örneğin
 `traceCalc.js` şu an klasik ampirik iletken ısınma denklemini kullanır ve sonuç panelinde bunun
 veri tabanlı hesapla eşdeğer olmadığı etiketle belirtilir.
 
@@ -158,7 +161,8 @@ veri tabanlı hesapla eşdeğer olmadığı etiketle belirtilir.
 
 1. Hesap motorunu `src/lib/<konu>.js` olarak yaz — kod döner, metin döndürmez.
 2. `src/pages/tools/<Ad>/` klasörünü dört dosyayla kur.
-3. `src/App.jsx` içine `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
+3. `src/App.jsx` içine `const Ad = lazy(() => import('./pages/tools/Ad'))` ve
+   `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
 4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver.
 5. `docs/spec.md` §13'te karşılığı varsa testi aynı commit'te yaz.
 
