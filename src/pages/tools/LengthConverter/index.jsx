@@ -7,7 +7,10 @@ import useToolForm from '../../../hooks/useToolForm'
 import { fmt, fmtEng, THOUSANDS_MESSAGE } from '../../../lib/num'
 import LengthSchematic from './schematic'
 import { INITIAL_FORM, UNITS, SIG_VALUES, compute, buildSweep } from './model'
-import { UNIT_LABEL, UNIT_ROW, SIG_LABEL, CHART, reasonText, commentary } from './text'
+import {
+  UNIT_LABEL, UNIT_ROW, SIG_LABEL, CHART, RANGE_NOTES, SOURCE_NOTES,
+  reasonText, commentary,
+} from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
@@ -216,14 +219,8 @@ Gösterim değeri:
 
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
-            <li>
-              Katsayılar uluslararası inch tanımına dayanır: 1 inch = 25.4 mm tam sayıdır, ölçüm
-              değil tanımdır. Bu yüzden dönüşümün kendisinde belirsizlik yoktur.
-            </li>
-            <li>
-              ABD arazi ölçümünde kullanılan survey inch bundan az da olsa farklıdır (1 m = 39.37
-              survey inch tanımı). Elektronik ve mekanik çizimlerde uluslararası inch geçerlidir.
-            </li>
+            {RANGE_NOTES.map((t) => <li key={t}>{t}</li>)}
+            {SOURCE_NOTES.map((t) => <li key={t}>{t}</li>)}
             <li>
               Ekran yalnızca sayı çevirir: üretim ızgarasına yuvarlama, üreticinin en küçük
               yol/aralık sınırı ve kalıp toleransı burada dikkate alınmaz.

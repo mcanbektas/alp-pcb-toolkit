@@ -4,13 +4,17 @@
 import { fieldsFor, readForm, when } from '../../../lib/fields'
 import { LENGTH, AREA } from '../../../lib/units'
 import {
-  wireFromAwg, wireFromDiameter, awgSeries,
+  wireFromAwg, wireFromDiameter, awgSeries, diameterTolerance,
   AWG_ERR_RANGE, AWG_MIN, AWG_MAX, AWG_D_MIN, AWG_D_MAX,
-  AWG_RATIO, AWG_STEPS, AWG_REF_GAUGE, AWG_REF_M,
+  AWG_RATIO, AWG_STEPS, AWG_REF_GAUGE, AWG_REF_M, AWG_REF_INCH,
+  AWG_ERR_TOLERANCE,
 } from '../../../lib/convertAwg'
 
 // Ekranın metin katmanı sınırları da yazabilsin diye yeniden dışa aktarılır
-export { AWG_MIN, AWG_MAX, AWG_D_MIN, AWG_D_MAX, AWG_RATIO, AWG_STEPS, AWG_REF_GAUGE }
+export {
+  AWG_MIN, AWG_MAX, AWG_D_MIN, AWG_D_MAX, AWG_RATIO, AWG_STEPS,
+  AWG_REF_GAUGE, AWG_REF_INCH, AWG_ERR_TOLERANCE,
+}
 
 // Yön: numaradan çapa ya da çaptan numaraya
 export const DIR_AWG = 'awg'
@@ -31,10 +35,22 @@ export const INITIAL_FORM = {
   dir: DIR_AWG,
   awg: '24',
   d: '0.5', du: 'mm',
+  // Çekme toleransı isteğe bağlıdır; boşken tolerans bandı hiç hesaplanmaz.
+  tolD: '',
 }
 
 // Numara birimsizdir; çarpan tablosu verilmez, ham sayı okunur.
-const DIAM = { mm: LENGTH.mm, um: LENGTH.um, mil: LENGTH.mil, inch: LENGTH.inch }
+//
+// Birim listesinde mikrometre 'µm' olarak yazılır (spec §3.1). ASCII 'um'
+// anahtarı tabloda kalır: eski bir form durumu bu değeri taşıyorsa sessizce
+// birim hatasına düşmesin — iki anahtar da aynı çarpanı verir, hesap değişmez.
+const DIAM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil, inch: LENGTH.inch }
+
+// Arayüzde gösterilen birim listesi — tabloyla tek kaynaktan eşleşsin diye burada durur.
+export const DIAMETER_UNITS = ['mm', 'µm', 'mil', 'inch']
+
+// Tolerans yüzdesi birimsizdir; çarpan uygulanmaz, yüzdeye bölme compute içinde.
+const PCT = { '%': 1 }
 
 export function formFields(f) {
   return fieldsFor([
@@ -46,6 +62,11 @@ export function formFields(f) {
     when(f.dir === DIR_DIAMETER, [
       { key: 'd', label: 'İletken çapı', unitKey: 'du', table: DIAM, min: 0 },
     ]),
+    [
+      // Üst sınır burada değil, diameterTolerance() içinde denetlenir — sınır
+      // tek yerde dursun. Burada yalnızca negatif tolerans elenir.
+      { key: 'tolD', label: 'Çap toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
+    ],
   ])
 }
 
@@ -78,6 +99,11 @@ export function compute(f) {
   const exponent = (AWG_REF_GAUGE - base.awgExact) / AWG_STEPS
   const factor = base.d / AWG_REF_M
 
+  // Çekme toleransı (spec §3.4) isteğe bağlıdır. Alan boşken null döner ve
+  // sonuç paneli bugünkü hâliyle kalır; hata durumunda hesap iptal edilmez,
+  // yalnızca tolerans bölümü hata gösterir.
+  const tolerance = v.tolD != null ? diameterTolerance(base.d, v.tolD / 100) : null
+
   return {
     ok: true,
     dir: fromAwg ? DIR_AWG : DIR_DIAMETER,
@@ -94,6 +120,7 @@ export function compute(f) {
     areaDeltaPct: (100 * (base.area - nearest.area)) / nearest.area,
     exponent,
     factor,
+    tolerance,
   }
 }
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   convertLength, toMeters, fromMeters, allLengths, roundingComparison,
   nearestCommonMil, unitFactor,
+  lengthRange, LEN_MAX_METERS,
   MM_PER_INCH, MM_PER_MIL, MIL_PER_INCH, MIL_PER_MM, MIL_PER_MM_ROUNDED,
   LEN_ERR_UNIT, LEN_ERR_INVALID, LEN_ERR_RANGE,
 } from './convertLength'
@@ -92,6 +93,40 @@ describe('kayan nokta aralığının dışına taşma', () => {
     expect(roundingComparison(1e304)).toBeNull()
     expect(roundingComparison(1e300).diff).toBeGreaterThan(0)
     expect(Number.isFinite(roundingComparison(1e300).diff)).toBe(true)
+  })
+})
+
+describe('kullanıcıya söylenen sayısal geçerlilik aralığı', () => {
+  it('üst sınır en küçük birimden (µm) türetilir', () => {
+    // Number.MAX_VALUE = 1.7976931348623157e308, µm çarpanı 1e-6
+    // → sınır 1.7976931348623154e302 m
+    expect(LEN_MAX_METERS / 1e302).toBeCloseTo(1.7976931348623154, 12)
+    expect(lengthRange().maxMeters).toBe(LEN_MAX_METERS)
+    expect(lengthRange().minMeters).toBe(0)
+  })
+
+  it('sınır dahildir: tam sınırda tablo ve karşılaştırma hâlâ üretilir', () => {
+    expect(allLengths(LEN_MAX_METERS)).not.toBeNull()
+    expect(roundingComparison(LEN_MAX_METERS)).not.toBeNull()
+    expect(convertLength(LEN_MAX_METERS, 'm', 'µm').error).toBeUndefined()
+  })
+
+  it('bir kayan nokta adımı yukarısında µm hanesi taşar', () => {
+    const over = LEN_MAX_METERS * (1 + Number.EPSILON)
+    expect(over).toBeGreaterThan(LEN_MAX_METERS)
+    expect(allLengths(over)).toBeNull()
+    expect(convertLength(over, 'm', 'µm').error).toBe(LEN_ERR_RANGE)
+  })
+
+  it('aynı sınır mm, mil ve µm karşılıklarıyla tutarlı', () => {
+    const g = lengthRange()
+    // 1.7976931348623154e302 m → /1e-3 = 1.7976931348623156e305 mm
+    expect(g.maxMm / 1e305).toBeCloseTo(1.7976931348623156, 12)
+    // → /2.54e-5 = 7.077532027016989e306 mil
+    expect(g.maxMil / 1e306).toBeCloseTo(7.077532027016989, 12)
+    // → /1e-6 = 1.7976931348623155e308 µm, kayan nokta tavanına oturur
+    expect(g.maxUm / 1e308).toBeCloseTo(1.7976931348623155, 12)
+    expect(Number.isFinite(g.maxUm)).toBe(true)
   })
 })
 

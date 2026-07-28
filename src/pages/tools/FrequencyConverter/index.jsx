@@ -10,7 +10,9 @@ import {
   INITIAL_FORM, SOURCES, SOURCE_FREQUENCY, SOURCE_PERIOD,
   FREQ_UNITS, TIME_UNITS, compute, buildSweep,
 } from './model'
-import { SOURCE_LABEL, MAIN_LABEL, CHART, reasonText, commentary } from './text'
+import {
+  SOURCE_LABEL, MAIN_LABEL, CHART, SOURCE_NOTES, LIMIT_NOTES, reasonText, commentary,
+} from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
@@ -185,6 +187,11 @@ Birim çarpanları:
             </ul>
           )}
 
+          <h2 className="section">Kaynak ve tanımlar</h2>
+          <ul className="detail-list">
+            {SOURCE_NOTES.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             <li>
@@ -195,10 +202,7 @@ Birim çarpanları:
               Periyot, tekrarlayan bir sinyalin bir tam çevriminin süresidir. Tek bir darbenin
               genişliği ya da kenarın yükselme süresi periyot değildir.
             </li>
-            <li>
-              Sıfır ve negatif giriş kabul edilmez: f = 0 (DC) için periyot tanımlı değildir ve
-              negatif bir tekrar süresi yoktur.
-            </li>
+            {LIMIT_NOTES.map((t) => <li key={t}>{t}</li>)}
             <li>
               Açısal frekans radyan/saniye taşır. 2π çarpanı atlanırsa faz ve reaktans hesapları
               bir 6.283 katsayısı kadar yanlış çıkar.

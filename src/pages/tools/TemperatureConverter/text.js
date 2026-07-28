@@ -73,6 +73,29 @@ export const REF_LABEL = {
   absZero: (y, unit) => `mutlak sıfır ${fmt(y, SIG)} ${unit}`,
 }
 
+// --- Kaynak ve tanım bilgisi (spec §1: "Standart veya kaynak bilgisi") ---
+//
+// Sağ panelde "Kaynak ve tanımlar" başlığı altında listelenir. Kaynak
+// dokümanda olmayan bir madde varsa bu listede açıkça söylenir.
+export const SOURCE_NOTES = [
+  'Kaynak: docs/spec.md §11.5. Bölüm üç bağıntı verir ve ekran yalnızca bunları kullanır: T_F = (9/5)·T_C + 32, T_C = (5/9)·(T_F − 32) ve T_K = T_C + 273.15.',
+  'Kelvin ofseti 273.15 doğrudan §11.5\'ten alınmıştır; ekranın hiçbir yerinde başka bir ofset (273 gibi yuvarlanmış bir değer) kullanılmaz. Fahrenheit ofseti 32 ve eğim 9/5 = 1.8 de aynı bölümden gelir.',
+  'Kaynak doküman ölçek tanımları için bir dış standart adı vermez: °C, °F ve K bu ekranda yalnızca §11.5\'teki üç bağıntıyla tanımlıdır. Mutlak sıfırın ölçek karşılıkları da ayrı bir tablodan alınmamış, aynı bağıntılara T_K = 0 konarak türetilmiştir: T_C = 0 − 273.15 = −273.15 °C ve T_F = 1.8·(−273.15) + 32 = −459.67 °F.',
+  'Sıcaklık FARKININ kuralı §11.5\'te ayrıca yazılmaz. Kaynak dokümanın §3.1 bölümü dahili sıcaklık birimini "santigrat derece veya kelvin farkı" olarak tanımlar — fark büyüklüğünde ikisi zaten özdeştir. ΔT_F = 1.8·ΔT_C ise mutlak bağıntının eğiminden çıkar: iki mutlak sıcaklığın farkı alındığında 32 ofseti sadeleşir, geriye yalnızca 9/5 eğimi kalır. Uydurulmuş bir katsayı değildir, §11.5\'in doğrudan sonucudur.',
+  'Sonuç panelindeki referans noktalarından yalnızca 20 °C kaynak dokümanda geçer (§4.1.6 — bakır özdirenci referansı ρ₂₀). Suyun 1 atm\'deki donma ve kaynama noktaları ile 25 °C veri sayfası sıcaklığı kaynak dokümanda tanımlı değildir; tabloda hesap girdisi olarak değil, yalnızca yaygın çevrim örneği olarak durur.',
+]
+
+// --- ΔT modunun ayrı kuralı (spec §12: "Geçerlilik aralığı") ---
+//
+// Mutlak sıcaklık ile fark aynı denklemle çevrilmez; ikisi ayrı modlarda
+// tutulur ve kural burada sayıyla yazılır.
+export const DELTA_RULE_NOTES = [
+  'ΔT modu AYRI bir kuraldır ve mutlak dönüşümün denklemini kullanmaz. Farkta ofset yoktur, yalnızca eğim kalır: ΔT_C = ΔT_K ve ΔT_F = 1.8·ΔT_C (1.8 = 9/5). Ters yönde ΔT_C = ΔT_F / 1.8. Ne 32 ne de 273.15 farka uygulanır.',
+  'Sayısal karşılığı: 10 °C\'lik bir ısınma 10 K ve 18 °F\'dir — 50 °F değildir. Buna karşılık MUTLAK 10 °C, 283.15 K ve 50 °F\'dir. Aynı "10" girişi iki modda farklı sonuç verir; bu yüzden ikisi tek tabloda birleştirilmez.',
+  'ΔT_C = ΔT_K özdeşliğinin doğrudan sonucu: fark cinsinden tanımlı büyüklüklerde °C/W ile K/W aynı birimdir. Termal direnç, sıcaklık artışı ve sıcaklık katsayısı bu gruba girer; mutlak ölçek dönüşümü bu değerlere uygulanmaz.',
+  'Mutlak sıfır sınırı ΔT\'ye uygulanmaz: negatif bir fark soğuma adımıdır ve geçerlidir. Sınır yalnızca mutlak sıcaklığa ve "ortam + ΔT" toplamına uygulanır — T_K ≥ 0, yani T_C ≥ −273.15 ve T_F ≥ −459.67.',
+]
+
 export function reasonText(reason) {
   switch (reason) {
     case REASON_ABSOLUTE_ZERO:

@@ -15,14 +15,22 @@
 // görünen metin bilmez; ölçek dışı bir numara ya da çap için sonuç
 // uydurulmaz, hata kodu döner.
 
-import { LENGTH, AREA } from './units'
+import { LENGTH, AREA, INCH_M } from './units'
 
 export const AWG_ERR_INVALID = 'invalid'
 export const AWG_ERR_RANGE = 'range'
+export const AWG_ERR_TOLERANCE = 'tolerance'
 
-// Ölçeğin tanım noktası ve oranı
+// Ölçeğin tanım noktası ve oranı.
+//
+// Kaynak: AWG geometrik tel ölçüsü tanımı — 36 numaranın çapı 0.005 inch ve
+// ardışık iki numara arasındaki çap oranı sabittir. Milimetre karşılığı
+// uluslararası inch tanımından (1 inch = 25.4 mm, tam) çıkar; bu yüzden
+// AWG_REF_M literal yazılmaz, INCH_M ile çarpılarak türetilir. Yayınlanmış
+// bir çap tablosu kopyalanmaz — bütün değerler bu iki tanımdan hesaplanır.
 export const AWG_REF_GAUGE = 36
-export const AWG_REF_M = 0.127e-3 // AWG 36 çapı, m (= 0.005 inch)
+export const AWG_REF_INCH = 0.005 // AWG 36 çapı, inch — ölçeğin tanım noktası
+export const AWG_REF_M = AWG_REF_INCH * INCH_M // = 0.127 mm
 export const AWG_RATIO = 92
 export const AWG_STEPS = 39
 
@@ -119,6 +127,68 @@ export function wireFromDiameter(d) {
     return { error: AWG_ERR_RANGE, message: `Çap, AWG ${AWG_MIN} … ${AWG_MAX} ölçeğinin dışında.` }
   }
   return wire(awg, d)
+}
+
+// --- Çekme toleransı (spec §3.4) ---
+//
+// Tel çapı üretimde ± bir bantla gelir. Tolerans BAĞIL kesirdir: 0.05 = ±%5.
+// Üst sınır 1 (=%100) hariçtir; %100 tolerans alt uçta çapı sıfırlar ve kesit
+// alanı tanımsız kalır.
+export const AWG_TOL_MAX = 1
+
+// Bir büyüklüğün üç ucu + nominale göre bağıl sapması.
+function span(min, nom, max) {
+  return {
+    min,
+    nom,
+    max,
+    minPct: (100 * (min - nom)) / nom,
+    maxPct: (100 * (max - nom)) / nom,
+    spreadPct: (100 * (max - min)) / nom,
+  }
+}
+
+/**
+ * Nominal çapın ± toleransla aldığı minimum · nominal · maksimum bandı ve
+ * bunun kesit alanına yansıması (spec §3.4).
+ *
+ * Kesit sınırları ayrı bir yaklaşımla değil, uç çapların kendisinden
+ * hesaplanır. Alan çapın karesiyle gittiği için bant kesitte kendiliğinden
+ * yaklaşık iki katına çıkar:
+ *   A(d·(1±t)) = A(d)·(1±t)² = A(d)·(1 ± 2t + t²)
+ * yani ±%5 çap toleransı kesitte −%9.75 / +%10.25 demektir.
+ *
+ * Tolerans sıfırken üç uç da nominale birebir eşit çıkar ve `active: false`
+ * döner — çağıran taraf bandı hiç göstermeyebilir, bugünkü sonuç değişmez.
+ *
+ * @param {number} d   nominal çap, m
+ * @param {number} tol bağıl tolerans (0.05 = ±%5)
+ */
+export function diameterTolerance(d, tol = 0) {
+  if (!(d > 0)) {
+    return { error: AWG_ERR_INVALID, message: 'Çap pozitif olmalı.' }
+  }
+  if (!Number.isFinite(tol) || tol < 0 || tol >= AWG_TOL_MAX) {
+    return {
+      error: AWG_ERR_TOLERANCE,
+      message: 'Çap toleransı 0 ile %100 arasında olmalı (100 hariç).',
+    }
+  }
+
+  const dMin = d * (1 - tol)
+  const dMax = d * (1 + tol)
+  const aMin = wireArea(dMin)
+  const aNom = wireArea(d)
+  const aMax = wireArea(dMax)
+
+  return {
+    tol,
+    active: tol > 0,
+    d: span(dMin, d, dMax),
+    area: span(aMin, aNom, aMax),
+    dUnits: { min: diameterUnits(dMin), nom: diameterUnits(d), max: diameterUnits(dMax) },
+    aUnits: { min: areaUnits(aMin), nom: areaUnits(aNom), max: areaUnits(aMax) },
+  }
 }
 
 // Ölçeğin uç çapları (m) — arayüzün geçerli aralığı gösterebilmesi için.

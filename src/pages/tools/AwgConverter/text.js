@@ -6,6 +6,7 @@ import {
   REASON_INCOMPLETE, REASON_AWG_RANGE, REASON_DIAMETER_RANGE,
   DIR_AWG, DIR_DIAMETER, SWEEP_D, SWEEP_AREA,
   AWG_MIN, AWG_MAX, AWG_D_MIN, AWG_D_MAX,
+  AWG_ERR_TOLERANCE, AWG_REF_GAUGE, AWG_REF_INCH, AWG_RATIO, AWG_STEPS,
 } from './model'
 
 // --- Etiketler ---
@@ -45,7 +46,38 @@ const mmLimit = (meters) => (meters * 1e3).toFixed(4)
 export const FIELD_HINT = {
   awg: '4/0 için -3, 3/0 için -2, 00 için -1, 0 için 0 yazın. Kesirli ara değer de kabul edilir.',
   d: `Ölçeğin kapsadığı çıplak iletken çapı ${mmLimit(AWG_D_MIN)} mm ile ${mmLimit(AWG_D_MAX)} mm arasıdır. Sınırlar dört ondalıkla yazılır; ondalık ayracından sonra tam üç basamak yazan bir değer binlik ayırıcı sanılıp reddedilir.`,
+  tolD: 'Üreticinin verdiği çekme toleransı. Boş bırakılırsa tolerans bandı hiç hesaplanmaz ve yalnızca nominal sonuç gösterilir.',
 }
+
+// --- Çekme toleransı (spec §3.4) ---
+
+export const TOLERANCE_CAPTION = 'Çap toleransı (minimum · nominal · maksimum)'
+
+export const TOLERANCE_FIELD_CAPTION = 'Çekme toleransı (isteğe bağlı)'
+
+// Kesitin toleransı neden çapın iki katı — sağ panelde tek cümle.
+export const TOLERANCE_SQUARE_NOTE =
+  'Kesit alanı çapın karesiyle gittiği için çap toleransı kesitte yaklaşık iki katına çıkar: '
+  + 'A(d·(1±t)) = A(d)·(1±t)², yani ±%5 çap toleransı kesitte −%9.75 / +%10.25 demektir. '
+  + 'Bant simetrik değildir; üst uç alt uçtan biraz geniştir.'
+
+export function toleranceReason(code) {
+  switch (code) {
+    case AWG_ERR_TOLERANCE:
+      return 'Çap toleransı %0 ile %100 arasında olmalı (100 hariç). %100 tolerans alt uçta çapı sıfırlar ve kesit alanı tanımsız kalır.'
+    default:
+      return 'Tolerans bandı hesaplanamadı; nominal çapın pozitif olması gerekir.'
+  }
+}
+
+// --- Kullanılan ölçek ve kaynak (spec §1: standart veya kaynak bilgisi) ---
+
+export const SCALE_SOURCE = [
+  `Ölçek: AWG geometrik tel ölçüsü tanımı — ${AWG_REF_GAUGE} numaranın çapı ${AWG_REF_INCH} inch ve ardışık iki numara arasındaki çap oranı sabittir. ${AWG_STEPS} adımlık aralık ${AWG_RATIO} katlık çap oranını verir; numara başına oran ${AWG_RATIO}^(1/${AWG_STEPS}) ≈ ${fmt(Math.pow(AWG_RATIO, 1 / AWG_STEPS), 5)}.`,
+  'Uzunluk: uluslararası inch tanımı, 1 inch = 25.4 mm (tam). Milimetre, mil ve mikrometre karşılıkları bu tek eşitlikten çıkar.',
+  'Kesit alanı yuvarlak ve tek telli iletken varsayımıyla A = π·d²/4 bağıntısından gelir.',
+  'Bütün değerler bu tanımlardan hesaplanır; yayınlanmış bir çap tablosu kopyalanmamıştır. Sipariş verirken üreticinin kendi veri sayfasındaki nominal çap ve toleransı esas alın.',
+]
 
 // Standart numara gösterimi: 0 ve altı için 1/0 … 4/0 yazımı kullanılır.
 export function awgLabel(n) {
@@ -97,8 +129,18 @@ export function commentary(r) {
 
   out.push({
     level: 'ok',
-    text: 'Ölçek geometriktir: 6 numara aşağı inmek çapı 2.005 katına, 3 numara aşağı inmek kesiti 2.005 katına, 10 numara aşağı inmek kesiti 10.16 katına çıkarır. Küçük numara kalın teldir.',
+    text: 'Ölçek geometriktir: 6 numara aşağı inmek çapı 2.0050 katına, 3 numara aşağı inmek kesiti 2.0050 katına, 10 numara aşağı inmek kesiti 10.16 katına çıkarır. Küçük numara kalın teldir.',
   })
+
+  // Tolerans girilmişse bandın sayısal karşılığı yoruma da girer; boşken bu
+  // madde hiç eklenmez ve liste bugünkü hâlinde kalır.
+  const tol = r.tolerance
+  if (tol && !tol.error && tol.active) {
+    out.push({
+      level: 'ok',
+      text: `±${fmt(tol.tol * 100, 3)} % çekme toleransıyla çap ${fmt(tol.dUnits.min.mm, 4)} … ${fmt(tol.dUnits.max.mm, 4)} mm, kesit ${fmt(tol.aUnits.min.mm2, 4)} … ${fmt(tol.aUnits.max.mm2, 4)} mm² bandına oturur; kesitteki sapma ${fmtPct(tol.area.minPct, 4)} / ${fmtPct(tol.area.maxPct, 4)}. Akım ve direnç hesaplarında kötü durum için alt ucu kullanın.`,
+    })
+  }
 
   // Zorunlu uyarı — çıplak iletken (spec §11.2)
   out.push({
@@ -134,6 +176,10 @@ export function validityNotes(r) {
 
   if (r.ok && r.dir === DIR_DIAMETER) {
     out.push('Ölçülen çap üretim toleransı ve yüzey kaplaması taşır; ölçüyü telin birkaç noktasında alıp ortalamayı kullanın.')
+  }
+
+  if (r.ok && r.tolerance && !r.tolerance.error && r.tolerance.active) {
+    out.push('Tolerans bandı basit worst-case yaklaşımıdır (spec §3.4): çapın iki ucu alınır, kesit bu uçlardan hesaplanır; olasılık dağılımı varsayılmaz. Tolerans değeri uygulamanın kendi verisi değildir, üreticinin veri sayfasından girilir.')
   }
 
   return out

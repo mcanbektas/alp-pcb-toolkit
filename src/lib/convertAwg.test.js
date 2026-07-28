@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   awgDiameter, awgFromDiameter, wireArea, nearestAwg, inAwgRange,
   diameterUnits, areaUnits, wireFromAwg, wireFromDiameter, awgSeries,
-  AWG_MIN, AWG_MAX, AWG_D_MIN, AWG_D_MAX,
-  AWG_ERR_INVALID, AWG_ERR_RANGE,
+  diameterTolerance,
+  AWG_MIN, AWG_MAX, AWG_D_MIN, AWG_D_MAX, AWG_REF_M,
+  AWG_ERR_INVALID, AWG_ERR_RANGE, AWG_ERR_TOLERANCE,
 } from './convertAwg'
 
 describe('numaradan çap (spec §11.2)', () => {
@@ -169,6 +170,103 @@ describe('tel zarfı', () => {
     expect(w.awgNearest).toBe(25)
     expect(w.d).toBeGreaterThan(awgDiameter(25))
     expect(w.d).toBeLessThan(awgDiameter(24))
+  })
+})
+
+describe('ölçeğin kaynağı', () => {
+  it('tanım noktası inch tanımından türer: 0.005 inch × 25.4 = 0.127 mm', () => {
+    // 1 inch = 25.4 mm (tam) tanımı; çarpım kayan noktada da birebir 0.127 mm
+    expect(AWG_REF_M).toBe(0.127e-3)
+    expect(AWG_REF_M / 0.0254).toBeCloseTo(0.005, 15)
+  })
+
+  it('ölçek oranı 92^(1/39) ≈ 1.1229', () => {
+    expect(awgDiameter(23) / awgDiameter(24)).toBeCloseTo(1.1229321965, 9)
+  })
+})
+
+describe('çap toleransı (spec §3.4)', () => {
+  it('AWG 24 ±%5: çap 0.485031 · 0.510559 · 0.536087 mm', () => {
+    const d = awgDiameter(24)
+    const t = diameterTolerance(d, 0.05)
+    expect(t.error).toBeUndefined()
+    expect(t.active).toBe(true)
+    expect(t.dUnits.min.mm).toBeCloseTo(0.4850312657, 9)
+    expect(t.dUnits.nom.mm).toBeCloseTo(0.5105592271, 9)
+    expect(t.dUnits.max.mm).toBeCloseTo(0.5360871884, 9)
+    // Uçlar tam olarak d·(1∓t)
+    expect(t.d.min).toBeCloseTo(d * 0.95, 18)
+    expect(t.d.max).toBeCloseTo(d * 1.05, 18)
+  })
+
+  it('AWG 24 ±%5: kesit 0.1847691 · 0.2047303 · 0.2257152 mm², sapma −9.75 / +10.25 %', () => {
+    const t = diameterTolerance(awgDiameter(24), 0.05)
+    expect(t.aUnits.min.mm2).toBeCloseTo(0.1847691031, 9)
+    expect(t.aUnits.nom.mm2).toBeCloseTo(0.2047303081, 9)
+    expect(t.aUnits.max.mm2).toBeCloseTo(0.2257151647, 9)
+    // Çapta ∓5 %, kesitte (1∓0.05)² − 1 → −9.75 % ve +10.25 %
+    expect(t.d.minPct).toBeCloseTo(-5, 9)
+    expect(t.d.maxPct).toBeCloseTo(5, 9)
+    expect(t.area.minPct).toBeCloseTo(-9.75, 9)
+    expect(t.area.maxPct).toBeCloseTo(10.25, 9)
+  })
+
+  it('1 mm ±%10: kesit 0.6361725 · 0.7853982 · 0.9503318 mm², bant %40', () => {
+    const t = diameterTolerance(1e-3, 0.1)
+    expect(t.dUnits.min.mm).toBeCloseTo(0.9, 12)
+    expect(t.dUnits.max.mm).toBeCloseTo(1.1, 12)
+    expect(t.aUnits.min.mm2).toBeCloseTo(0.6361725124, 9)
+    expect(t.aUnits.nom.mm2).toBeCloseTo(0.7853981634, 9)
+    expect(t.aUnits.max.mm2).toBeCloseTo(0.9503317777, 9)
+    expect(t.d.spreadPct).toBeCloseTo(20, 9)
+    expect(t.area.spreadPct).toBeCloseTo(40, 9)
+  })
+
+  it('kesit bandı çap bandının yaklaşık iki katıdır', () => {
+    for (const tol of [0.001, 0.01, 0.05]) {
+      const t = diameterTolerance(awgDiameter(18), tol)
+      const ratio = t.area.spreadPct / t.d.spreadPct
+      expect(ratio).toBeGreaterThan(1.99)
+      expect(ratio).toBeLessThan(2.01)
+    }
+  })
+
+  it('tolerans yokken üç uç birebir nominale eşittir', () => {
+    const d = awgDiameter(30)
+    const t = diameterTolerance(d, 0)
+    expect(t.active).toBe(false)
+    expect(t.d.min).toBe(d)
+    expect(t.d.nom).toBe(d)
+    expect(t.d.max).toBe(d)
+    expect(t.area.min).toBe(wireArea(d))
+    expect(t.area.max).toBe(wireArea(d))
+    expect(t.d.minPct).toBe(0)
+    expect(t.area.maxPct).toBe(0)
+  })
+
+  it('varsayılan tolerans sıfırdır', () => {
+    const t = diameterTolerance(awgDiameter(12))
+    expect(t.active).toBe(false)
+    expect(t.d.min).toBe(t.d.max)
+  })
+
+  it('geçersiz tolerans sonuç değil hata döner', () => {
+    expect(diameterTolerance(1e-3, 1).error).toBe(AWG_ERR_TOLERANCE)
+    expect(diameterTolerance(1e-3, 1.5).error).toBe(AWG_ERR_TOLERANCE)
+    expect(diameterTolerance(1e-3, -0.01).error).toBe(AWG_ERR_TOLERANCE)
+    expect(diameterTolerance(1e-3, NaN).error).toBe(AWG_ERR_TOLERANCE)
+  })
+
+  it('geçersiz çap hata döner', () => {
+    expect(diameterTolerance(0, 0.05).error).toBe(AWG_ERR_INVALID)
+    expect(diameterTolerance(-1e-3, 0.05).error).toBe(AWG_ERR_INVALID)
+  })
+
+  it('uçlar mil ve mil² karşılıklarını da taşır', () => {
+    const t = diameterTolerance(awgDiameter(24), 0.05)
+    expect(t.dUnits.nom.mil).toBeCloseTo(20.100757, 6)
+    expect(t.dUnits.min.mil).toBeCloseTo(19.0957191, 6)
+    expect(t.aUnits.nom.mil2).toBeCloseTo(317.333, 3)
   })
 })
 

@@ -14,6 +14,7 @@ import {
 import {
   MODE_LABEL, KIND_LABEL, QUADRANT_LABEL, CHART,
   SWEEP_LABEL, SWEEP_AXIS, SWEEP_SERIES, SWEEP_CAPTION, REF_LABEL,
+  RANGE_NOTES, SOURCE_NOTES,
   rectText, polarText, reasonText, commentary, validityNotes,
 } from './text'
 
@@ -237,6 +238,8 @@ Kodda faz DAİMA atan2(X, R)
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             {r.ok && validity.map((w) => <li key={w} className="w">{w}</li>)}
+            {RANGE_NOTES.map((t) => <li key={t}>{t}</li>)}
+            {SOURCE_NOTES.map((t) => <li key={t}>{t}</li>)}
             <li>
               Dönüşüm cebirsel olarak tamdır; yaklaşım içermez. Sonuçtaki tek sapma çift
               duyarlıklı kayan nokta aritmetiğinden gelir.

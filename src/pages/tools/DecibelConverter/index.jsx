@@ -16,7 +16,7 @@ import {
 } from './model'
 import {
   MODE_LABEL, DIR_LABEL, DIR_FIELD_LABEL, CHART,
-  METHOD_NOTE, EQUAL_Z_NOTE, reasonText, commentary,
+  METHOD_NOTE, EQUAL_Z_NOTE, SOURCE_NOTES, LIMIT_NOTES, reasonText, commentary,
 } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
@@ -357,8 +357,14 @@ Referans empedansta RMS gerilim:
             </ul>
           )}
 
+          <h2 className="section">Kaynak ve tanımlar</h2>
+          <ul className="detail-list">
+            {SOURCE_NOTES.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
+            {LIMIT_NOTES.map((t) => <li key={t}>{t}</li>)}
             <li className="w">{EQUAL_Z_NOTE}</li>
             <li>
               Gerilim oranı hesabında iki gerilimin aynı türden olduğu varsayılır; RMS ile tepe

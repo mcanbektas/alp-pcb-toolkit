@@ -12,7 +12,8 @@ import {
 } from './model'
 import {
   MODE_LABEL, SCALE_LABEL, DELTA_SCALE_LABEL, REF_POINT_LABEL,
-  SWEEP_LABEL, REF_LABEL, CHART, reasonText, commentary,
+  SWEEP_LABEL, REF_LABEL, CHART, SOURCE_NOTES, DELTA_RULE_NOTES,
+  reasonText, commentary,
 } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
@@ -265,21 +266,18 @@ Fiziksel alt sınır:
             </ul>
           )}
 
+          <h2 className="section">Kaynak ve tanımlar</h2>
+          <ul className="detail-list">
+            {SOURCE_NOTES.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             <li>
               Mutlak sıfır fiziksel alt sınırdır: T_K = 0, yani −273.15 °C ve −459.67 °F. Bu
               sınırın altındaki bir giriş hesaplanmaz; sonuç yerine hata gösterilir.
             </li>
-            <li>
-              Sıcaklık FARKI ile mutlak sıcaklık farklı büyüklüklerdir ve aynı denklemle
-              çevrilmezler. Farkta °C ile K özdeştir, °F farkı 9/5 katıdır — bu yüzden iki
-              hesap ayrı modlarda tutulur, tek tabloda karıştırılmaz.
-            </li>
-            <li>
-              Termal direnç, sıcaklık artışı ve sıcaklık katsayısı gibi büyüklükler fark
-              cinsindendir; °C/W ile K/W aynı şeydir. Mutlak dönüşüm bu değerlere uygulanmaz.
-            </li>
+            {DELTA_RULE_NOTES.map((t) => <li key={t}>{t}</li>)}
             <li>
               Ölçek dönüşümleri tanım gereği tamdır; yaklaşıklık formülde değil, girilen
               değerin ve ölçüm cihazının doğruluğundadır.

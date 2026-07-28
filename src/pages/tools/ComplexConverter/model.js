@@ -30,7 +30,9 @@ const ANGLE = { '°': Math.PI / 180, rad: 1 }
 // Girilebilecek açı sınırı: ±3600°. Daha büyük açılarda cos/sin argüman
 // indirgemesi anlamlı basamak kaybettirir, sonuç sayısal olarak güvenilmez olur.
 export const PHASE_LIMIT_DEG = 3600
-const PHASE_LIMIT_RAD = degToRad(PHASE_LIMIT_DEG)
+export const PHASE_LIMIT_RAD = degToRad(PHASE_LIMIT_DEG)
+// Aynı sınırın tur cinsinden karşılığı; sağ panelde sayı olarak yazılır.
+export const PHASE_LIMIT_TURNS = PHASE_LIMIT_DEG / 360
 
 export const INITIAL_FORM = {
   mode: MODE_RECT,

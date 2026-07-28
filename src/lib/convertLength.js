@@ -33,6 +33,32 @@ export const MIL_PER_MM_ROUNDED = 39.3701
 // Arayüzde sunulan birimler — PCB pratiğinde en sık kullanılanlar önde.
 export const LENGTH_UNITS = ['mm', 'µm', 'mil', 'inch', 'cm', 'm']
 
+// --- Sayısal geçerlilik aralığı ---
+//
+// Dönüşümün kendisinde fiziksel bir üst sınır yoktur; sınır çift duyarlıklı
+// kayan noktadan gelir. Birim tablosunu ilk taşıran hane daima en küçük
+// birimdir: L[µm] = L[m] / 1e-6. Sınır elle yazılmaz, o birimin çarpanından
+// türetilir — böylece birim listesi değişirse sayı da kendiliğinden değişir.
+export const LEN_SMALLEST_UNIT = 'µm'
+export const LEN_MAX_METERS = Number.MAX_VALUE * LENGTH[LEN_SMALLEST_UNIT]
+
+/**
+ * Ekranın kullanıcıya sayı olarak söylediği geçerlilik aralığı (spec §12).
+ *
+ * Alt sınır dışlayandır (L > 0). Üst sınır dahildir: LEN_MAX_METERS'ta
+ * allLengths hâlâ eksiksiz bir tablo verir, bir sonraki kayan nokta değerinde
+ * µm hanesi taşar ve LEN_ERR_RANGE gelir.
+ */
+export function lengthRange() {
+  return {
+    minMeters: 0,
+    maxMeters: LEN_MAX_METERS,
+    maxMm: LEN_MAX_METERS / LENGTH.mm,
+    maxMil: LEN_MAX_METERS / LENGTH.mil,
+    maxUm: LEN_MAX_METERS / LENGTH.um,
+  }
+}
+
 // PCB veri sayfalarında sık geçen yol/aralık ölçüleri (mil). Yalnızca hazır
 // karşılaştırma listesidir; hesaba girmez.
 export const COMMON_MIL = [3, 4, 5, 6, 8, 10, 12, 20]

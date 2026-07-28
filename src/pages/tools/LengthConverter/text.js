@@ -1,6 +1,9 @@
 // Uzunluk dönüştürücü ekranının kullanıcıya görünen metinleri.
 
 import { fmt } from '../../../lib/num'
+import {
+  lengthRange, MM_PER_INCH, MM_PER_MIL, MIL_PER_MM, MIL_PER_MM_ROUNDED,
+} from '../../../lib/convertLength'
 import { REASON_RANGE, REASON_UNIT, REASON_OVERFLOW } from './model'
 
 // --- Etiketler ---
@@ -33,6 +36,27 @@ export const CHART = {
   caption:
     'Dönüşüm doğrusaldır: doğrunun eğimi 1/0.0254 = 39.370078… mil/mm. Milimetre ızgarası ile mil ızgarası yalnızca sıfırda çakışır; ara değerlerde biri diğerinin tam katı olmaz.',
 }
+
+// --- Sağ panel: geçerlilik aralığı (spec §12) ---
+// Sınır elle yazılmaz; convertLength.js'teki türetilmiş aralıktan biçimlenir.
+// Liste KOŞULSUZDUR: girdi geçerli olmasa da kullanıcı sınırı sayı olarak görür.
+
+const RANGE = lengthRange()
+
+export const RANGE_NOTES = [
+  `Sayısal geçerlilik aralığı: 0 < L ≤ ${fmt(RANGE.maxMeters)} m. Aynı sınır ${fmt(RANGE.maxMm)} mm ya da ${fmt(RANGE.maxMil)} mil demektir.`,
+  `Üst sınırı en küçük gösterim birimi belirler: bu uzunluğun mikrometre karşılığı ${fmt(RANGE.maxUm)} µm ile çift duyarlıklı kayan noktanın en büyük sonlu sayısına oturur. Bir adım büyüğünde µm hanesi taşar; ekran o zaman sayı yerine aralık uyarısı gösterir, taşan haneyi “sonsuz” diye yazmaz.`,
+  'Alt sınır dışlayandır: L ≤ 0 için dönüşüm yapılmaz. Sıfır ya da negatif uzunluğun birim karşılığı mühendislik olarak anlamlı değildir.',
+]
+
+// --- Sağ panel: kullanılan tanımların kaynağı (spec §1) ---
+
+export const SOURCE_NOTES = [
+  `Kaynak: 1 inch = ${fmt(MM_PER_INCH)} mm eşitliği ölçüm sonucu değil tanımdır ve 1959 tarihli uluslararası yard ve pound anlaşmasından gelir. Anlaşma 1 yard = 0.9144 m'yi tam kabul eder; 0.9144 / 36 = 0.0254 m tam olarak bir inch eder. Bu yüzden dönüşümün kendisinde belirsizlik yoktur.`,
+  `Mil ve mikrometre aynı tanım zincirinden türer: 1 mil = 0.001 inch = ${fmt(MM_PER_MIL)} mm; 1 µm = 0.001 mm, SI ön ek tanımı gereği (µ = 10⁻⁶).`,
+  `Kaynaklarda geçen 1 mm = ${fmt(MIL_PER_MM_ROUNDED, 6)} mil satırı bağımsız bir tanım değildir: 1/${fmt(MM_PER_MIL)} = ${fmt(MIL_PER_MM, 14)} sayısının dört ondalığa yuvarlanmış gösterimidir. Bu ekran hesabı tam değerle yapar, yuvarlatılmış katsayıyı yalnızca karşılaştırma için gösterir.`,
+  'ABD arazi ölçümünde kullanılan survey inch ayrı bir tanımdır: 1 m = 39.37 survey inch bağıntısıyla verilir, yani 1 survey inch = 0.0254000508 m ve uluslararası inch’ten yaklaşık 2 ppm büyüktür. Elektronik ve mekanik çizimlerde uluslararası inch geçerlidir; bu ekran yalnızca onu kullanır.',
+]
 
 // --- Hata kodu → Türkçe ---
 

@@ -7,12 +7,13 @@ import useToolForm from '../../../hooks/useToolForm'
 import { fmt, fmtEng, fmtPct, THOUSANDS_MESSAGE } from '../../../lib/num'
 import AwgSchematic from './schematic'
 import {
-  INITIAL_FORM, DIRECTIONS, DIR_DIAMETER, SWEEPS, SWEEP_D,
+  INITIAL_FORM, DIRECTIONS, DIR_DIAMETER, SWEEPS, SWEEP_D, DIAMETER_UNITS,
   compute, buildSweep,
 } from './model'
 import {
   CHART, DIR_LABEL, SWEEP_LABEL, SWEEP_AXIS, SWEEP_CAPTION, FIELD_HINT,
-  awgLabel, reasonText, commentary, validityNotes,
+  TOLERANCE_CAPTION, TOLERANCE_FIELD_CAPTION, TOLERANCE_SQUARE_NOTE, SCALE_SOURCE,
+  awgLabel, reasonText, toleranceReason, commentary, validityNotes,
 } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
@@ -24,6 +25,9 @@ export default function AwgConverter() {
 
   const r = useMemo(() => compute(f), [f])
   const s = useMemo(() => buildSweep(r, sweep), [r, sweep])
+  // Tolerans bandı yalnızca alan doldurulduğunda vardır; boşken null kalır ve
+  // sonuç paneli bugünkü hâliyle çizilir.
+  const tol = r.ok ? r.tolerance : null
   const notes = useMemo(() => commentary(r), [r])
   const validity = useMemo(() => validityNotes(r), [r])
 
@@ -67,7 +71,7 @@ export default function AwgConverter() {
             <NumberField
               label="İletken çapı (çıplak)"
               value={f.d} onChange={set('d')}
-              units={['mm', 'um', 'mil', 'inch']} unit={f.du} onUnit={set('du')}
+              units={DIAMETER_UNITS} unit={f.du} onUnit={set('du')}
               hint={FIELD_HINT.d}
             />
           ) : (
@@ -78,6 +82,16 @@ export default function AwgConverter() {
               hint={FIELD_HINT.awg}
             />
           )}
+
+          <h2 className="section">{TOLERANCE_FIELD_CAPTION}</h2>
+
+          <NumberField
+            label="Çap toleransı"
+            value={f.tolD} onChange={set('tolD')}
+            units={['± %']} unit="± %" onUnit={() => {}}
+            placeholder="boş = tolerans yok"
+            hint={FIELD_HINT.tolD}
+          />
         </section>
 
         {/* ---------- Orta: Sonuç ---------- */}
@@ -152,6 +166,68 @@ export default function AwgConverter() {
                 </tbody>
               </table>
 
+              {tol && tol.error && (
+                <>
+                  <h2 className="section">{TOLERANCE_CAPTION}</h2>
+                  <p className="empty-note warn">{toleranceReason(tol.error)}</p>
+                </>
+              )}
+
+              {tol && !tol.error && tol.active && (
+                <>
+                  <h2 className="section">{TOLERANCE_CAPTION}</h2>
+                  <table className="result-table">
+                    <tbody>
+                      <tr className="mini-head">
+                        <td>Çekme toleransı ±{fmt(tol.tol * 100, 3)} %</td>
+                        <td>minimum · nominal · maksimum</td>
+                      </tr>
+                      <tr>
+                        <td>Çap (mm)</td>
+                        <td>
+                          {fmt(tol.dUnits.min.mm, 5)} · {fmt(tol.dUnits.nom.mm, 5)} ·{' '}
+                          {fmt(tol.dUnits.max.mm, 5)}{' '}
+                          <span className="sub">
+                            ({fmtPct(tol.d.minPct, 4)} / {fmtPct(tol.d.maxPct, 4)})
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Çap (mil)</td>
+                        <td>
+                          {fmt(tol.dUnits.min.mil, 5)} · {fmt(tol.dUnits.nom.mil, 5)} ·{' '}
+                          {fmt(tol.dUnits.max.mil, 5)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Kesit alanı (mm²)</td>
+                        <td>
+                          {fmt(tol.aUnits.min.mm2, 5)} · {fmt(tol.aUnits.nom.mm2, 5)} ·{' '}
+                          {fmt(tol.aUnits.max.mm2, 5)}{' '}
+                          <span className="sub">
+                            ({fmtPct(tol.area.minPct, 4)} / {fmtPct(tol.area.maxPct, 4)})
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Kesit alanı (mil²)</td>
+                        <td>
+                          {fmt(tol.aUnits.min.mil2, 6)} · {fmt(tol.aUnits.nom.mil2, 6)} ·{' '}
+                          {fmt(tol.aUnits.max.mil2, 6)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Bant genişliği</td>
+                        <td>
+                          çap {fmt(tol.d.spreadPct, 4)} % · kesit {fmt(tol.area.spreadPct, 4)} %{' '}
+                          <span className="sub">(kesit bandı çapınkinin ≈ iki katı)</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </>
+              )}
+
               <h2 className="section">En yakın standart numara</h2>
               <table className="result-table">
                 <tbody>
@@ -220,6 +296,10 @@ Birim bağıntıları:
   1 mil = 0.001 inch = 0.0254 mm
   1 mil² = 0.00064516 mm²
 
+Çekme toleransı (isteğe bağlı):
+  d ∈ [d·(1−t), d·(1+t)]
+  A ∈ [A·(1−t)², A·(1+t)²]
+
 Geçerli aralık: AWG -3 (4/0) … 40`}</pre>
 
           {r.ok && (
@@ -232,13 +312,26 @@ Geçerli aralık: AWG -3 (4/0) … 40`}</pre>
               </li>
               <li>Kesit: π·d²/4 = {fmt(r.aUnits.mm2, 6)} mm² = {fmt(r.aUnits.mil2, 6)} mil²</li>
               <li>Ölçek oranı: 92^(1/39) = {fmt(Math.pow(92, 1 / 39), 6)} — bir numara başına çap oranı</li>
+              {tol && !tol.error && tol.active && (
+                <li>
+                  Tolerans: t = {fmt(tol.tol, 5)} → çap {fmt(tol.dUnits.min.mm, 6)} …{' '}
+                  {fmt(tol.dUnits.max.mm, 6)} mm, kesit {fmt(tol.aUnits.min.mm2, 6)} …{' '}
+                  {fmt(tol.aUnits.max.mm2, 6)} mm²
+                </li>
+              )}
               <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
             </ul>
           )}
 
+          <h2 className="section">Kullanılan ölçek ve kaynak</h2>
+          <ul className="detail-list">
+            {SCALE_SOURCE.map((line) => <li key={line}>{line}</li>)}
+          </ul>
+
           <h2 className="section">Geçerlilik ve varsayımlar</h2>
           <ul className="detail-list">
             {validity.map((w) => <li key={w} className="w">{w}</li>)}
+            <li>{TOLERANCE_SQUARE_NOTE}</li>
             <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
           </ul>
         </section>

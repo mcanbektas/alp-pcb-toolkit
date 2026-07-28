@@ -6,7 +6,7 @@ import { KIND_INDUCTIVE, KIND_CAPACITIVE, KIND_RESISTIVE } from '../../../lib/co
 import {
   MODE_RECT, MODE_POLAR, SWEEP_MAG, SWEEP_PHASE,
   REASON_UNDEFINED_PHASE, REASON_NEGATIVE_MAGNITUDE, REASON_INVALID,
-  PHASE_LIMIT_DEG,
+  PHASE_LIMIT_DEG, PHASE_LIMIT_RAD, PHASE_LIMIT_TURNS,
 } from './model'
 
 export const MODE_LABEL = {
@@ -58,6 +58,25 @@ export const REF_LABEL = {
 // Gösterim yardımcıları — R + jX ve |Z| ∠ φ dizeleri
 export const rectText = (R, X) => `${fmtOhm(R)} ${X < 0 ? '−' : '+'} j${fmtOhm(Math.abs(X))}`
 export const polarText = (mag, phaseDeg) => `${fmtOhm(mag)} ∠ ${fmt(phaseDeg, 4)}°`
+
+// --- Sağ panel: geçerlilik aralığı (spec §12) ---
+// Liste KOŞULSUZDUR: sarma olsun olmasın, hatta girdi geçersizken bile
+// kullanıcı kabul edilen sınırları sayı olarak görür.
+
+export const RANGE_NOTES = [
+  `Faz girişinin sayısal geçerlilik aralığı: −${fmt(PHASE_LIMIT_DEG, 4)}° ≤ φ ≤ +${fmt(PHASE_LIMIT_DEG, 4)}°, radyan karşılığı ±${fmt(PHASE_LIMIT_RAD, 8)} rad, yani ±${fmt(PHASE_LIMIT_TURNS, 3)} tam tur. Bu aralığın dışındaki açı hesaplanmaz: daha büyük açılarda cos ve sin argüman indirgemesi anlamlı basamak kaybettirir ve sonuç sayısal olarak güvenilmez olur.`,
+  'Gösterilen faz her zaman ana değer aralığındadır: (−180°, +180°] — alt uç dışlanır, üst uç dahildir. Giriş bu aralığın dışında olabilir; sonuç eşdeğer ana değere indirgenir, vektörün kendisi değişmez.',
+  'Büyüklük aralığı: |Z| > 0. Negatif |Z| kabul edilmez; yön bilgisi büyüklükte değil faz açısında taşınır. Alt uç olan |Z| = 0 de dışlanır, çünkü o noktada faz tanımsızdır.',
+  'R ve X için işaret ya da büyüklük sınırı yoktur; sonlu her değer kabul edilir. Tek yasak ikisinin birden sıfır olmasıdır.',
+]
+
+// --- Sağ panel: kullanılan tanımların kaynağı (spec §1) ---
+
+export const SOURCE_NOTES = [
+  'Kaynak tanımın kendisidir; ölçüm ya da ampirik uyarlama yoktur. Dikdörtgensel ve polar gösterim aynı kompleks sayının iki yazımıdır: |Z| = √(R² + X²) Pisagor bağıntısı, R = |Z|·cos φ ile X = |Z|·sin φ ise Euler bağıntısının Z = |Z|·e^(jφ) = |Z|·(cos φ + j·sin φ) açılımındaki gerçel ve sanal parçalardır. Bu yüzden dönüşüm iki yönde de bilgi kaybı olmadan tersinirdir.',
+  'Faz, tek argümanlı tan⁻¹(X/R) ile değil iki argümanlı atan2(X, R) ile hesaplanır. Tek argümanlı ters tanjant yalnızca (−90°, +90°) döndürebildiği için R < 0 olan çeyreklerde açıyı 180° yanlış verir ve R = 0’da sıfıra bölünür; atan2 iki bileşenin işaretini ayrı ayrı gördüğünden doğru çeyreği seçer ve sonucu doğrudan ana değer aralığında verir.',
+  'Açının işaret yönü: φ gerçel eksenden başlar ve saat yönünün tersine dönüş pozitif sayılır (matematiksel pozitif yön). Buna göre X > 0 iken φ > 0, X < 0 iken φ < 0 olur. Empedans bağlamında pozitif faz endüktif davranıştır ve akımın gerilimin gerisinde kaldığını söyler; negatif faz kapasitiftir, akım gerilimin önündedir.',
+]
 
 export function reasonText(reason) {
   switch (reason) {
@@ -146,7 +165,9 @@ export function validityNotes(r) {
     out.push('Negatif gerçel bileşen pasif bir empedansta görülmez; sonuç genel bir kompleks sayı olarak yorumlanmalıdır.')
   }
   if (r.flags.wrapped) {
-    out.push(`Girilen faz ana değer aralığının (−180°, +180°] dışında; gösterilen açı eşdeğer ana değerdir. Kabul edilen giriş sınırı ±${PHASE_LIMIT_DEG}°.`)
+    // Kabul edilen giriş sınırı aynı listede RANGE_NOTES ile koşulsuz yazılır;
+    // burada tekrarlanmaz.
+    out.push('Girilen faz ana değer aralığının (−180°, +180°] dışında; gösterilen açı eşdeğer ana değerdir.')
   }
   if (r.flags.polarInput) {
     out.push('Polar girişte bileşenler cos/sin ile üretilir; tam 90°’nin katlarında sıfır olması gereken bileşen kayan noktada 1e-16 mertebesinde artık taşır ve sınıflandırmada sıfır sayılır.')
