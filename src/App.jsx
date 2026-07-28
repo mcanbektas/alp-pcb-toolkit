@@ -46,11 +46,12 @@ const FOOTER = {
     + 'measurement for critical designs.',
 }
 
-// Slogan çevrilirken kapsamı daraltılmaz: Türkçe metin "mühendislik karar
-// destek araçları" idi, İngilizce karşılığı da aynı genişlikte kalır.
+// Slogan çevrilirken kapsamı daraltılmaz ya da genişletilmez: iki dil aynı
+// alanı tarif eder. "Donanım mühendisliği" karşılığı "hardware engineering"dir;
+// "electronics" ya da "PCB" yazmak kapsamı kaydırırdı.
 const TAGLINE = {
-  tr: 'mühendislik karar destek araçları',
-  en: 'engineering decision support tools',
+  tr: 'donanım mühendisliği karar destek araçları',
+  en: 'hardware engineering decision support tools',
 }
 
 // Marka adının kendisi çevrilmez; yalnızca bağlantının amacı iki dillidir.
