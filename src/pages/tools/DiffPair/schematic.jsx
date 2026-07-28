@@ -21,13 +21,20 @@ export default function DiffPairSchematic({ r, form }) {
   // eksende yazılıyor. S değeri de stripline'da düzlemlerin altına düşüyor.
   const wLabelY = traceY - 18
   const wValueY = isStripline ? 26 : traceY - 32
-  const sLabelY = traceY + traceH + 24
-  const sValueY = isStripline ? 131 : traceY + traceH + 38
+  // S etiketi ölçü çizgisinin 24 px altındayken çizgiye 2.9 px kalıyordu; 25'te
+  // 3.9 px açıklık kalıyor ve altındaki S değerine de 2.8 px boşluk kalıyor.
+  const sLabelY = traceY + traceH + 25
+  // Stripline'da S değeri alt düzlemin alt kenarına 2.7 px kalıyordu.
+  const sValueY = isStripline ? 132 : traceY + traceH + 38
   // H ölçüsü sağda: etiket ve değer ölçü çizgisinin solunda kalıyor, aksi
-  // hâlde dielektrik sağ kenarını ve viewBox'ı aşıyorlar.
-  const dimX = 228
-  const hTextX = 218
-  const hLabelY = isStripline ? 92 : 76
+  // hâlde dielektrik sağ kenarını ve viewBox'ı aşıyorlar. Ölçü çizgisi 228'den
+  // 232'ye alındı: uzun H değeri (10 karakter) 218'de bitince sola 156'ya
+  // kadar uzayıp ortadaki S değerinin sağ ucuna değiyordu; 226'da biterken
+  // aradaki boşluk 3 px'e çıkıyor. Microstrip'te H etiketi dielektrik üst
+  // kenarına 2.9 px kalıyordu, 1 px aşağı alındı.
+  const dimX = 232
+  const hTextX = 226
+  const hLabelY = isStripline ? 92 : 77
   const hValueY = isStripline ? 107 : 92
   const refBottom = isStripline ? 113 : 108
 

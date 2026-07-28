@@ -15,17 +15,20 @@ export default function ViaSchematic({ r }) {
 
   return (
     <Schematic
-      viewBox="0 0 260 160"
+      viewBox="0 0 280 160"
       title="Via kesiti"
       caption="Kaplanmış delik kesiti — akım yalnızca duvar bakırından geçer"
     >
-      {/* Kart gövdesi, delik boşluğu iki parça olarak çizilir */}
-      <rect className="sch-dielectric" x={20} y={top} width={cx - holeHalf - wallW - 20} height={bottom - top} />
+      {/* Kart gövdesi, delik boşluğu iki parça olarak çizilir.
+          Kart 40–220 aralığına alındı: kart kalınlığı etiketi ve değeri
+          eskiden dielektriğin sağ kenarını kesip viewBox'ı aşıyordu,
+          şimdi sağda kendi sütununda duruyorlar. */}
+      <rect className="sch-dielectric" x={40} y={top} width={cx - holeHalf - wallW - 40} height={bottom - top} />
       <rect
         className="sch-dielectric"
         x={cx + holeHalf + wallW}
         y={top}
-        width={240 - (cx + holeHalf + wallW)}
+        width={220 - (cx + holeHalf + wallW)}
         height={bottom - top}
       />
 
@@ -54,28 +57,33 @@ export default function ViaSchematic({ r }) {
         <line x1={cx + holeHalf} x2={cx + holeHalf} y1={66} y2={78} />
       </g>
       <text className="sch-label" x={cx} y={66} textAnchor="middle">D_f</text>
-      {live && <text className="sch-value" x={cx} y={88} textAnchor="middle">{fmtEng(r.Df, 'm', 3)}</text>}
+      {/* Değer deliğin altındaki boş şeritte: delik 32 px geniş, değer oraya
+          sığmıyor ve barrel duvarlarının üstüne biniyordu. */}
+      {live && <text className="sch-value" x={cx} y={130} textAnchor="middle">{fmtEng(r.Df, 'm', 3)}</text>}
 
-      {/* Kaplama kalınlığı */}
-      <text className="sch-label" x={cx - holeHalf - wallW - 4} y={30} textAnchor="end">t_p</text>
+      {/* Kaplama kalınlığı — etiket üst padin üstünde, değer kartın altında,
+          ikisi de pad sol kenarında hizalı. Etiket eskiden padin içine giriyor
+          ve "pad" yazısıyla çakışıyordu. */}
+      <text className="sch-label" x={cx - padHalf} y={22} textAnchor="end">t_p</text>
       {live && (
-        <text className="sch-value" x={cx - holeHalf - wallW - 4} y={130} textAnchor="end">
+        <text className="sch-value" x={cx - padHalf} y={130} textAnchor="end">
           {fmtEng(r.tp, 'm', 3)}
         </text>
       )}
 
       {/* Kart kalınlığı */}
       <g className="sch-dim">
-        <line x1={214} x2={214} y1={top} y2={bottom} />
-        <line x1={208} x2={220} y1={top} y2={top} />
-        <line x1={208} x2={220} y1={bottom} y2={bottom} />
+        <line x1={204} x2={204} y1={top} y2={bottom} />
+        <line x1={198} x2={210} y1={top} y2={top} />
+        <line x1={198} x2={210} y1={bottom} y2={bottom} />
       </g>
-      <text className="sch-label" x={224} y={72}>H</text>
-      {live && <text className="sch-value" x={224} y={86}>{fmtEng(r.H, 'm', 3)}</text>}
+      <text className="sch-label" x={226} y={72}>H</text>
+      {live && <text className="sch-value" x={226} y={86}>{fmtEng(r.H, 'm', 3)}</text>}
 
-      {/* Pad ve antipad etiketleri */}
-      <text className="sch-label dim" x={cx - padHalf} y={24}>pad</text>
-      <text className="sch-label dim" x={cx + antiHalf + 4} y={24}>antipad</text>
+      {/* Pad ve antipad etiketleri — pad yazısı padin sağ ucuna alındı,
+          ikisi de padin üst kenarından 3.6 px yukarıda duruyor. */}
+      <text className="sch-label dim" x={cx + padHalf} y={22} textAnchor="end">pad</text>
+      <text className="sch-label dim" x={cx + antiHalf + 4} y={22}>antipad</text>
 
       {live && (
         <text className="sch-value" x={cx} y={152} textAnchor="middle">

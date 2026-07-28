@@ -14,6 +14,12 @@ import { TERM_SERIES, TERM_PARALLEL, TERM_THEVENIN } from './model'
 // "sürücü" yazısı 42 px'lik kutuya kenarına değecek kadar sığıyordu; kutu
 // merkezi sabit kalacak biçimde genişletildi. Thevenin'de bias satırı R_bot
 // etiketinin altına indirildi, ikisi üst üste geliyordu.
+//
+// Dirençlerin sağındaki değer kolonu 260 px'lik tuvale sığmıyordu: kutunun sağ
+// kenarı 207'de bitiyor, en kötü değer ("1.234 mΩ" gibi 8 karakter) 49.6 px
+// yer istiyor, dolayısıyla yazı x = 210 ile 207.4 arasında başlamak zorundaydı —
+// boş aralık. Değeri etiketinden koparmak yerine viewBox sağa 266 px'e
+// genişletildi; çizimin hiçbir ölçüsü değişmedi, yalnızca sağda pay açıldı.
 const CAPTION = {
   [TERM_SERIES]: 'Seri terminasyon — direnç sürücünün hemen çıkışında',
   [TERM_PARALLEL]: 'Paralel terminasyon — direnç hattın uç yükünde',
@@ -31,7 +37,7 @@ export default function TerminationSchematic({ r }) {
   const show = r.ok
 
   return (
-    <Schematic viewBox="0 0 260 160" title={TITLE[type]} caption={CAPTION[type]}>
+    <Schematic viewBox="0 0 266 160" title={TITLE[type]} caption={CAPTION[type]}>
       {/* Sürücü ve dönüş yolu — üç tipte de ortak */}
       <rect className="sch-part" x={9} y={60} width={48} height={34} rx={2} />
       <text className="sch-value" x={33} y={81} textAnchor="middle">sürücü</text>

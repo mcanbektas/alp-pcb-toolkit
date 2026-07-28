@@ -41,7 +41,10 @@ function Stripline({ r }) {
       <rect className="sch-copper" x={20} y={113} width={220} height={7} />
       <rect className="sch-copper" x={cx - 34} y={73} width={68} height={8} />
 
-      <text className="sch-label" x={cx} y={66} textAnchor="middle">W</text>
+      {/* Dielektrik üstü (41) ile hat üstü (73) arasındaki 32 px'e W değeri ve
+          W etiketi sırayla yerleşiyor; 66/52 ikilisinde değer dielektrik
+          kenarına 2.7 px kalıyordu, ikisi de 1 px aşağı alındı. */}
+      <text className="sch-label" x={cx} y={67} textAnchor="middle">W</text>
       <text className="sch-label dim" x={24} y={27}>üst düzlem</text>
       <text className="sch-label dim" x={24} y={133}>alt düzlem</text>
 
@@ -55,7 +58,7 @@ function Stripline({ r }) {
 
       {r.ok && (
         <>
-          <text className="sch-value" x={cx} y={52} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
+          <text className="sch-value" x={cx} y={53} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
           <text className="sch-value" x={200} y={96} textAnchor="end">{fmtEng(r.height, 'm', 3)}</text>
         </>
       )}

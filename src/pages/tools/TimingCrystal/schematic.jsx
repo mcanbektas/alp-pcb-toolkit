@@ -6,8 +6,9 @@ import { TOOL_RC, TOOL_RL, TOOL_CRYSTAL } from './model'
 // yazı kutusu arasında en az 2 px açıklık kalır. Kutu ölçüleri theme.css'ten
 // gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda karakter
 // genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]. Yerleşim, biçimlenen
-// değerlerin en uzun hâline (fmtRes/fmtVolt/fmtEng ≈ 8, fmtEng(…,4) ≈ 9
-// karakter) göre ölçüldü.
+// değerlerin en uzun hâline göre ölçüldü: fmtRes/fmtVolt/fmtEng(…,3) en fazla
+// "1.00e+3 mΩ" = 10 karakter ≈ 62 px, fmtEng(…,'Hz',4) = 12 karakter ≈ 74 px,
+// "C_L = " + fmt(…,4) + " pF" = 17 karakter ≈ 105 px.
 
 // Seri direnç + kondansatör/bobin, toprağa dönen kol
 function TimingCircuit({ r, isRc }) {
@@ -27,7 +28,10 @@ function TimingCircuit({ r, isRc }) {
       {/* Direnç yatay */}
       <rect className="sch-part" x={70} y={26} width={22} height={20} rx={2} />
       <text className="sch-label" x={72} y={18}>R</text>
-      {r.ok && <text className="sch-value" x={64} y={62}>{fmtRes(r.R, 3)}</text>}
+      {/* Direnç değeri 64'ten 56'ya alındı: en uzun hâlinde (62 px) 64–126
+          aralığını kaplıyor ve RC seçildiğinde kondansatörün 126'da başlayan
+          üst plakasının üstüne biniyordu. 56'da plakaya 7 px kalır. */}
+      {r.ok && <text className="sch-value" x={56} y={62}>{fmtRes(r.R, 3)}</text>}
 
       {/* Kondansatör veya bobin */}
       {isRc ? (

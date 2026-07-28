@@ -28,8 +28,11 @@ export default function ThermalViaSchematic({ r }) {
   }
 
   return (
+    // Alt satır en uzun hâlinde (küçük R_θ + uzun H) 254 px'e çıkıyor; 260
+    // genişlikte kenara değiyordu. Çizim ortada kalsın diye viewBox iki
+    // yandan 5 px genişletildi; eleman koordinatları değişmedi.
     <Schematic
-      viewBox="0 0 260 150"
+      viewBox="-5 0 270 150"
       title="Termal via dizisi"
       caption={live && r.N > 36
         ? `${r.N} via — şemada ilk 36'sı gösteriliyor`

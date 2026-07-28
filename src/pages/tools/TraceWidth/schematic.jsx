@@ -11,7 +11,7 @@ export default function TraceSchematic({ r }) {
 
   return (
     <Schematic
-      viewBox="0 0 260 150"
+      viewBox="0 0 260 156"
       title="Yol kesiti"
       caption={inner ? 'İç katman — dielektrik içinde gömülü' : 'Dış katman — üstü açık'}
     >
@@ -24,25 +24,31 @@ export default function TraceSchematic({ r }) {
       {/* Bakır kesit */}
       <rect className="sch-copper" x={92} y={44} width={76} height={14} />
 
-      {/* Genişlik ölçüsü */}
+      {/* Genişlik ölçüsü — ölçü çizgisi aşağı indi: değer eski yerinde
+          dielektrik alt kenarına 2.2 px kalıyordu, etiket ile değer artık
+          çizginin iki yanında duruyor. */}
       <g className="sch-dim">
-        <line x1={92} x2={168} y1={128} y2={128} />
-        <line x1={92} x2={92} y1={122} y2={134} />
-        <line x1={168} x2={168} y1={122} y2={134} />
+        <line x1={92} x2={168} y1={134} y2={134} />
+        <line x1={92} x2={92} y1={128} y2={140} />
+        <line x1={168} x2={168} y1={128} y2={140} />
       </g>
-      <text className="sch-label" x={130} y={144} textAnchor="middle">W</text>
+      <text className="sch-label" x={130} y={128} textAnchor="middle">W</text>
       {live && (
-        <text className="sch-value" x={130} y={122} textAnchor="middle">{fmtEng(W, 'm', 3)}</text>
+        <text className="sch-value" x={130} y={146} textAnchor="middle">{fmtEng(W, 'm', 3)}</text>
       )}
 
-      {/* Kalınlık ölçüsü */}
+      {/* Kalınlık ölçüsü — etiket ve değer ölçü çizgisinin sağındaki şeritte
+          ortalanır. Değer eskiden y=62'de dielektriğin üst kenarını kesiyordu,
+          iç katmanda da üstteki dielektriğin içine giriyordu. */}
       <g className="sch-dim">
         <line x1={180} x2={180} y1={44} y2={58} />
         <line x1={174} x2={186} y1={44} y2={44} />
         <line x1={174} x2={186} y1={58} y2={58} />
       </g>
-      <text className="sch-label" x={190} y={49}>t</text>
-      {live && <text className="sch-value" x={190} y={62}>{fmtEng(r.t_m, 'm', 3)}</text>}
+      <text className="sch-label" x={210} y={49} textAnchor="middle">t</text>
+      {live && (
+        <text className="sch-value" x={210} y={72} textAnchor="middle">{fmtEng(r.t_m, 'm', 3)}</text>
+      )}
 
       {/* Akım kesitten geçer — ok sayfa düzlemine dik yerine yol boyunca çizilir */}
       <CurrentArrow x={72} y={51} dir="right" len={22} label={live ? 'I' : null} labelSide="left" />

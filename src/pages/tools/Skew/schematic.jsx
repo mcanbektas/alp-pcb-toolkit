@@ -73,7 +73,12 @@ export default function SkewSchematic({ r }) {
           <text className="sch-value" x={X0} y={20}>
             εeff,P = {fmt(r.eps.epsEff, 4)}
           </text>
-          <text className="sch-value" x={X1} y={20} textAnchor="end">
+          {/* skew, iki hattın arasındaki boş banda (y 45–78) yazılır. Üst
+              satırda εeff,P ile yan yana durduğunda toplam genişlik 208 px'i
+              aşabiliyordu: εeff geniş biçimlendiğinde (örn. "1.234e+4") iki
+              yazı üst üste biniyordu. Ayrı satırlarda her ikisi de tam
+              genişliği kullanabilir. */}
+          <text className="sch-value" x={X1} y={(Y_P + Y_N) / 2 - 4} textAnchor="end">
             skew = {fmtEng(r.skew, 's', 3)}
           </text>
           {/* Referans şeridin (y 104–110) altında, ölçü çizgisinin üstünde */}

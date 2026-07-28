@@ -6,13 +6,15 @@ import { MODE_MIN } from './model'
 // `ideal` kolda ESL/ESR kutuları sönük ve kesikli çizilir — minimum kapasite
 // modelinin bu iki terimi içermediğini şemada da gösterir.
 //
-// Yerleşim kuralı: her etiket kutusu, çizim elemanlarından en az 3 px ve başka
-// bir yazı kutusundan en az 2 px uzakta durur. Kutu ölçüleri theme.css'ten
-// gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda karakter
-// genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]. Kapasite değeri
-// kolun telini kestiği için tel o hizada iki parça çizilir; kol aralığı
-// (52 px) en uzun değer yazısını (≈ 50 px) yan yana taşıyamadığından kollar
-// düzleme 58 px arayla oturur.
+// Yerleşim kuralı: her etiket kutusu, çizim elemanlarının ÇİZİLİ KENARINDAN
+// (tel kalınlığının yarısı düşülerek) en az 3 px ve başka bir yazı kutusundan
+// en az 2 px uzakta durur. Kutu ölçüleri theme.css'ten gelir: .sch-label 11 px,
+// .sch-value 10 px, tek aralıklı yazıda karakter genişliği ≈ 0.62·fs, kutu =
+// [y − 0.78·fs , y + 0.22·fs]; tel kalınlığı 2 px → yarım kalınlık 1 px.
+// En uzun makul kapasite yazısı dokuz hanedir ("0.0001 pF" → 55.8 px), bu yüzden
+// kollar düzleme 60 px arayla oturur: komşu değer yazıları arasında 4.2 px kalır.
+// Değer yazısı kolun telini kestiği için tel o hizada iki parça çizilir; yazı
+// kutusu [106.2, 116.2] olduğundan parçalar 101'de biter ve 122'de başlar.
 function CapBranch({ x, ideal, label, showTags }) {
   const railTop = 32
   const railBottom = 140
@@ -24,8 +26,8 @@ function CapBranch({ x, ideal, label, showTags }) {
         <line x1={x} x2={x} y1={58} y2={66} />
         <line x1={x} x2={x} y1={80} y2={92} />
         {/* Değer yazısı için tel iki parçaya ayrılır: yazı kutusu [106.2, 116.2] */}
-        <line x1={x} x2={x} y1={98} y2={label ? 102 : railBottom} />
-        {label && <line x1={x} x2={x} y1={120} y2={railBottom} />}
+        <line x1={x} x2={x} y1={98} y2={label ? 101 : railBottom} />
+        {label && <line x1={x} x2={x} y1={122} y2={railBottom} />}
       </g>
 
       <rect className={`sch-part${ideal ? ' off sch-dash' : ''}`} x={x - 11} y={44} width={22} height={14} rx={2} />
@@ -42,8 +44,9 @@ function CapBranch({ x, ideal, label, showTags }) {
 
       {showTags && (
         <>
-          <text className="sch-label dim" x={x - 15} y={55} textAnchor="end">ESL</text>
-          <text className="sch-label dim" x={x - 15} y={77} textAnchor="end">ESR</text>
+          {/* Kutular x−11'de başlıyor; etiket 16 px solda bitince kenara 4 px kalır */}
+          <text className="sch-label dim" x={x - 16} y={55} textAnchor="end">ESL</text>
+          <text className="sch-label dim" x={x - 16} y={77} textAnchor="end">ESR</text>
         </>
       )}
 
@@ -60,9 +63,9 @@ export default function DecouplingSchematic({ r, mode }) {
   // Ağ modunda en çok üç kol çizilir; sayısal sonuç tabloda tamdır.
   const items = r.ok && !isMin ? r.items.slice(0, 3) : []
   const shown = isMin ? 1 : (items.length || 2)
-  // Kol aralığı 58 px: değer yazıları yan yana en az 2 px açıklıkla sığar ve
-  // en sağdaki yazı yük kutusuna 3 px'ten fazla mesafede kalır.
-  const xs = (isMin ? [104] : [46, 104, 162]).slice(0, shown)
+  // Kol aralığı 60 px: dokuz haneli değer yazıları yan yana 4.2 px açıklıkla
+  // sığar ve en sağdaki yazı yük kutusunun kenarına 5.1 px mesafede kalır.
+  const xs = (isMin ? [104] : [42, 102, 162]).slice(0, shown)
 
   return (
     <Schematic
@@ -75,7 +78,8 @@ export default function DecouplingSchematic({ r, mode }) {
       {/* Güç ve toprak düzlemleri */}
       <rect className="sch-copper" x={20} y={26} width={220} height={6} />
       <rect className="sch-copper" x={20} y={140} width={220} height={6} />
-      <text className="sch-label dim" x={20} y={20}>güç düzlemi</text>
+      {/* Yazı kutusu [10.4, 21.4]; düzlemin çizili üst kenarına 3.6 px kalır */}
+      <text className="sch-label dim" x={20} y={19}>güç düzlemi</text>
       <text className="sch-label dim" x={20} y={162}>toprak düzlemi</text>
 
       {/* Yük — anlık akımı çeken komponent */}

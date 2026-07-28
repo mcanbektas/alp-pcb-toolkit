@@ -30,9 +30,12 @@ function PlaneShape({ r }) {
         <line x1={129} x2={141} y1={nTop} y2={nTop} />
         <line x1={129} x2={141} y1={nBottom} y2={nBottom} />
       </g>
-      <text className="sch-label" x={135} y={nTop - 6} textAnchor="middle">boyun</text>
+      {/* Boyun etiketi ve değeri poligonun dışındaki şeritlerde: boyun
+          daraldıkça nTop/nBottom içeri kayıyor ve yazılar hem omuz
+          köşegenlerinin hem bakır dolgunun üstüne biniyordu. */}
+      <text className="sch-label" x={135} y={top - 6} textAnchor="middle">boyun</text>
       {r.ok && (
-        <text className="sch-value" x={135} y={nBottom + 14} textAnchor="middle">
+        <text className="sch-value" x={135} y={bottom + 14} textAnchor="middle">
           {fmtEng(r.neck.W, 'm', 3)}
         </text>
       )}
@@ -49,7 +52,13 @@ function PlaneShape({ r }) {
         </text>
       )}
 
-      <CurrentArrow x={210} y={midY} dir="right" len={22} label={r.ok ? fmtAmp(r.I, 3) : 'I'} />
+      {/* Akım oku düzlemin içinde kalır, değeri okun üstündeki boş şeride
+          yazılır: bileşenin kendi etiket yeri hem poligonun sağ kenarını hem
+          sağ terminali hem de okun başını kesiyordu. */}
+      <CurrentArrow x={210} y={midY} dir="right" len={22} label={null} />
+      <text className="sch-value" x={210} y={top - 6} textAnchor="middle">
+        {r.ok ? fmtAmp(r.I, 3) : 'I'}
+      </text>
       <Terminal x={20} y={midY} />
       <Terminal x={240} y={midY} />
       {r.ok && (
@@ -70,11 +79,15 @@ function ParallelShape({ r }) {
 
   return (
     <>
+      {/* Kollar 200'de bitiyor: kol akımları eskiden x=236'da yazılıyor ve
+          hem viewBox'ı hem ortadaki çıkış telini/terminali kesiyordu.
+          Sağ bara ve terminal içeri alındı, akımlar 226'dan başlayan
+          serbest sütuna yazılıyor. */}
       <g className="sch-wire">
         <line x1={30} x2={30} y1={top} y2={top + gap * (branches.length - 1)} />
-        <line x1={230} x2={230} y1={top} y2={top + gap * (branches.length - 1)} />
+        <line x1={200} x2={200} y1={top} y2={top + gap * (branches.length - 1)} />
         <line x1={14} x2={30} y1={70} y2={70} />
-        <line x1={230} x2={246} y1={70} y2={70} />
+        <line x1={200} x2={216} y1={70} y2={70} />
       </g>
 
       {branches.map((b, i) => {
@@ -82,16 +95,16 @@ function ParallelShape({ r }) {
         const h = Math.max(3, 12 * (b.W / maxW))
         return (
           <g key={i}>
-            <rect className="sch-copper-fill" x={30} y={y - h / 2} width={200} height={h} />
+            <rect className="sch-copper-fill" x={30} y={y - h / 2} width={170} height={h} />
             {r.ok && (
-              <text className="sch-value" x={236} y={y + 3}>{fmtAmp(b.I, 3)}</text>
+              <text className="sch-value" x={226} y={y + 3}>{fmtAmp(b.I, 3)}</text>
             )}
           </g>
         )
       })}
 
       <Terminal x={14} y={70} />
-      <Terminal x={246} y={70} />
+      <Terminal x={216} y={70} />
       {r.ok && (
         <text className="sch-value" x={130} y={140} textAnchor="middle">
           {r.branches.length} kol · eşdeğer {fmtEng(r.Req, 'Ω', 3)}
@@ -107,7 +120,7 @@ export default function PlaneSchematic({ r, form }) {
 
   return (
     <Schematic
-      viewBox={`0 0 260 ${isPlane ? 140 : 152}`}
+      viewBox={`0 0 ${isPlane ? 260 : 280} ${isPlane ? 140 : 152}`}
       title={isPlane ? 'Güç düzlemi geometrisi' : 'Paralel yollar'}
       caption={isPlane
         ? 'Akım darboğazdan geçer; direncin büyük kısmı orada oluşur'
