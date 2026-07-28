@@ -6,23 +6,46 @@ import { LENGTH } from '../../../lib/units'
 import {
   nominalThickness, derivedThickness, allUnits,
   finishedThickness, crossSection, trapezoidArea,
+  nearestNominalWeight, nominalRow, thicknessFromWeight, toleranceCorners,
+  OZ_NOMINAL_ROWS, METHOD_NOMINAL, METHOD_DERIVED,
 } from '../../../lib/copper'
 import { sheetResistance } from '../../../lib/plane'
-import { OZ_NOMINAL_UM } from '../../../lib/units'
+import {
+  THICKNESS_SCHEMA, SCHEMA_VERSION as RECORD_SCHEMA_VERSION,
+  RECORD_UNIT_LENGTH, unitForSource,
+} from '../../../lib/thicknessRecords'
 
+// Kaynak anahtarları kayıt şemasının kaynak alanıyla birebir aynıdır
+// (lib/thicknessRecords.js: RECORD_SOURCES).
 export const SOURCE_WEIGHT = 'weight'
 export const SOURCE_THICKNESS = 'thickness'
-export const SOURCES = [SOURCE_WEIGHT, SOURCE_THICKNESS]
+// Ölçülen bitmiş kalınlık yolu (spec §4.3): bitmiş değer türetilmez, girilir;
+// kaplama bu yolda geriye doğru çözülür.
+export const SOURCE_FINISHED = 'finished'
+export const SOURCES = [SOURCE_WEIGHT, SOURCE_THICKNESS, SOURCE_FINISHED]
 
 export const REASON_INCOMPLETE = 'incomplete'
 export const REASON_ETCH = 'etch'
+// Ölçülen bitmiş kalınlık folyodan küçükse kaplama negatif çıkar
+export const REASON_FINISHED = 'finished'
 
-export const OZ_OPTIONS = Object.keys(OZ_NOMINAL_UM).map(Number)
+// Nominal tablo (spec §4.1.2) hazır seçenek olarak sunulur; "özel değer"
+// yolu korunur, çünkü §4.1.2 kullanıcının kendi kalınlığını girebilmesini şart
+// koşar.
+export const OZ_CUSTOM = 'custom'
+export const OZ_ROWS = OZ_NOMINAL_ROWS
+export const OZ_OPTIONS = OZ_NOMINAL_ROWS.map((row) => row.oz)
 
 export const INITIAL_FORM = {
   source: SOURCE_WEIGHT,
+  // Varsayılan seçim nominal tablonun 1 oz satırıdır — bugünkü sonucun aynısı
+  ozPick: '1',
   oz: '1',
-  thickness: '35', thicknessu: 'um',
+  thickness: '35', thicknessu: 'µm',
+  // Ölçülen bitmiş kalınlık yolunun varsayılanı, varsayılan formun bitmiş
+  // sonucudur (35 µm folyo + 25 µm kaplama); yola geçildiğinde sonuç değişmez.
+  finished: '60', finishedu: 'µm',
+  method: METHOD_NOMINAL,
 
   layer: 'external',
   plating: '25',
@@ -31,26 +54,56 @@ export const INITIAL_FORM = {
   etch: '0',
 
   T: '20',
+
+  // Tolerans alanları (spec §3.4) isteğe bağlıdır ve boş başlar. Üçü de boşken
+  // tolerans taraması hiç çalışmaz, sonuç bugünküyle birebir aynıdır.
+  tolStart: '', tolPlate: '', tolEtch: '',
+
+  // Kalınlık kaydının adı (spec §4.3). Hesaba hiç girmez; alan tanımı
+  // olmadığı için readForm bu anahtarı görmez.
+  saveName: '',
 }
 
 const TEMP = { '°C': 1 }
 const PCT = { '%': 1 }
 const WIDTH = { mm: LENGTH.mm, mil: LENGTH.mil }
-const THICK = { um: LENGTH.um, mm: LENGTH.mm, mil: LENGTH.mil, inch: LENGTH.inch }
+// 'µm' ekranda gösterilen etikettir; 'um' eski ASCII yazımı olarak kabul
+// edilmeye devam eder. units.js'te ikisinin de çarpanı 1e-6, hesap etkilenmez.
+const THICK = { 'µm': LENGTH['µm'], um: LENGTH.um, mm: LENGTH.mm, mil: LENGTH.mil, inch: LENGTH.inch }
 
 export function formFields(f) {
   return fieldsFor([
-    when(f.source === SOURCE_WEIGHT, [
+    // Serbest ağırlık alanı yalnızca "özel değer" seçildiğinde okunur;
+    // tablo basamağı seçiliyken sayı seçimden gelir, ayrıştırılacak metin yok.
+    when(f.source === SOURCE_WEIGHT && f.ozPick === OZ_CUSTOM, [
       { key: 'oz', label: 'Bakır ağırlığı', unit: 'oz', table: { oz: 1 }, min: 0 },
     ]),
-    when(f.source === SOURCE_THICKNESS, [
-      { key: 'thickness', label: 'Kalınlık', unitKey: 'thicknessu', table: THICK, min: 0 },
+    // Başlangıç (folyo) kalınlığı iki yolda okunur: doğrudan kalınlık yolunda
+    // sonucun kendisidir, ölçülen bitmiş yolunda ise kaplamayı geriye çözmek
+    // için gereken referanstır. İç katmanda kaplama olmadığından ölçülen değer
+    // folyonun kendisidir; orada bu alan hiç istenmez.
+    when(f.source === SOURCE_THICKNESS
+      || (f.source === SOURCE_FINISHED && f.layer === 'external'), [
+      { key: 'thickness', label: 'Başlangıç (folyo) kalınlığı', unitKey: 'thicknessu', table: THICK, min: 0 },
+    ]),
+    when(f.source === SOURCE_FINISHED, [
+      { key: 'finished', label: 'Ölçülen bitmiş kalınlık', unitKey: 'finishedu', table: THICK, min: 0 },
+    ]),
+    // Kaplama yalnızca girdi olduğu yollarda okunur; ölçülen bitmiş kalınlık
+    // yolunda kaplama bir sonuçtur, girdi değil.
+    when(f.source !== SOURCE_FINISHED, [
+      { key: 'plating', label: 'Kaplama kalınlığı', unit: 'µm', table: LENGTH, min: 0, allowZero: true },
     ]),
     [
-      { key: 'plating', label: 'Kaplama kalınlığı', unit: 'um', table: LENGTH, min: 0, allowZero: true },
       { key: 'W', label: 'Yol genişliği', unitKey: 'Wu', table: WIDTH, min: 0 },
       { key: 'etch', label: 'Aşındırma oranı', unit: '%', table: PCT, min: 0, allowZero: true },
       { key: 'T', label: 'Sıcaklık', unit: '°C', table: TEMP, allowZero: true },
+      // Toleransların üst sınırı burada değil, toleranceCorners() içinde
+      // denetlenir — sınırı tek yerde tutmak için. Burada yalnızca negatif
+      // tolerans elenir.
+      { key: 'tolStart', label: 'Folyo kalınlığı toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
+      { key: 'tolPlate', label: 'Kaplama kalınlığı toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
+      { key: 'tolEtch', label: 'Aşındırma oranı toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
     ],
   ])
 }
@@ -63,23 +116,81 @@ export function compute(f) {
   const v = read.values
   if (v.etch >= 100) return { ok: false, reason: REASON_ETCH }
 
-  // Kaynak: ya bakır ağırlığı ya doğrudan kalınlık
-  const starting = f.source === SOURCE_WEIGHT ? nominalThickness(v.oz) : v.thickness
-  if (!(starting > 0)) return { ok: false, reason: REASON_INCOMPLETE }
+  // Yöntem seçimi (spec §12). Tanınmayan değer sessizce varsayılana düşer;
+  // varsayılan nominal tablodur, yani bugünkü sonuç değişmez.
+  const method = f.method === METHOD_DERIVED ? METHOD_DERIVED : METHOD_NOMINAL
 
-  const oz = f.source === SOURCE_WEIGHT ? v.oz : null
-  // v.plating readForm tarafından µm'den metreye çevrilmiş olarak gelir
-  const finished = finishedThickness({ starting, plating: v.plating, layer: f.layer })
+  // Kaynak: bakır ağırlığı, folyo kalınlığı ya da ölçülen bitmiş kalınlık
+  let oz = null
+  if (f.source === SOURCE_WEIGHT) {
+    if (f.ozPick === OZ_CUSTOM) {
+      oz = v.oz
+    } else {
+      const row = nominalRow(f.ozPick)
+      if (!row) return { ok: false, reason: REASON_INCOMPLETE }
+      oz = row.oz
+    }
+  }
+
+  // Ölçülen bitmiş kalınlık yolunda kaplama geriye doğru çözülür (spec §4.3):
+  //   dış katman: t_kaplama = t_bitmiş − t_folyo
+  //   iç katman : kaplama yoktur, ölçülen değer folyonun kendisidir
+  // Diğer iki yolda kaplama girdidir ve bitmiş kalınlık ondan türetilir.
+  let starting
+  let plating
+  if (f.source === SOURCE_FINISHED) {
+    if (f.layer === 'external') {
+      starting = v.thickness
+      plating = v.finished - starting
+      if (!(plating >= 0)) return { ok: false, reason: REASON_FINISHED }
+    } else {
+      starting = v.finished
+      plating = 0
+    }
+  } else {
+    // v.plating readForm tarafından µm'den metreye çevrilmiş olarak gelir
+    starting = oz != null ? thicknessFromWeight(oz, method) : v.thickness
+    plating = v.plating
+  }
+
+  if (!(starting > 0)) return { ok: false, reason: REASON_INCOMPLETE }
+  const finished = finishedThickness({ starting, plating, layer: f.layer })
   if (finished.error) return { ok: false, reason: REASON_INCOMPLETE }
 
   const rect = crossSection({ t: finished.finished, W: v.W })
   const trap = trapezoidArea({ t: finished.finished, Wbottom: v.W, etchFactor: v.etch / 100 })
   if (trap.error) return { ok: false, reason: REASON_ETCH }
 
+  // Tolerans analizi (spec §3.4) yalnızca en az bir alan doldurulduğunda
+  // çalışır. Alanlar boşken readForm null döner ve `tolerance` null kalır;
+  // sonuç panelinde tolerans bölümü hiç görünmez.
+  const tolGiven = v.tolStart != null || v.tolPlate != null || v.tolEtch != null
+  const tolerance = tolGiven
+    ? toleranceCorners({
+      starting,
+      plating,
+      layer: f.layer,
+      W: v.W,
+      etchFactor: v.etch / 100,
+      T: v.T,
+      tol: {
+        starting: (v.tolStart ?? 0) / 100,
+        plating: (v.tolPlate ?? 0) / 100,
+        etch: (v.tolEtch ?? 0) / 100,
+      },
+    })
+    : null
+
   return {
     ok: true,
     source: f.source,
+    // Kaplamanın girdi değil, ölçülen bitmiş kalınlıktan geriye çözülen bir
+    // sonuç olduğu yol. Ekran etiketi buna bakar.
+    platingSolved: f.source === SOURCE_FINISHED,
     oz,
+    // Başlangıç kalınlığını hangi yöntemin verdiği. Doğrudan kalınlık
+    // girildiğinde çevrim yapılmadığı için yöntem bilgisi yoktur.
+    method: oz != null ? method : null,
     layer: f.layer,
     starting,
     plating: finished.plating,
@@ -88,6 +199,9 @@ export function compute(f) {
     // Nominal tablo ile yoğunluktan türetilen değer birlikte sunulur
     nominal: oz != null ? nominalThickness(oz) : null,
     derived: oz != null ? derivedThickness(oz) : null,
+    // Üretim için önerilen değer (spec §12): bitmiş kalınlığa en yakın
+    // sipariş edilebilir nominal ağırlık basamağı.
+    recommended: nearestNominalWeight(finished.finished),
     units: {
       starting: allUnits(starting),
       finished: allUnits(finished.finished),
@@ -97,10 +211,87 @@ export function compute(f) {
     trap,
     etch: v.etch,
     T: v.T,
+    // Worst-case köşe taraması: min · nominal · maks üçlüleri (spec §3.4)
+    tolerance,
     Rsheet: sheetResistance(finished.finished, v.T),
     // Trapez kesitin dirence etkisi — alan azaldıkça direnç artar
     RsheetTrap: rect.area > 0 ? sheetResistance(finished.finished, v.T) * (rect.area / trap.area) : NaN,
   }
+}
+
+// --- Kalınlık kaydı (spec §4.3) ---
+//
+// Saf çeviri: hesabın SI çıktısını kayıt şemasının zarfına, zarfı da form
+// alanlarına dönüştürür. Depolama, React ve tarayıcı API'si burada yoktur.
+
+// SI metreden kaydın kanonik birimine (µm). Alan okunurken µm çarpanıyla
+// çarpıldığı için tersi bölmedir: `x · 1e-6 / 1e-6` girilen sayıyı birebir
+// geri verir, `x · 1e-6 · 1e6` ise son bitte kaydırır (60 → 59.99999999999999).
+// Yuvarlama yok — yalnızca çarpanın kendisiyle bölünüyor.
+const toUm = (t_m) => t_m / LENGTH['µm']
+
+/**
+ * Sonuçtan saklanabilir kalınlık kaydı üretir. Hesap geçersizse null döner —
+ * yarım bir kayıt yazılmaz.
+ */
+export function recordFrom(name, r) {
+  if (!r || !r.ok) return null
+
+  // "Girilen değer": ağırlık yolunda oz/ft², kalınlık yolunda folyo kalınlığı,
+  // ölçülen yolunda bitmiş kalınlık — hepsi kaydın kendi biriminde.
+  let value
+  if (r.source === SOURCE_WEIGHT) value = r.oz
+  else if (r.source === SOURCE_FINISHED) value = toUm(r.finished)
+  else value = toUm(r.starting)
+
+  return {
+    schema: THICKNESS_SCHEMA,
+    schemaVersion: RECORD_SCHEMA_VERSION,
+    name,
+    source: r.source,
+    unit: unitForSource(r.source),
+    value,
+    layer: r.layer,
+    // Etkin kaplama saklanır: iç katmanda 0'dır, çünkü bitmiş kalınlığa
+    // girmez. Böylece zarf her zaman bitmiş = başlangıç + kaplama tutar.
+    plating: toUm(r.plating),
+    starting: toUm(r.starting),
+    finished: toUm(r.finished),
+  }
+}
+
+/**
+ * Kayıttan form yaması. Kayıt kanonik olarak µm tuttuğu için geri yüklenen
+ * alanların birim seçicileri de µm'ye ayarlanır.
+ */
+export function formFromRecord(rec) {
+  if (!rec) return null
+
+  const patch = {
+    source: rec.source,
+    layer: rec.layer,
+    plating: String(rec.plating),
+  }
+
+  if (rec.source === SOURCE_WEIGHT) {
+    // Tabloda karşılığı olan ağırlık seçici basamağına oturur; olmayan ağırlık
+    // "Özel değer…" yoluna düşer. Serbest alan her iki durumda da doldurulur.
+    const row = nominalRow(rec.value)
+    patch.ozPick = row ? String(row.oz) : OZ_CUSTOM
+    patch.oz = String(rec.value)
+  } else if (rec.source === SOURCE_THICKNESS) {
+    patch.thickness = String(rec.starting)
+    patch.thicknessu = RECORD_UNIT_LENGTH
+  } else {
+    patch.finished = String(rec.finished)
+    patch.finishedu = RECORD_UNIT_LENGTH
+    // Ölçülen yolda folyo kalınlığı da bir girdidir (dış katmanda kaplamayı
+    // geriye çözmek için gerekir).
+    patch.thickness = String(rec.starting)
+    patch.thicknessu = RECORD_UNIT_LENGTH
+  }
+
+  return patch
 }
 
 // Grafik: bakır ağırlığına göre kare direnci
@@ -147,9 +338,26 @@ export function buildSweep(r) {
 
   const rows = xs.map((oz) => ({ x: oz, y: sheetResistance(nominalThickness(oz), r.T) }))
 
+  // Tolerans bandı (spec §3.4). Çalışma noktasındaki BAĞIL kalınlık toleransı
+  // eğri boyunca sabit kabul edilir; band bu yüzden eğriyi sabit bir oranla
+  // sarar. Gerçekte kaplama payı ağırlıkla değiştiği için bağıl tolerans da
+  // eğri boyunca değişir — grafik bir kestirimdir, sayısal karşılığı orta
+  // paneldeki üçlüdür.
+  //
+  // R_□ = ρ/t ters orantılı olduğu için kalınlığın ÜST ucu direncin ALT ucunu
+  // verir; band noktaları [x, yAlt, yÜst] sırasıyla yazılır.
+  const t = r.tolerance
+  let band = null
+  if (t && !t.error && t.active && t.finished.nom > 0) {
+    const lo = t.finished.min / t.finished.nom
+    const hi = t.finished.max / t.finished.nom
+    band = rows.map((p) => [p.x, p.y / hi, p.y / lo])
+  }
+
   return {
     rows,
     points: rows.map((p) => [p.x, p.y]),
+    band,
     marker: { x: markerOz, y: sheetResistance(r.finished, r.T) },
     refs: [],
   }
