@@ -79,6 +79,8 @@ export default function CopperConverter() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
+
       <div className="tool-header">
         <h1>Copper Thickness Converter</h1>
         <p>
@@ -826,7 +828,6 @@ Kare direnci:
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
     </>
   )
 }

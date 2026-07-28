@@ -71,6 +71,8 @@ export default function CriticalLength() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+
       <div className="tool-header">
         <h1>Critical Trace Length</h1>
         <p>
@@ -340,7 +342,6 @@ export default function CriticalLength() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
     </>
   )
 }

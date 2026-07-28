@@ -184,7 +184,7 @@ a:hover { text-decoration: underline; }
 }
 .tool-row.soon { color: var(--muted); }
 .tool-row .name { font-weight: 500; }
-.backlink { font-size: 0.85rem; color: var(--muted); display: inline-block; margin-top: 28px; }
+.backlink { font-size: 0.85rem; color: var(--muted); display: inline-block; margin-top: 28px; margin-bottom: 16px; }
 
 /* ---------- Tool layout ---------- */
 
@@ -426,9 +426,9 @@ a:hover { text-decoration: underline; }
 .sch-hole { fill: var(--bg); }
 .sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
 .sch-arrow-head { fill: var(--accent); }
-.sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; }
+.sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
 .sch-label.dim { fill: var(--muted); }
-.sch-value { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.sch-value { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
 
 /* ---------- Mühendislik yorumu ---------- */
 
@@ -506,7 +506,7 @@ a:hover { text-decoration: underline; }
   cursor: pointer; font-family: var(--font-mono); font-size: 0.72rem;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
-.chart-data .scroll { max-height: 260px; overflow: auto; margin-top: 10px; }
+.chart-data .scroll { overflow-x: auto; margin-top: 10px; }
 
 /* ---------- Aday çift tablosu ---------- */
 

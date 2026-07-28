@@ -34,6 +34,8 @@ export default function ThermalVia() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/via-padstack">← Via ve Padstack</Link>
+
       <div className="tool-header">
         <h1>Thermal Via Array</h1>
         <p>
@@ -282,7 +284,6 @@ Gerçek toplam yol:
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/via-padstack">← Via ve Padstack</Link>
     </>
   )
 }

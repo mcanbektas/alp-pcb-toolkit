@@ -56,6 +56,8 @@ export default function TemperatureConverter() {
   return (
     <>
       {/* 1) BAŞLIK */}
+      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
+
       <div className="tool-header">
         <h1>Temperature Converter</h1>
         <p>
@@ -349,7 +351,6 @@ Fiziksel alt sınır:
       </section>
 
       {/* 4) GERİ BAĞLANTI */}
-      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
     </>
   )
 }

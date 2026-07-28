@@ -92,6 +92,8 @@ export default function Junction() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/guc-termal">← Güç Bütünlüğü ve Termal</Link>
+
       <div className="tool-header">
         <h1>Junction Temperature &amp; Heatsink</h1>
         <p>
@@ -546,7 +548,6 @@ export default function Junction() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/guc-termal">← Güç Bütünlüğü ve Termal</Link>
     </>
   )
 }

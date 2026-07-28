@@ -108,6 +108,8 @@ export default function LedOhmRlc() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
+
       <div className="tool-header">
         <h1>LED, Ohm Kanunu &amp; RLC</h1>
         <p>
@@ -519,7 +521,6 @@ export default function LedOhmRlc() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
     </>
   )
 }

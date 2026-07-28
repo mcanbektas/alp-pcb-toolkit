@@ -50,6 +50,8 @@ export default function TraceWidth() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
+
       <div className="tool-header">
         <h1>Trace Width &amp; Current Capacity</h1>
         <p>
@@ -376,7 +378,6 @@ R(T) = ρ₂₀·[1 + α(T − 20)] ·
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
     </>
   )
 }

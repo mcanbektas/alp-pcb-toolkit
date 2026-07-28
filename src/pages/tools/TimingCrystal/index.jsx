@@ -102,6 +102,8 @@ export default function TimingCrystal() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
+
       <div className="tool-header">
         <h1>RC/RL Zaman Sabiti &amp; Kristal</h1>
         <p>
@@ -443,7 +445,6 @@ export default function TimingCrystal() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
     </>
   )
 }

@@ -113,6 +113,8 @@ export default function Termination() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+
       <div className="tool-header">
         <h1>Termination Calculator</h1>
         <p>
@@ -521,7 +523,6 @@ export default function Termination() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
     </>
   )
 }

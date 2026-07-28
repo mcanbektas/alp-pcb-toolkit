@@ -48,6 +48,8 @@ export default function ComplexConverter() {
   return (
     <>
       {/* 1) BAŞLIK */}
+      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
+
       <div className="tool-header">
         <h1>Complex Number Converter</h1>
         <p>
@@ -310,7 +312,6 @@ Kodda faz DAİMA atan2(X, R)
       </section>
 
       {/* 4) GERİ BAĞLANTI */}
-      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
     </>
   )
 }

@@ -78,6 +78,8 @@ export default function Crosstalk() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+
       <div className="tool-header">
         <h1>Crosstalk Estimator</h1>
         <p>
@@ -489,7 +491,6 @@ export default function Crosstalk() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
     </>
   )
 }

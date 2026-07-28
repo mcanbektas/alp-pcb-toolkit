@@ -41,6 +41,8 @@ export default function ViaProperties() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/via-padstack">← Via ve Padstack</Link>
+
       <div className="tool-header">
         <h1>Via Properties &amp; Current Capacity</h1>
         <p>
@@ -429,7 +431,6 @@ C[pF] ≈ 0.0555·εr·H·D_pad /
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/via-padstack">← Via ve Padstack</Link>
     </>
   )
 }

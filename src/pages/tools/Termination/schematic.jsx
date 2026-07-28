@@ -10,16 +10,23 @@ import { TERM_SERIES, TERM_PARALLEL, TERM_THEVENIN } from './model'
 // Yerleşim kuralı: her etiket kutusu ile çizim elemanı arasında en az 3 px,
 // iki yazı kutusu arasında en az 2 px açıklık bırakılır. Kutu ölçüleri
 // theme.css'ten gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda
-// karakter genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs].
+// karakter genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]. Kalın
+// ağırlık tek aralıklı yazıda aynı genişlikte ilerler, model değişmez.
 // "sürücü" yazısı 42 px'lik kutuya kenarına değecek kadar sığıyordu; kutu
-// merkezi sabit kalacak biçimde genişletildi. Thevenin'de bias satırı R_bot
-// etiketinin altına indirildi, ikisi üst üste geliyordu.
+// merkezi sabit kalacak biçimde genişletildi.
 //
-// Dirençlerin sağındaki değer kolonu 260 px'lik tuvale sığmıyordu: kutunun sağ
-// kenarı 207'de bitiyor, en kötü değer ("1.234 mΩ" gibi 8 karakter) 49.6 px
-// yer istiyor, dolayısıyla yazı x = 210 ile 207.4 arasında başlamak zorundaydı —
-// boş aralık. Değeri etiketinden koparmak yerine viewBox sağa 266 px'e
-// genişletildi; çizimin hiçbir ölçüsü değişmedi, yalnızca sağda pay açıldı.
+// Dinamik metinlerin en kötü uzunluğu ölçüldü: fmtRes(x, 3) sınır durumunda
+// "1.00e+3 Ω" gibi 9 karakter (55.8 px), bias satırı "bias 0.9999 mV" ile
+// 14 karakter (86.8 px) verir. Dirençlerin sağındaki değer kolonu x = 212'de
+// başlıyor; 9 karakterlik kutu 267.8'de bitiyor, yani 266 px'lik tuvalden
+// taşıyordu (paralel R_T değeri ve Thevenin'in iki direnç değeri). Değeri
+// kısaltmak yerine viewBox sağa 276 px'e genişletildi — çizimin hiçbir ölçüsü
+// değişmedi, yalnızca sağda pay açıldı; 10 karakterlik uç durum da sığıyor.
+//
+// Thevenin'de etiket ve değer artık aynı kolonda üst üste duruyor (paralel
+// tipteki R_T düzeniyle aynı, 14 px satır aralığı): R_top/R_bot dirençlerin
+// solundan sağ kolona alındı, böylece sayı kendi etiketinin altında okunuyor ve
+// Z₀ etiketinin sağındaki 5 px'lik dar aralık ortadan kalktı.
 const CAPTION = {
   [TERM_SERIES]: 'Seri terminasyon — direnç sürücünün hemen çıkışında',
   [TERM_PARALLEL]: 'Paralel terminasyon — direnç hattın uç yükünde',
@@ -37,7 +44,7 @@ export default function TerminationSchematic({ r }) {
   const show = r.ok
 
   return (
-    <Schematic viewBox="0 0 266 160" title={TITLE[type]} caption={CAPTION[type]}>
+    <Schematic viewBox="0 0 276 160" title={TITLE[type]} caption={CAPTION[type]}>
       {/* Sürücü ve dönüş yolu — üç tipte de ortak */}
       <rect className="sch-part" x={9} y={60} width={48} height={34} rx={2} />
       <text className="sch-value" x={33} y={81} textAnchor="middle">sürücü</text>
@@ -125,13 +132,13 @@ export default function TerminationSchematic({ r }) {
           <Node x={196} y={77} />
           <Terminal x={232} y={77} />
 
-          <text className="sch-label" x={180} y={58} textAnchor="end">R_top</text>
-          <text className="sch-label" x={180} y={108} textAnchor="end">R_bot</text>
+          <text className="sch-label" x={212} y={50}>R_top</text>
+          <text className="sch-label" x={212} y={100}>R_bot</text>
 
           {show && (
             <>
-              <text className="sch-value" x={212} y={58}>{fmtRes(r.standard.Rtop, 3)}</text>
-              <text className="sch-value" x={212} y={108}>{fmtRes(r.standard.Rbottom, 3)}</text>
+              <text className="sch-value" x={212} y={64}>{fmtRes(r.standard.Rtop, 3)}</text>
+              <text className="sch-value" x={212} y={114}>{fmtRes(r.standard.Rbottom, 3)}</text>
               <text className="sch-value" x={134} y={94} textAnchor="middle">
                 {fmtRes(r.Z0, 3)}
               </text>

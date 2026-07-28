@@ -87,6 +87,8 @@ export default function Pdn() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/guc-termal">← Güç Bütünlüğü ve Termal</Link>
+
       <div className="tool-header">
         <h1>PDN Target Impedance</h1>
         <p>
@@ -600,7 +602,6 @@ export default function Pdn() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/guc-termal">← Güç Bütünlüğü ve Termal</Link>
     </>
   )
 }

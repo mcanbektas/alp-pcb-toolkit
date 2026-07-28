@@ -10,28 +10,40 @@ import { MODE_HEATSINK, MODE_SURFACE, COPPER_OFF, PSI_JT } from './model'
 // kalınlığının yarısı düşülerek) en az 3 px, başka bir yazı kutusundan en az
 // 2 px uzakta durur ve viewBox içinde kalır. Kutu ölçüleri theme.css'ten gelir:
 // .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda karakter genişliği
-// ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]; tel kalınlığı 2 px → yarım
-// kalınlık 1 px.
-// En uzun makul değer yazısı on bir hanedir: "0.0123 °C/W" (θ ≥ 0.01 °C/W) ve
-// "1.235e+4 °C" (dört anlamlı basamakta beş haneli sıcaklık) → 68.2 px.
-// Üç dirençli zincirde bir yuvaya (52 px) düşen değer yazısı yan yana sığmadığı
-// için tek numaralı dirençlerin değeri bir alt satıra iner; uç sıcaklıkları da
-// o alt satırda durur.
+// ≈ 0.62·fs (kalın ağırlık genişliği değiştirmez), kutu =
+// [y − 0.78·fs , y + 0.22·fs]; tel kalınlığı 2 px → yarım kalınlık 1 px.
+//
+// Soğutucu zincirinde üç değer 52 px'lik yuvalara sığmadığı için eskiden tek
+// numaralı dirençlerin değeri alt satıra iniyordu; θ_CS değeri ile sol uçtaki
+// junction sıcaklığı aynı satırda çakışıyordu (ölçülen örtüşme −8.7 px, uzun
+// değerlerde −10 px) ve en sağdaki değer toprak sembolüne 1.6 px yaklaşıyordu.
+// Bu yüzden çizim 260 → 340 px'e genişletildi: zincir yuvası 52 → 80 px oldu,
+// her değer kendi kutusunun tam altında ortalanır ve komşusuyla en az 30 px
+// açıklık bırakır. Alt satır artık yalnızca uç sıcaklıklarına (T_J solda,
+// T_A / ölçüm sağda) ayrılmıştır.
+// En uzun makul değer yazısı: fmt(x, 3) çıktısı 1e-4 ≤ x < 1e7 aralığında en
+// fazla "0.000123" (8 hane), aralık dışında toExponential(3) → "1.235e-10"
+// (9 hane); " °C/W" ekiyle 13–14 karakter = 80.6–86.8 px. Bu uçta değer yuvayı
+// (80 px) aşabildiği için yerleşim ölçüyü çalışma anında karşılaştırır ve
+// gerekiyorsa tek numaralı değerleri alt satıra indirir (aşağıdaki `stagger`).
 
 const BASE_Y = 62
-const LEFT_X = 24
-const RIGHT_X = 232
-const FROM_X = 48
-// Zincirin son kutusu 204'te biter: üç dirençli zincirde en sağdaki değer
-// yazısı toprak sembolünün ikinci çizgisine (x ≥ 224) 3 px'ten fazla mesafede
-// kalsın diye yuva 52 px'e indi.
-const TO_X = 204
+const LEFT_X = 28
+const RIGHT_X = 312
+const FROM_X = 52
+// Zincirin son kutusu 292'de biter; toprak sembolünün ilk çizgisi 298'de
+// başladığı için en sağdaki değer yazısı ile toprak arasında boşluk kalır.
+const TO_X = 292
 
-// Değer satırları: kutuların hemen altı ve bir satır aşağısı. İki satır arası
-// 13 px → üst satırın kutu tabanı (92.2) ile alt satırın tepesi (95.2) arasında
-// 3 px kalır; alt satır da §8.6 bölüm başlığına 3.2 px açıklık bırakır.
+// Değer satırları: kutuların hemen altı (zincir değerleri) ve bir satır
+// aşağısı (uç sıcaklıkları). İki satır arası 13 px → üst satırın kutu tabanı
+// (92.2) ile alt satırın tepesi (95.2) arasında 3 px kalır; alt satır da §8.6
+// bölüm başlığına 3.2 px açıklık bırakır.
 const VALUE_Y = BASE_Y + 28
 const VALUE_Y2 = BASE_Y + 41
+
+// .sch-value tek aralıklı karakter genişliği (10 px × 0.62)
+const VALUE_CH = 6.2
 
 function partsFor(mode, r, form) {
   const live = r.ok
@@ -73,7 +85,14 @@ export default function JunctionSchematic({ r, form, mode }) {
 
   const span = TO_X - FROM_X
   const slot = span / parts.length
-  const boxW = Math.min(44, slot - 14)
+  const boxW = Math.min(48, slot - 16)
+
+  // Değerler kendi kutusunun altında ortalanır. Komşu iki değer yuvaya 2 px
+  // açıklıkla sığdığı sürece hepsi aynı satırda durur; ancak fiziksel olmayan
+  // ölçek uçlarında (θ < 0.001 °C/W → "1.235e-4 °C/W" 80.6 px) yazı yuvadan
+  // taşar, o durumda tek numaralı değerler alt satıra iner.
+  const widest = parts.reduce((m, p) => Math.max(m, p.value ? p.value.length * VALUE_CH : 0), 0)
+  const stagger = parts.length > 1 && widest + 2 > slot
 
   const caption = mode === MODE_HEATSINK
     ? 'Junction → case → termal arayüz → soğutucu → ortam: seri termal dirençler'
@@ -83,7 +102,7 @@ export default function JunctionSchematic({ r, form, mode }) {
 
   return (
     <Schematic
-      viewBox={`0 0 260 ${copperOn ? 220 : 128}`}
+      viewBox={`0 0 340 ${copperOn ? 224 : 128}`}
       title="Termal direnç zinciri"
       caption={caption}
     >
@@ -92,8 +111,7 @@ export default function JunctionSchematic({ r, form, mode }) {
 
       {parts.map((p, i) => {
         const cx = FROM_X + slot * i + slot / 2
-        // Komşu değer yazıları tek satırda çakışacağı için tek indeksliler iner
-        const valueY = parts.length > 1 && i % 2 === 1 ? VALUE_Y2 : VALUE_Y
+        const valueY = stagger && i % 2 === 1 ? VALUE_Y2 : VALUE_Y
         return (
           <g key={p.key}>
             <rect
@@ -104,7 +122,7 @@ export default function JunctionSchematic({ r, form, mode }) {
               height={26}
               rx={2}
             />
-            {/* Kutu 49'da başlıyor; etiket kutusu 44.4'te bitince kenara 3.6 px kalır */}
+            {/* Etiket kutunun üstünde: kutu tepesi 49, etiket tabanı 44.4 → 3.6 px */}
             <text className="sch-label" x={cx} y={BASE_Y - 20} textAnchor="middle">{p.label}</text>
             {p.value && (
               <text className="sch-value" x={cx} y={valueY} textAnchor="middle">{p.value}</text>
@@ -146,31 +164,32 @@ export default function JunctionSchematic({ r, form, mode }) {
         </>
       )}
 
-      {/* §8.6 bakır termal ağı — iki paralel iletim yolu */}
+      {/* §8.6 bakır termal ağı — iki paralel iletim yolu.
+          Ağ, genişleyen çizimde zincirle aynı eksende (x = 172) ortalanır */}
       {copperOn && (
         <>
-          {/* Bölüm başlığı, alt satıra inen değer yazılarının altında durur:
-              kutu [108.4, 119.4] → üstteki değer satırına 3.2 px, bakır
-              kutusunun çizili üst kenarına 3.6 px kalır */}
+          {/* Bölüm başlığı, uç sıcaklıklarının altında durur: kutu
+              [108.4, 119.4] → sıcaklık satırına 3.2 px; bakır kutusu 144'te
+              başladığı için başlık yazısı (135.1'de biter) kutuya girmez */}
           <text className="sch-label dim" x={LEFT_X - 4} y={117}>bakır termal ağı</text>
 
-          <line className="sch-wire" x1={70} x2={70} y1={136} y2={176} />
-          <line className="sch-wire" x1={190} x2={190} y1={136} y2={176} />
-          <line className="sch-wire" x1={70} x2={102} y1={136} y2={136} />
-          <line className="sch-wire" x1={158} x2={190} y1={136} y2={136} />
-          <line className="sch-wire" x1={70} x2={102} y1={176} y2={176} />
-          <line className="sch-wire" x1={158} x2={190} y1={176} y2={176} />
-          <line className="sch-wire" x1={40} x2={70} y1={156} y2={156} />
-          <line className="sch-wire" x1={190} x2={214} y1={156} y2={156} />
+          <line className="sch-wire" x1={92} x2={92} y1={136} y2={176} />
+          <line className="sch-wire" x1={252} x2={252} y1={136} y2={176} />
+          <line className="sch-wire" x1={92} x2={144} y1={136} y2={136} />
+          <line className="sch-wire" x1={200} x2={252} y1={136} y2={136} />
+          <line className="sch-wire" x1={92} x2={144} y1={176} y2={176} />
+          <line className="sch-wire" x1={200} x2={252} y1={176} y2={176} />
+          <line className="sch-wire" x1={62} x2={92} y1={156} y2={156} />
+          <line className="sch-wire" x1={252} x2={282} y1={156} y2={156} />
 
-          <rect className="sch-part" x={102} y={124} width={56} height={24} rx={2} />
-          <rect className="sch-part" x={102} y={164} width={56} height={24} rx={2} />
-          <text className="sch-label" x={130} y={140} textAnchor="middle">bakır</text>
-          <text className="sch-label" x={130} y={180} textAnchor="middle">FR-4</text>
+          <rect className="sch-part" x={144} y={124} width={56} height={24} rx={2} />
+          <rect className="sch-part" x={144} y={164} width={56} height={24} rx={2} />
+          <text className="sch-label" x={172} y={140} textAnchor="middle">bakır</text>
+          <text className="sch-label" x={172} y={180} textAnchor="middle">FR-4</text>
 
-          <Node x={70} y={156} />
-          <Node x={190} y={156} />
-          <Ground x={214} y={168} />
+          <Node x={92} y={156} />
+          <Node x={252} y={156} />
+          <Ground x={282} y={168} />
           <text className="sch-value" x={LEFT_X - 4} y={152}>P</text>
 
           {live && r.copper && (
@@ -178,16 +197,16 @@ export default function JunctionSchematic({ r, form, mode }) {
               {/* Kol dirençleri kendi kutusunun yanında ama köprü tellerinin
                   dışında durur: üst değer y=136 telinin üstünde (4.8 px), alt
                   değer y=176 telinin ve toprak sembolünün altında (5.2 px).
-                  x=163 → kutuların çizili sağ kenarına (x=158) 4 px kalır */}
-              <text className="sch-value" x={163} y={128}>{fmt(r.copper.strip.Rth, 3)} °C/W</text>
-              <text className="sch-value" x={163} y={192}>{fmt(r.copper.dielectric.Rth, 3)} °C/W</text>
+                  x=205 → kutuların çizili sağ kenarına (x=200) 4 px kalır */}
+              <text className="sch-value" x={205} y={128}>{fmt(r.copper.strip.Rth, 3)} °C/W</text>
+              <text className="sch-value" x={205} y={192}>{fmt(r.copper.dielectric.Rth, 3)} °C/W</text>
               {/* Özet iki satır: tek satırda en uzun değer çifti viewBox'ı aşıyor.
-                  Üst satır FR-4 kutusunun çizili alt kenarına 4.2 px, alt satır
-                  üst satıra 3 px açıklıkla durur; en alt kutu 216.2'de biter */}
-              <text className="sch-value" x={LEFT_X - 4} y={201}>
+                  Üst satır FR-4 kutusunun çizili alt kenarına 6.2 px, alt satır
+                  üst satıra 3 px açıklıkla durur; en alt kutu 218.2'de biter */}
+              <text className="sch-value" x={LEFT_X - 4} y={203}>
                 R_θ,eq = {fmt(r.copper.eq.Rth, 3)} °C/W
               </text>
-              <text className="sch-value" x={LEFT_X - 4} y={214}>
+              <text className="sch-value" x={LEFT_X - 4} y={216}>
                 ΔT = {fmt(r.copper.rise.deltaT, 3)} °C
               </text>
             </>

@@ -51,6 +51,8 @@ export default function PropDelay() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+
       <div className="tool-header">
         <h1>Propagation Delay &amp; Wavelength</h1>
         <p>
@@ -254,7 +256,6 @@ export default function PropDelay() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
     </>
   )
 }

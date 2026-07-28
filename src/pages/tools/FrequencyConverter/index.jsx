@@ -37,6 +37,8 @@ export default function FrequencyConverter() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
+
       <div className="tool-header">
         <h1>Frequency & Period Converter</h1>
         <p>
@@ -249,7 +251,6 @@ Birim çarpanları:
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
     </>
   )
 }

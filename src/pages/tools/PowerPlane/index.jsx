@@ -61,6 +61,8 @@ export default function PowerPlane() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
+
       <div className="tool-header">
         <h1>Power Plane &amp; Parallel Trace</h1>
         <p>
@@ -408,7 +410,6 @@ export default function PowerPlane() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
     </>
   )
 }

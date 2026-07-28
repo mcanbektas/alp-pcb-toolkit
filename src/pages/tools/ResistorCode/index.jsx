@@ -43,6 +43,8 @@ export default function ResistorCode() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
+
       <div className="tool-header">
         <h1>Resistor &amp; SMD Code Decoder</h1>
         <p>
@@ -420,7 +422,6 @@ Tolerans sınırları:
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
     </>
   )
 }

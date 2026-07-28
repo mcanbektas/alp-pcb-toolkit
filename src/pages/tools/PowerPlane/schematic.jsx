@@ -16,6 +16,20 @@ function PlaneShape({ r }) {
   const nTop = midY - neck / 2
   const nBottom = midY + neck / 2
 
+  // Yazılar iki serbest şeritte toplanır; hiçbiri bakır dolgunun ya da omuz
+  // köşegenlerinin üstüne binmez. Şeritler poligonun dışında sabit durur,
+  // boyun daralıp genişlerken yer değiştirmez:
+  //   üst şerit  → boyun etiketi (13) + boyun/akım değerleri (29)
+  //   alt şerit  → ortalama genişlik (117) + yol uzunluğu (133)
+  // Ölçü çizgileri şeride kadar uzatılır ki değer hangi ölçüye ait olduğu
+  // belli olsun (etiket poligondan uzaklaştığı için gerekli).
+  const labelY = 13
+  const topValueY = 29
+  const bottomValueY = 117
+  const lengthY = 133
+  const neckLeaderTop = 37 // üst şeritteki değerin altında başlar, boyuna iner
+  const avgLeaderBottom = 103.5 // poligonun altından alt şeride doğru uzar
+
   return (
     <>
       <path
@@ -24,45 +38,43 @@ function PlaneShape({ r }) {
             L240 ${bottom} L170 ${bottom} L146 ${nBottom} L124 ${nBottom} L100 ${bottom} L20 ${bottom} Z`}
       />
 
-      {/* Boyun ölçüsü */}
+      {/* Boyun ölçüsü + üst şeride uzanan yardımcı çizgi */}
       <g className="sch-dim">
         <line x1={135} x2={135} y1={nTop} y2={nBottom} />
         <line x1={129} x2={141} y1={nTop} y2={nTop} />
         <line x1={129} x2={141} y1={nBottom} y2={nBottom} />
+        <line x1={135} x2={135} y1={neckLeaderTop} y2={nTop} />
       </g>
-      {/* Boyun etiketi ve değeri poligonun dışındaki şeritlerde: boyun
-          daraldıkça nTop/nBottom içeri kayıyor ve yazılar hem omuz
-          köşegenlerinin hem bakır dolgunun üstüne biniyordu. */}
-      <text className="sch-label" x={135} y={top - 6} textAnchor="middle">boyun</text>
+      <text className="sch-label" x={135} y={labelY} textAnchor="middle">boyun</text>
       {r.ok && (
-        <text className="sch-value" x={135} y={bottom + 14} textAnchor="middle">
+        <text className="sch-value" x={135} y={topValueY} textAnchor="middle">
           {fmtEng(r.neck.W, 'm', 3)}
         </text>
       )}
 
-      {/* Ortalama genişlik ölçüsü */}
+      {/* Ortalama genişlik ölçüsü + alt şeride uzanan yardımcı çizgi */}
       <g className="sch-dim">
         <line x1={56} x2={56} y1={top} y2={bottom} />
         <line x1={50} x2={62} y1={top} y2={top} />
         <line x1={50} x2={62} y1={bottom} y2={bottom} />
+        <line x1={56} x2={56} y1={bottom} y2={avgLeaderBottom} />
       </g>
       {r.ok && (
-        <text className="sch-value" x={56} y={bottom + 14} textAnchor="middle">
+        <text className="sch-value" x={56} y={bottomValueY} textAnchor="middle">
           {fmtEng(r.average.W, 'm', 3)}
         </text>
       )}
 
-      {/* Akım oku düzlemin içinde kalır, değeri okun üstündeki boş şeride
-          yazılır: bileşenin kendi etiket yeri hem poligonun sağ kenarını hem
-          sağ terminali hem de okun başını kesiyordu. */}
+      {/* Akım oku düzlemin içinde kalır, değeri üst şeride yazılır: bileşenin
+          kendi etiket yeri okun başını ve poligonun sağ kenarını kesiyordu. */}
       <CurrentArrow x={210} y={midY} dir="right" len={22} label={null} />
-      <text className="sch-value" x={210} y={top - 6} textAnchor="middle">
+      <text className="sch-value" x={210} y={topValueY} textAnchor="middle">
         {r.ok ? fmtAmp(r.I, 3) : 'I'}
       </text>
       <Terminal x={20} y={midY} />
       <Terminal x={240} y={midY} />
       {r.ok && (
-        <text className="sch-value" x={130} y={126} textAnchor="middle">
+        <text className="sch-value" x={130} y={lengthY} textAnchor="middle">
           L = {fmtEng(r.average.L, 'm', 3)}
         </text>
       )}
@@ -75,19 +87,22 @@ function ParallelShape({ r }) {
   const branches = r.ok ? r.branches.slice(0, 6) : [{ W: 1 }, { W: 1 }]
   const maxW = Math.max(...branches.map((b) => b.W))
   const gap = 100 / Math.max(branches.length, 2)
-  const top = 26
+  const axisY = 70 // besleme ekseni
+  // Kol yığını besleme ekseninde ortalanır: sabit üst kenarda tek kollu
+  // durumda bara boyu sıfıra iniyor ve y=70'teki besleme telleri kolun
+  // dışında kalıyordu. Ortalanınca her kol sayısında bara telle buluşur.
+  const top = axisY - (gap * (branches.length - 1)) / 2
 
   return (
     <>
-      {/* Kollar 200'de bitiyor: kol akımları eskiden x=236'da yazılıyor ve
-          hem viewBox'ı hem ortadaki çıkış telini/terminali kesiyordu.
-          Sağ bara ve terminal içeri alındı, akımlar 226'dan başlayan
-          serbest sütuna yazılıyor. */}
+      {/* Kollar 200'de bitiyor, kol akımları 226'dan başlayan serbest sütuna
+          yazılıyor: bakırın, sağ baranın ve terminalin üstünde yazı kalmıyor.
+          viewBox 296 genişliğinde — en uzun akım değeri bile taşmıyor. */}
       <g className="sch-wire">
         <line x1={30} x2={30} y1={top} y2={top + gap * (branches.length - 1)} />
         <line x1={200} x2={200} y1={top} y2={top + gap * (branches.length - 1)} />
-        <line x1={14} x2={30} y1={70} y2={70} />
-        <line x1={200} x2={216} y1={70} y2={70} />
+        <line x1={14} x2={30} y1={axisY} y2={axisY} />
+        <line x1={200} x2={216} y1={axisY} y2={axisY} />
       </g>
 
       {branches.map((b, i) => {
@@ -103,8 +118,8 @@ function ParallelShape({ r }) {
         )
       })}
 
-      <Terminal x={14} y={70} />
-      <Terminal x={216} y={70} />
+      <Terminal x={14} y={axisY} />
+      <Terminal x={216} y={axisY} />
       {r.ok && (
         <text className="sch-value" x={130} y={140} textAnchor="middle">
           {r.branches.length} kol · eşdeğer {fmtEng(r.Req, 'Ω', 3)}
@@ -120,7 +135,7 @@ export default function PlaneSchematic({ r, form }) {
 
   return (
     <Schematic
-      viewBox={`0 0 ${isPlane ? 260 : 280} ${isPlane ? 140 : 152}`}
+      viewBox={`0 0 ${isPlane ? 260 : 296} ${isPlane ? 140 : 152}`}
       title={isPlane ? 'Güç düzlemi geometrisi' : 'Paralel yollar'}
       caption={isPlane
         ? 'Akım darboğazdan geçer; direncin büyük kısmı orada oluşur'

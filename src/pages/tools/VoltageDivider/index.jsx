@@ -52,6 +52,8 @@ export default function VoltageDivider() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
+
       <div className="tool-header">
         <h1>Voltage Divider &amp; Standard Value Finder</h1>
         <p>
@@ -427,7 +429,6 @@ Hedeften orana:
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
     </>
   )
 }

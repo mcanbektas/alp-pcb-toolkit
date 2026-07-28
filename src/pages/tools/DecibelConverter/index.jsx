@@ -52,6 +52,8 @@ export default function DecibelConverter() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
+
       <div className="tool-header">
         <h1>Decibel, Gain & dBm Converter</h1>
         <p>
@@ -424,7 +426,6 @@ Referans empedansta RMS gerilim:
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
     </>
   )
 }

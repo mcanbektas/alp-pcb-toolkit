@@ -81,6 +81,8 @@ export default function SingleEnded() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/empedans">← Kontrollü Empedans</Link>
+
       <div className="tool-header">
         <h1>Single-Ended Impedance</h1>
         <p>
@@ -382,7 +384,6 @@ export default function SingleEnded() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/empedans">← Kontrollü Empedans</Link>
     </>
   )
 }

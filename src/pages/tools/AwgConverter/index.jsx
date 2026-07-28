@@ -45,6 +45,8 @@ export default function AwgConverter() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
+
       <div className="tool-header">
         <h1>AWG Wire Gauge Converter</h1>
         <p>
@@ -376,7 +378,6 @@ Geçerli aralık: AWG -3 (4/0) … 40`}</pre>
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
     </>
   )
 }

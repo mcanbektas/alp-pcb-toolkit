@@ -75,6 +75,8 @@ export default function Skew() {
 
   return (
     <>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+
       <div className="tool-header">
         <h1>Differential Skew &amp; Length Matching</h1>
         <p>
@@ -361,7 +363,6 @@ export default function Skew() {
         )}
       </section>
 
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
     </>
   )
 }
