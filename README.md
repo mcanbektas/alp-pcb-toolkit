@@ -1,6 +1,6 @@
 # ALP PCB Toolkit
 
-PCB tasarımı için çevrim içi mühendislik karar destek araçları. Tüm hesaplar tarayıcıda
+PCB tasarımı için çevrim içi donanım mühendisliği karar destek araçları. Tüm hesaplar tarayıcıda
 (client-side) çalışır; backend, veritabanı veya API çağrısı yoktur.
 
 Arayüz iki dillidir — **Türkçe / English** — ve dil başlıktaki düğmeden değiştirilir. Varsayılan

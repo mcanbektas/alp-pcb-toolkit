@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Proje
 
-ALP PCB Toolkit — PCB tasarımı için çevrim içi mühendislik hesap araçları. Vite + React 18 +
+ALP PCB Toolkit — PCB tasarımı için çevrim içi donanım mühendisliği hesap araçları. Vite + React 18 +
 react-router-dom. Tamamen client-side; backend, veritabanı, API çağrısı yok.
 
 **Arayüz iki dillidir (tr / en), varsayılan Türkçe. Kod yorumları Türkçedir ve çevrilmez.**
