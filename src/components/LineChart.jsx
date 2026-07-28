@@ -483,8 +483,9 @@ export function ChartDataTable({ xLabel, series, formatX, formatY, every = 1 }) 
   // Son nokta her zaman gösterilir — eğrinin sağ ucu asimptotu taşır
   if (indices[indices.length - 1] !== ref.length - 1) indices.push(ref.length - 1)
 
+  // `open`: sayısal okuma grafiğin eşdeğeridir, tıklama arkasında saklı durmaz.
   return (
-    <details className="chart-data">
+    <details className="chart-data" open>
       <summary>Veri tablosu</summary>
       <div className="scroll">
         <table className="pick-table">
