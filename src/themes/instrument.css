@@ -291,6 +291,10 @@ a:hover { text-decoration: underline; }
   font-size: 0.9rem;
   padding: 9px 11px;
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  /* Girdi panelindeki tüm form alanları aynı ağırlıkta okunur: yazılan
+     değer de seçilen değer de veridir. IBM Plex Mono 400/500/600
+     yükleniyor — 600 bu yazının gerçek en kalın kesimi. */
+  font-weight: 600;
 }
 .field-row input { flex: 1; min-width: 0; }
 .field-row input:focus, .field-row select:focus, .select-only:focus {
@@ -340,7 +344,10 @@ a:hover { text-decoration: underline; }
   border-radius: 5px; color: var(--text); font-family: var(--font-mono);
   padding: 6px 8px;
 }
-.row-list-item .cell input { flex: 1; min-width: 0; font-size: 0.84rem; }
+.row-list-item .cell input {
+  flex: 1; min-width: 0; font-size: 0.84rem;
+  font-weight: 600;
+}
 .row-list-item .cell select { flex: 0 0 auto; font-size: 0.78rem; padding: 6px 4px; }
 .row-list-item .cell input:focus, .row-list-item .cell select:focus {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft);
