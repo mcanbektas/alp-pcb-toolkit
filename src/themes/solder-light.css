@@ -101,6 +101,9 @@ a:hover { text-decoration: underline; }
   color: var(--text); text-transform: uppercase;
 }
 .wordmark:hover { text-decoration: none; color: var(--accent); }
+/* Logo başlıkta yazı yerine görsel olarak durur; yüksekliği sabit,
+   genişliği oranla gider. */
+.wordmark img { display: block; height: 34px; width: auto; }
 .tagline { color: var(--muted); font-size: 0.85rem; }
 
 .trace-motif { display: block; width: 100%; height: 26px; }

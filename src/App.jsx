@@ -1,4 +1,5 @@
 import { HashRouter, Routes, Route, Link } from 'react-router-dom'
+import logo from './assets/logo.png'
 import Home from './pages/Home'
 import CategoryPage from './pages/CategoryPage'
 import TraceWidth from './pages/tools/TraceWidth'
@@ -32,7 +33,9 @@ function Layout({ children }) {
     <>
       <header className="site-header">
         <div className="container">
-          <Link to="/" className="wordmark">ALP PCB Toolkit</Link>
+          <Link to="/" className="wordmark">
+            <img src={logo} alt="ALP PCB Toolkit" />
+          </Link>
           <span className="tagline">mühendislik karar destek araçları</span>
         </div>
         <svg className="trace-motif" viewBox="0 0 1200 26" preserveAspectRatio="none" aria-hidden="true">
