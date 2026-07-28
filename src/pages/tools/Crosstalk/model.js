@@ -47,12 +47,12 @@ export const INITIAL_FORM = {
 
 const PLAIN = { '': 1 }
 const OHM = { Ω: 1 }
-const DIM = { mm: LENGTH.mm, um: LENGTH.um, mil: LENGTH.mil }
+const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 const LEN = {
   mm: LENGTH.mm, cm: LENGTH.cm, m: LENGTH.m, inch: LENGTH.inch, mil: LENGTH.mil,
 }
 
-export const DIM_UNITS = ['mm', 'um', 'mil']
+export const DIM_UNITS = ['mm', 'µm', 'mil']
 export const LEN_UNITS = ['mm', 'cm', 'm', 'inch', 'mil']
 export const TIME_UNITS = ['ps', 'ns', 'µs']
 export const VOLT_UNITS = ['V', 'mV']

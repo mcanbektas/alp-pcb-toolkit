@@ -54,13 +54,13 @@ export const INITIAL_FORM = {
   // §8.6
   Lcu: '20', Lcuu: 'mm',
   Wcu: '10', Wcuu: 'mm',
-  tcu: '35', tcuu: 'um',
+  tcu: '35', tcuu: 'µm',
   Hdi: '1.6', Hdiu: 'mm',
   area: '100', areau: 'mm²',
 }
 
 const TEMP = { '°C': 1 }
-const DIM = { mm: LENGTH.mm, um: LENGTH.um, mil: LENGTH.mil }
+const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 const SURF = { 'mm²': AREA['mm²'], 'mil²': AREA['mil²'], 'm²': AREA['m²'] }
 
 export function formFields(mode, f) {

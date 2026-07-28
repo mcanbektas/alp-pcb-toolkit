@@ -18,7 +18,7 @@ import {
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
-const DIM_UNITS = ['mm', 'um', 'mil']
+const DIM_UNITS = ['mm', 'µm', 'mil']
 
 const FORMULA = `Tek uçlu Z₀ — kapalı form,
   spec §6.4/§6.6:

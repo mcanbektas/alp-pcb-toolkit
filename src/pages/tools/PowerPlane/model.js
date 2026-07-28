@@ -57,7 +57,7 @@ export function formFields(tool, f) {
       { key: 'Vs', label: 'Besleme gerilimi', unitKey: 'Vsu', table: VOLTAGE, min: 0, optional: true },
     ],
     when(f.oz === 'custom', [
-      { key: 'tCustom', label: 'Özel bakır kalınlığı', unit: 'um', table: LENGTH, min: 0 },
+      { key: 'tCustom', label: 'Özel bakır kalınlığı', unit: 'µm', table: LENGTH, min: 0 },
     ]),
     when(tool === TOOL_PLANE, [
       { key: 'L', label: 'Akım yolu uzunluğu (L)', unitKey: 'Lu', table: LENGTH, min: 0 },

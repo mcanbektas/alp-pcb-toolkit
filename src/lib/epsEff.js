@@ -31,12 +31,12 @@ export const INITIAL_EPS_FORM = {
   epsStructure: EPS_STRUCT_MICROSTRIP,
   epsW: '0.2', epsWu: 'mm',
   epsH: '0.2', epsHu: 'mm',
-  epsT: '35', epsTu: 'um',
+  epsT: '35', epsTu: 'µm',
   epsR: '4.2',
 }
 
 const PLAIN = { '': 1 }
-const DIM = { mm: LENGTH.mm, um: LENGTH.um, mil: LENGTH.mil }
+const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 
 export function epsFields(f) {
   const geometry = f.epsSource === EPS_GEOMETRY

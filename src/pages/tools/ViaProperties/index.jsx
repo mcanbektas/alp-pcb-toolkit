@@ -18,7 +18,7 @@ import { BASIS_LABEL, CHART, reasonText, commentary } from './text'
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const DIA_UNITS = ['mm', 'um', 'mil']
+const DIA_UNITS = ['mm', 'µm', 'mil']
 
 export default function ViaProperties() {
   const [mode, setMode] = useState(MODE_ANALYSIS)

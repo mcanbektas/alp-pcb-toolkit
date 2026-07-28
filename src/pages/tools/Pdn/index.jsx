@@ -204,7 +204,7 @@ export default function Pdn() {
                   <NumberField
                     label="Dielektrik kalınlığı (d)"
                     value={f.d} onChange={set('d')}
-                    units={['mm', 'um']} unit={f.du} onUnit={set('du')}
+                    units={['mm', 'µm']} unit={f.du} onUnit={set('du')}
                   />
                   <NumberField
                     label="Dielektrik sabiti (εr)"

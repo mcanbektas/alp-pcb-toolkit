@@ -15,7 +15,7 @@ import { STRUCT_LABEL, METHOD_NOTE, CHART, reasonText, commentary } from './text
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
-const DIM_UNITS = ['mm', 'um', 'mil']
+const DIM_UNITS = ['mm', 'µm', 'mil']
 
 const FORMULA = {
   [STRUCT_MICROSTRIP]: `u = W / H

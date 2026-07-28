@@ -13,7 +13,7 @@ export const REASON_INCOMPLETE = 'incomplete'
 
 export const INITIAL_FORM = {
   Df: '0.3', Dfu: 'mm',
-  tp: '25', tpu: 'um',
+  tp: '25', tpu: 'µm',
   H: '1.6', Hu: 'mm',
   N: '9',
   filled: false,
@@ -26,7 +26,7 @@ export const INITIAL_FORM = {
 const TEMP = { '°C': 1 }
 const COUNT = { adet: 1 }
 const COND = { 'W/(m·K)': 1 }
-const DIA = { mm: LENGTH.mm, um: LENGTH.um, mil: LENGTH.mil }
+const DIA = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 
 export function formFields(mode) {
   return fieldsFor([

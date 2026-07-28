@@ -20,7 +20,7 @@ import {
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
-const DIM_UNITS = ['mm', 'um', 'mil']
+const DIM_UNITS = ['mm', 'µm', 'mil']
 const AREA_UNITS = ['mm²', 'mil²', 'm²']
 
 const FORMULA = {

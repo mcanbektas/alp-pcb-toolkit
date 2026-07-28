@@ -32,7 +32,7 @@ export const INITIAL_FORM = {
   W: '0.2', Wu: 'mm',
   S: '0.2', Su: 'mm',
   H: '0.2', Hu: 'mm',
-  t: '35', tu: 'um',
+  t: '35', tu: 'µm',
   epsR: '4.2',
 
   target: '100',
@@ -41,7 +41,7 @@ export const INITIAL_FORM = {
 
 const PLAIN = { '': 1 }
 const PCT = { '%': 1 }
-const DIM = { mm: LENGTH.mm, um: LENGTH.um, mil: LENGTH.mil }
+const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 const OHM = { Ω: 1 }
 
 export function formFields(f, mode) {

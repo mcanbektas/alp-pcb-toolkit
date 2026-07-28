@@ -19,7 +19,7 @@ export const REASON_PAD = 'pad'
 
 export const INITIAL_FORM = {
   Df: '0.3', Dfu: 'mm',
-  tp: '25', tpu: 'um',
+  tp: '25', tpu: 'µm',
   H: '1.6', Hu: 'mm',
   I: '3', Iu: 'A',
   T: '45',
@@ -43,7 +43,7 @@ export const INITIAL_FORM = {
 
 const TEMP = { '°C': 1 }
 const PLAIN = { '': 1, adet: 1 }
-const DIA = { mm: LENGTH.mm, um: LENGTH.um, mil: LENGTH.mil }
+const DIA = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 
 export function formFields(mode) {
   return fieldsFor([

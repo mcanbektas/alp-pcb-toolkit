@@ -39,7 +39,7 @@ export function formFields(mode, f) {
       { key: 'L', label: 'Yol uzunluğu (L)', unitKey: 'Lu', table: LENGTH, min: 0 },
     ],
     when(f.oz === 'custom', [
-      { key: 'tCustom', label: 'Özel bakır kalınlığı', unit: 'um', table: LENGTH, min: 0 },
+      { key: 'tCustom', label: 'Özel bakır kalınlığı', unit: 'µm', table: LENGTH, min: 0 },
     ]),
     when(mode === MODE_ANALYSIS, [
       { key: 'W', label: 'Yol genişliği (W)', unitKey: 'Wu', table: WIDTH, min: 0 },
