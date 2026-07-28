@@ -517,6 +517,10 @@ a:hover { text-decoration: underline; }
   color: var(--muted);
   text-align: center;
   margin-top: 8px;
+  /* Şemanın altyazısı da şemanın yazısıdır: içerideki .sch-label ve
+     .sch-value ile aynı ağırlıkta okunur, yoksa grafik bloğu kendi
+     içinde iki ağırlığa bölünüyordu. Rengi yine soluk kalır. */
+  font-weight: 600;
 }
 .sch-wire { stroke: var(--accent-dim); stroke-width: 2; fill: none; stroke-linecap: round; }
 .sch-part { stroke: var(--accent); stroke-width: 2; fill: var(--surface); }
