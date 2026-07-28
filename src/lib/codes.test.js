@@ -3,6 +3,7 @@ import {
   decodeColorBands, encodeColorBands, resistanceAtTemp,
   decodeSmd, decodeCapacitor,
   CODE_ERR_FORMAT, CODE_ERR_DIGIT, CODE_ERR_RANGE,
+  BAND_ROLE_DIGIT, CODE_VARIANT_CAP_LETTER, CODE_VARIANT_TOLERANCE,
 } from './codes'
 
 describe('spec §13 Test 5 — direnç kodu', () => {
@@ -39,6 +40,8 @@ describe('renk bantları', () => {
   it('altın rakam bandı olarak kullanılamaz', () => {
     const r = decodeColorBands(['gold', 'violet', 'red', 'gold'])
     expect(r.error).toBe(CODE_ERR_DIGIT)
+    // Hangi bandın hangi rolü karşılamadığı alan olarak döner; cümleyi ekran kurar
+    expect(r.message).toEqual({ band: 1, role: BAND_ROLE_DIGIT, color: 'gold' })
   })
 
   it('değerden renge ve geri dönünce aynı değeri verir', () => {
@@ -48,7 +51,9 @@ describe('renk bantları', () => {
   })
 
   it('renklerle temsil edilemeyen tolerans hata döner', () => {
-    expect(encodeColorBands(4700, 3, 4).error).toBe(CODE_ERR_RANGE)
+    const r = encodeColorBands(4700, 3, 4)
+    expect(r.error).toBe(CODE_ERR_RANGE)
+    expect(r.message).toEqual({ variant: CODE_VARIANT_TOLERANCE, tolerance: 3 })
   })
 })
 
@@ -113,11 +118,39 @@ describe('kondansatör kodları', () => {
   it('Z asimetrik tolerans olarak işaretlenir', () => {
     const r = decodeCapacitor('104Z')
     expect(r.tolerance).toBeNull()
-    expect(r.toleranceNote).toMatch(/80/)
+    // Tek sayıyla ifade edilemeyen sınırlar sayı olarak döner, cümle olarak değil
+    expect(r.toleranceAsymmetric).toEqual({ plus: 80, minus: 20 })
   })
 
   it('geçersiz biçim hata döner', () => {
     expect(decodeCapacitor('10').error).toBe(CODE_ERR_FORMAT)
-    expect(decodeCapacitor('104Q').error).toBe(CODE_ERR_FORMAT)
+    const r = decodeCapacitor('104Q')
+    expect(r.error).toBe(CODE_ERR_FORMAT)
+    expect(r.message).toEqual({ variant: CODE_VARIANT_CAP_LETTER, letter: 'Q' })
+  })
+})
+
+describe('hata sonuçları', () => {
+  it('kullanıcıya görünen cümle taşımaz — yalnızca kod ve alanlar', () => {
+    const failures = [
+      decodeColorBands(['red', 'red']),
+      decodeColorBands(['red', 'red', 'pink', 'gold']),
+      decodeColorBands(['gold', 'violet', 'red', 'gold']),
+      encodeColorBands(0, 5, 4),
+      encodeColorBands(1e12, 5, 4),
+      encodeColorBands(4700, 3, 4),
+      encodeColorBands(4700, 5, 6, 7),
+      decodeSmd(''),
+      decodeSmd('4K7X'),
+      decodeSmd('00A'),
+      decodeSmd('01H'),
+      decodeCapacitor(104),
+      decodeCapacitor('10'),
+      decodeCapacitor('104Q'),
+    ]
+    for (const r of failures) {
+      expect(typeof r.error).toBe('string')
+      expect(typeof r.message).not.toBe('string')
+    }
   })
 })

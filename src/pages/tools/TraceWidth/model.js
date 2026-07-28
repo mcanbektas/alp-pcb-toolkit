@@ -3,7 +3,7 @@
 import { fieldsFor, readForm, when } from '../../../lib/fields'
 import { LENGTH, CURRENT, VOLTAGE } from '../../../lib/units'
 import {
-  OZ_TABLE, MIL2_TO_MM2,
+  ozThickness_m, MIL2_TO_MM2,
   areaForCurrent_mil2, currentForArea, kCoeff,
   traceResistance, validityWarnings,
 } from '../../../lib/traceCalc'
@@ -60,8 +60,7 @@ export function formFields(mode, f) {
 // Seçilen bakır ağırlığından kalınlık (m). Özel kalınlık alanı SI'ye çevrilmiş gelir.
 function copperThickness(f, values) {
   if (f.oz === 'custom') return values.tCustom
-  const row = OZ_TABLE.find((o) => o.key === f.oz)
-  return row?.um != null ? row.um * 1e-6 : NaN
+  return ozThickness_m(f.oz)
 }
 
 // Belirli bir genişlik için tüm elektriksel sonuçlar. Girişler SI.

@@ -7,7 +7,7 @@
 
 import { readForm, readRows, fieldsFor, when } from '../../../lib/fields'
 import {
-  VOLTAGE, CURRENT, CAPACITANCE, INDUCTANCE, FREQUENCY, AREA, LENGTH,
+  VOLTAGE, CURRENT, CAPACITANCE, INDUCTANCE, FREQUENCY, RESISTANCE, AREA, LENGTH,
 } from '../../../lib/units'
 import {
   targetImpedance, planeCapacitance, pdnImpedance, loopInductance,
@@ -75,10 +75,8 @@ export const INITIAL_FORM = {
 
 const PLAIN = { '': 1 }
 const PCT = { '%': 1 }
-// Ω ve mΩ için yerel çarpan tablosu (DiffPair/model.js'teki OHM deseni)
-const OHM = { Ω: 1, mΩ: 1e-3 }
-// Alan: cm² units.js tablosunda yok, uzunluk çarpanının karesinden türetilir
-const AREA_T = { 'cm²': LENGTH.cm * LENGTH.cm, 'mm²': AREA['mm²'], 'm²': AREA['m²'] }
+// Direnç ve alan çarpanları units.js'ten gelir; yerel çarpan tablosu yazılmaz.
+// Ekranda sunulan birimler OHM_UNITS ve alan seçicisinin listesiyle sınırlıdır.
 
 export const CAP_UNITS = ['µF', 'nF', 'pF']
 export const OHM_UNITS = ['mΩ', 'Ω']
@@ -101,7 +99,7 @@ export const CAP_COLUMNS_B = [
 // PDN_ERR_SINGULAR ile reddeder ve ekran bunu anlaşılır bir mesaja çevirir.
 const CAP_SPECS = [
   { key: 'C', label: 'Kapasite', unitKey: 'Cu', table: CAPACITANCE, min: 0 },
-  { key: 'ESR', label: 'ESR', unitKey: 'ESRu', table: OHM, min: 0, allowZero: true },
+  { key: 'ESR', label: 'ESR', unitKey: 'ESRu', table: RESISTANCE, min: 0, allowZero: true },
   { key: 'ESL', label: 'ESL', unitKey: 'ESLu', table: INDUCTANCE, min: 0, allowZero: true },
   { key: 'n', label: 'Adet', min: 1 },
 ]
@@ -123,11 +121,11 @@ export function formFields(f) {
     ]),
     when(f.curve === ON, [
       { key: 'fOp', label: 'Çalışma frekansı', unitKey: 'fOpu', table: FREQUENCY, min: 0 },
-      { key: 'vrmR', label: 'VRM çıkış direnci (R)', unitKey: 'vrmRu', table: OHM, min: 0, optional: true, allowZero: true },
+      { key: 'vrmR', label: 'VRM çıkış direnci (R)', unitKey: 'vrmRu', table: RESISTANCE, min: 0, optional: true, allowZero: true },
       { key: 'vrmL', label: 'VRM endüktansı (L)', unitKey: 'vrmLu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
     ]),
     when(f.curve === ON && f.plane === ON, [
-      { key: 'area', label: 'Örtüşen düzlem alanı (A)', unitKey: 'areau', table: AREA_T, min: 0 },
+      { key: 'area', label: 'Örtüşen düzlem alanı (A)', unitKey: 'areau', table: AREA, min: 0 },
       { key: 'd', label: 'Dielektrik kalınlığı (d)', unitKey: 'du', table: LENGTH, min: 0 },
       { key: 'epsR', label: 'Dielektrik sabiti (εr)', unit: '', table: PLAIN, min: 1 },
     ]),

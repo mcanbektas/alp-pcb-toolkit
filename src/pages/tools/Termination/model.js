@@ -8,7 +8,7 @@
 // lib/eseries.js içindeki errorPct ile yapılır.
 
 import { readForm, fieldsFor, when } from '../../../lib/fields'
-import { VOLTAGE } from '../../../lib/units'
+import { VOLTAGE, RESISTANCE } from '../../../lib/units'
 import { errorPct } from '../../../lib/eseries'
 import {
   seriesTermination, parallelTermination, theveninTermination,
@@ -45,19 +45,20 @@ export const INITIAL_FORM = {
   eseries: 'E24',
 }
 
-const OHM = { Ω: 1 }
 const DUTY = { '%': 0.01 }
 
 export function formFields(f, type) {
   return fieldsFor([
     [
-      { key: 'Z0', label: 'Hat empedansı (Z₀)', unit: 'Ω', table: OHM, min: 0 },
+      // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
+      // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
+      { key: 'Z0', label: 'Hat empedansı (Z₀)', unit: 'Ω', table: RESISTANCE, min: 0 },
     ],
     when(type === TERM_SERIES, [
       // Motor R_driver = 0 durumunu kabul ediyor (ideal gerilim kaynağı)
       {
         key: 'Rdriver', label: 'Sürücü çıkış direnci (R_driver)',
-        unit: 'Ω', table: OHM, min: 0, allowZero: true,
+        unit: 'Ω', table: RESISTANCE, min: 0, allowZero: true,
       },
     ]),
     when(type === TERM_PARALLEL, [

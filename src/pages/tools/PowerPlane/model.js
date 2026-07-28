@@ -4,8 +4,7 @@
 import { readForm, readRows, fieldsFor, when } from '../../../lib/fields'
 import { LENGTH, CURRENT, VOLTAGE } from '../../../lib/units'
 import { powerPlane, parallelTraces, equivalentSingleWidth, stripResistance } from '../../../lib/plane'
-import { OZ_TABLE } from '../../../lib/traceCalc'
-import { currentForArea } from '../../../lib/traceCalc'
+import { ozThickness_m, currentForArea } from '../../../lib/traceCalc'
 
 export const TOOL_PLANE = 'plane'
 export const TOOL_PARALLEL = 'parallel'
@@ -69,8 +68,7 @@ export function formFields(tool, f) {
 
 function copperThickness(f, values) {
   if (f.oz === 'custom') return values.tCustom
-  const row = OZ_TABLE.find((o) => o.key === f.oz)
-  return row?.um != null ? row.um * 1e-6 : NaN
+  return ozThickness_m(f.oz)
 }
 
 export function compute(tool, f) {

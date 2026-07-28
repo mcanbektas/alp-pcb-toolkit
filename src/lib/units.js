@@ -25,7 +25,7 @@ export const K_FR4 = 0.3 // W/(m·K)
 // Kullanım: value_SI = value * FACTOR[unit]
 
 export const LENGTH = { m: 1, cm: 1e-2, mm: 1e-3, um: 1e-6, µm: 1e-6, mil: MIL_M, inch: INCH_M }
-export const AREA = { 'm²': 1, 'mm²': 1e-6, 'µm²': 1e-12, 'mil²': MIL_M * MIL_M }
+export const AREA = { 'm²': 1, 'cm²': 1e-4, 'mm²': 1e-6, 'µm²': 1e-12, 'mil²': MIL_M * MIL_M }
 export const CURRENT = { A: 1, mA: 1e-3, µA: 1e-6, kA: 1e3 }
 export const VOLTAGE = { V: 1, mV: 1e-3, µV: 1e-6, kV: 1e3 }
 export const RESISTANCE = { Ω: 1, mΩ: 1e-3, µΩ: 1e-6, kΩ: 1e3, MΩ: 1e6 }

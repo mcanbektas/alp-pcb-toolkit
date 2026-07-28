@@ -2,7 +2,7 @@
 // Saf: React, DOM ve gösterim bilmez.
 
 import { readForm, fieldsFor, when } from '../../../lib/fields'
-import { LENGTH } from '../../../lib/units'
+import { LENGTH, RESISTANCE } from '../../../lib/units'
 import {
   differentialPair, solveSpacingForZdiff, solveWidthForZ0,
   IMP_ERR_NO_SOLUTION,
@@ -42,7 +42,6 @@ export const INITIAL_FORM = {
 const PLAIN = { '': 1 }
 const PCT = { '%': 1 }
 const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
-const OHM = { Ω: 1 }
 
 export function formFields(f, mode) {
   return fieldsFor([
@@ -56,7 +55,9 @@ export function formFields(f, mode) {
       { key: 'S', label: 'Hatlar arası boşluk (S)', unitKey: 'Su', table: DIM, min: 0 },
     ]),
     when(mode === MODE_SYNTHESIS, [
-      { key: 'target', label: 'Hedef diferansiyel empedans', unit: 'Ω', table: OHM, min: 0 },
+      // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
+      // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
+      { key: 'target', label: 'Hedef diferansiyel empedans', unit: 'Ω', table: RESISTANCE, min: 0 },
       { key: 'tolerancePct', label: 'İzin verilen sapma', unit: '%', table: PCT, min: 0 },
     ]),
     when(mode === MODE_SYNTHESIS && f.fixed === FIX_WIDTH, [

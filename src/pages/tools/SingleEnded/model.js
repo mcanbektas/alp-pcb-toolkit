@@ -2,7 +2,7 @@
 // Saf: React, DOM ve gösterim bilmez.
 
 import { readForm, fieldsFor, when } from '../../../lib/fields'
-import { LENGTH } from '../../../lib/units'
+import { LENGTH, RESISTANCE } from '../../../lib/units'
 import {
   microstrip, stripline, coplanarWaveguide,
   solveWidthForZ0, impedanceTolerance,
@@ -39,7 +39,6 @@ export const INITIAL_FORM = {
 const PLAIN = { '': 1 }
 const PCT = { '%': 1 }
 const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
-const OHM = { Ω: 1 }
 
 export function formFields(f, mode) {
   const structure = f.structure
@@ -52,7 +51,9 @@ export function formFields(f, mode) {
       { key: 'W', label: 'Hat genişliği (W)', unitKey: 'Wu', table: DIM, min: 0 },
     ]),
     when(mode === MODE_SYNTHESIS, [
-      { key: 'target', label: 'Hedef empedans', unit: 'Ω', table: OHM, min: 0 },
+      // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
+      // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
+      { key: 'target', label: 'Hedef empedans', unit: 'Ω', table: RESISTANCE, min: 0 },
     ]),
     when(structure === STRUCT_MICROSTRIP || structure === STRUCT_CPW, [
       { key: 'H', label: 'Dielektrik yüksekliği (H)', unitKey: 'Hu', table: DIM, min: 0 },

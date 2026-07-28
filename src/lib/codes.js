@@ -1,27 +1,33 @@
 // Komponent işaret kodları — direnç renk bantları, SMD direnç kodları,
 // seramik kondansatör kodları (spec §9.1, §9.2, §9.3).
+//
+// Saf katman: kullanıcıya görünen metin üretmez. Hata durumunda
+// { error: <kod>, message: <ayrıntı> } döner. `message` bir cümle değil, kodu
+// tamamlayan simgesel/sayısal alanları taşıyan düz veri nesnesidir (bant sırası,
+// bant rolü, renk anahtarı, harf, sayı). Kodu ve alanlarını Türkçe cümleye
+// çeviren taraf ekranın text.js dosyasıdır.
 
 import { E96 } from './eseries'
 
 // --- §9.1 Direnç renk kodu ---
 
-// Bant renkleri burada yalnızca anahtar ve ad olarak durur; gerçek renk değeri
-// theme.css içindeki --band-<key> değişkenlerinden gelir. Bu modül sunum
-// bilmez — bir bandın hangi rakamı ve çarpanı taşıdığını bilir, nasıl
-// boyanacağını bilmez.
+// Bant renkleri burada yalnızca anahtar olarak durur: bir bandın hangi rakamı,
+// çarpanı, toleransı ve sıcaklık katsayısını taşıdığını bilir; adını da nasıl
+// boyanacağını da bilmez. Türkçe renk adları ekranın text.js dosyasında,
+// gerçek renk değerleri tema dosyalarındaki --band-<key> değişkenlerindedir.
 export const COLORS = [
-  { key: 'black', name: 'Siyah', digit: 0, multiplier: 1e0 },
-  { key: 'brown', name: 'Kahverengi', digit: 1, multiplier: 1e1, tolerance: 1, tcr: 100 },
-  { key: 'red', name: 'Kırmızı', digit: 2, multiplier: 1e2, tolerance: 2, tcr: 50 },
-  { key: 'orange', name: 'Turuncu', digit: 3, multiplier: 1e3, tcr: 15 },
-  { key: 'yellow', name: 'Sarı', digit: 4, multiplier: 1e4, tcr: 25 },
-  { key: 'green', name: 'Yeşil', digit: 5, multiplier: 1e5, tolerance: 0.5 },
-  { key: 'blue', name: 'Mavi', digit: 6, multiplier: 1e6, tolerance: 0.25, tcr: 10 },
-  { key: 'violet', name: 'Mor', digit: 7, multiplier: 1e7, tolerance: 0.1, tcr: 5 },
-  { key: 'grey', name: 'Gri', digit: 8, multiplier: 1e8, tolerance: 0.05 },
-  { key: 'white', name: 'Beyaz', digit: 9, multiplier: 1e9 },
-  { key: 'gold', name: 'Altın', multiplier: 1e-1, tolerance: 5 },
-  { key: 'silver', name: 'Gümüş', multiplier: 1e-2, tolerance: 10 },
+  { key: 'black', digit: 0, multiplier: 1e0 },
+  { key: 'brown', digit: 1, multiplier: 1e1, tolerance: 1, tcr: 100 },
+  { key: 'red', digit: 2, multiplier: 1e2, tolerance: 2, tcr: 50 },
+  { key: 'orange', digit: 3, multiplier: 1e3, tcr: 15 },
+  { key: 'yellow', digit: 4, multiplier: 1e4, tcr: 25 },
+  { key: 'green', digit: 5, multiplier: 1e5, tolerance: 0.5 },
+  { key: 'blue', digit: 6, multiplier: 1e6, tolerance: 0.25, tcr: 10 },
+  { key: 'violet', digit: 7, multiplier: 1e7, tolerance: 0.1, tcr: 5 },
+  { key: 'grey', digit: 8, multiplier: 1e8, tolerance: 0.05 },
+  { key: 'white', digit: 9, multiplier: 1e9 },
+  { key: 'gold', multiplier: 1e-1, tolerance: 5 },
+  { key: 'silver', multiplier: 1e-2, tolerance: 10 },
 ]
 
 export const COLOR_BY_KEY = Object.fromEntries(COLORS.map((c) => [c.key, c]))
@@ -37,44 +43,72 @@ export const CODE_ERR_DIGIT = 'digit'
 export const CODE_ERR_FORMAT = 'format'
 export const CODE_ERR_RANGE = 'range'
 
+// Bir bant konumunun taşıdığı büyüklük. Hata ayrıntısında `role` alanı olarak
+// döner; hangi bandın neyi taşımadığını ekran bu koda bakarak yazar.
+export const BAND_ROLE_DIGIT = 'digit'
+export const BAND_ROLE_MULTIPLIER = 'multiplier'
+export const BAND_ROLE_TOLERANCE = 'tolerance'
+export const BAND_ROLE_TCR = 'tcr'
+
+// Aynı hata kodunun birden çok durumu varsa ayrıntıdaki `variant` alanı ayırır.
+export const CODE_VARIANT_NOT_TEXT = 'not-text'
+export const CODE_VARIANT_EMPTY = 'empty'
+export const CODE_VARIANT_R_NOTATION = 'r-notation'
+export const CODE_VARIANT_SMD_SHAPE = 'smd-shape'
+export const CODE_VARIANT_EIA96_INDEX = 'eia96-index'
+export const CODE_VARIANT_EIA96_LETTER = 'eia96-letter'
+export const CODE_VARIANT_CAP_SHAPE = 'cap-shape'
+export const CODE_VARIANT_CAP_LETTER = 'cap-letter'
+export const CODE_VARIANT_POSITIVE = 'positive'
+export const CODE_VARIANT_MULTIPLIER = 'multiplier'
+export const CODE_VARIANT_TOLERANCE = 'tolerance'
+export const CODE_VARIANT_TCR = 'tcr'
+
+// Tek hata biçimi: kod + kodu tamamlayan alanlar. Cümle burada kurulmaz.
+const codeError = (error, message) => ({ error, message })
+
 // Renk bantlarından direnç değeri.
 // 4 bant: [d1, d2, çarpan, tolerans]
 // 5 bant: [d1, d2, d3, çarpan, tolerans]
 // 6 bant: [d1, d2, d3, çarpan, tolerans, TCR]
 export function decodeColorBands(keys) {
   if (!Array.isArray(keys) || ![4, 5, 6].includes(keys.length)) {
-    return { error: CODE_ERR_BANDS, message: 'Bant sayısı 4, 5 veya 6 olmalı.' }
+    return codeError(CODE_ERR_BANDS)
   }
 
   const bands = keys.map((k) => COLOR_BY_KEY[k])
   for (let i = 0; i < bands.length; i++) {
-    if (!bands[i]) return { error: CODE_ERR_COLOR, message: `Bant ${i + 1}: bilinmeyen renk.` }
+    if (!bands[i]) return codeError(CODE_ERR_COLOR, { band: i + 1 })
   }
 
   const digitCount = keys.length === 4 ? 2 : 3
   let significand = 0
   for (let i = 0; i < digitCount; i++) {
     if (bands[i].digit === undefined) {
-      return { error: CODE_ERR_DIGIT, message: `Bant ${i + 1} rakam bandı — ${bands[i].name} rakam taşımaz.` }
+      return codeError(CODE_ERR_DIGIT, { band: i + 1, role: BAND_ROLE_DIGIT, color: bands[i].key })
     }
     significand = significand * 10 + bands[i].digit
   }
 
   const mulBand = bands[digitCount]
   if (mulBand.multiplier === undefined) {
-    return { error: CODE_ERR_DIGIT, message: `Bant ${digitCount + 1} çarpan bandı — ${mulBand.name} çarpan taşımaz.` }
+    return codeError(CODE_ERR_DIGIT, {
+      band: digitCount + 1, role: BAND_ROLE_MULTIPLIER, color: mulBand.key,
+    })
   }
 
   const tolBand = bands[digitCount + 1]
   if (tolBand.tolerance === undefined) {
-    return { error: CODE_ERR_DIGIT, message: `Bant ${digitCount + 2} tolerans bandı — ${tolBand.name} tolerans taşımaz.` }
+    return codeError(CODE_ERR_DIGIT, {
+      band: digitCount + 2, role: BAND_ROLE_TOLERANCE, color: tolBand.key,
+    })
   }
 
   let tcr = null
   if (keys.length === 6) {
     const tcrBand = bands[5]
     if (tcrBand.tcr === undefined) {
-      return { error: CODE_ERR_DIGIT, message: `Bant 6 sıcaklık katsayısı bandı — ${tcrBand.name} TCR taşımaz.` }
+      return codeError(CODE_ERR_DIGIT, { band: 6, role: BAND_ROLE_TCR, color: tcrBand.key })
     }
     tcr = tcrBand.tcr
   }
@@ -99,9 +133,9 @@ export function resistanceAtTemp(r25, tcrPpm, T_C) {
 
 // Değerden renge (ters yön). bandCount: 4 | 5 | 6
 export function encodeColorBands(ohms, tolerance, bandCount = 4, tcr = null) {
-  if (!(ohms > 0)) return { error: CODE_ERR_RANGE, message: 'Direnç pozitif olmalı.' }
+  if (!(ohms > 0)) return codeError(CODE_ERR_RANGE, { variant: CODE_VARIANT_POSITIVE })
   if (![4, 5, 6].includes(bandCount)) {
-    return { error: CODE_ERR_BANDS, message: 'Bant sayısı 4, 5 veya 6 olmalı.' }
+    return codeError(CODE_ERR_BANDS)
   }
 
   const digitCount = bandCount === 4 ? 2 : 3
@@ -116,18 +150,12 @@ export function encodeColorBands(ohms, tolerance, bandCount = 4, tcr = null) {
 
   const mulBand = MULTIPLIER_COLORS.find((c) => Math.abs(Math.log10(c.multiplier) - exp) < 1e-9)
   if (!mulBand) {
-    return {
-      error: CODE_ERR_RANGE,
-      message: `${ohms} Ω renk bandı çarpan aralığının (×0.01 … ×10⁹) dışında.`,
-    }
+    return codeError(CODE_ERR_RANGE, { variant: CODE_VARIANT_MULTIPLIER, ohms })
   }
 
   const tolBand = TOLERANCE_COLORS.find((c) => c.tolerance === tolerance)
   if (!tolBand) {
-    return {
-      error: CODE_ERR_RANGE,
-      message: `%${tolerance} toleransın renk karşılığı yok. Geçerli: ${TOLERANCE_COLORS.map((c) => c.tolerance).join(', ')}.`,
-    }
+    return codeError(CODE_ERR_RANGE, { variant: CODE_VARIANT_TOLERANCE, tolerance })
   }
 
   const digits = String(significand).padStart(digitCount, '0').split('').map(Number)
@@ -137,10 +165,7 @@ export function encodeColorBands(ohms, tolerance, bandCount = 4, tcr = null) {
   if (bandCount === 6) {
     const tcrBand = TCR_COLORS.find((c) => c.tcr === tcr)
     if (!tcrBand) {
-      return {
-        error: CODE_ERR_RANGE,
-        message: `${tcr} ppm/°C sıcaklık katsayısının renk karşılığı yok. Geçerli: ${TCR_COLORS.map((c) => c.tcr).join(', ')}.`,
-      }
+      return codeError(CODE_ERR_RANGE, { variant: CODE_VARIANT_TCR, tcr })
     }
     keys.push(tcrBand.key)
   }
@@ -160,27 +185,28 @@ export const EIA96_MULTIPLIERS = {
 }
 
 export function decodeSmd(code, { profile = 'standard' } = {}) {
-  if (typeof code !== 'string') return { error: CODE_ERR_FORMAT, message: 'Kod metin olmalı.' }
+  if (typeof code !== 'string') return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_NOT_TEXT })
   const s = code.trim().toUpperCase()
-  if (s === '') return { error: CODE_ERR_FORMAT, message: 'Kod boş.' }
+  if (s === '') return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_EMPTY })
 
   // Sıfır ohm jumper
   if (/^0{1,4}$/.test(s)) {
-    return { ohms: 0, kind: 'zero', note: 'Sıfır ohm jumper.' }
+    return { ohms: 0, kind: 'zero' }
   }
 
   // R işareti: ondalık ayracı yerine geçer — 4R7 = 4.7 Ω, R22 = 0.22 Ω
   if (/^\d*R\d*$/.test(s)) {
     const v = parseFloat(s.replace('R', '.'))
-    if (!Number.isFinite(v)) return { error: CODE_ERR_FORMAT, message: 'R işaretli kod okunamadı.' }
+    if (!Number.isFinite(v)) return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_R_NOTATION })
     return { ohms: v, kind: 'r-notation' }
   }
 
   // EIA-96: iki rakam + çarpan harfi
   if (/^\d{2}[A-Z]$/.test(s)) {
-    const idx = parseInt(s.slice(0, 2), 10)
+    const index = s.slice(0, 2)
+    const idx = parseInt(index, 10)
     if (idx < 1 || idx > 96) {
-      return { error: CODE_ERR_RANGE, message: `EIA-96 kod numarası 01–96 aralığında olmalı, "${s.slice(0, 2)}" geçersiz.` }
+      return codeError(CODE_ERR_RANGE, { variant: CODE_VARIANT_EIA96_INDEX, index })
     }
     const letter = s[2]
     const table = EIA96_MULTIPLIERS.standard
@@ -191,11 +217,7 @@ export function decodeSmd(code, { profile = 'standard' } = {}) {
       aliasUsed = mult !== undefined
     }
     if (mult === undefined) {
-      const valid = Object.keys(table).join(', ')
-      return {
-        error: CODE_ERR_FORMAT,
-        message: `"${letter}" standart EIA-96 çarpan harfi değil. Geçerli: ${valid}. Üretici alias'ı için üretici profilini seçin.`,
-      }
+      return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_EIA96_LETTER, letter })
     }
     // E96 tablosu 100 tabanlı yazılır ve EIA-96'da kod 01 = 100 Ω (harf A = ×1),
     // yani tablo değeri doğrudan kullanılır — ayrıca ölçeklenmez.
@@ -205,7 +227,6 @@ export function decodeSmd(code, { profile = 'standard' } = {}) {
       base: E96[idx - 1],
       multiplier: mult,
       aliasUsed,
-      note: aliasUsed ? `"${letter}" üretici alias'ı olarak yorumlandı.` : undefined,
     }
   }
 
@@ -221,10 +242,7 @@ export function decodeSmd(code, { profile = 'standard' } = {}) {
     return { ohms: (100 * d[0] + 10 * d[1] + d[2]) * Math.pow(10, d[3]), kind: '4-digit' }
   }
 
-  return {
-    error: CODE_ERR_FORMAT,
-    message: `"${code}" tanınmadı. Desteklenen biçimler: 3 hane (472), 4 hane (4701), R işareti (4R7), EIA-96 (01A), sıfır ohm (0, 00, 000, 0000).`,
-  }
+  return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_SMD_SHAPE, code })
 }
 
 // --- §9.3 Seramik kondansatör kodu ---
@@ -233,21 +251,20 @@ export const CAP_TOLERANCE_LETTERS = {
   B: 0.1, C: 0.25, D: 0.5, F: 1, G: 2, J: 5, K: 10, M: 20, Z: null,
 }
 
-export const CAP_TOLERANCE_NOTES = {
-  Z: '+80 % / −20 % — asimetrik, tek sayıyla ifade edilmez.',
+// Tek sayıyla ifade edilemeyen tolerans harfleri: sınırlar yüzde olarak.
+// Cümlesini ekran kurar; burada yalnızca sayılar durur.
+export const CAP_TOLERANCE_ASYMMETRIC = {
+  Z: { plus: 80, minus: 20 },
 }
 
 export function decodeCapacitor(code) {
-  if (typeof code !== 'string') return { error: CODE_ERR_FORMAT, message: 'Kod metin olmalı.' }
+  if (typeof code !== 'string') return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_NOT_TEXT })
   const s = code.trim().toUpperCase()
-  if (s === '') return { error: CODE_ERR_FORMAT, message: 'Kod boş.' }
+  if (s === '') return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_EMPTY })
 
   const m = s.match(/^(\d{3})([A-Z])?$/)
   if (!m) {
-    return {
-      error: CODE_ERR_FORMAT,
-      message: `"${code}" tanınmadı. Beklenen biçim: üç rakam ve opsiyonel tolerans harfi (örn. 104, 104K).`,
-    }
+    return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_CAP_SHAPE, code })
   }
 
   const d = m[1].split('').map(Number)
@@ -255,16 +272,13 @@ export function decodeCapacitor(code) {
   const letter = m[2]
 
   let tolerance
-  let toleranceNote
+  let toleranceAsymmetric
   if (letter) {
     if (!(letter in CAP_TOLERANCE_LETTERS)) {
-      return {
-        error: CODE_ERR_FORMAT,
-        message: `"${letter}" bilinen bir tolerans harfi değil. Geçerli: ${Object.keys(CAP_TOLERANCE_LETTERS).join(', ')}.`,
-      }
+      return codeError(CODE_ERR_FORMAT, { variant: CODE_VARIANT_CAP_LETTER, letter })
     }
     tolerance = CAP_TOLERANCE_LETTERS[letter]
-    toleranceNote = CAP_TOLERANCE_NOTES[letter]
+    toleranceAsymmetric = CAP_TOLERANCE_ASYMMETRIC[letter]
   }
 
   return {
@@ -274,7 +288,7 @@ export function decodeCapacitor(code) {
     farad: pF * 1e-12,
     tolerance: tolerance ?? null,
     toleranceLetter: letter ?? null,
-    toleranceNote,
+    toleranceAsymmetric: toleranceAsymmetric ?? null,
     min: tolerance != null ? pF * (1 - tolerance / 100) : null,
     max: tolerance != null ? pF * (1 + tolerance / 100) : null,
   }

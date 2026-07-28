@@ -11,7 +11,7 @@
 // text.js ve index.jsx'in işidir.
 
 import { readForm, fieldsFor, when } from '../../../lib/fields'
-import { LENGTH, TIME, VOLTAGE } from '../../../lib/units'
+import { LENGTH, TIME, VOLTAGE, RESISTANCE } from '../../../lib/units'
 import { epsFields, resolveEpsEff, INITIAL_EPS_FORM, psPerMm } from '../../../lib/epsEff'
 import { threeWRule, nextCoupling, crosstalk } from '../../../lib/signalIntegrity'
 
@@ -46,7 +46,6 @@ export const INITIAL_FORM = {
 }
 
 const PLAIN = { '': 1 }
-const OHM = { Ω: 1 }
 const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 const LEN = {
   mm: LENGTH.mm, cm: LENGTH.cm, m: LENGTH.m, inch: LENGTH.inch, mil: LENGTH.mil,
@@ -61,8 +60,10 @@ export function formFields(f) {
   return fieldsFor([
     epsFields(f),
     [
-      { key: 'Zeven', label: 'Even mod empedansı (Z_even)', unit: 'Ω', table: OHM, min: 0 },
-      { key: 'Zodd', label: 'Odd mod empedansı (Z_odd)', unit: 'Ω', table: OHM, min: 0 },
+      // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
+      // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
+      { key: 'Zeven', label: 'Even mod empedansı (Z_even)', unit: 'Ω', table: RESISTANCE, min: 0 },
+      { key: 'Zodd', label: 'Odd mod empedansı (Z_odd)', unit: 'Ω', table: RESISTANCE, min: 0 },
       // Etiket lib/epsEff.js içindeki epsW alanından ("Hat genişliği (W)") ayrı
       // olmalı: eps_eff geometriden hesaplanırken formda iki genişlik alanı
       // bulunur ve readForm hatayı ada göre bildirir.
