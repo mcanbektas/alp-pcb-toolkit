@@ -8,14 +8,15 @@ export default function CategoryPage() {
   if (!cat) {
     return (
       <>
-        <h1 className="page-title">Kategori bulunamadı</h1>
         <Link className="backlink" to="/">← Ana sayfaya dön</Link>
+        <h1 className="page-title">Kategori bulunamadı</h1>
       </>
     )
   }
 
   return (
     <>
+      <Link className="backlink" to="/">← Tüm kategoriler</Link>
       <h1 className="page-title">{cat.title}</h1>
       <p className="page-sub">{cat.desc}</p>
 
@@ -34,8 +35,6 @@ export default function CategoryPage() {
           )
         )}
       </div>
-
-      <Link className="backlink" to="/">← Tüm kategoriler</Link>
     </>
   )
 }
