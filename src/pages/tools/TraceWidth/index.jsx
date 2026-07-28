@@ -5,165 +5,173 @@ import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtOhm, fmtVolt, fmtWatt, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtOhm, fmtVolt, fmtWatt } from '../../../lib/num'
 import { OZ_TABLE, rhoAt } from '../../../lib/traceCalc'
 import { LENGTH } from '../../../lib/units'
 import TraceSchematic from './schematic'
 import {
   INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS, compute, buildSweep,
 } from './model'
-import { reasonText, METHOD_NOTE, CHART_CAPTION, LAYER_LABEL } from './text'
+import { getText } from './text'
 
 // Gösterim dönüşümleri — hesaplar SI'de yapılır, yalnızca ekranda çevrilir
 const mm = (m) => m / LENGTH.mm
 const mil = (m) => m / LENGTH.mil
 const axisMm = (v) => fmt(v, 3)
 
+const MARK = { ok: '✓', warn: '!', danger: '×' }
+const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
+
 export default function TraceWidth() {
   const [mode, setMode] = useState(MODE_SYNTHESIS)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(mode, f), [mode, f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(mode, f, text.fieldLabels), [mode, f, text])
   const s = useMemo(() => buildSweep(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
+  // Durum çipi tek kurala bağlıdır: mühendislik yorumundaki bulguların en kötü
+  // seviyesi gösterilir. Geçerlilik uyarıları da o listeye giriyor, bu yüzden
+  // aralık dışı bir girdi artık "tüm kontroller geçti" diye görünmez.
   const status = useMemo(() => {
-    if (!r.ok) return null
-    if (r.mode === MODE_SYNTHESIS) {
-      if (r.tol && !r.tol.sufficient) {
-        return { cls: 'warn', text: 'Tolerans sonrası worst-case kapasite hedef akımın altında — marjı artırın' }
-      }
-      return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    }
-    const pct = fmt(r.util * 100, 3)
-    if (r.util > 1) return { cls: 'danger', text: `Yetersiz — akım, kapasitenin %${pct}'i` }
-    if (r.util > 0.8) return { cls: 'warn', text: `Sınıra yakın — kapasitenin %${pct}'i kullanılıyor` }
-    return { cls: 'ok', text: `Güvenli — kapasitenin %${pct}'i kullanılıyor` }
-  }, [r])
+    if (!r.ok || notes.length === 0) return null
+    const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
+    const count = notes.filter((n) => n.level === worst).length
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const otherLayer = r.ok ? (r.layer === 'external' ? 'internal' : 'external') : 'internal'
   const chartSeries = s
     ? [
-        { key: 'now', name: `${LAYER_LABEL[r.layer]} katman`, tone: toneClass(0), points: s.points },
-        { key: 'other', name: `${LAYER_LABEL[otherLayer]} katman`, tone: toneClass(1), points: s.otherPoints },
+        { key: 'now', name: text.layerSeries[r.layer], tone: toneClass(0), points: s.points },
+        { key: 'other', name: text.layerSeries[otherLayer], tone: toneClass(1), points: s.otherPoints },
       ]
     : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
+      <Link className="backlink" to="/kategori/akim-guc-bakir">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Trace Width &amp; Current Capacity</h1>
-        <p>
-          Akımdan gerekli yol genişliğini (sentez) ya da mevcut genişliğin akım kapasitesini (analiz)
-          hesaplar; direnç, gerilim düşümü, güç kaybı ve akım yoğunluğunu birlikte verir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <TraceSchematic r={r} />
+          <TraceSchematic r={r} text={text.schematic} />
 
           <Segmented
             value={mode}
             onChange={setMode}
             options={[
-              { value: MODE_SYNTHESIS, label: 'Sentez — genişlik bul' },
-              { value: MODE_ANALYSIS, label: 'Analiz — kapasite bul' },
+              { value: MODE_SYNTHESIS, label: text.modeSynthesis },
+              { value: MODE_ANALYSIS, label: text.modeAnalysis },
             ]}
           />
 
           <NumberField
-            label="Akım (I)"
+            label={text.fields.I.label}
             value={f.I} onChange={set('I')}
             units={['A', 'mA']} unit={f.Iu} onUnit={set('Iu')}
           />
 
           {mode === MODE_ANALYSIS && (
             <NumberField
-              label="Yol genişliği (W)"
+              label={text.fields.W.label}
               value={f.W} onChange={set('W')}
               units={['mm', 'mil']} unit={f.Wu} onUnit={set('Wu')}
             />
           )}
 
           <NumberField
-            label="İzin verilen sıcaklık artışı (ΔT)"
+            label={text.fields.dT.label}
             value={f.dT} onChange={set('dT')}
             units={['°C']} unit="°C" onUnit={() => {}}
-            hint="Tipik geçerlilik aralığı: 10–100 °C"
+            hint={text.fields.dT.hint}
           />
 
           <NumberField
-            label="Ortam sıcaklığı (Tₐ)"
+            label={text.fields.Ta.label}
             value={f.Ta} onChange={set('Ta')}
             units={['°C']} unit="°C" onUnit={() => {}}
           />
 
           <SelectField
-            label="Katman"
+            label={text.fields.layer.label}
             value={f.layer} onChange={set('layer')}
             options={[
-              { value: 'external', label: 'Dış katman' },
-              { value: 'internal', label: 'İç katman' },
+              { value: 'external', label: text.fields.layerExternal },
+              { value: 'internal', label: text.fields.layerInternal },
             ]}
           />
 
           <SelectField
-            label="Bakır kalınlığı"
+            label={text.fields.oz.label}
             value={f.oz} onChange={set('oz')}
-            options={OZ_TABLE.map((o) => ({ value: o.key, label: o.label }))}
+            options={OZ_TABLE.map((o) => ({
+              value: o.key,
+              label: o.key === 'custom' ? text.fields.ozCustom : o.label,
+            }))}
           />
 
           {f.oz === 'custom' && (
             <NumberField
-              label="Özel bakır kalınlığı"
+              label={text.fields.tCustom.label}
               value={f.tCustom} onChange={set('tCustom')}
               units={['µm']} unit="µm" onUnit={() => {}}
             />
           )}
 
           <NumberField
-            label="Yol uzunluğu (L)"
+            label={text.fields.L.label}
             value={f.L} onChange={set('L')}
             units={['mm', 'cm', 'mil', 'inch']} unit={f.Lu} onUnit={set('Lu')}
-            hint="Direnç, gerilim düşümü ve güç kaybı için"
+            hint={text.fields.L.hint}
           />
 
           <NumberField
-            label="Besleme gerilimi (opsiyonel)"
+            label={text.fields.Vs.label}
             value={f.Vs} onChange={set('Vs')}
             units={['V']} unit="V" onUnit={() => {}}
-            hint="Girilirse yüzdesel gerilim düşümü gösterilir"
-            placeholder="örn. 3.3"
+            hint={text.fields.Vs.hint}
+            placeholder={text.fields.Vs.placeholder}
           />
 
           {mode === MODE_SYNTHESIS && (
             <NumberField
-              label="Güvenlik marjı (M)"
+              label={text.fields.margin.label}
               value={f.margin} onChange={set('margin')}
               units={['%']} unit="%" onUnit={() => {}}
-              hint="Önerilen üretim genişliği = minimum × (1 + M)"
+              hint={text.fields.margin.hint}
             />
           )}
 
           <label className="check-row">
             <input type="checkbox" checked={f.tol} onChange={(e) => set('tol')(e.target.checked)} />
-            Tolerans analizi (worst-case)
+            {text.fields.tolCheck}
           </label>
 
           {f.tol && (
             <>
               <NumberField
-                label="Genişlik toleransı (±)"
+                label={text.fields.wTol.label}
                 value={f.wTol} onChange={set('wTol')}
                 units={['%']} unit="%" onUnit={() => {}}
               />
               <NumberField
-                label="Bakır kalınlığı toleransı (±)"
+                label={text.fields.tTol.label}
                 value={f.tTol} onChange={set('tTol')}
                 units={['%']} unit="%" onUnit={() => {}}
               />
@@ -173,29 +181,27 @@ export default function TraceWidth() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               {r.mode === MODE_SYNTHESIS ? (
                 <div className="big-result">
-                  <div className="label">Önerilen üretim genişliği (marj dahil, %{fmt(r.M * 100, 3)})</div>
+                  <div className="label">{text.bigResultSyn(r.M)}</div>
                   <div className="value">{fmt(mm(r.Wrec_m))} mm</div>
                   <div className="alt">
-                    = {fmt(mil(r.Wrec_m))} mil &nbsp;·&nbsp; minimum: {fmt(mm(r.Wmin_m))} mm
+                    = {fmt(mil(r.Wrec_m))} mil &nbsp;·&nbsp; {text.minimumWord} {fmt(mm(r.Wmin_m))} mm
                   </div>
                 </div>
               ) : (
                 <div className="big-result">
-                  <div className="label">Maksimum sürekli akım (ΔT = {fmt(r.dT, 3)} °C için)</div>
+                  <div className="label">{text.bigResultAna(r.dT)}</div>
                   <div className="value">{fmt(r.Imax)} A</div>
                   <div className="alt">W = {fmt(mm(r.W_m))} mm ({fmt(mil(r.W_m))} mil)</div>
                 </div>
@@ -203,54 +209,58 @@ export default function TraceWidth() {
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{METHOD_NOTE}</p>
+              <p className="method-note">{text.methodNote}</p>
 
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Bakır kesit alanı</td>
+                    <td>{text.table.area}</td>
                     <td>{fmt(r.A_mm2)} mm² <span className="sub">({fmt(r.A_mil2)} mil²)</span></td>
                   </tr>
                   <tr>
-                    <td>Direnç @ 20 °C</td>
+                    <td>{text.table.r20}</td>
                     <td>{fmtOhm(r.e.R20)}</td>
                   </tr>
                   <tr>
-                    <td>Direnç @ ortalama sıcaklık ({fmt(r.e.Tavg, 3)} °C)</td>
+                    <td>{text.table.rAvg(r.e.Tavg)}</td>
                     <td>{fmtOhm(r.e.Ravg)}</td>
                   </tr>
                   <tr>
-                    <td>Direnç @ maksimum sıcaklık ({fmt(r.e.Tmax, 3)} °C)</td>
+                    <td>{text.table.rMax(r.e.Tmax)}</td>
                     <td>{fmtOhm(r.e.Rmax)}</td>
                   </tr>
                   <tr>
-                    <td>Gerilim düşümü (ortalama)</td>
+                    <td>{text.table.vdropAvg}</td>
                     <td>
                       {fmtVolt(r.e.VdropAvg)}
-                      {r.e.pctAvg !== null && <span className="sub"> (%{fmt(r.e.pctAvg, 3)})</span>}
+                      {r.e.pctAvg !== null && (
+                        <span className="sub"> {text.table.pctOfSupply(r.e.pctAvg)}</span>
+                      )}
                     </td>
                   </tr>
                   <tr>
-                    <td>Gerilim düşümü (worst-case)</td>
+                    <td>{text.table.vdropMax}</td>
                     <td>
                       {fmtVolt(r.e.VdropMax)}
-                      {r.e.pctMax !== null && <span className="sub"> (%{fmt(r.e.pctMax, 3)})</span>}
+                      {r.e.pctMax !== null && (
+                        <span className="sub"> {text.table.pctOfSupply(r.e.pctMax)}</span>
+                      )}
                     </td>
                   </tr>
                   <tr>
-                    <td>Güç kaybı</td>
+                    <td>{text.table.ploss}</td>
                     <td>{fmtWatt(r.e.Ploss)}</td>
                   </tr>
                   <tr>
-                    <td>Birim uzunluk başına kayıp</td>
+                    <td>{text.table.perLength}</td>
                     <td>{fmtEng(r.e.PperLength, 'W/m', 3)}</td>
                   </tr>
                   <tr>
-                    <td>Akım yoğunluğu</td>
+                    <td>{text.table.j}</td>
                     <td>{fmt(r.e.J)} A/mm²</td>
                   </tr>
                   <tr>
-                    <td>Tahmini maksimum hat sıcaklığı</td>
+                    <td>{text.table.tmax}</td>
                     <td>{fmt(r.e.Tmax, 3)} °C</td>
                   </tr>
                 </tbody>
@@ -258,22 +268,24 @@ export default function TraceWidth() {
 
               {r.tol && r.mode === MODE_SYNTHESIS && (
                 <>
-                  <h2 className="section">Tolerans — worst-case</h2>
+                  <h2 className="section">{text.tolSynHeading}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr>
-                        <td>En dar üretilmiş genişlik</td>
+                        <td>{text.tolSyn.width}</td>
                         <td>{fmt(mm(r.tol.Wwc_m))} mm</td>
                       </tr>
                       <tr>
-                        <td>En ince bakır</td>
+                        <td>{text.tolSyn.copper}</td>
                         <td>{fmt(r.tol.twc_um)} µm</td>
                       </tr>
                       <tr>
-                        <td>Worst-case akım kapasitesi</td>
+                        <td>{text.tolSyn.capacity}</td>
                         <td>
                           {fmt(r.tol.ImaxWc)} A{' '}
-                          <span className="sub">{r.tol.sufficient ? '≥ hedef akım ✓' : '< hedef akım ✗'}</span>
+                          <span className="sub">
+                            {r.tol.sufficient ? text.tolSyn.sufficient : text.tolSyn.insufficient}
+                          </span>
                         </td>
                       </tr>
                     </tbody>
@@ -283,56 +295,61 @@ export default function TraceWidth() {
 
               {r.tol && r.mode === MODE_ANALYSIS && (
                 <>
-                  <h2 className="section">Tolerans — min · nominal · maks</h2>
+                  <h2 className="section">{text.tolAnaHeading}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr>
-                        <td>Akım kapasitesi</td>
+                        <td>{text.tolAna.capacity}</td>
                         <td>{fmt(r.tol.ImaxMin)} · {fmt(r.Imax)} · {fmt(r.tol.ImaxMax)} A</td>
                       </tr>
                       <tr>
-                        <td>Direnç @ 20 °C</td>
+                        <td>{text.tolAna.r20}</td>
                         <td>{fmtOhm(r.tol.R20Min)} · {fmtOhm(r.e.R20)} · {fmtOhm(r.tol.R20Max)}</td>
                       </tr>
                     </tbody>
                   </table>
                 </>
               )}
+
+              <h2 className="section">{ui.commentary}</h2>
+              <ul className="commentary">
+                {notes.map((n) => (
+                  <li key={n.text} className={n.level}>
+                    <span className="mark" aria-hidden="true">{MARK[n.level]}</span>
+                    <span>{n.text}</span>
+                  </li>
+                ))}
+              </ul>
             </>
           )}
         </section>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{`I = k · ΔT^0.44 · A^0.725
-    A: mil²   I: A   ΔT: °C
-    k(dış) = 0.048   k(iç) = 0.024
-
-R(T) = ρ₂₀·[1 + α(T − 20)] ·
-    L / (W·t)
-    ρ₂₀ = 1.724×10⁻⁸ Ω·m
-    α = 0.00393 /°C`}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>Yöntem: klasik ampirik iletken ısınma denklemi + sıcaklık düzeltmeli DC direnç modeli.</li>
-              <li>Kullanılan katsayı: k = {r.k} ({LAYER_LABEL[r.layer]} katman).</li>
-              <li>Bakır kalınlığı: {fmt(r.t_um)} µm = {fmt(r.t_mil)} mil.</li>
-              <li>Özdirenç @ T<sub>avg</sub>: {fmt(rhoAt(r.e.Tavg) * 1e8)} ×10⁻⁸ Ω·m.</li>
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.method}</li>
+              <li>{text.detail.kCoeff(r.k, r.layer)}</li>
+              <li>{text.detail.thickness(r.t_um, r.t_mil)}</li>
+              <li>
+                {text.detail.rhoWord} @ T<sub>avg</sub>: {fmt(rhoAt(r.e.Tavg) * 1e8)} ×10⁻⁸ Ω·m.
+              </li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            {r.ok && r.warnings.map((w) => <li key={w} className="w">{w}</li>)}
-            <li>Yaklaşık geçerlilik: I ≤ ~35 A, ΔT 10–100 °C, tekil düz hat.</li>
-            <li>Bitişik sıcak hatlar, bakır düzlemler, hava akışı ve kart kalınlığı modelde yoktur.</li>
-            <li>İç katman katsayısı konservatiftir; gerçek kapasite kart yapısına göre değişir.</li>
-            <li>Kesit dikdörtgen kabul edilir; aşındırmadan gelen trapez kesit modelde yoktur.</li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {r.ok && r.warnings.map((w) => (
+              <li key={w.code} className="w">{text.warningText(w)}</li>
+            ))}
+            {text.validity.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
           </ul>
         </section>
       </div>
@@ -340,33 +357,33 @@ R(T) = ρ₂₀·[1 + α(T − 20)] ·
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
           <>
             <ChartLegend
               items={[
-                { label: `${LAYER_LABEL[r.layer]} katman`, tone: toneClass(0), kind: 'line' },
-                { label: `${LAYER_LABEL[otherLayer]} katman`, tone: toneClass(1), kind: 'line' },
-                { label: `hedef akım ${fmt(r.I, 3)} A`, tone: 'tone-muted', kind: 'line' },
+                { label: text.layerSeries[r.layer], tone: toneClass(0), kind: 'line' },
+                { label: text.layerSeries[otherLayer], tone: toneClass(1), kind: 'line' },
+                { label: text.chart.targetLegend(r.I), tone: 'tone-muted', kind: 'line' },
               ]}
             />
 
             <LineChart
               xScale="log"
-              xLabel="Yol genişliği W (mm)"
-              yLabel="Kapasite (A)"
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
-              refLines={[{ key: 'target', y: s.target, label: `hedef ${fmt(r.I, 3)} A` }]}
-              marker={{ ...s.marker, label: 'çalışma noktası' }}
+              refLines={[{ key: 'target', y: s.target, label: text.chart.targetRef(r.I) }]}
+              marker={{ ...s.marker, label: text.chart.operatingPoint }}
               formatX={axisMm}
               formatY={(v) => fmt(v, 3)}
-              caption={CHART_CAPTION}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel="Yol genişliği W (mm)"
+              xLabel={text.chart.x}
               series={chartSeries}
               every={5}
               formatX={(v) => `${fmt(v, 3)} mm`}
@@ -374,7 +391,7 @@ R(T) = ρ₂₀·[1 + α(T − 20)] ·
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

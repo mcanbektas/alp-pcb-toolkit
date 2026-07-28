@@ -26,7 +26,7 @@ export function barrelOuterDiameter(Df, tp) {
  */
 export function barrelArea(Df, tp) {
   if (!(Df > 0) || !(tp > 0)) {
-    return { error: VIA_ERR_INVALID, message: 'Delik çapı ve kaplama kalınlığı pozitif olmalı.' }
+    return { error: VIA_ERR_INVALID }
   }
 
   const Do = barrelOuterDiameter(Df, tp)
@@ -49,7 +49,7 @@ export function viaElectrical({ Df, tp, H, I, T = 20, VdropMax = null, IsingleMa
   const b = barrelArea(Df, tp)
   if (b.error) return b
   if (!(H > 0) || !(I > 0)) {
-    return { error: VIA_ERR_INVALID, message: 'Via uzunluğu ve akım pozitif olmalı.' }
+    return { error: VIA_ERR_INVALID }
   }
 
   const R = (rhoCuAt(T) * H) / b.area
@@ -80,10 +80,10 @@ export function viaElectrical({ Df, tp, H, I, T = 20, VdropMax = null, IsingleMa
 
 export function annularRing({ Dpad, Ddrill, positionTol = 0, etchTol = 0 }) {
   if (!(Dpad > 0) || !(Ddrill > 0)) {
-    return { error: VIA_ERR_INVALID, message: 'Pad ve delik çapı pozitif olmalı.' }
+    return { error: VIA_ERR_INVALID }
   }
   if (Ddrill >= Dpad) {
-    return { error: VIA_ERR_INVALID, message: 'Pad çapı delik çapından büyük olmalı.' }
+    return { error: VIA_ERR_INVALID }
   }
 
   const nominal = (Dpad - Ddrill) / 2
@@ -155,7 +155,7 @@ export function thermalVia({ Df, tp, H, N = 1, filled = false, deltaT = null, k 
   const b = barrelArea(Df, tp)
   if (b.error) return b
   if (!(H > 0) || !(N >= 1)) {
-    return { error: VIA_ERR_INVALID, message: 'Via uzunluğu ve sayısı pozitif olmalı.' }
+    return { error: VIA_ERR_INVALID }
   }
 
   const fillArea = filled ? (Math.PI * Df * Df) / 4 : 0
@@ -183,7 +183,7 @@ export function thermalVia({ Df, tp, H, N = 1, filled = false, deltaT = null, k 
 // Belirli bir ısıyı taşımak için gereken via sayısı
 export function thermalViaCount({ Df, tp, H, deltaT, Q, filled = false, k = K_CU }) {
   if (!(deltaT > 0) || !(Q > 0)) {
-    return { error: VIA_ERR_INVALID, message: 'Sıcaklık farkı ve ısı pozitif olmalı.' }
+    return { error: VIA_ERR_INVALID }
   }
   const one = thermalVia({ Df, tp, H, N: 1, filled, k })
   if (one.error) return one

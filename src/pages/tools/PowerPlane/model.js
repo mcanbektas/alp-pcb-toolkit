@@ -38,30 +38,37 @@ export const INITIAL_FORM = {
 const TEMP = { '°C': 1 }
 const WIDTH = { mm: LENGTH.mm, mil: LENGTH.mil }
 
-export const TRACE_COLUMNS = [
-  { key: 'L', unitKey: 'Lu', label: 'Uzunluk', units: ['mm', 'cm', 'mil', 'inch'] },
-  { key: 'W', unitKey: 'Wu', label: 'Genişlik', units: ['mm', 'mil'] },
-]
+// Satır listesi sütunları — etiketler ekranın text.js'inden gelir, model dili bilmez.
+export function traceColumns(labels = {}) {
+  return [
+    { key: 'L', unitKey: 'Lu', label: labels.rowL ?? 'L', units: ['mm', 'cm', 'mil', 'inch'] },
+    { key: 'W', unitKey: 'Wu', label: labels.rowW ?? 'W', units: ['mm', 'mil'] },
+  ]
+}
 
-const TRACE_SPECS = [
-  { key: 'L', label: 'Uzunluk', unitKey: 'Lu', table: LENGTH, min: 0 },
-  { key: 'W', label: 'Genişlik', unitKey: 'Wu', table: WIDTH, min: 0 },
-]
+function traceSpecs(labels = {}) {
+  return [
+    { key: 'L', label: labels.rowL ?? 'L', unitKey: 'Lu', table: LENGTH, min: 0 },
+    { key: 'W', label: labels.rowW ?? 'W', unitKey: 'Wu', table: WIDTH, min: 0 },
+  ]
+}
 
-export function formFields(tool, f) {
+export function formFields(tool, f, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     [
-      { key: 'I', label: 'Toplam akım (I)', unitKey: 'Iu', table: CURRENT, min: 0 },
-      { key: 'T', label: 'Çalışma sıcaklığı', unit: '°C', table: TEMP, allowZero: true },
-      { key: 'Vs', label: 'Besleme gerilimi', unitKey: 'Vsu', table: VOLTAGE, min: 0, optional: true },
+      { key: 'I', label: L('I'), unitKey: 'Iu', table: CURRENT, min: 0 },
+      { key: 'T', label: L('T'), unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Vs', label: L('Vs'), unitKey: 'Vsu', table: VOLTAGE, min: 0, optional: true },
     ],
     when(f.oz === 'custom', [
-      { key: 'tCustom', label: 'Özel bakır kalınlığı', unit: 'µm', table: LENGTH, min: 0 },
+      { key: 'tCustom', label: L('tCustom'), unit: 'µm', table: LENGTH, min: 0 },
     ]),
     when(tool === TOOL_PLANE, [
-      { key: 'L', label: 'Akım yolu uzunluğu (L)', unitKey: 'Lu', table: LENGTH, min: 0 },
-      { key: 'Wavg', label: 'Ortalama düzlem genişliği', unitKey: 'Wavgu', table: WIDTH, min: 0 },
-      { key: 'Wneck', label: 'Minimum boyun genişliği', unitKey: 'Wnecku', table: WIDTH, min: 0 },
+      { key: 'L', label: L('L'), unitKey: 'Lu', table: LENGTH, min: 0 },
+      { key: 'Wavg', label: L('Wavg'), unitKey: 'Wavgu', table: WIDTH, min: 0 },
+      { key: 'Wneck', label: L('Wneck'), unitKey: 'Wnecku', table: WIDTH, min: 0 },
     ]),
   ])
 }
@@ -71,8 +78,8 @@ function copperThickness(f, values) {
   return ozThickness_m(f.oz)
 }
 
-export function compute(tool, f) {
-  const read = readForm(f, formFields(tool, f))
+export function compute(tool, f, labels = {}) {
+  const read = readForm(f, formFields(tool, f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
@@ -103,7 +110,7 @@ export function compute(tool, f) {
     }
   }
 
-  const rows = readRows(f.traces, TRACE_SPECS, 'Yol')
+  const rows = readRows(f.traces, traceSpecs(labels), labels.rowLabel ?? 'row')
   if (rows.ambiguous.length) return { ok: false, ambiguous: rows.ambiguous }
   if (!rows.ok) return { ok: false, reason: REASON_ROWS, invalid: rows.invalid }
 

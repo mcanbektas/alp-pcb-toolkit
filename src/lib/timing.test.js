@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { rcTime, rlTime, chargeVoltage, dischargeVoltage } from './timing'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('zaman sabitleri', () => {
   it('RC: τ = RC ve 1τ\'da %63.2', () => {
@@ -29,5 +30,16 @@ describe('zaman sabitleri', () => {
   it('geçersiz girişte hesap yapmaz', () => {
     expect(rcTime({ R: 0, C: 1e-6 }).error).toBe('invalid')
     expect(rlTime({ R: 10, L: -1 }).error).toBe('invalid')
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      rcTime({ R: 0, C: 1e-6 }),
+      rcTime({ R: 1000, C: -1 }),
+      rlTime({ R: 10, L: -1 }),
+      rlTime({ R: 0, L: 1e-3 }),
+    ])
   })
 })

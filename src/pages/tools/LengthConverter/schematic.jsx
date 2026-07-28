@@ -28,7 +28,7 @@ function ticksFor(span, count) {
   return out
 }
 
-export default function LengthSchematic({ r }) {
+export default function LengthSchematic({ r, text }) {
   const live = r.ok
   const spanMm = live ? r.all.mm : 1
   const spanMil = live ? r.all.mil : MIL_PER_MM
@@ -40,10 +40,8 @@ export default function LengthSchematic({ r }) {
   return (
     <Schematic
       viewBox="0 0 260 150"
-      title="Çift ölçekli uzunluk cetveli"
-      caption={live
-        ? 'Aynı uzunluk iki ızgarayla ölçülür — bölmeler yalnızca sıfırda çakışır'
-        : 'Üstte milimetre, altta mil ızgarası — geçerli girdi ile ölçeklenir'}
+      title={text.title}
+      caption={live ? text.captionLive : text.captionIdle}
     >
       {/* Ölçülen uzunluk */}
       <rect className="sch-copper-fill" x={X0} y={20} width={X1 - X0} height={14} rx={2} />
@@ -91,7 +89,7 @@ export default function LengthSchematic({ r }) {
 
       {/* Bölme adımları */}
       <text className="sch-label dim" x={(X0 + X1) / 2} y={136} textAnchor="middle">
-        bölme: {fmt(niceStep(spanMm, 6), 3)} mm · {fmt(niceStep(spanMil, 6), 3)} mil
+        {text.division}: {fmt(niceStep(spanMm, 6), 3)} mm · {fmt(niceStep(spanMil, 6), 3)} mil
       </text>
     </Schematic>
   )

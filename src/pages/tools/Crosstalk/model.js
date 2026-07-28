@@ -56,34 +56,38 @@ export const LEN_UNITS = ['mm', 'cm', 'm', 'inch', 'mil']
 export const TIME_UNITS = ['ps', 'ns', 'µs']
 export const VOLT_UNITS = ['V', 'mV']
 
-export function formFields(f) {
+// Alan etiketleri `labels` ile çağıran taraftan gelir (geçerli dilde,
+// text.js'ten); `lib/` bunları bilmez. εeff alanlarının etiketi de aynı
+// sözlükten çevrilir — verilmezse lib'in kendi etiketi kalır.
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
-    epsFields(f),
+    epsFields(f).map((s) => ({ ...s, label: labels[s.key] ?? s.label })),
     [
       // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
       // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
-      { key: 'Zeven', label: 'Even mod empedansı (Z_even)', unit: 'Ω', table: RESISTANCE, min: 0 },
-      { key: 'Zodd', label: 'Odd mod empedansı (Z_odd)', unit: 'Ω', table: RESISTANCE, min: 0 },
+      { key: 'Zeven', label: L('Zeven'), unit: 'Ω', table: RESISTANCE, min: 0 },
+      { key: 'Zodd', label: L('Zodd'), unit: 'Ω', table: RESISTANCE, min: 0 },
       // Etiket lib/epsEff.js içindeki epsW alanından ("Hat genişliği (W)") ayrı
       // olmalı: eps_eff geometriden hesaplanırken formda iki genişlik alanı
       // bulunur ve readForm hatayı ada göre bildirir.
-      { key: 'W', label: 'Kuplajlı hat genişliği (W)', unitKey: 'Wu', table: DIM, min: 0 },
-      { key: 'S', label: 'Hat aralığı (S)', unitKey: 'Su', table: DIM, min: 0 },
-      { key: 'len', label: 'Paralel uzunluk', unitKey: 'lenu', table: LEN, min: 0 },
-      { key: 'tr', label: 'Yükselme süresi (t_r)', unitKey: 'tru', table: TIME, min: 0 },
-      { key: 'Vagg', label: 'Aggressor gerilimi (V_agg)', unitKey: 'Vaggu', table: VOLTAGE, min: 0 },
+      { key: 'W', label: L('W'), unitKey: 'Wu', table: DIM, min: 0 },
+      { key: 'S', label: L('S'), unitKey: 'Su', table: DIM, min: 0 },
+      { key: 'len', label: L('len'), unitKey: 'lenu', table: LEN, min: 0 },
+      { key: 'tr', label: L('tr'), unitKey: 'tru', table: TIME, min: 0 },
+      { key: 'Vagg', label: L('Vagg'), unitKey: 'Vaggu', table: VOLTAGE, min: 0 },
     ],
     // Motor bu iki değere ≥ 1 eşiği uygular; alan tanımı da aynı eşiği koyar ki
     // kullanıcı sessizce "FEXT hesaplanmadı" sonucuna düşmesin.
     when(f.fextMode === FEXT_ON, [
-      { key: 'epsOdd', label: 'Odd mod εeff', unit: '', table: PLAIN, min: 1 },
-      { key: 'epsEven', label: 'Even mod εeff', unit: '', table: PLAIN, min: 1 },
+      { key: 'epsOdd', label: L('epsOdd'), unit: '', table: PLAIN, min: 1 },
+      { key: 'epsEven', label: L('epsEven'), unit: '', table: PLAIN, min: 1 },
     ]),
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

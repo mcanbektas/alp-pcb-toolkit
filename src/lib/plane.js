@@ -15,7 +15,7 @@ export function sheetResistance(t_m, T_C = 20) {
 // Düzgün genişlikte bir bakır şeridin direnci: R = R_□ · (L / W)
 export function stripResistance({ L, W, t, T = 20 }) {
   if (!(L > 0) || !(W > 0) || !(t > 0)) {
-    return { error: PLANE_ERR_INVALID, message: 'L, W ve t pozitif olmalı.' }
+    return { error: PLANE_ERR_INVALID }
   }
   const Rsheet = sheetResistance(t, T)
   const squares = L / W
@@ -32,10 +32,10 @@ export function stripResistance({ L, W, t, T = 20 }) {
  */
 export function powerPlane({ L, Wavg, Wneck, t, I, T = 20, Vsupply = null }) {
   if (!(L > 0) || !(Wavg > 0) || !(Wneck > 0) || !(t > 0) || !(I > 0)) {
-    return { error: PLANE_ERR_INVALID, message: 'Tüm geometri ve akım değerleri pozitif olmalı.' }
+    return { error: PLANE_ERR_INVALID }
   }
   if (Wneck > Wavg) {
-    return { error: PLANE_ERR_INVALID, message: 'Boyun genişliği ortalama genişlikten büyük olamaz.' }
+    return { error: PLANE_ERR_INVALID }
   }
 
   const avg = stripResistance({ L, W: Wavg, t, T })
@@ -68,9 +68,9 @@ export function powerPlane({ L, Wavg, Wneck, t, I, T = 20, Vsupply = null }) {
  */
 export function parallelTraces({ traces, I, T = 20 }) {
   if (!Array.isArray(traces) || traces.length === 0) {
-    return { error: PLANE_ERR_INVALID, message: 'En az bir yol gerekli.' }
+    return { error: PLANE_ERR_INVALID }
   }
-  if (!(I > 0)) return { error: PLANE_ERR_INVALID, message: 'Toplam akım pozitif olmalı.' }
+  if (!(I > 0)) return { error: PLANE_ERR_INVALID }
 
   const branches = []
   for (const tr of traces) {

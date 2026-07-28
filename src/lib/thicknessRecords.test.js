@@ -7,8 +7,13 @@ import {
   THICKNESS_ERR_SOURCE, THICKNESS_ERR_LAYER, THICKNESS_ERR_UNIT,
   THICKNESS_ERR_FIELD, THICKNESS_ERR_CONSISTENCY, THICKNESS_ERR_STORAGE,
   THICKNESS_ERR_LIMIT,
+  THICKNESS_VARIANT_NOT_OBJECT, THICKNESS_VARIANT_SCHEMA_NAME,
+  THICKNESS_VARIANT_EMPTY, THICKNESS_VARIANT_TOO_LONG,
+  THICKNESS_VARIANT_POSITIVE, THICKNESS_VARIANT_NON_NEGATIVE,
+  THICKNESS_VARIANT_INTERNAL_PLATING, THICKNESS_VARIANT_SUM,
+  RECORD_SOURCES, RECORD_LAYERS,
 } from './thicknessRecords'
-import { memoryStorage, nullStorage } from './storage'
+import { memoryStorage, nullStorage, STORAGE_ERR_UNAVAILABLE } from './storage'
 
 // Elle doğrulanan üç sayısal örnek:
 //
@@ -223,5 +228,196 @@ describe('kalınlık deposu — enjekte edilen port', () => {
 
   it('port verilmezse kurulmaz', () => {
     expect(() => createThicknessStore(null)).toThrow(TypeError)
+  })
+
+  it('depo hatasında deponun kendi kodunu iletir, metnini değil', () => {
+    const store = createThicknessStore(nullStorage)
+
+    for (const res of [store.save(weightRec), store.remove('yok'), store.clear()]) {
+      expect(res.error).toBe(THICKNESS_ERR_STORAGE)
+      // Depo yalnızca kod döner; `cause` o kodu taşır
+      expect(res.cause).toBe(STORAGE_ERR_UNAVAILABLE)
+      expect(Object.keys(res).sort()).toEqual(['cause', 'error'])
+    }
+  })
+})
+
+// --- Hata yükünün yapısı ---
+//
+// Yük dilsizdir: kod, sayı, alan anahtarı ve girdiden aynen alınan değer taşır;
+// kurulmuş cümle taşımaz. Cümleyi ekranın text.js dosyası bu alanlardan kurar.
+// Buradaki testler yükün ekranın ihtiyaç duyduğu veriyi gerçekten verdiğini ve
+// içine bir cümlenin geri sızmadığını birlikte doğrular.
+
+describe('hata yükü — yapısal ayrıntı', () => {
+  it('şema adı uyuşmazsa beklenen ve bulunan adı verir', () => {
+    const r = validateRecord({ ...weightRec, schema: 'baska-sema' })
+    expect(r.error).toBe(THICKNESS_ERR_SCHEMA)
+    expect(r.variant).toBe(THICKNESS_VARIANT_SCHEMA_NAME)
+    expect(r.expected).toBe(THICKNESS_SCHEMA)
+    expect(r.found).toBe('baska-sema')
+  })
+
+  it('nesne olmayan girdiyi ayrı variant ile ayırır', () => {
+    for (const bad of [null, 'metin', 42, [weightRec]]) {
+      const r = validateRecord(bad)
+      expect(r.error).toBe(THICKNESS_ERR_SCHEMA)
+      expect(r.variant).toBe(THICKNESS_VARIANT_NOT_OBJECT)
+    }
+  })
+
+  it('şema sürümünde beklenen ve bulunan sürümü sayı olarak verir', () => {
+    const r = validateRecord({ ...weightRec, schemaVersion: SCHEMA_VERSION + 1 })
+    expect(r.error).toBe(THICKNESS_ERR_VERSION)
+    expect(r.expected).toBe(SCHEMA_VERSION)
+    expect(r.found).toBe(SCHEMA_VERSION + 1)
+  })
+
+  it('ad hatasında sınırı ve uzunluğu verir, adın kendisini yüke koymaz', () => {
+    expect(validateRecord({ ...weightRec, name: '   ' }).variant).toBe(THICKNESS_VARIANT_EMPTY)
+
+    const uzun = 'a'.repeat(NAME_MAX + 7)
+    const r = validateRecord({ ...weightRec, name: uzun })
+    expect(r.variant).toBe(THICKNESS_VARIANT_TOO_LONG)
+    expect(r.max).toBe(NAME_MAX)
+    expect(r.length).toBe(NAME_MAX + 7)
+    // Kullanıcının kendi verisi hata yüküne girmez
+    expect(Object.values(r)).not.toContain(uzun)
+  })
+
+  it('kaynak ve katman hatasında geçerli değer listesini verir', () => {
+    const s = validateRecord({ ...weightRec, source: 'yok' })
+    expect(s.found).toBe('yok')
+    expect(s.valid).toEqual(RECORD_SOURCES)
+
+    const l = validateRecord({ ...weightRec, layer: 'orta' })
+    expect(l.found).toBe('orta')
+    expect(l.valid).toEqual(RECORD_LAYERS)
+  })
+
+  it('birim hatasında kaynağı, beklenen ve bulunan birimi verir', () => {
+    const r = validateRecord({ ...weightRec, unit: RECORD_UNIT_LENGTH })
+    expect(r.error).toBe(THICKNESS_ERR_UNIT)
+    expect(r.source).toBe('weight')
+    expect(r.expected).toBe(RECORD_UNIT_WEIGHT)
+    expect(r.found).toBe(RECORD_UNIT_LENGTH)
+  })
+
+  it('alan hatasında hangi alan ve hangi kural olduğunu verir', () => {
+    const p = validateRecord({ ...weightRec, starting: 0 })
+    expect(p.field).toBe('starting')
+    expect(p.variant).toBe(THICKNESS_VARIANT_POSITIVE)
+
+    const n = validateRecord({ ...weightRec, plating: -1 })
+    expect(n.field).toBe('plating')
+    expect(n.variant).toBe(THICKNESS_VARIANT_NON_NEGATIVE)
+  })
+
+  it('tutarsızlıkta beklenen toplamı ve bileşenleri sayı olarak verir', () => {
+    const r = validateRecord({ ...weightRec, finished: 65 })
+    expect(r.variant).toBe(THICKNESS_VARIANT_SUM)
+    expect(r.starting).toBe(35)
+    expect(r.plating).toBe(25)
+    expect(r.finished).toBe(65)
+    // Ekranın "olması gereken" değeri: 35 + 25 = 60
+    expect(r.expected).toBe(60)
+
+    const i = validateRecord({ ...internalRec, plating: 25, finished: 95 })
+    expect(i.variant).toBe(THICKNESS_VARIANT_INTERNAL_PLATING)
+    expect(i.layer).toBe('internal')
+    expect(i.plating).toBe(25)
+  })
+
+  it('kayıt sınırında sınırı ve mevcut sayıyı verir', () => {
+    const store = createThicknessStore(memoryStorage())
+    for (let i = 0; i < RECORD_MAX; i++) store.save({ ...weightRec, name: `kayit ${i}` })
+    const r = store.save({ ...weightRec, name: 'bir fazla' })
+    expect(r.error).toBe(THICKNESS_ERR_LIMIT)
+    expect(r.limit).toBe(RECORD_MAX)
+    expect(r.stored).toBe(RECORD_MAX)
+  })
+})
+
+describe('hata yükü — cümle taşımaz', () => {
+  // Kod biçimi: küçük harf + rakam + tire. Birim simgeleri (oz/ft², µm) bu
+  // kalıba uymaz ama dilsizdir, bu yüzden ayrıca izinlidir. `found` alanı
+  // girdiden aynen alınır; testlerin beslediği değerler de kod biçimindedir.
+  const CODE_RE = /^[a-z][a-z0-9-]*$/
+  const UNIT_SYMBOLS = [RECORD_UNIT_WEIGHT, RECORD_UNIT_LENGTH]
+
+  // Yükün sayılabilir tüm dize değerlerini (dizi içindekiler dâhil) toplar.
+  function stringsOf(payload) {
+    const out = []
+    const walk = (value) => {
+      if (typeof value === 'string') { out.push(value); return }
+      if (Array.isArray(value)) { value.forEach(walk); return }
+      if (value && typeof value === 'object') { Object.values(value).forEach(walk) }
+    }
+    Object.values(payload).forEach(walk)
+    return out
+  }
+
+  // Hata üreten bütün yollar tek listede; biri cümleye dönerse test düşer.
+  function allErrorPayloads() {
+    const limitStore = createThicknessStore(memoryStorage())
+    for (let i = 0; i < RECORD_MAX; i++) limitStore.save({ ...weightRec, name: `kayit ${i}` })
+    const nullStore = createThicknessStore(nullStorage)
+
+    return [
+      validateRecord(null),
+      validateRecord('metin'),
+      validateRecord([weightRec]),
+      validateRecord({ ...weightRec, schema: 'baska-sema' }),
+      validateRecord({ ...weightRec, schemaVersion: SCHEMA_VERSION + 1 }),
+      validateRecord({ ...weightRec, name: '   ' }),
+      validateRecord({ ...weightRec, name: 'a'.repeat(NAME_MAX + 1) }),
+      validateRecord({ ...weightRec, source: 'yok' }),
+      validateRecord({ ...weightRec, layer: 'orta' }),
+      validateRecord({ ...weightRec, unit: RECORD_UNIT_LENGTH }),
+      validateRecord({ ...measuredRec, unit: RECORD_UNIT_WEIGHT }),
+      validateRecord({ ...weightRec, value: '1' }),
+      validateRecord({ ...weightRec, starting: 0 }),
+      validateRecord({ ...weightRec, finished: NaN }),
+      validateRecord({ ...weightRec, plating: -1 }),
+      validateRecord({ ...weightRec, finished: 65 }),
+      validateRecord({ ...internalRec, plating: 25, finished: 95 }),
+      limitStore.save({ ...weightRec, name: 'bir fazla' }),
+      nullStore.save(weightRec),
+      nullStore.remove('yok'),
+      nullStore.clear(),
+    ]
+  }
+
+  it('her yol gerçekten hata döner', () => {
+    for (const payload of allErrorPayloads()) {
+      expect(payload.error).toBeDefined()
+      expect(payload.record).toBeUndefined()
+    }
+  })
+
+  it('sayılabilir her dize alanı koddur, kurulmuş cümle değildir', () => {
+    for (const payload of allErrorPayloads()) {
+      for (const value of stringsOf(payload)) {
+        if (UNIT_SYMBOLS.includes(value)) continue
+        expect(value, `"${value}" kod değil (kod: ${payload.error})`).toMatch(CODE_RE)
+      }
+    }
+  })
+
+  it('sayılabilir alanlarda Türkçe cümle izi kalmaz', () => {
+    for (const payload of allErrorPayloads()) {
+      const flat = stringsOf(payload).join(' | ')
+      // Türkçeye özgü harfler ve cümle sonu noktası: ikisi de kodda bulunmaz
+      expect(flat, `kod: ${payload.error}`).not.toMatch(/[ğışöçüĞİŞÖÇÜ]/)
+      expect(flat, `kod: ${payload.error}`).not.toMatch(/\./)
+    }
+  })
+
+  it('sayılabilir olmayan hiçbir alan cümle saklamaz', () => {
+    // Tarayıcı istisna metni yalnızca storage.js içinde ve sayılamayan `_cause`
+    // alanındadır; bu modülün ürettiği yükte hiç görünmez.
+    for (const payload of allErrorPayloads()) {
+      expect(Object.getOwnPropertyNames(payload)).toEqual(Object.keys(payload))
+    }
   })
 })

@@ -45,33 +45,36 @@ const TEMP = { '°C': 1 }
 const PLAIN = { '': 1, adet: 1 }
 const DIA = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 
-export function formFields(mode) {
+// Etiketler `labels` ile çağıran taraftan gelir (geçerli dilde, text.js'ten);
+// `lib/` bunları bilmez. Etiket verilmezse alan anahtarı gösterilir.
+export function formFields(mode, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
     [
-      { key: 'Df', label: 'Bitmiş delik çapı (D_f)', unitKey: 'Dfu', table: DIA, min: 0 },
-      { key: 'tp', label: 'Kaplama kalınlığı (t_p)', unitKey: 'tpu', table: DIA, min: 0 },
-      { key: 'H', label: 'Via uzunluğu / kart kalınlığı (H)', unitKey: 'Hu', table: DIA, min: 0 },
-      { key: 'I', label: 'Toplam akım (I)', unitKey: 'Iu', table: CURRENT, min: 0 },
-      { key: 'T', label: 'Çalışma sıcaklığı', unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Df', label: L('Df'), unitKey: 'Dfu', table: DIA, min: 0 },
+      { key: 'tp', label: L('tp'), unitKey: 'tpu', table: DIA, min: 0 },
+      { key: 'H', label: L('H'), unitKey: 'Hu', table: DIA, min: 0 },
+      { key: 'I', label: L('I'), unitKey: 'Iu', table: CURRENT, min: 0 },
+      { key: 'T', label: L('T'), unit: '°C', table: TEMP, allowZero: true },
 
-      { key: 'Dpad', label: 'Pad çapı', unitKey: 'Dpadu', table: DIA, min: 0 },
-      { key: 'Ddrill', label: 'Matkap çapı', unitKey: 'Ddrillu', table: DIA, min: 0 },
-      { key: 'posTol', label: 'Delik konum toleransı', unitKey: 'posTolu', table: DIA, min: 0, allowZero: true },
-      { key: 'etchTol', label: 'Pad aşındırma toleransı', unitKey: 'etchTolu', table: DIA, min: 0, allowZero: true },
+      { key: 'Dpad', label: L('Dpad'), unitKey: 'Dpadu', table: DIA, min: 0 },
+      { key: 'Ddrill', label: L('Ddrill'), unitKey: 'Ddrillu', table: DIA, min: 0 },
+      { key: 'posTol', label: L('posTol'), unitKey: 'posTolu', table: DIA, min: 0, allowZero: true },
+      { key: 'etchTol', label: L('etchTol'), unitKey: 'etchTolu', table: DIA, min: 0, allowZero: true },
 
-      { key: 'Dantipad', label: 'Antipad çapı', unitKey: 'Dantipadu', table: DIA, min: 0 },
-      { key: 'epsR', label: 'Dielektrik sabiti', unit: '', table: PLAIN, min: 0 },
+      { key: 'Dantipad', label: L('Dantipad'), unitKey: 'Dantipadu', table: DIA, min: 0 },
+      { key: 'epsR', label: L('epsR'), unit: '', table: PLAIN, min: 0 },
     ],
     when(mode === MODE_SYNTHESIS, [
-      { key: 'VdropMax', label: 'İzin verilen gerilim düşümü', unitKey: 'VdropMaxu', table: VOLTAGE, min: 0 },
-      { key: 'IsingleMax', label: 'Tek via akım sınırı', unitKey: 'IsingleMaxu', table: CURRENT, min: 0 },
-      { key: 'Nmin', label: 'En az via sayısı', unit: 'adet', table: PLAIN, min: 1 },
+      { key: 'VdropMax', label: L('VdropMax'), unitKey: 'VdropMaxu', table: VOLTAGE, min: 0 },
+      { key: 'IsingleMax', label: L('IsingleMax'), unitKey: 'IsingleMaxu', table: CURRENT, min: 0 },
+      { key: 'Nmin', label: L('Nmin'), unit: 'adet', table: PLAIN, min: 1 },
     ]),
   ])
 }
 
-export function compute(mode, f) {
-  const read = readForm(f, formFields(mode))
+export function compute(mode, f, labels = {}) {
+  const read = readForm(f, formFields(mode, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

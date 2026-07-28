@@ -3,7 +3,8 @@ import { fmtEng } from '../../../lib/num'
 import { STRUCT_STRIPLINE } from './model'
 
 // Kenar bağlı diferansiyel çift kesiti. İki hat aynı katmanda, aralarında S.
-export default function DiffPairSchematic({ r, form }) {
+// Başlık ve altyazı `text` prop'undan gelir (geçerli dilde, text.js'ten).
+export default function DiffPairSchematic({ r, form, text }) {
   const structure = r.ok ? r.structure : form.structure
   const isStripline = structure === STRUCT_STRIPLINE
 
@@ -41,10 +42,8 @@ export default function DiffPairSchematic({ r, form }) {
   return (
     <Schematic
       viewBox="0 0 260 160"
-      title="Diferansiyel çift kesiti"
-      caption={isStripline
-        ? 'Edge-coupled stripline — çift iki düzlem arasında'
-        : 'Edge-coupled microstrip — çift üst yüzeyde, altta tek düzlem'}
+      title={text.title}
+      caption={isStripline ? text.captionStripline : text.captionMicrostrip}
     >
       {isStripline ? (
         <>

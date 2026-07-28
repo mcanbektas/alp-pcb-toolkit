@@ -6,16 +6,16 @@ import TextField from '../../../components/TextField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtRes, fmtPct, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtRes, fmtPct } from '../../../lib/num'
 import CodeSchematic from './schematic'
 import {
   INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS,
   KIND_COLOR, KIND_SMD, KIND_CAP, KINDS, BAND_COUNTS,
   compute, buildSweep, bandRoles,
 } from './model'
-import {
-  COLOR_NAME, KIND_LABEL, ROLE_LABEL, SMD_KIND_LABEL, CHART_CAPTION, reasonText, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
@@ -23,85 +23,87 @@ const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 export default function ResistorCode() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(mode, f), [mode, f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(mode, f, text.fieldLabels), [mode, f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const roles = bandRoles(Number(f.bandCount))
-  const chartSeries = s ? [{ key: 'rt', name: 'R(T)', tone: toneClass(0), points: s.points }] : []
+  const chartSeries = s
+    ? [{ key: 'rt', name: text.chart.series, tone: toneClass(0), points: s.points }]
+    : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
+      <Link className="backlink" to="/kategori/komponent">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Resistor &amp; SMD Code Decoder</h1>
-        <p>
-          Renk bantlarını, SMD direnç kodlarını ve seramik kondansatör kodlarını çözer; değerden
-          renk bandına ters çevirme, tolerans penceresi, en yakın E serisi değeri ve sıcaklık
-          kaymasını birlikte verir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <CodeSchematic r={r} form={f} />
+          <CodeSchematic r={r} form={f} text={text.schematic} />
 
           <Segmented
             value={mode}
             onChange={setMode}
             options={[
-              { value: MODE_ANALYSIS, label: 'Analiz — koddan değere' },
-              { value: MODE_SYNTHESIS, label: 'Sentez — değerden koda' },
+              { value: MODE_ANALYSIS, label: text.modeAnalysis },
+              { value: MODE_SYNTHESIS, label: text.modeSynthesis },
             ]}
           />
 
           <SelectField
-            label="Komponent işareti"
+            label={text.fields.kind}
             value={f.kind} onChange={set('kind')}
-            options={KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))}
+            options={KINDS.map((k) => ({ value: k, label: text.kindLabel[k] }))}
           />
 
           {(f.kind === KIND_COLOR || mode === MODE_SYNTHESIS) && (
             <SelectField
-              label="Bant sayısı"
+              label={text.fields.bandCount}
               value={f.bandCount} onChange={set('bandCount')}
-              options={BAND_COUNTS.map((n) => ({ value: String(n), label: `${n} bant` }))}
+              options={BAND_COUNTS.map((n) => ({ value: String(n), label: text.bandCountOption(n) }))}
             />
           )}
 
           {mode === MODE_SYNTHESIS ? (
             <>
               <NumberField
-                label="Hedef direnç"
+                label={text.fields.target}
                 value={f.target} onChange={set('target')}
                 units={['Ω', 'kΩ', 'MΩ']} unit={f.targetUnit} onUnit={set('targetUnit')}
               />
               <NumberField
-                label="Tolerans"
+                label={text.fields.tolerance.label}
                 value={f.tolerance} onChange={set('tolerance')}
                 units={['%']} unit="%" onUnit={() => {}}
-                hint="Renklerle gösterilebilen değerler: 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10"
+                hint={text.fields.tolerance.hint}
               />
               {f.bandCount === '6' && (
                 <NumberField
-                  label="Sıcaklık katsayısı (TCR)"
+                  label={text.fields.tcr.label}
                   value={f.tcr} onChange={set('tcr')}
                   units={['ppm/°C']} unit="ppm/°C" onUnit={() => {}}
-                  hint="Renklerle gösterilebilenler: 5, 10, 15, 25, 50, 100"
+                  hint={text.fields.tcr.hint}
                 />
               )}
             </>
@@ -109,48 +111,48 @@ export default function ResistorCode() {
             roles.map((role) => (
               <SelectField
                 key={role.index}
-                label={ROLE_LABEL[role.role](role.index)}
+                label={text.roleLabel[role.role](role.index)}
                 value={f[`b${role.index}`]} onChange={set(`b${role.index}`)}
-                options={role.options.map((c) => ({ value: c.key, label: COLOR_NAME[c.key] }))}
+                options={role.options.map((c) => ({ value: c.key, label: text.colorName[c.key] }))}
               />
             ))
           ) : f.kind === KIND_SMD ? (
             <>
               <TextField
-                label="SMD kodu"
+                label={text.fields.smd.label}
                 value={f.smd} onChange={set('smd')}
-                hint="472 · 4701 · 4R7 · R22 · 01A · 0"
+                hint={text.fields.smd.hint}
               />
               <SelectField
-                label="Kod profili"
+                label={text.fields.smdProfile.label}
                 value={f.smdProfile} onChange={set('smdProfile')}
                 options={[
-                  { value: 'standard', label: 'Standart EIA-96' },
-                  { value: 'manufacturer', label: 'Üretici profili (alias harfleri dahil)' },
+                  { value: 'standard', label: text.fields.smdProfile.standard },
+                  { value: 'manufacturer', label: text.fields.smdProfile.manufacturer },
                 ]}
               />
             </>
           ) : (
             <TextField
-              label="Kondansatör kodu"
+              label={text.fields.cap.label}
               value={f.cap} onChange={set('cap')}
-              hint="Üç rakam ve opsiyonel tolerans harfi: 104 · 104K · 223J"
+              hint={text.fields.cap.hint}
             />
           )}
 
           <NumberField
-            label="Değerlendirme sıcaklığı"
+            label={text.fields.Tref.label}
             value={f.Tref} onChange={set('Tref')}
             units={['°C']} unit="°C" onUnit={() => {}}
-            hint="Sıcaklık kayması bu noktada hesaplanır"
+            hint={text.fields.Tref.hint}
           />
           <NumberField
-            label="Grafik alt sıcaklık"
+            label={text.fields.Tmin}
             value={f.Tmin} onChange={set('Tmin')}
             units={['°C']} unit="°C" onUnit={() => {}}
           />
           <NumberField
-            label="Grafik üst sıcaklık"
+            label={text.fields.Tmax}
             value={f.Tmax} onChange={set('Tmax')}
             units={['°C']} unit="°C" onUnit={() => {}}
           />
@@ -158,31 +160,31 @@ export default function ResistorCode() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason, r.message)}</p>
+              <p className="empty-note">{text.reasonText(r.reason, r.detail)}</p>
             )
           ) : (
             <>
               <div className="big-result">
                 <div className="label">
-                  {r.kind === KIND_CAP ? 'Kapasite' : r.mode === MODE_SYNTHESIS ? 'Gösterilebilen değer' : 'Direnç'}
+                  {r.kind === KIND_CAP
+                    ? text.big.capacitance
+                    : r.mode === MODE_SYNTHESIS ? text.big.representable : text.big.resistance}
                 </div>
                 <div className="value">
                   {r.kind === KIND_CAP ? `${fmt(r.nF, 4)} nF` : fmtRes(r.ohms, 4)}
                 </div>
                 <div className="alt">
                   {r.kind === KIND_CAP
-                    ? `${fmt(r.pF, 4)} pF · ${fmt(r.uF, 4)} µF`
+                    ? text.big.capAlt(fmt(r.pF, 4), fmt(r.uF, 4))
                     : r.tolerance != null
-                      ? `±${fmt(r.tolerance, 3)} % → ${fmtRes(r.min, 4)} … ${fmtRes(r.max, 4)}`
-                      : 'tolerans kodda belirtilmemiş'}
+                      ? text.big.tolRange(fmt(r.tolerance, 3), fmtRes(r.min, 4), fmtRes(r.max, 4))
+                      : text.big.noTolerance}
                 </div>
               </div>
 
@@ -192,16 +194,19 @@ export default function ResistorCode() {
                 <table className="result-table">
                   <tbody>
                     <tr>
-                      <td>Bantlar (soldan sağa)</td>
-                      <td>{r.bands.map((b) => COLOR_NAME[b]).join(' · ')}</td>
+                      <td>{text.table.bands}</td>
+                      <td>{r.bands.map((b) => text.colorName[b]).join(' · ')}</td>
                     </tr>
                     <tr>
-                      <td>İstenen değer</td>
+                      <td>{text.table.requested}</td>
                       <td>{fmtRes(r.requested, 4)}</td>
                     </tr>
                     <tr>
-                      <td>Gösterilebilen değer</td>
-                      <td>{fmtRes(r.ohms, 4)} {r.exact ? '' : <span className="sub">(en yakın)</span>}</td>
+                      <td>{text.table.representable}</td>
+                      <td>
+                        {fmtRes(r.ohms, 4)}{' '}
+                        {r.exact ? '' : <span className="sub">{text.table.nearestNote}</span>}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -212,46 +217,46 @@ export default function ResistorCode() {
                   <tbody>
                     {r.mode === MODE_ANALYSIS && r.kind === KIND_COLOR && (
                       <tr>
-                        <td>Bantlar (soldan sağa)</td>
-                        <td>{r.bands.map((b) => COLOR_NAME[b]).join(' · ')}</td>
+                        <td>{text.table.bands}</td>
+                        <td>{r.bands.map((b) => text.colorName[b]).join(' · ')}</td>
                       </tr>
                     )}
                     {r.kind === KIND_SMD && (
                       <tr>
-                        <td>Kod türü</td>
-                        <td>{SMD_KIND_LABEL[r.smdKind] ?? r.smdKind}</td>
+                        <td>{text.table.smdKind}</td>
+                        <td>{text.smdKindLabel[r.smdKind] ?? r.smdKind}</td>
                       </tr>
                     )}
                     {r.kind === KIND_SMD && r.base != null && (
                       <tr>
-                        <td>E96 temel değeri × çarpan</td>
+                        <td>{text.table.baseTimesMultiplier}</td>
                         <td>{r.base} × {fmt(r.multiplier, 4)}</td>
                       </tr>
                     )}
                     <tr>
-                      <td>En yakın E24</td>
+                      <td>{text.table.nearestE24}</td>
                       <td>
                         {fmtRes(r.nearestE24.value, 4)}{' '}
-                        <span className="sub">({fmtPct(r.nearestE24.errorPct)})</span>
+                        <span className="sub">({text.pct(fmtPct(r.nearestE24.errorPct))})</span>
                       </td>
                     </tr>
                     <tr>
-                      <td>En yakın E96</td>
+                      <td>{text.table.nearestE96}</td>
                       <td>
                         {fmtRes(r.nearestE96.value, 4)}{' '}
-                        <span className="sub">({fmtPct(r.nearestE96.errorPct)})</span>
+                        <span className="sub">({text.pct(fmtPct(r.nearestE96.errorPct))})</span>
                       </td>
                     </tr>
                     {r.tcr != null && (
                       <>
                         <tr>
-                          <td>Sıcaklık katsayısı</td>
+                          <td>{text.table.tcr}</td>
                           <td>{fmt(r.tcr, 3)} ppm/°C</td>
                         </tr>
                         <tr>
-                          <td>Direnç @ {fmt(r.temps.Tref, 3)} °C</td>
+                          <td>{text.table.resistanceAt(fmt(r.temps.Tref, 3))}</td>
                           <td>
-                            {fmtRes(r.atTref, 4)} <span className="sub">({fmtPct(r.driftPct)})</span>
+                            {fmtRes(r.atTref, 4)} <span className="sub">({text.pct(fmtPct(r.driftPct))})</span>
                           </td>
                         </tr>
                       </>
@@ -277,15 +282,15 @@ export default function ResistorCode() {
                     </tr>
                     {r.tolerance != null && (
                       <tr>
-                        <td>Tolerans ({r.toleranceLetter})</td>
-                        <td>±{fmt(r.tolerance, 3)} %</td>
+                        <td>{text.table.capTolerance(r.toleranceLetter)}</td>
+                        <td>±{text.pct(fmt(r.tolerance, 3))}</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               )}
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -300,72 +305,26 @@ export default function ResistorCode() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{`4 bant:
-  R = (10·D₁ + D₂) · 10^M
-5 bant:
-  R = (100·D₁ + 10·D₂ + D₃) · 10^M
-6. bant:
-  R(T) = R₂₅ ·
-    [1 + TCR·10⁻⁶·(T − 25)]
-
-SMD 3 hane:
-  R = (10·D₁ + D₂) · 10^D₃
-SMD 4 hane:
-  R = (100·D₁ + 10·D₂ + D₃) ·
-    10^D₄
-R işareti:
-  4R7 = 4.7 Ω, R22 = 0.22 Ω
-EIA-96:
-  R = E96[kod] × M[harf]
-
-Kondansatör:
-  C[pF] = (10·D₁ + D₂) · 10^D₃
-
-Tolerans sınırları:
-  R_min = R·(1 − Tol/100)
-  R_max = R·(1 + Tol/100)`}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && r.kind !== KIND_CAP && (
             <ul className="detail-list">
-              <li>Çözülen nominal değer: {fmtRes(r.ohms, 6)}.</li>
+              <li>{text.detail.nominal(fmtRes(r.ohms, 6))}</li>
               {r.tolerance != null && (
-                <li>Tolerans penceresi: {fmtRes(r.min, 6)} … {fmtRes(r.max, 6)}.</li>
+                <li>{text.detail.toleranceWindow(fmtRes(r.min, 6), fmtRes(r.max, 6))}</li>
               )}
               {r.tcr != null && (
-                <li>
-                  Sıcaklık kayması 25 °C referansına göre hesaplanır; {fmt(r.temps.Tref, 3)} °C'de
-                  {' '}{fmtPct(r.driftPct)}.
-                </li>
+                <li>{text.detail.drift(fmt(r.temps.Tref, 3), text.pct(fmtPct(r.driftPct)))}</li>
               )}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Bant renkleri ve SMD kod düzenleri endüstride yaygın kabul görmüş biçimlerdir; bazı
-              üreticiler farklı çarpan harfi veya bant düzeni kullanır.
-            </li>
-            <li>
-              EIA-96 alias harfleri (R, S, H) yalnızca üretici profili seçildiğinde kabul edilir.
-              Standart profilde bilinmeyen harf hata verir — sessizce tahmin edilmez.
-            </li>
-            <li>
-              Sıcaklık modeli doğrusaldır. Gerçek TCR sıcaklıkla değişir ve üretici eğrisi
-              doğrusaldan sapar.
-            </li>
-            <li>
-              Tolerans ve sıcaklık kayması bağımsız etkilerdir; worst-case toplam hata ikisinin
-              birleşimidir, tek başına hiçbiri değildir.
-            </li>
-            <li>
-              Tantal ve polimer kondansatör işaretleri üreticiye göre değişir; bu araç yalnızca
-              üç rakamlı seramik kodunu çözer.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((n) => <li key={n}>{n}</li>)}
           </ul>
         </section>
       </div>
@@ -373,16 +332,16 @@ Tolerans sınırları:
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
           <>
             <ChartLegend
               items={[
-                { label: 'R(T)', tone: toneClass(0), kind: 'line' },
+                { label: text.chart.series, tone: toneClass(0), kind: 'line' },
                 ...s.refs.map((ref) => ({
-                  label: ref.key === 'min' ? 'tolerans alt sınırı' : 'tolerans üst sınırı',
+                  label: ref.key === 'min' ? text.chart.legendMin : text.chart.legendMax,
                   tone: 'tone-muted',
                   kind: 'line',
                 })),
@@ -391,33 +350,32 @@ Tolerans sınırları:
 
             <LineChart
               xScale="linear"
-              xLabel="Sıcaklık (°C)"
-              yLabel="Direnç (Ω)"
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: ref.key === 'min' ? `alt sınır ${fmtRes(ref.y, 4)}` : `üst sınır ${fmtRes(ref.y, 4)}`,
+                label: ref.key === 'min'
+                  ? text.chart.refMin(fmtRes(ref.y, 4))
+                  : text.chart.refMax(fmtRes(ref.y, 4)),
               }))}
-              marker={{ ...s.marker, label: `${fmt(r.temps.Tref, 3)} °C` }}
+              marker={{ ...s.marker, label: text.chart.tempTick(fmt(r.temps.Tref, 3)) }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmt(v, 4)}
-              caption={CHART_CAPTION}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel="Sıcaklık (°C)"
+              xLabel={text.chart.x}
               series={chartSeries}
               every={5}
-              formatX={(v) => `${fmt(v, 3)} °C`}
+              formatX={(v) => text.chart.tempTick(fmt(v, 3))}
               formatY={(v) => fmtRes(v, 5)}
             />
           </>
         ) : (
-          <p className="empty-note">
-            Sıcaklık eğrisi yalnızca sıcaklık katsayısı bilindiğinde çizilir. 6 bantlı direnç seçin
-            veya sentez modunda TCR girin.
-          </p>
+          <p className="empty-note">{text.chartEmpty}</p>
         )}
       </section>
 

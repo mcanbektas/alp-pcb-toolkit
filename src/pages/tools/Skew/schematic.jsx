@@ -30,7 +30,7 @@ function tracePath(y, serpentine) {
   return parts.join(' ')
 }
 
-export default function SkewSchematic({ r }) {
+export default function SkewSchematic({ r, text }) {
   // Girdi geçersizken de bir şey gösterilir: N hattı serpantinli varsayılır
   const serpP = r.ok ? r.addTo === 'P' : false
   const serpN = r.ok ? r.addTo === 'N' : true
@@ -38,10 +38,10 @@ export default function SkewSchematic({ r }) {
   return (
     <Schematic
       viewBox="0 0 260 158"
-      title="Diferansiyel çift — uzunluk eşitleme"
+      title={text.title}
       caption={r.ok && r.addTo === null
-        ? 'İki hattın gecikmesi eşit; eşitleme gerekmiyor'
-        : 'Gecikmesi küçük olan hat serpantinle uzatılır; ΔL iki hattın uzunluk farkıdır'}
+        ? text.captionEqual
+        : text.captionDefault}
     >
       {/* Hat adları */}
       <text className="sch-label" x={8} y={Y_P + 4}>P</text>
@@ -85,11 +85,11 @@ export default function SkewSchematic({ r }) {
           <text className="sch-value" x={X0} y={Y_N + 30}>
             {r.differentLayer
               ? `εeff,N = ${fmt(r.epsEffN, 4)}`
-              : 'εeff,N = εeff,P (aynı katman)'}
+              : text.sameLayerEps}
           </text>
           <text className="sch-value" x={130} y={150} textAnchor="middle">
             ΔL = {fmtEng(r.deltaL, 'm', 3)}
-            {r.addTo ? ` · ${r.addTo} hattına +${fmtEng(r.addLength, 'm', 3)}` : ''}
+            {r.addTo ? text.addSuffix(r.addTo, fmtEng(r.addLength, 'm', 3)) : ''}
           </text>
         </>
       )}

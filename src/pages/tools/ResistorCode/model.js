@@ -42,19 +42,24 @@ const TEMP = { '°C': 1 }
 const PCT = { '%': 1 }
 const PPM = { 'ppm/°C': 1 }
 
-export function formFields(mode, f) {
+// Alan etiketleri dışarıdan gelir: model dili bilmez, ekran `text.fieldLabels`
+// geçirir. Etiket verilmezse alan anahtarı görünür — sessiz boşluk yerine
+// teşhis edilebilir bir ad.
+export function formFields(mode, f, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     when(mode === MODE_SYNTHESIS, [
-      { key: 'target', label: 'Hedef direnç', unitKey: 'targetUnit', table: RESISTANCE, min: 0 },
-      { key: 'tolerance', label: 'Tolerans', unit: '%', table: PCT, min: 0 },
+      { key: 'target', label: L('target'), unitKey: 'targetUnit', table: RESISTANCE, min: 0 },
+      { key: 'tolerance', label: L('tolerance'), unit: '%', table: PCT, min: 0 },
     ]),
     when(mode === MODE_SYNTHESIS && f.bandCount === '6', [
-      { key: 'tcr', label: 'Sıcaklık katsayısı (TCR)', unit: 'ppm/°C', table: PPM, min: 0 },
+      { key: 'tcr', label: L('tcr'), unit: 'ppm/°C', table: PPM, min: 0 },
     ]),
     [
-      { key: 'Tmin', label: 'Grafik alt sıcaklık', unit: '°C', table: TEMP, allowZero: true },
-      { key: 'Tmax', label: 'Grafik üst sıcaklık', unit: '°C', table: TEMP, allowZero: true },
-      { key: 'Tref', label: 'Değerlendirme sıcaklığı', unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Tmin', label: L('Tmin'), unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Tmax', label: L('Tmax'), unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Tref', label: L('Tref'), unit: '°C', table: TEMP, allowZero: true },
     ],
   ])
 }
@@ -94,8 +99,8 @@ function evaluate(ohms, tolerance, tcr, v) {
   }
 }
 
-export function compute(mode, f) {
-  const read = readForm(f, formFields(mode, f))
+export function compute(mode, f, labels = {}) {
+  const read = readForm(f, formFields(mode, f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
@@ -106,7 +111,7 @@ export function compute(mode, f) {
 
     const bandCount = Number(f.bandCount)
     const enc = encodeColorBands(v.target, v.tolerance, bandCount, bandCount === 6 ? v.tcr : null)
-    if (enc.error) return { ok: false, reason: enc.error, message: enc.message }
+    if (enc.error) return { ok: false, reason: enc.error, detail: enc.detail }
 
     return {
       ok: true, mode, kind: KIND_COLOR, bandCount,
@@ -121,7 +126,7 @@ export function compute(mode, f) {
   if (f.kind === KIND_COLOR) {
     const bandCount = Number(f.bandCount)
     const dec = decodeColorBands(bandKeys(f))
-    if (dec.error) return { ok: false, reason: dec.error, message: dec.message }
+    if (dec.error) return { ok: false, reason: dec.error, detail: dec.detail }
 
     return {
       ok: true, mode, kind: KIND_COLOR, bandCount,
@@ -133,7 +138,7 @@ export function compute(mode, f) {
 
   if (f.kind === KIND_SMD) {
     const dec = decodeSmd(f.smd, { profile: f.smdProfile })
-    if (dec.error) return { ok: false, reason: dec.error, message: dec.message }
+    if (dec.error) return { ok: false, reason: dec.error, detail: dec.detail }
 
     return {
       ok: true, mode, kind: KIND_SMD,
@@ -148,14 +153,16 @@ export function compute(mode, f) {
   }
 
   const dec = decodeCapacitor(f.cap)
-  if (dec.error) return { ok: false, reason: dec.error, message: dec.message }
+  if (dec.error) return { ok: false, reason: dec.error, detail: dec.detail }
 
   return {
     ok: true, mode, kind: KIND_CAP,
     pF: dec.pF, nF: dec.nF, uF: dec.uF, farad: dec.farad,
     tolerance: dec.tolerance,
     toleranceLetter: dec.toleranceLetter,
-    toleranceNote: dec.toleranceNote,
+    // Tek sayıyla ifade edilemeyen tolerans harfleri motorda `toleranceAsymmetric`
+    // adıyla döner; cümlesini text.js kurar.
+    toleranceAsymmetric: dec.toleranceAsymmetric,
     min: dec.min, max: dec.max,
     temps: v,
   }

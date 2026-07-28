@@ -32,17 +32,20 @@ export const INITIAL_FORM = {
   sig: '5',
 }
 
-export function formFields() {
+// Etiketler `labels` ile çağıran taraftan gelir (geçerli dilde, text.js'ten);
+// etiket verilmezse alan anahtarı gösterilir.
+export function formFields(labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
     [
-      { key: 'L', label: 'Uzunluk', unitKey: 'Lu', table: LEN, min: 0 },
-      { key: 'sig', label: 'Gösterim hassasiyeti', min: 1, max: 12 },
+      { key: 'L', label: L('L'), unitKey: 'Lu', table: LEN, min: 0 },
+      { key: 'sig', label: L('sig'), min: 1, max: 12 },
     ],
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields())
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

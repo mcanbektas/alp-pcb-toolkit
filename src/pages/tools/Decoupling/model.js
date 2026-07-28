@@ -44,45 +44,51 @@ export const INITIAL_FORM = {
   ],
 }
 
-// RowList sütunları — birim seçicideki metin, aşağıdaki tabloların anahtarıdır
-export const CAP_COLUMNS = [
-  { key: 'C', unitKey: 'Cu', label: 'C', units: ['µF', 'nF', 'pF'] },
-  { key: 'ESR', unitKey: 'ESRu', label: 'ESR', units: ['mΩ', 'Ω'] },
-  { key: 'ESL', unitKey: 'ESLu', label: 'ESL', units: ['nH', 'pH'] },
-  { key: 'n', label: 'Adet', placeholder: '1' },
-]
+// RowList sütunları — başlık dizeleri ekranın text.js'inden gelir
+export function capColumns(labels = {}) {
+  return [
+    { key: 'C', unitKey: 'Cu', label: labels.C ?? 'C', units: ['µF', 'nF', 'pF'] },
+    { key: 'ESR', unitKey: 'ESRu', label: labels.ESR ?? 'ESR', units: ['mΩ', 'Ω'] },
+    { key: 'ESL', unitKey: 'ESLu', label: labels.ESL ?? 'ESL', units: ['nH', 'pH'] },
+    { key: 'n', label: labels.n ?? 'n', placeholder: '1' },
+  ]
+}
 
 // ESR sıfır GİRİLEBİLİR: alan doğrulaması reddetmez, motor PDN_ERR_SINGULAR
 // döndürür ve kullanıcıya nedeni ayrıca anlatılır (kayıpsız kapasitör
 // rezonansta sıfır empedans verir).
-const CAP_SPECS = [
-  { key: 'C', label: 'Kapasite', unitKey: 'Cu', table: CAPACITANCE, min: 0 },
-  { key: 'ESR', label: 'ESR', unitKey: 'ESRu', table: RESISTANCE, min: 0, allowZero: true },
-  { key: 'ESL', label: 'ESL', unitKey: 'ESLu', table: INDUCTANCE, min: 0, allowZero: true },
-  { key: 'n', label: 'Adet', min: 1 },
-]
+function capSpecs(labels = {}) {
+  return [
+    { key: 'C', label: labels.C ?? 'C', unitKey: 'Cu', table: CAPACITANCE, min: 0 },
+    { key: 'ESR', label: labels.ESR ?? 'ESR', unitKey: 'ESRu', table: RESISTANCE, min: 0, allowZero: true },
+    { key: 'ESL', label: labels.ESL ?? 'ESL', unitKey: 'ESLu', table: INDUCTANCE, min: 0, allowZero: true },
+    { key: 'n', label: labels.n ?? 'n', min: 1 },
+  ]
+}
 
-export function formFields(mode) {
+export function formFields(mode, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     when(mode === MODE_MIN, [
-      { key: 'dI', label: 'Ani akım değişimi (ΔI)', unitKey: 'dIu', table: CURRENT, min: 0 },
-      { key: 'dT', label: 'Geçiş süresi (Δt)', unitKey: 'dTu', table: TIME, min: 0 },
-      { key: 'dV', label: 'İzin verilen gerilim değişimi (ΔV)', unitKey: 'dVu', table: VOLTAGE, min: 0 },
+      { key: 'dI', label: L('dI'), unitKey: 'dIu', table: CURRENT, min: 0 },
+      { key: 'dT', label: L('dT'), unitKey: 'dTu', table: TIME, min: 0 },
+      { key: 'dV', label: L('dV'), unitKey: 'dVu', table: VOLTAGE, min: 0 },
     ]),
     when(mode === MODE_NETWORK, [
-      { key: 'fEval', label: 'Değerlendirme frekansı', unitKey: 'fEvalu', table: FREQUENCY, min: 0 },
+      { key: 'fEval', label: L('fEval'), unitKey: 'fEvalu', table: FREQUENCY, min: 0 },
     ]),
   ])
 }
 
-export function compute(mode, f) {
-  return mode === MODE_MIN ? computeMin(f) : computeNetwork(f)
+export function compute(mode, f, labels = {}) {
+  return mode === MODE_MIN ? computeMin(f, labels) : computeNetwork(f, labels)
 }
 
 // --- Mod 1: minimum ideal kapasite (§8.2) ---
 
-function computeMin(f) {
-  const read = readForm(f, formFields(MODE_MIN))
+function computeMin(f, labels = {}) {
+  const read = readForm(f, formFields(MODE_MIN, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
@@ -107,12 +113,12 @@ function computeMin(f) {
 
 // --- Mod 2: kapasitör ağı (§8.2.1, §8.2.2) ---
 
-function computeNetwork(f) {
-  const read = readForm(f, formFields(MODE_NETWORK))
+function computeNetwork(f, labels = {}) {
+  const read = readForm(f, formFields(MODE_NETWORK, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
-  const rows = readRows(f.caps, CAP_SPECS, 'Kapasitör')
+  const rows = readRows(f.caps, capSpecs(labels), labels.rowLabel ?? 'row')
   if (rows.ambiguous.length) return { ok: false, ambiguous: rows.ambiguous }
   if (!rows.ok) return { ok: false, reason: REASON_ROWS, invalid: rows.invalid }
 

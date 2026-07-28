@@ -3,7 +3,7 @@ import { fmtEng, fmtAmp } from '../../../lib/num'
 import { TOOL_PLANE } from './model'
 
 // Boyunlu bakır poligon — akım darboğazdan geçer
-function PlaneShape({ r }) {
+function PlaneShape({ r, text }) {
   // Boyun genişliğinin ortalamaya oranı şemaya orantılı yansıtılır,
   // çok ince olduğunda görünür kalması için alt sınır uygulanır.
   const ratio = r.ok ? Math.max(0.12, Math.min(1, r.neck.W / r.average.W)) : 0.35
@@ -45,7 +45,7 @@ function PlaneShape({ r }) {
         <line x1={129} x2={141} y1={nBottom} y2={nBottom} />
         <line x1={135} x2={135} y1={neckLeaderTop} y2={nTop} />
       </g>
-      <text className="sch-label" x={135} y={labelY} textAnchor="middle">boyun</text>
+      <text className="sch-label" x={135} y={labelY} textAnchor="middle">{text.neck}</text>
       {r.ok && (
         <text className="sch-value" x={135} y={topValueY} textAnchor="middle">
           {fmtEng(r.neck.W, 'm', 3)}
@@ -83,7 +83,7 @@ function PlaneShape({ r }) {
 }
 
 // Paralel yollar — kalınlıkları genişlik oranına göre çizilir
-function ParallelShape({ r }) {
+function ParallelShape({ r, text }) {
   const branches = r.ok ? r.branches.slice(0, 6) : [{ W: 1 }, { W: 1 }]
   const maxW = Math.max(...branches.map((b) => b.W))
   const gap = 100 / Math.max(branches.length, 2)
@@ -122,26 +122,24 @@ function ParallelShape({ r }) {
       <Terminal x={216} y={axisY} />
       {r.ok && (
         <text className="sch-value" x={130} y={140} textAnchor="middle">
-          {r.branches.length} kol · eşdeğer {fmtEng(r.Req, 'Ω', 3)}
+          {text.branchSummary(r.branches.length, fmtEng(r.Req, 'Ω', 3))}
         </text>
       )}
     </>
   )
 }
 
-export default function PlaneSchematic({ r, form }) {
+export default function PlaneSchematic({ r, form, text }) {
   const tool = r.ok ? r.tool : form.tool
   const isPlane = tool === TOOL_PLANE
 
   return (
     <Schematic
       viewBox={`0 0 ${isPlane ? 260 : 296} ${isPlane ? 140 : 152}`}
-      title={isPlane ? 'Güç düzlemi geometrisi' : 'Paralel yollar'}
-      caption={isPlane
-        ? 'Akım darboğazdan geçer; direncin büyük kısmı orada oluşur'
-        : 'Kol kalınlıkları genişlik oranını gösterir'}
+      title={isPlane ? text.titlePlane : text.titleParallel}
+      caption={isPlane ? text.captionPlane : text.captionParallel}
     >
-      {isPlane ? <PlaneShape r={r} /> : <ParallelShape r={r} />}
+      {isPlane ? <PlaneShape r={r} text={text} /> : <ParallelShape r={r} text={text} />}
     </Schematic>
   )
 }

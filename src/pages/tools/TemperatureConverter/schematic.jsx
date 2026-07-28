@@ -66,7 +66,7 @@ function spreadPair(xa, wa, xb, wb) {
   return [a + shift, b + shift]
 }
 
-export default function TemperatureSchematic({ r }) {
+export default function TemperatureSchematic({ r, text }) {
   const live = r.ok
   const delta = live && r.mode === MODE_DELTA
   const hasFinal = delta && !!r.final
@@ -111,10 +111,10 @@ export default function TemperatureSchematic({ r }) {
     textW(dRowF, VALUE_FS),
   ))
 
-  const startLabel = hasFinal ? 'ortam' : 'başlangıç'
+  const startLabel = hasFinal ? text.ambient : text.start
   const wStartLabel = textW(startLabel, LABEL_FS)
   const [xStartLabel, xEndLabel] = hasFinal
-    ? spreadPair(xStart, wStartLabel, xEnd, textW('sonuç', LABEL_FS))
+    ? spreadPair(xStart, wStartLabel, xEnd, textW(text.end, LABEL_FS))
     : [centerIn(xStart, wStartLabel), 0]
 
   const finalRow = hasFinal ? `${fmt(startC, SIG)} °C → ${fmt(endC, SIG)} °C` : ''
@@ -132,10 +132,8 @@ export default function TemperatureSchematic({ r }) {
   return (
     <Schematic
       viewBox={`0 0 ${VB_W} ${VB_H}`}
-      title={delta ? 'Sıcaklık farkı ölçeği' : 'Mutlak sıcaklık ölçeği'}
-      caption={delta
-        ? 'Fark, ölçek üzerindeki iki nokta arasındaki açıklıktır — başlangıcı nerede olursa olsun aynıdır'
-        : 'Mutlak sıcaklık, ölçek üzerinde tek bir noktadır'}
+      title={delta ? text.titleDelta : text.titleAbs}
+      caption={delta ? text.captionDelta : text.captionAbs}
     >
       {/* Ölçek ekseni */}
       <g className="sch-wire">
@@ -176,7 +174,7 @@ export default function TemperatureSchematic({ r }) {
           </text>
           {hasFinal && (
             <text className="sch-label" x={xEndLabel} y={ROW_POINTS} textAnchor="middle">
-              sonuç
+              {text.end}
             </text>
           )}
 

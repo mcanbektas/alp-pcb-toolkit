@@ -64,43 +64,44 @@ export const INITIAL_FORM = {
 // Oran alanları sıfır ve negatif değeri alan doğrulamasında geçirir
 // (allowZero), çünkü "log tanımsız" durumu ayrı bir hata koduyla
 // bildirilir; "alanı doldur" mesajı bu durumu doğru anlatmaz.
-export function formFields(f) {
+export function formFields(f, labels = {}) {
   const power = f.mode === MODE_POWER
   const volt = f.mode === MODE_VOLTAGE
   const dbm = f.mode === MODE_DBM
   const fwd = f.dir === DIR_FORWARD
+  const L = (key) => labels[key] ?? key
 
   return fieldsFor([
     when(power && fwd, [
-      { key: 'P1', label: 'Giriş gücü (P₁)', unitKey: 'P1u', table: POWER, allowZero: true },
-      { key: 'P2', label: 'Çıkış gücü (P₂)', unitKey: 'P2u', table: POWER, allowZero: true },
+      { key: 'P1', label: L('P1'), unitKey: 'P1u', table: POWER, allowZero: true },
+      { key: 'P2', label: L('P2'), unitKey: 'P2u', table: POWER, allowZero: true },
     ]),
     when(power && !fwd, [
-      { key: 'dB', label: 'Kazanç (G)', unit: 'dB', table: DB, allowZero: true },
-      { key: 'P1', label: 'Giriş gücü (P₁)', unitKey: 'P1u', table: POWER, allowZero: true, optional: true },
+      { key: 'dB', label: L('dB'), unit: 'dB', table: DB, allowZero: true },
+      { key: 'P1', label: L('P1'), unitKey: 'P1u', table: POWER, allowZero: true, optional: true },
     ]),
     when(volt && fwd, [
-      { key: 'V1', label: 'Giriş gerilimi (V₁)', unitKey: 'V1u', table: VOLTAGE, allowZero: true },
-      { key: 'V2', label: 'Çıkış gerilimi (V₂)', unitKey: 'V2u', table: VOLTAGE, allowZero: true },
+      { key: 'V1', label: L('V1'), unitKey: 'V1u', table: VOLTAGE, allowZero: true },
+      { key: 'V2', label: L('V2'), unitKey: 'V2u', table: VOLTAGE, allowZero: true },
     ]),
     when(volt && !fwd, [
-      { key: 'dB', label: 'Kazanç (G)', unit: 'dB', table: DB, allowZero: true },
-      { key: 'V1', label: 'Giriş gerilimi (V₁)', unitKey: 'V1u', table: VOLTAGE, allowZero: true, optional: true },
+      { key: 'dB', label: L('dB'), unit: 'dB', table: DB, allowZero: true },
+      { key: 'V1', label: L('V1'), unitKey: 'V1u', table: VOLTAGE, allowZero: true, optional: true },
     ]),
     when(dbm && fwd, [
-      { key: 'P', label: 'Güç (P)', unitKey: 'Pu', table: POWER, allowZero: true },
+      { key: 'P', label: L('P'), unitKey: 'Pu', table: POWER, allowZero: true },
     ]),
     when(dbm && !fwd, [
-      { key: 'dBm', label: 'Güç seviyesi', unit: 'dBm', table: DBM, allowZero: true },
+      { key: 'dBm', label: L('dBm'), unit: 'dBm', table: DBM, allowZero: true },
     ]),
     when(dbm, [
-      { key: 'Z', label: 'Referans empedans (Z₀)', unit: 'Ω', table: RESISTANCE, min: 0 },
+      { key: 'Z', label: L('Z'), unit: 'Ω', table: RESISTANCE, min: 0 },
     ]),
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

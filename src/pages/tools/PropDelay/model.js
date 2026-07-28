@@ -17,18 +17,22 @@ export const INITIAL_FORM = {
 
 const DIM = { mm: LENGTH.mm, cm: LENGTH.cm, m: LENGTH.m, mil: LENGTH.mil, inch: LENGTH.inch }
 
-export function formFields(f) {
+// Alan etiketleri `labels` ile çağıran taraftan gelir (geçerli dilde,
+// text.js'ten); `lib/` bunları bilmez. εeff alanlarının etiketi de aynı
+// sözlükten çevrilir — verilmezse lib'in kendi etiketi kalır.
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
-    epsFields(f),
+    epsFields(f).map((s) => ({ ...s, label: labels[s.key] ?? s.label })),
     [
-      { key: 'length', label: 'Hat uzunluğu', unitKey: 'lengthu', table: DIM, min: 0 },
-      { key: 'freq', label: 'Frekans', unitKey: 'frequ', table: FREQUENCY, min: 0 },
+      { key: 'length', label: L('length'), unitKey: 'lengthu', table: DIM, min: 0 },
+      { key: 'freq', label: L('freq'), unitKey: 'frequ', table: FREQUENCY, min: 0 },
     ],
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

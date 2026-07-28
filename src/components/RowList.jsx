@@ -3,14 +3,27 @@
 // Satırlar form state'inde bir dizi olarak tutulur; her satır kendi alan
 // değerlerini taşır. Bileşen yalnızca düzeni ve satır ekleme/silmeyi yönetir,
 // ayrıştırma `lib/fields.js` içindeki `readRows` ile yapılır.
+//
+// `EpsEffFields` gibi istisna: dili doğrudan `useLang()`'den okur. Ekran
+// okuyucu etiketleri ("… birimi", "… sil") üç ekranda da aynı; metni prop
+// olarak geçirmek aynı sözlüğü üç yere kopyalamak olurdu. Ekrana özgü olan
+// `label` / `rowLabel` / `addLabel` / `hint` yine prop olarak gelir.
+
+import { useLang } from '../hooks/useLang'
+import { commonText } from '../data/uiText'
 
 export default function RowList({
   label, rows, columns, onChange,
   min = 1, max = 12,
-  addLabel = 'Satır ekle',
-  rowLabel = 'Satır',
+  addLabel,
+  rowLabel,
   hint,
 }) {
+  const { lang } = useLang()
+  const ui = commonText(lang)
+  const rowName = rowLabel ?? ui.rowLabel
+  const addName = addLabel ?? ui.rowAdd
+
   const setCell = (i, key) => (value) => {
     onChange(rows.map((row, j) => (j === i ? { ...row, [key]: value } : row)))
   }
@@ -43,14 +56,14 @@ export default function RowList({
             <span className="cell" key={c.key}>
               <input
                 inputMode="decimal"
-                aria-label={`${rowLabel} ${i + 1} — ${c.label}`}
+                aria-label={`${rowName} ${i + 1} — ${c.label}`}
                 value={row[c.key] ?? ''}
                 placeholder={c.placeholder ?? ''}
                 onChange={(e) => setCell(i, c.key)(e.target.value)}
               />
               {c.units && (
                 <select
-                  aria-label={`${rowLabel} ${i + 1} — ${c.label} birimi`}
+                  aria-label={ui.rowUnitAria(rowName, i + 1, c.label)}
                   value={row[c.unitKey] ?? c.units[0]}
                   onChange={(e) => setCell(i, c.unitKey)(e.target.value)}
                 >
@@ -64,7 +77,7 @@ export default function RowList({
             className="act"
             onClick={() => remove(i)}
             disabled={rows.length <= min}
-            aria-label={`${rowLabel} ${i + 1} sil`}
+            aria-label={ui.rowRemoveAria(rowName, i + 1)}
           >
             ×
           </button>
@@ -72,7 +85,7 @@ export default function RowList({
       ))}
 
       <button type="button" className="row-add" onClick={add} disabled={rows.length >= max}>
-        + {addLabel}
+        + {addName}
       </button>
 
       {hint && <span className="field-hint">{hint}</span>}

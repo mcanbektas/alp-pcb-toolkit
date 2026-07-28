@@ -5,196 +5,155 @@ import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtRes, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtRes } from '../../../lib/num'
 import ImpedanceSchematic from './schematic'
 import {
   INITIAL_FORM, STRUCTURES, STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW,
   MODE_ANALYSIS, MODE_SYNTHESIS, compute, buildSweep,
 } from './model'
-import { STRUCT_LABEL, METHOD_NOTE, CHART, reasonText, commentary } from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const DIM_UNITS = ['mm', 'µm', 'mil']
 
-const FORMULA = {
-  [STRUCT_MICROSTRIP]: `u = W / H
-η₀ = 376.7303 Ω
-
-a(u) = 1
-    + (1/49)·ln[(u⁴+(u/52)²)/
-      (u⁴+0.432)]
-    + (1/18.7)·ln[1+(u/18.1)³]
-b(εr) = 0.564·
-    [(εr−0.9)/(εr+3)]^0.053
-
-εeff = (εr+1)/2 +
-    (εr−1)/2·(1+10/u)^(−a·b)
-
-f_u = 6 + (2π−6)·
-    exp[−(30.666/u)^0.7528]
-Z_air = (η₀/2π)·
-    ln[f_u/u + √(1+(2/u)²)]
-Z₀ = Z_air / √εeff
-
-Kalınlık düzeltmesi (τ = t/H):
-  Δu₁ = (τ/π)·
-    ln[1 + 4e/(τ·coth²√(6.517u))]
-  Δu_r = (Δu₁/2)·[1 + sech√(εr−1)]`,
-  [STRUCT_STRIPLINE]: `k = tanh(πW / 2b)
-k' = sech(πW / 2b)
-
-Z₀ = (30π / √εr) · K(k') / K(k)
-
-K(k): tam eliptik integral
-  (AGM ile)
-εeff = εr (homojen dielektrik)`,
-  [STRUCT_CPW]: `k = W / (W + 2S)
-k' = √(1 − k²)
-
-εeff ≈ (εr + 1) / 2
-  (kalın substrat)
-Z₀ = (30π / √εeff) · K(k') / K(k)
-
-Bu form alt referans düzlemi
-OLMAYAN yapı içindir.`,
-}
-
 export default function SingleEnded() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(mode, f), [mode, f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(mode, f, text.fieldLabels), [mode, f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const chartSeries = s ? [{ key: 'z0', name: 'Z₀', tone: toneClass(0), points: s.points }] : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/empedans">← Kontrollü Empedans</Link>
+      <Link className="backlink" to="/kategori/empedans">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Single-Ended Impedance</h1>
-        <p>
-          Microstrip, stripline ve coplanar waveguide için karakteristik empedansı, efektif
-          dielektrik sabitini ve yayılma gecikmesini hesaplar; hedef empedans için gereken hat
-          genişliğini sınırlandırılmış kök aramayla bulur.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <ImpedanceSchematic r={r} form={f} />
+          <ImpedanceSchematic r={r} form={f} text={text.schematic} />
 
           <Segmented
             value={mode}
             onChange={setMode}
             options={[
-              { value: MODE_ANALYSIS, label: 'Analiz — empedansı bul' },
-              { value: MODE_SYNTHESIS, label: 'Sentez — genişliği bul' },
+              { value: MODE_ANALYSIS, label: text.modeAnalysis },
+              { value: MODE_SYNTHESIS, label: text.modeSynthesis },
             ]}
           />
 
           <SelectField
-            label="Yapı"
+            label={text.fields.structure.label}
             value={f.structure} onChange={set('structure')}
-            options={STRUCTURES.map((x) => ({ value: x, label: STRUCT_LABEL[x] }))}
+            options={STRUCTURES.map((x) => ({ value: x, label: text.structLabel[x] }))}
           />
 
           {mode === MODE_ANALYSIS ? (
             <NumberField
-              label="Hat genişliği (W)"
+              label={text.fields.W.label}
               value={f.W} onChange={set('W')}
               units={DIM_UNITS} unit={f.Wu} onUnit={set('Wu')}
             />
           ) : (
             <NumberField
-              label="Hedef empedans"
+              label={text.fields.target.label}
               value={f.target} onChange={set('target')}
               units={['Ω']} unit="Ω" onUnit={() => {}}
-              hint="Tipik hedefler: 50 Ω tek uçlu, 75 Ω video"
+              hint={text.fields.target.hint}
             />
           )}
 
           {f.structure === STRUCT_STRIPLINE ? (
             <NumberField
-              label="Düzlemler arası mesafe (b)"
+              label={text.fields.b.label}
               value={f.b} onChange={set('b')}
               units={DIM_UNITS} unit={f.bu} onUnit={set('bu')}
-              hint="Hat tam ortada varsayılır"
+              hint={text.fields.b.hint}
             />
           ) : (
             <NumberField
-              label="Dielektrik yüksekliği (H)"
+              label={text.fields.H.label}
               value={f.H} onChange={set('H')}
               units={DIM_UNITS} unit={f.Hu} onUnit={set('Hu')}
-              hint="Kartın toplam kalınlığı değil — hat ile referans düzlem arası"
+              hint={text.fields.H.hint}
             />
           )}
 
           {f.structure === STRUCT_CPW && (
             <NumberField
-              label="Coplanar boşluk (S)"
+              label={text.fields.S.label}
               value={f.S} onChange={set('S')}
               units={DIM_UNITS} unit={f.Su} onUnit={set('Su')}
             />
           )}
 
           <NumberField
-            label="Bakır kalınlığı (t)"
+            label={text.fields.tField.label}
             value={f.t} onChange={set('t')}
             units={DIM_UNITS} unit={f.tu} onUnit={set('tu')}
             hint={f.structure === STRUCT_MICROSTRIP
-              ? 'Kalınlık düzeltmesi uygulanır'
-              : 'Bu yapının kapalı formuna dahil değil'}
+              ? text.fields.tField.hintMicrostrip
+              : text.fields.tField.hintOther}
           />
 
           <NumberField
-            label="Dielektrik sabiti (εr)"
+            label={text.fields.epsR.label}
             value={f.epsR} onChange={set('epsR')}
             units={['']} unit="" onUnit={() => {}}
-            hint="FR-4 için tipik 4.2–4.5; gerçek değer frekansa göre değişir"
+            hint={text.fields.epsR.hint}
           />
 
           {f.structure !== STRUCT_CPW && (
             <>
               <label className="check-row">
                 <input type="checkbox" checked={f.tol} onChange={(e) => set('tol')(e.target.checked)} />
-                Tolerans analizi (worst-case)
+                {text.fields.tolCheck}
               </label>
 
               {f.tol && (
                 <>
                   <NumberField
-                    label="Genişlik toleransı (±)"
+                    label={text.fields.tolW.label}
                     value={f.tolW} onChange={set('tolW')}
                     units={['%']} unit="%" onUnit={() => {}}
                   />
                   <NumberField
-                    label="Dielektrik kalınlık toleransı (±)"
+                    label={text.fields.tolH.label}
                     value={f.tolH} onChange={set('tolH')}
                     units={['%']} unit="%" onUnit={() => {}}
                   />
                   <NumberField
-                    label="Bakır kalınlığı toleransı (±)"
+                    label={text.fields.tolT.label}
                     value={f.tolT} onChange={set('tolT')}
                     units={['%']} unit="%" onUnit={() => {}}
                   />
                   <NumberField
-                    label="εr toleransı (±)"
+                    label={text.fields.tolEps.label}
                     value={f.tolEps} onChange={set('tolEps')}
                     units={['%']} unit="%" onUnit={() => {}}
                   />
@@ -206,41 +165,39 @@ export default function SingleEnded() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
                 <div className="label">
-                  {r.mode === MODE_SYNTHESIS ? 'Gereken hat genişliği' : 'Karakteristik empedans'}
+                  {r.mode === MODE_SYNTHESIS ? text.bigResultWidth : text.bigResultZ0}
                 </div>
                 <div className="value">
                   {r.mode === MODE_SYNTHESIS ? fmtEng(r.W, 'm', 4) : fmtRes(r.Z0, 4)}
                 </div>
                 <div className="alt">
                   {r.mode === MODE_SYNTHESIS
-                    ? <>Z₀ = {fmtRes(r.Z0, 4)} &nbsp;·&nbsp; hedef {fmtRes(r.target, 3)}</>
+                    ? <>Z₀ = {fmtRes(r.Z0, 4)} &nbsp;·&nbsp; {text.targetWord} {fmtRes(r.target, 3)}</>
                     : <>W = {fmtEng(r.W, 'm', 4)} &nbsp;·&nbsp; εeff = {fmt(r.epsEff, 4)}</>}
                 </div>
               </div>
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{METHOD_NOTE}</p>
+              <p className="method-note">{text.methodNote}</p>
 
               <table className="result-table">
                 <tbody>
                   {r.tolerance && (
                     <tr className="mini-head">
-                      <td>Z₀ — min · nominal · maks</td>
+                      <td>{text.table.tolWindow}</td>
                       <td>
                         {fmtRes(r.tolerance.min, 4)} · {fmtRes(r.tolerance.nom, 4)} ·{' '}
                         {fmtRes(r.tolerance.max, 4)}
@@ -248,49 +205,49 @@ export default function SingleEnded() {
                     </tr>
                   )}
                   <tr>
-                    <td>Karakteristik empedans</td>
+                    <td>{text.table.z0}</td>
                     <td>{fmtRes(r.Z0, 5)}</td>
                   </tr>
                   <tr>
-                    <td>Efektif dielektrik sabiti</td>
+                    <td>{text.table.epsEff}</td>
                     <td>{fmt(r.epsEff, 5)}</td>
                   </tr>
                   <tr>
-                    <td>Yayılma gecikmesi</td>
+                    <td>{text.table.tpd}</td>
                     <td>{fmt(r.tpdPsPerMm, 4)} ps/mm</td>
                   </tr>
                   <tr>
-                    <td>Yayılma hızı</td>
+                    <td>{text.table.vp}</td>
                     <td>{fmt(1 / r.tpdPsPerMm * 1000, 4)} mm/ns</td>
                   </tr>
                   <tr>
-                    <td>Hat genişliği</td>
+                    <td>{text.table.W}</td>
                     <td>{fmtEng(r.W, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Dielektrik yüksekliği</td>
+                    <td>{text.table.height}</td>
                     <td>{fmtEng(r.height, 'm', 5)}</td>
                   </tr>
                   {r.u != null && (
                     <tr>
-                      <td>W/H oranı</td>
+                      <td>{text.table.u}</td>
                       <td>{fmt(r.u, 4)}</td>
                     </tr>
                   )}
                   {r.k != null && (
                     <tr>
-                      <td>Eliptik modül k</td>
+                      <td>{text.table.k}</td>
                       <td>{fmt(r.k, 5)}</td>
                     </tr>
                   )}
                   <tr>
-                    <td>Kullanılan yöntem</td>
+                    <td>{text.table.model}</td>
                     <td>{r.model}</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -305,41 +262,27 @@ export default function SingleEnded() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA[f.structure]}</pre>
+          <pre className="formula">{text.formula[f.structure]}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>Model: {r.model}; yöntem alanı `{r.method}`.</li>
-              {r.u != null && <li>u = W/H = {fmt(r.u, 5)}; τ = t/H = {fmt(r.tau, 5)}.</li>}
+              <li>{text.detail.model(r.model, r.method)}</li>
+              {r.u != null && <li>{text.detail.ratios(fmt(r.u, 5), fmt(r.tau, 5))}</li>}
               {r.mode === MODE_SYNTHESIS && (
-                <li>Genişlik {r.solvedBy} yöntemiyle, fiziksel sınırlar içinde çözüldü.</li>
+                <li>{text.detail.solved(r.solvedBy)}</li>
               )}
-              <li>
-                Geçerlilik aralığı kontrolü: {r.inRange ? 'geometri aralık içinde' : 'geometri aralık dışında'}.
-              </li>
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.rangeCheck(r.inRange)}</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Kapalı form denklemleri alan çözücü değildir. Üretim toleransları ve karmaşık
-              geometri için iki veya üç boyutlu alan çözümü gerekir.
-            </li>
-            <li>Solder mask, çoklu dielektrik ve trapez bakır kesiti modelde yoktur.</li>
-            <li>
-              Dielektrik sabiti frekanstan bağımsız kabul edilir. Gerçek Dk frekansla düşer;
-              yüksek hızda üreticinin frekansa bağlı verisi kullanılmalıdır.
-            </li>
-            <li>Bakır pürüzlülüğü ve iletken kaybı hesaba girmez.</li>
-            <li>
-              İdeal coplanar waveguide sonucu, altında referans düzlemi bulunan yapı için
-              kullanılmamalıdır.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
           </ul>
         </section>
       </div>
@@ -347,7 +290,7 @@ export default function SingleEnded() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -355,24 +298,24 @@ export default function SingleEnded() {
             <ChartLegend
               items={[
                 { label: 'Z₀', tone: toneClass(0), kind: 'line' },
-                ...s.refs.map(() => ({ label: 'hedef empedans', tone: 'tone-muted', kind: 'line' })),
+                ...s.refs.map(() => ({ label: text.targetLegend, tone: 'tone-muted', kind: 'line' })),
               ]}
             />
 
             <LineChart
               xScale="log"
-              xLabel={CHART.x}
-              yLabel={CHART.y}
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
-              refLines={s.refs.map((ref) => ({ key: ref.key, y: ref.y, label: `hedef ${fmtRes(ref.y, 3)}` }))}
-              marker={{ ...s.marker, label: 'çalışma noktası' }}
+              refLines={s.refs.map((ref) => ({ key: ref.key, y: ref.y, label: text.refTarget(ref.y) }))}
+              marker={{ ...s.marker, label: text.operatingPoint }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmt(v, 3)}
-              caption={CHART.caption}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel={CHART.x}
+              xLabel={text.chart.x}
               series={chartSeries}
               every={6}
               formatX={(v) => `${fmt(v, 4)} mm`}
@@ -380,7 +323,7 @@ export default function SingleEnded() {
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

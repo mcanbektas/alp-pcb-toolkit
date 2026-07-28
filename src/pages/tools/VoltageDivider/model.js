@@ -36,42 +36,44 @@ export const INITIAL_FORM = {
   tol: false, tolR1: '1', tolR2: '1', tolVin: '0',
 }
 
-// Alan tanımları. Etiketler burada duruyor çünkü hata mesajında alan adı
-// gösterilir; `lib/` bunları bilmez, çağıran taraf verir.
+// Alan tanımları. Etiketler `labels` ile çağıran taraftan gelir (geçerli
+// dilde, text.js'ten); `lib/` bunları bilmez. Etiket verilmezse alan anahtarı
+// gösterilir — sessiz boşluk yerine en azından teşhis edilebilir bir ad.
 const PCT = { '%': 1 }
 
-export function formFields(mode, f) {
+export function formFields(mode, f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
-    [{ key: 'Vin', label: 'Giriş gerilimi (Vᵢₙ)', unitKey: 'Vinu', table: VOLTAGE, min: 0 }],
+    [{ key: 'Vin', label: L('Vin'), unitKey: 'Vinu', table: VOLTAGE, min: 0 }],
 
     when(mode === MODE_ANALYSIS, [
-      { key: 'R1', label: 'R1', unitKey: 'R1u', table: RESISTANCE, min: 0 },
-      { key: 'R2', label: 'R2', unitKey: 'R2u', table: RESISTANCE, min: 0 },
+      { key: 'R1', label: L('R1'), unitKey: 'R1u', table: RESISTANCE, min: 0 },
+      { key: 'R2', label: L('R2'), unitKey: 'R2u', table: RESISTANCE, min: 0 },
     ]),
 
     when(mode === MODE_SYNTHESIS, [
-      { key: 'Vout', label: 'Hedef çıkış (V_out)', unitKey: 'Voutu', table: VOLTAGE, min: 0 },
-      { key: 'rMin', label: 'En küçük direnç', unitKey: 'rMinu', table: RESISTANCE, min: 0 },
-      { key: 'rMax', label: 'En büyük direnç', unitKey: 'rMaxu', table: RESISTANCE, min: 0 },
+      { key: 'Vout', label: L('Vout'), unitKey: 'Voutu', table: VOLTAGE, min: 0 },
+      { key: 'rMin', label: L('rMin'), unitKey: 'rMinu', table: RESISTANCE, min: 0 },
+      { key: 'rMax', label: L('rMax'), unitKey: 'rMaxu', table: RESISTANCE, min: 0 },
     ]),
 
     [
-      { key: 'RL', label: 'Yük direnci (R_L)', unitKey: 'RLu', table: RESISTANCE, min: 0, optional: true },
+      { key: 'RL', label: L('RL'), unitKey: 'RLu', table: RESISTANCE, min: 0, optional: true },
       // Güç sınırı arayüzde mW olarak girilir
-      { key: 'Prated', label: 'Direnç güç sınırı', unit: 'mW', table: POWER, min: 0, optional: true },
-      { key: 'accept', label: 'Kabul edilebilir sapma', unit: '%', table: PCT, min: 0, optional: true },
+      { key: 'Prated', label: L('Prated'), unit: 'mW', table: POWER, min: 0, optional: true },
+      { key: 'accept', label: L('accept'), unit: '%', table: PCT, min: 0, optional: true },
     ],
 
     when(f.tol, [
-      { key: 'tolR1', label: 'R1 toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
-      { key: 'tolR2', label: 'R2 toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
-      { key: 'tolVin', label: 'Vᵢₙ toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tolR1', label: L('tolR1'), unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tolR2', label: L('tolR2'), unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tolVin', label: L('tolVin'), unit: '%', table: PCT, min: 0, allowZero: true },
     ]),
   ])
 }
 
-export function compute(mode, f, pickIndex = 0) {
-  const read = readForm(f, formFields(mode, f))
+export function compute(mode, f, pickIndex = 0, labels = {}) {
+  const read = readForm(f, formFields(mode, f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

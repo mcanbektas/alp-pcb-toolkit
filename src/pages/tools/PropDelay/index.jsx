@@ -4,105 +4,89 @@ import NumberField from '../../../components/NumberField'
 import EpsEffFields, { epsEffRows } from '../../../components/EpsEffFields'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng } from '../../../lib/num'
 import WaveSchematic from './schematic'
 import { INITIAL_FORM, compute, buildSweep } from './model'
-import { CHART, reasonText, commentary } from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `t'_pd = √εeff / c
-  (birim uzunluk gecikmesi)
-t_pd = L · √εeff / c
-
-Pratik:
-  t'_pd ≈ 3.33564·√εeff ps/mm
-
-v_p = c / √εeff
-
-λ₀ = c / f
-λg = c / (f·√εeff)
-
-λ/4 = λg / 4
-λ/2 = λg / 2
-
-Elektriksel uzunluk:
-  derece = 360°·(L / λg)
-  radyan = 2π·(L / λg)`
-
 export default function PropDelay() {
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f), [f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
-  const chartSeries = s ? [{ key: 'deg', name: 'elektriksel uzunluk', tone: toneClass(0), points: s.points }] : []
+  const chartSeries = s
+    ? [{ key: 'deg', name: text.legendElectricalLength, tone: toneClass(0), points: s.points }]
+    : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Propagation Delay &amp; Wavelength</h1>
-        <p>
-          Hattın birim uzunluk gecikmesini, toplam gecikmesini, yayılma hızını ve kart üzerindeki
-          dalga boyunu hesaplar; hattın elektriksel uzunluğunu derece cinsinden verir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <WaveSchematic r={r} />
+          <WaveSchematic r={r} text={text.schematic} />
 
           <EpsEffFields f={f} set={set} />
 
           <NumberField
-            label="Hat uzunluğu"
+            label={text.fields.length.label}
             value={f.length} onChange={set('length')}
             units={['mm', 'cm', 'm', 'mil', 'inch']} unit={f.lengthu} onUnit={set('lengthu')}
           />
 
           <NumberField
-            label="Frekans"
+            label={text.fields.freq.label}
             value={f.freq} onChange={set('freq')}
             units={['Hz', 'kHz', 'MHz', 'GHz']} unit={f.frequ} onUnit={set('frequ')}
-            hint="Dalga boyu ve elektriksel uzunluk bu frekansta hesaplanır"
+            hint={text.fields.freq.hint}
           />
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Birim uzunluk gecikmesi</div>
+                <div className="label">{text.bigResult}</div>
                 <div className="value">{fmt(r.tpdPsPerMm, 4)} ps/mm</div>
                 <div className="alt">
-                  toplam {fmtEng(r.delay, 's', 4)} &nbsp;·&nbsp; {fmt(r.degrees, 4)}° elektriksel uzunluk
+                  {text.bigResultAlt(fmtEng(r.delay, 's', 4), fmt(r.degrees, 4))}
                 </div>
               </div>
 
@@ -110,56 +94,56 @@ export default function PropDelay() {
 
               <table className="result-table">
                 <tbody>
-                  {epsEffRows(r.eps, fmt).map((row) => (
+                  {epsEffRows(r.eps, fmt, lang).map((row) => (
                     <tr key={row.label}>
                       <td>{row.label}</td>
                       <td>{row.value}</td>
                     </tr>
                   ))}
                   <tr>
-                    <td>Birim uzunluk gecikmesi</td>
+                    <td>{text.table.tpd}</td>
                     <td>{fmt(r.tpdPsPerMm, 5)} ps/mm</td>
                   </tr>
                   <tr>
-                    <td>Toplam gecikme</td>
+                    <td>{text.table.delay}</td>
                     <td>{fmtEng(r.delay, 's', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Yayılma hızı</td>
+                    <td>{text.table.vp}</td>
                     <td>{fmtEng(r.vp, 'm/s', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Havada dalga boyu (λ₀)</td>
+                    <td>{text.table.lambda0}</td>
                     <td>{fmtEng(r.lambda0, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Kartta dalga boyu (λg)</td>
+                    <td>{text.table.lambdaG}</td>
                     <td>{fmtEng(r.lambdaG, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Çeyrek dalga (λ/4)</td>
+                    <td>{text.table.quarter}</td>
                     <td>{fmtEng(r.quarter, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Yarım dalga (λ/2)</td>
+                    <td>{text.table.half}</td>
                     <td>{fmtEng(r.half, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Elektriksel uzunluk</td>
+                    <td>{text.table.electricalLength}</td>
                     <td>{fmt(r.degrees, 5)}° · {fmt(r.radians, 5)} rad</td>
                   </tr>
                   <tr>
-                    <td>Dalga boyuna oran</td>
+                    <td>{text.table.fraction}</td>
                     <td>{fmt(r.fraction, 5)} λ</td>
                   </tr>
                   <tr>
-                    <td>Bu uzunluğun çeyrek dalga frekansı</td>
+                    <td>{text.table.quarterWaveFreq}</td>
                     <td>{fmtEng(r.quarterWaveFreq, 'Hz', 5)}</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -174,39 +158,24 @@ export default function PropDelay() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>
-                εeff kaynağı: {r.eps.source === 'geometry'
-                  ? `geometriden hesaplandı (${r.eps.model}, yöntem \`${r.eps.method}\`)`
-                  : 'elle girildi'}.
-              </li>
-              <li>√εeff = {fmt(Math.sqrt(r.eps.epsEff), 5)}; gecikme bu çarpanla ölçeklenir.</li>
-              <li>Pratik yaklaşım katsayısı 3.33564 aslında 1e9/c değerinin yuvarlanmışıdır.</li>
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.epsSource(r.eps)}</li>
+              <li>{text.detail.sqrtEps(fmt(Math.sqrt(r.eps.epsEff), 5))}</li>
+              <li>{text.detail.practicalCoeff}</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Hat kayıpsız ve dispersiyonsuz kabul edilir; tüm frekans bileşenleri aynı hızda
-              ilerler.
-            </li>
-            <li>
-              Dielektrik sabiti frekanstan bağımsız alınır. Gerçek Dk frekansla düşer ve geniş
-              bantlı sinyalde tek değer yetmez.
-            </li>
-            <li>
-              Microstrip'te alan kısmen havada ilerler; εeff bu yüzden εr'den küçüktür ve
-              geometriye bağlıdır. Stripline'da homojen dielektrik nedeniyle εeff = εr.
-            </li>
-            <li>Via geçişleri, konnektör ve pad süreksizlikleri gecikmeye eklenmez.</li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
           </ul>
         </section>
       </div>
@@ -214,37 +183,37 @@ export default function PropDelay() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
           <>
             <ChartLegend
               items={[
-                { label: 'elektriksel uzunluk', tone: toneClass(0), kind: 'line' },
-                { label: 'çeyrek dalga (90°)', tone: 'tone-muted', kind: 'line' },
-                { label: 'yarım dalga (180°)', tone: 'tone-muted', kind: 'line' },
+                { label: text.legendElectricalLength, tone: toneClass(0), kind: 'line' },
+                { label: text.legendQuarter, tone: 'tone-muted', kind: 'line' },
+                { label: text.legendHalf, tone: 'tone-muted', kind: 'line' },
               ]}
             />
 
             <LineChart
               xScale="log"
-              xLabel={CHART.x}
-              yLabel={CHART.y}
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: ref.key === 'quarter' ? 'λ/4 — 90°' : 'λ/2 — 180°',
+                label: ref.key === 'quarter' ? text.refQuarter : text.refHalf,
               }))}
-              marker={{ ...s.marker, label: 'çalışma frekansı' }}
+              marker={{ ...s.marker, label: text.operatingFrequency }}
               formatX={(v) => fmtEng(v, '', 3).replace(' ', '')}
               formatY={(v) => fmt(v, 3)}
-              caption={CHART.caption}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel={CHART.x}
+              xLabel={text.chart.x}
               series={chartSeries}
               every={6}
               formatX={(v) => fmtEng(v, 'Hz', 4)}
@@ -252,7 +221,7 @@ export default function PropDelay() {
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

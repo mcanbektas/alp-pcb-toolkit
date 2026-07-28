@@ -6,6 +6,7 @@ import {
   AWG_MIN, AWG_MAX, AWG_D_MIN, AWG_D_MAX, AWG_REF_M,
   AWG_ERR_INVALID, AWG_ERR_RANGE, AWG_ERR_TOLERANCE,
 } from './convertAwg'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('numaradan çap (spec §11.2)', () => {
   it('tanım noktası: AWG 36 = 0.127 mm = 0.005 inch', () => {
@@ -289,5 +290,20 @@ describe('tam numara dizisi', () => {
     const row = s.find((x) => x.awg === 18)
     expect(row.d).toBeCloseTo(awgDiameter(18), 15)
     expect(row.area).toBeCloseTo(wireArea(awgDiameter(18)), 18)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      wireFromAwg(41),
+      wireFromAwg(-4),
+      wireFromAwg(NaN),
+      wireFromDiameter(12e-3),
+      wireFromDiameter(0.05e-3),
+      wireFromDiameter(0),
+      diameterTolerance(1e-3, 1),
+      diameterTolerance(1e-3, -0.01),
+    ])
   })
 })

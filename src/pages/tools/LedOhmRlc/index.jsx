@@ -6,9 +6,9 @@ import TextField from '../../../components/TextField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import {
-  fmt, fmtEng, fmtRes, fmtAmp, fmtPow, fmtVolt, fmtPct, THOUSANDS_MESSAGE,
-} from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtRes, fmtAmp, fmtPow, fmtVolt, fmtPct } from '../../../lib/num'
 import CircuitSchematic from './schematic'
 import {
   INITIAL_FORM, TOOLS, TOOL_OHM, TOOL_LED, TOOL_RLC, TOOL_COMBO,
@@ -17,119 +17,57 @@ import {
   REASON_VALUE_LIST,
   compute, buildSweep,
 } from './model'
-import {
-  TOOL_LABEL, KIND_LABEL, CHART, reasonText, valueListError, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = {
-  [TOOL_OHM]: `V = I·R
-I = V/R
-R = V/I
-
-P = V·I
-P = I²·R
-P = V²/R
-
-Tutarsızlık oranı
-(V, I, R birlikte girilirse):
-  E = |V − I·R| / |V|`,
-  [TOOL_LED]: `V_LED = Σ V_f,i
-  (seri LED'ler)
-R = (V_s − V_LED) / I_LED
-P_R = I_LED²·R
-    = (V_s − V_LED)·I_LED
-
-Güvenli güç seçimi:
-  P_nominal ≥ P_R / D
-    (D: kullanım oranı)`,
-  [TOOL_RLC]: `X_L = 2πfL
-X_C = 1/(2πfC)
-Z = R + j(X_L − X_C)
-|Z| = √(R² + (X_L − X_C)²)
-φ = atan[(X_L − X_C)/R]
-
-f₀ = 1/(2π√(LC))
-Q = ω₀L/R = 1/(ω₀CR)
-BW = f₀/Q`,
-  [TOOL_COMBO]: `Seri: R_eş = Σ Rᵢ
-Paralel: R_eş = (Σ 1/Rᵢ)⁻¹
-İki için: R_eş = R₁R₂/(R₁+R₂)
-
-Paralelde akım payı:
-  Iᵢ = I · (1/Rᵢ) / Σ(1/Rⱼ)`,
-}
-
-const ASSUMPTIONS = {
-  [TOOL_OHM]: [
-    'Model saf DC ve dirençseldir; sıcaklıkla direnç değişimi yoktur.',
-    'Güç değerlendirmesi sürekli çalışma içindir; darbeli yükte paket daha yüksek tepe gücü kaldırabilir.',
-  ],
-  [TOOL_LED]: [
-    'LED sabit ileri gerilimli eleman olarak modellenir. Gerçekte V_f akımla ve sıcaklıkla değişir.',
-    'İleri gerilim toleransı doğrudan akıma geçer; parça arası parlaklık farkı bu hesapta yoktur.',
-    'Darbeli sürüşte (PWM) ortalama akım farklıdır; buradaki sonuç sürekli akım içindir.',
-  ],
-  [TOOL_RLC]: [
-    'Komponentler ideal kabul edilir: kondansatörde ESR/ESL, bobinde öz kapasite ve kayıp yoktur.',
-    'Yüksek frekansta gerçek empedans bu modelden belirgin biçimde sapar.',
-    'Model seri RLC içindir; paralel rezonans devresi farklı davranır.',
-  ],
-  [TOOL_COMBO]: [
-    'Dirençler ideal ve birbirinden bağımsız kabul edilir.',
-    'Toleranslar birbirini götürmez; eşdeğerin toleransı tek bir direncinkinden iyi olmaz.',
-    'Paralel kollarda öz ısınma farkı ve termal kayma dikkate alınmaz.',
-  ],
-}
-
 export default function LedOhmRlc() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f.tool, mode, f), [f, mode])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f.tool, mode, f, text.fieldLabels), [f, mode, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
-  const chartMeta = s ? CHART[s.kind] : null
+  const chartMeta = s ? text.chart[s.kind] : null
   const chartSeries = s
     ? [{ key: 'main', name: chartMeta.y, tone: toneClass(0), points: s.points }]
     : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
+      <Link className="backlink" to="/kategori/komponent">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>LED, Ohm Kanunu &amp; RLC</h1>
-        <p>
-          Ohm kanunu ve güç, LED seri direnci, seri RLC empedansı ile seri/paralel direnç
-          birleşimlerini tek ekranda hesaplar; standart değer karşılıkları ve güç marjıyla
-          birlikte verir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <CircuitSchematic r={r} form={f} />
+          <CircuitSchematic r={r} form={f} text={text.schematic} />
 
           <SelectField
-            label="Hesap"
+            label={text.fields.tool}
             value={f.tool} onChange={set('tool')}
-            options={TOOLS.map((t) => ({ value: t, label: TOOL_LABEL[t] }))}
+            options={TOOLS.map((x) => ({ value: x, label: text.toolLabel[x] }))}
           />
 
           {HAS_MODES[f.tool] && (
@@ -137,41 +75,38 @@ export default function LedOhmRlc() {
               value={mode}
               onChange={setMode}
               options={[
-                { value: MODE_ANALYSIS, label: 'Analiz — empedansı bul' },
-                { value: MODE_SYNTHESIS, label: 'Sentez — kapasiteyi bul' },
+                { value: MODE_ANALYSIS, label: text.modeLabel[MODE_ANALYSIS] },
+                { value: MODE_SYNTHESIS, label: text.modeLabel[MODE_SYNTHESIS] },
               ]}
             />
           )}
 
           {f.tool === TOOL_OHM && (
             <>
-              <p className="method-note">
-                Herhangi iki alanı doldurun, kalan ikisi hesaplanır. Üçünü doldurursanız
-                tutarsızlık oranı gösterilir.
-              </p>
+              <p className="method-note">{text.ohmNote}</p>
               <NumberField
-                label="Gerilim (V)"
+                label={text.fields.V.label}
                 value={f.V} onChange={set('V')}
                 units={['V', 'mV', 'kV']} unit={f.Vu} onUnit={set('Vu')}
-                placeholder="boş = hesapla"
+                placeholder={text.fields.blankPlaceholder}
               />
               <NumberField
-                label="Akım (I)"
+                label={text.fields.I.label}
                 value={f.I} onChange={set('I')}
                 units={['A', 'mA', 'µA']} unit={f.Iu} onUnit={set('Iu')}
-                placeholder="boş = hesapla"
+                placeholder={text.fields.blankPlaceholder}
               />
               <NumberField
-                label="Direnç (R)"
+                label={text.fields.R.label}
                 value={f.R} onChange={set('R')}
                 units={['Ω', 'kΩ', 'MΩ']} unit={f.Ru} onUnit={set('Ru')}
-                placeholder="boş = hesapla"
+                placeholder={text.fields.blankPlaceholder}
               />
               <NumberField
-                label="Güç (P)"
+                label={text.fields.P.label}
                 value={f.P} onChange={set('P')}
                 units={['W', 'mW', 'kW']} unit={f.Pu} onUnit={set('Pu')}
-                placeholder="boş = hesapla"
+                placeholder={text.fields.blankPlaceholder}
               />
             </>
           )}
@@ -179,31 +114,31 @@ export default function LedOhmRlc() {
           {f.tool === TOOL_LED && (
             <>
               <NumberField
-                label="Besleme gerilimi (V_s)"
+                label={text.fields.Vs.label}
                 value={f.Vs} onChange={set('Vs')}
                 units={['V', 'mV']} unit={f.Vsu} onUnit={set('Vsu')}
               />
               <NumberField
-                label="LED ileri gerilimi (V_f)"
+                label={text.fields.Vf.label}
                 value={f.Vf} onChange={set('Vf')}
                 units={['V', 'mV']} unit={f.Vfu} onUnit={set('Vfu')}
-                hint="Kırmızı ≈ 1.8–2.2 V, yeşil/mavi/beyaz ≈ 2.8–3.4 V"
+                hint={text.fields.Vf.hint}
               />
               <NumberField
-                label="Seri LED sayısı"
+                label={text.fields.n.label}
                 value={f.n} onChange={set('n')}
-                units={['adet']} unit="adet" onUnit={() => {}}
+                units={[text.fields.countUnit]} unit={text.fields.countUnit} onUnit={() => {}}
               />
               <NumberField
-                label="LED akımı"
+                label={text.fields.Iled.label}
                 value={f.Iled} onChange={set('Iled')}
                 units={['mA', 'A']} unit={f.Iledu} onUnit={set('Iledu')}
               />
               <NumberField
-                label="Güç kullanım oranı"
+                label={text.fields.derating.label}
                 value={f.derating} onChange={set('derating')}
                 units={['%']} unit="%" onUnit={() => {}}
-                hint="Direnç nominal gücünün en fazla bu oranında çalıştırılır"
+                hint={text.fields.derating.hint}
               />
             </>
           )}
@@ -211,34 +146,34 @@ export default function LedOhmRlc() {
           {f.tool === TOOL_RLC && (
             <>
               <NumberField
-                label="Direnç (R)"
+                label={text.fields.Rr.label}
                 value={f.Rr} onChange={set('Rr')}
                 units={['Ω', 'mΩ', 'kΩ']} unit={f.Rru} onUnit={set('Rru')}
               />
               <NumberField
-                label="Endüktans (L)"
+                label={text.fields.L.label}
                 value={f.L} onChange={set('L')}
                 units={['H', 'mH', 'µH', 'nH']} unit={f.Lu} onUnit={set('Lu')}
               />
               {mode === MODE_ANALYSIS ? (
                 <>
                   <NumberField
-                    label="Kapasite (C)"
+                    label={text.fields.C.label}
                     value={f.C} onChange={set('C')}
                     units={['F', 'µF', 'nF', 'pF']} unit={f.Cu} onUnit={set('Cu')}
                   />
                   <NumberField
-                    label="Frekans (f)"
+                    label={text.fields.freq.label}
                     value={f.freq} onChange={set('freq')}
                     units={['Hz', 'kHz', 'MHz', 'GHz']} unit={f.frequ} onUnit={set('frequ')}
                   />
                 </>
               ) : (
                 <NumberField
-                  label="Hedef rezonans frekansı"
+                  label={text.fields.targetF0.label}
                   value={f.targetF0} onChange={set('targetF0')}
                   units={['Hz', 'kHz', 'MHz', 'GHz']} unit={f.targetF0u} onUnit={set('targetF0u')}
-                  hint="Gerekli kapasite sınırlandırılmış kök aramayla bulunur"
+                  hint={text.fields.targetF0.hint}
                 />
               )}
             </>
@@ -247,17 +182,17 @@ export default function LedOhmRlc() {
           {f.tool === TOOL_COMBO && (
             <>
               <SelectField
-                label="Bağlantı"
+                label={text.fields.combo}
                 value={f.combo} onChange={set('combo')}
                 options={[
-                  { value: COMBO_PARALLEL, label: 'Paralel' },
-                  { value: COMBO_SERIES, label: 'Seri' },
+                  { value: COMBO_PARALLEL, label: text.comboLabel[COMBO_PARALLEL] },
+                  { value: COMBO_SERIES, label: text.comboLabel[COMBO_SERIES] },
                 ]}
               />
               <TextField
-                label="Direnç değerleri"
+                label={text.fields.values.label}
                 value={f.values} onChange={set('values')}
-                hint="Boşluk veya noktalı virgülle ayırın; k/M/G soneki yapışık yazılır: 10k 22k 4,7M. Virgül ondalık ayracıdır (4,7k = 4.7 kΩ)"
+                hint={text.fields.values.hint}
               />
             </>
           )}
@@ -265,18 +200,16 @@ export default function LedOhmRlc() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
               <p className="empty-note">
                 {r.reason === REASON_VALUE_LIST
-                  ? valueListError(r.valueList, r.at)
-                  : reasonText(r.reason, r)}
+                  ? text.valueListError(r.valueList, r.at)
+                  : text.reasonText(r.reason, r)}
               </p>
             )
           ) : (
@@ -284,7 +217,7 @@ export default function LedOhmRlc() {
               {r.tool === TOOL_OHM && (
                 <>
                   <div className="big-result">
-                    <div className="label">Harcanan güç</div>
+                    <div className="label">{text.big.ohmLabel}</div>
                     <div className="value">{fmtPow(r.P, 4)}</div>
                     <div className="alt">
                       V = {fmtVolt(r.V)} &nbsp;·&nbsp; I = {fmtAmp(r.I)} &nbsp;·&nbsp; R = {fmtRes(r.R)}
@@ -293,14 +226,14 @@ export default function LedOhmRlc() {
                   {status && <span className={`status ${status.cls}`}>{status.text}</span>}
                   <table className="result-table">
                     <tbody>
-                      <tr><td>Gerilim</td><td>{fmtVolt(r.V)}</td></tr>
-                      <tr><td>Akım</td><td>{fmtAmp(r.I)}</td></tr>
-                      <tr><td>Direnç</td><td>{fmtRes(r.R)}</td></tr>
-                      <tr><td>Güç</td><td>{fmtPow(r.P)}</td></tr>
+                      <tr><td>{text.table.voltage}</td><td>{fmtVolt(r.V)}</td></tr>
+                      <tr><td>{text.table.current}</td><td>{fmtAmp(r.I)}</td></tr>
+                      <tr><td>{text.table.resistance}</td><td>{fmtRes(r.R)}</td></tr>
+                      <tr><td>{text.table.power}</td><td>{fmtPow(r.P)}</td></tr>
                       {r.inconsistency != null && (
                         <tr>
-                          <td>Girdi tutarsızlığı</td>
-                          <td>{fmt(r.inconsistency * 100, 3)} %</td>
+                          <td>{text.table.inconsistency}</td>
+                          <td>{text.pct(fmt(r.inconsistency * 100, 3))}</td>
                         </tr>
                       )}
                     </tbody>
@@ -311,36 +244,44 @@ export default function LedOhmRlc() {
               {r.tool === TOOL_LED && (
                 <>
                   <div className="big-result">
-                    <div className="label">Gerekli seri direnç</div>
+                    <div className="label">{text.big.ledLabel}</div>
                     <div className="value">{fmtRes(r.R, 4)}</div>
                     <div className="alt">
-                      en yakın E24: {fmtRes(r.e24.value, 4)} → {fmtAmp(r.e24.I, 3)}
+                      {text.big.ledAlt(fmtRes(r.e24.value, 4), fmtAmp(r.e24.I, 3))}
                     </div>
                   </div>
                   {status && <span className={`status ${status.cls}`}>{status.text}</span>}
                   <table className="result-table">
                     <tbody>
-                      <tr><td>Toplam LED gerilimi</td><td>{fmtVolt(r.Vled)}</td></tr>
-                      <tr><td>Dirence düşen gerilim</td><td>{fmtVolt(r.headroom)}</td></tr>
-                      <tr><td>İdeal direnç</td><td>{fmtRes(r.R, 5)}</td></tr>
-                      <tr><td>Direnç gücü</td><td>{fmtPow(r.P, 4)}</td></tr>
+                      <tr><td>{text.table.totalLedVoltage}</td><td>{fmtVolt(r.Vled)}</td></tr>
+                      <tr><td>{text.table.headroom}</td><td>{fmtVolt(r.headroom)}</td></tr>
+                      <tr><td>{text.table.idealResistance}</td><td>{fmtRes(r.R, 5)}</td></tr>
+                      <tr><td>{text.table.resistorPower}</td><td>{fmtPow(r.P, 4)}</td></tr>
                       <tr>
-                        <td>Gereken nominal güç</td>
-                        <td>{fmtPow(r.Prated, 4)} <span className="sub">(%{fmt(r.derating * 100, 3)} kullanım)</span></td>
+                        <td>{text.table.ratedPower}</td>
+                        <td>
+                          {fmtPow(r.Prated, 4)}{' '}
+                          <span className="sub">
+                            {text.table.utilisation(text.pct(fmt(r.derating * 100, 3)))}
+                          </span>
+                        </td>
                       </tr>
-                      <tr className="mini-head"><td>Standart değerle</td><td>direnç · akım · sapma</td></tr>
+                      <tr className="mini-head">
+                        <td>{text.table.standardHead}</td>
+                        <td>{text.table.standardHeadSub}</td>
+                      </tr>
                       <tr>
                         <td>E24</td>
                         <td>
                           {fmtRes(r.e24.value, 4)} · {fmtAmp(r.e24.I, 3)} ·{' '}
-                          {fmtPct((100 * (r.e24.I - r.targetI)) / r.targetI)}
+                          {text.pct(fmtPct((100 * (r.e24.I - r.targetI)) / r.targetI))}
                         </td>
                       </tr>
                       <tr>
                         <td>E96</td>
                         <td>
                           {fmtRes(r.e96.value, 4)} · {fmtAmp(r.e96.I, 3)} ·{' '}
-                          {fmtPct((100 * (r.e96.I - r.targetI)) / r.targetI)}
+                          {text.pct(fmtPct((100 * (r.e96.I - r.targetI)) / r.targetI))}
                         </td>
                       </tr>
                     </tbody>
@@ -352,33 +293,35 @@ export default function LedOhmRlc() {
                 <>
                   <div className="big-result">
                     <div className="label">
-                      {r.mode === MODE_SYNTHESIS ? 'Gerekli kapasite' : `Empedans @ ${fmtEng(r.f, 'Hz', 4)}`}
+                      {r.mode === MODE_SYNTHESIS
+                        ? text.big.rlcSynthesisLabel
+                        : text.big.rlcAnalysisLabel(fmtEng(r.f, 'Hz', 4))}
                     </div>
                     <div className="value">
                       {r.mode === MODE_SYNTHESIS ? fmtEng(r.C, 'F', 4) : fmtRes(r.magnitude, 4)}
                     </div>
                     <div className="alt">
                       f₀ = {fmtEng(r.f0, 'Hz', 4)} &nbsp;·&nbsp; Q = {fmt(r.Q, 4)} &nbsp;·&nbsp;{' '}
-                      {KIND_LABEL[r.kind]}
+                      {text.kindLabel[r.kind]}
                     </div>
                   </div>
                   {status && <span className={`status ${status.cls}`}>{status.text}</span>}
                   <table className="result-table">
                     <tbody>
-                      <tr><td>Endüktif reaktans X_L</td><td>{fmtRes(r.XL, 4)}</td></tr>
-                      <tr><td>Kapasitif reaktans X_C</td><td>{fmtRes(r.XC, 4)}</td></tr>
-                      <tr><td>Net reaktans X</td><td>{fmtRes(r.X, 4)}</td></tr>
-                      <tr><td>Empedans büyüklüğü |Z|</td><td>{fmtRes(r.magnitude, 4)}</td></tr>
-                      <tr><td>Faz açısı</td><td>{fmt(r.phaseDeg, 4)}°</td></tr>
-                      <tr><td>Rezonans frekansı f₀</td><td>{fmtEng(r.f0, 'Hz', 5)}</td></tr>
-                      <tr><td>Kalite faktörü Q</td><td>{fmt(r.Q, 4)}</td></tr>
-                      <tr><td>Bant genişliği</td><td>{fmtEng(r.BW, 'Hz', 4)}</td></tr>
+                      <tr><td>{text.table.XL}</td><td>{fmtRes(r.XL, 4)}</td></tr>
+                      <tr><td>{text.table.XC}</td><td>{fmtRes(r.XC, 4)}</td></tr>
+                      <tr><td>{text.table.X}</td><td>{fmtRes(r.X, 4)}</td></tr>
+                      <tr><td>{text.table.magnitude}</td><td>{fmtRes(r.magnitude, 4)}</td></tr>
+                      <tr><td>{text.table.phase}</td><td>{fmt(r.phaseDeg, 4)}°</td></tr>
+                      <tr><td>{text.table.f0}</td><td>{fmtEng(r.f0, 'Hz', 5)}</td></tr>
+                      <tr><td>{text.table.Q}</td><td>{fmt(r.Q, 4)}</td></tr>
+                      <tr><td>{text.table.BW}</td><td>{fmtEng(r.BW, 'Hz', 4)}</td></tr>
                       {r.mode === MODE_SYNTHESIS && (
                         <tr>
-                          <td>En yakın E24 kapasite</td>
+                          <td>{text.table.nearestC}</td>
                           <td>
                             {fmt(r.nearestC.value, 4)} pF{' '}
-                            <span className="sub">({fmtPct(r.nearestC.errorPct)})</span>
+                            <span className="sub">({text.pct(fmtPct(r.nearestC.errorPct))})</span>
                           </td>
                         </tr>
                       )}
@@ -390,26 +333,31 @@ export default function LedOhmRlc() {
               {r.tool === TOOL_COMBO && (
                 <>
                   <div className="big-result">
-                    <div className="label">
-                      Eşdeğer direnç ({r.combo === COMBO_SERIES ? 'seri' : 'paralel'})
-                    </div>
+                    <div className="label">{text.big.comboLabel(r.combo)}</div>
                     <div className="value">{fmtRes(r.equivalent, 4)}</div>
                     <div className="alt">
-                      {r.values.length} direnç &nbsp;·&nbsp; en yakın tek değer{' '}
-                      {fmtRes(r.nearestE24.value, 4)} ({fmtPct(r.nearestE24.errorPct)})
+                      {text.big.comboAlt(
+                        r.values.length,
+                        fmtRes(r.nearestE24.value, 4),
+                        text.pct(fmtPct(r.nearestE24.errorPct)),
+                      )}
                     </div>
                   </div>
                   {status && <span className={`status ${status.cls}`}>{status.text}</span>}
                   <table className="result-table">
                     <tbody>
                       <tr className="mini-head">
-                        <td>Direnç</td>
-                        <td>{r.combo === COMBO_SERIES ? 'gerilim payı' : 'akım payı'}</td>
+                        <td>{text.table.shareHead}</td>
+                        <td>
+                          {r.combo === COMBO_SERIES
+                            ? text.table.shareSeries
+                            : text.table.shareParallel}
+                        </td>
                       </tr>
                       {r.values.map((x, i) => (
                         <tr key={`${x}-${i}`}>
                           <td>{fmtRes(x, 4)}</td>
-                          <td>{fmt(r.shares[i] * 100, 3)} %</td>
+                          <td>{text.pct(fmt(r.shares[i] * 100, 3))}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -417,7 +365,7 @@ export default function LedOhmRlc() {
                 </>
               )}
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -432,39 +380,32 @@ export default function LedOhmRlc() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA[f.tool]}</pre>
+          <pre className="formula">{text.formula[f.tool]}</pre>
 
           {r.ok && r.tool === TOOL_RLC && (
             <ul className="detail-list">
-              <li>ω = 2πf = {fmtEng(2 * Math.PI * r.f, 'rad/s', 4)}.</li>
-              <li>X_L − X_C = {fmtRes(r.X, 5)}; işareti devrenin karakterini belirler.</li>
-              <li>Q iki tanımdan da aynı çıkar: ω₀L/R ve 1/(ω₀CR).</li>
-              {r.mode === MODE_SYNTHESIS && (
-                <li>Kapasite kapalı formdan başlatılıp {r.solvedBy} yöntemiyle doğrulandı.</li>
-              )}
+              {text.detail.rlc(r).map((line) => <li key={line}>{line}</li>)}
             </ul>
           )}
 
           {r.ok && r.tool === TOOL_LED && (
             <ul className="detail-list">
-              <li>Dirence düşen gerilim beslemenin %{fmt((r.headroom / r.Vs) * 100, 3)}'i.</li>
-              <li>İdeal direnç {fmtRes(r.R, 6)}; kuantalama hatası standart değer seçiminden gelir.</li>
+              {text.detail.led(r).map((line) => <li key={line}>{line}</li>)}
             </ul>
           )}
 
           {r.ok && r.tool === TOOL_OHM && (
             <ul className="detail-list">
-              <li>Girilen bağımsız değerler: {r.given.join(', ')}.</li>
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              {text.detail.ohm(r).map((line) => <li key={line}>{line}</li>)}
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            {ASSUMPTIONS[f.tool].map((a) => <li key={a}>{a}</li>)}
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity[f.tool].map((a) => <li key={a}>{a}</li>)}
+            <li>{text.validity.approximate}</li>
           </ul>
         </section>
       </div>
@@ -472,7 +413,7 @@ export default function LedOhmRlc() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -481,7 +422,9 @@ export default function LedOhmRlc() {
               items={[
                 { label: chartMeta.y, tone: toneClass(0), kind: 'line' },
                 ...s.refs.map((ref) => ({
-                  label: ref.key === 'target' ? 'hedef akım' : 'direnç değeri (rezonans tabanı)',
+                  label: ref.key === 'target'
+                    ? text.chart.targetLegend
+                    : text.chart.resistanceLegend,
                   tone: 'tone-muted',
                   kind: 'line',
                 })),
@@ -496,9 +439,11 @@ export default function LedOhmRlc() {
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: ref.key === 'target' ? `hedef ${fmtAmp(ref.y, 3)}` : `R = ${fmtRes(ref.y, 3)}`,
+                label: ref.key === 'target'
+                  ? text.chart.targetRef(fmtAmp(ref.y, 3))
+                  : `R = ${fmtRes(ref.y, 3)}`,
               }))}
-              marker={{ ...s.marker, label: 'çalışma noktası' }}
+              marker={{ ...s.marker, label: text.chart.marker }}
               formatX={(v) => fmtEng(v, '', 3).replace(' ', '')}
               formatY={(v) => fmt(v, 3)}
               caption={chartMeta.caption}
@@ -514,9 +459,7 @@ export default function LedOhmRlc() {
           </>
         ) : (
           <p className="empty-note">
-            {f.tool === TOOL_COMBO
-              ? 'Seri/paralel birleşimin taranacak sürekli bir parametresi yok; sonuç tablosu tüm bilgiyi taşır.'
-              : 'Grafik için geçerli girdi gerekli.'}
+            {f.tool === TOOL_COMBO ? text.chart.comboNote : ui.chartNeedsInput}
           </p>
         )}
       </section>

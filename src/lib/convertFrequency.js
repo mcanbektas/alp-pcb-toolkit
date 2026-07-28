@@ -9,8 +9,8 @@
 // Girişler ve çıkışlar SI: frekans Hz, periyot s, açısal frekans rad/s.
 // Sıfır ve negatif değer reddedilir: 1/0 tanımsızdır ve sessizce Infinity
 // döndürmek, tanımsız bir sonucu geçerli bir sayı gibi göstermek olurdu.
-// Modül saftır: React, DOM ve kullanıcıya görünen metin bilmez; hata kodu
-// döner, cümle döndürmez (message alanı yalnızca geliştirici içindir).
+// Modül saftır: React, DOM ve kullanıcıya görünen metin bilmez; hata durumunda
+// yalnızca { error: <kod> } döner, cümle döndürmez.
 
 export const FREQ_ERR_INVALID = 'invalid'
 export const FREQ_ERR_NONPOSITIVE = 'nonpositive'
@@ -29,13 +29,7 @@ function guard(x) {
   return null
 }
 
-const MSG = {
-  [FREQ_ERR_INVALID]: 'Giriş sonlu bir sayı olmalı.',
-  [FREQ_ERR_NONPOSITIVE]: 'Frekans ve periyot sıfırdan büyük olmalı; 1/0 tanımsızdır.',
-  [FREQ_ERR_RANGE]: 'Sonuç kayan nokta aralığının dışına taşıyor.',
-}
-
-const fail = (code) => ({ error: code, message: MSG[code] })
+const fail = (code) => ({ error: code })
 
 // Periyot (s) ← frekans (Hz)
 export function periodFromFrequency(frequency) {
@@ -79,7 +73,7 @@ export function frequencyFromAngular(omega) {
  * Çift yönlü dönüşüm: hangi büyüklük verilirse diğerleri türetilir.
  *
  * @param {{ source: string, value: number }} arg  value SI cinsinden (Hz veya s)
- * @returns {{ source, frequency, period, omega }|{ error, message }}
+ * @returns {{ source, frequency, period, omega }|{ error }}
  */
 export function convertFrequency({ source, value }) {
   if (source !== SOURCE_FREQUENCY && source !== SOURCE_PERIOD) return fail(FREQ_ERR_INVALID)

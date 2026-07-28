@@ -6,6 +6,7 @@ import {
   SOURCE_FREQUENCY, SOURCE_PERIOD,
   FREQ_ERR_INVALID, FREQ_ERR_NONPOSITIVE, FREQ_ERR_RANGE,
 } from './convertFrequency'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('f = 1/T ve T = 1/f', () => {
   it('1 kHz → 1 ms', () => {
@@ -94,5 +95,24 @@ describe('convertFrequency', () => {
     expect(convertFrequency({ source: 'omega', value: 1 }).error).toBe(FREQ_ERR_INVALID)
     expect(convertFrequency({ source: SOURCE_FREQUENCY, value: 0 }).error).toBe(FREQ_ERR_NONPOSITIVE)
     expect(convertFrequency({ source: SOURCE_PERIOD, value: -1 }).error).toBe(FREQ_ERR_NONPOSITIVE)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      periodFromFrequency(0),
+      periodFromFrequency(-5),
+      periodFromFrequency(NaN),
+      periodFromFrequency(Infinity),
+      frequencyFromPeriod(0),
+      frequencyFromPeriod(undefined),
+      frequencyFromPeriod('1e-9'),
+      frequencyFromPeriod(1e-310),
+      angularFromFrequency(0),
+      angularFromFrequency(1e308),
+      frequencyFromAngular(0),
+      convertFrequency({ source: 'omega', value: 1 }),
+    ])
   })
 })

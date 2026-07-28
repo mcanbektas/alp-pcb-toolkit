@@ -45,7 +45,7 @@ const VALUE_Y2 = BASE_Y + 41
 // .sch-value tek aralıklı karakter genişliği (10 px × 0.62)
 const VALUE_CH = 6.2
 
-function partsFor(mode, r, form) {
+function partsFor(mode, r, form, text) {
   const live = r.ok
 
   if (mode === MODE_HEATSINK) {
@@ -55,7 +55,7 @@ function partsFor(mode, r, form) {
       {
         key: 'sa',
         label: 'θ_SA',
-        value: live && r.hasSink ? `${fmt(r.thetaSA, 3)} °C/W` : 'seçilmedi',
+        value: live && r.hasSink ? `${fmt(r.thetaSA, 3)} °C/W` : text.noSink,
         off: !(live && r.hasSink),
       },
     ]
@@ -77,10 +77,10 @@ function partsFor(mode, r, form) {
   return [{ key: 'ja', label: 'θ_JA', value: live ? `${fmt(r.thetaJA, 3)} °C/W` : null }]
 }
 
-export default function JunctionSchematic({ r, form, mode }) {
+export default function JunctionSchematic({ r, form, mode, text }) {
   const live = r.ok
   const copperOn = form.copper !== COPPER_OFF
-  const parts = partsFor(mode, r, form)
+  const parts = partsFor(mode, r, form, text)
   const isSurface = mode === MODE_SURFACE
 
   const span = TO_X - FROM_X
@@ -95,15 +95,15 @@ export default function JunctionSchematic({ r, form, mode }) {
   const stagger = parts.length > 1 && widest + 2 > slot
 
   const caption = mode === MODE_HEATSINK
-    ? 'Junction → case → termal arayüz → soğutucu → ortam: seri termal dirençler'
+    ? text.captionHeatsink
     : isSurface
-      ? 'Ölçüm noktası ile junction arasındaki ampirik metrik — yol direnci değildir'
-      : 'Junction → ortam: tek eşdeğer direnç (θ_JA)'
+      ? text.captionSurface
+      : text.captionJunction
 
   return (
     <Schematic
       viewBox={`0 0 340 ${copperOn ? 224 : 128}`}
-      title="Termal direnç zinciri"
+      title={text.title}
       caption={caption}
     >
       {/* Zincir teli — kutular üstüne çizilip teli örter */}
@@ -144,7 +144,12 @@ export default function JunctionSchematic({ r, form, mode }) {
       {isSurface ? (
         <>
           <Node x={RIGHT_X} y={BASE_Y} />
-          <text className="sch-label" x={RIGHT_X + 20} y={BASE_Y - 14} textAnchor="end">ölçüm</text>
+          {/* Sağa yaslı: en uzun karşılık İngilizce ("measurement",
+              11 karakter ≈ 75 px) x = 257'de başlar, zincir kutusu 196'da
+              bittiği için çakışmaz; sağ ucu 332, viewBox içinde kalır */}
+          <text className="sch-label" x={RIGHT_X + 20} y={BASE_Y - 14} textAnchor="end">
+            {text.measurePoint}
+          </text>
           {live && (
             <text className="sch-value" x={RIGHT_X + 20} y={VALUE_Y2} textAnchor="end">
               {fmt(r.Tsurface, 4)} °C
@@ -170,8 +175,12 @@ export default function JunctionSchematic({ r, form, mode }) {
         <>
           {/* Bölüm başlığı, uç sıcaklıklarının altında durur: kutu
               [108.4, 119.4] → sıcaklık satırına 3.2 px; bakır kutusu 144'te
-              başladığı için başlık yazısı (135.1'de biter) kutuya girmez */}
-          <text className="sch-label dim" x={LEFT_X - 4} y={117}>bakır termal ağı</text>
+              başladığı için Türkçe başlık yazısı (135.1'de biter) kutuya
+              girmez. İngilizce karşılık ("copper thermal network", 22 karakter
+              ≈ 150 px) x yönünde kutunun altına uzanır; dikeyde yazı tabanı
+              119.4, kutunun çizili üst kenarı 123 (kalınlık 2) → 3.6 px açıklık
+              korunur, yani en az 3 px kuralı bozulmaz */}
+          <text className="sch-label dim" x={LEFT_X - 4} y={117}>{text.copperNetwork}</text>
 
           <line className="sch-wire" x1={92} x2={92} y1={136} y2={176} />
           <line className="sch-wire" x1={252} x2={252} y1={136} y2={176} />
@@ -184,7 +193,7 @@ export default function JunctionSchematic({ r, form, mode }) {
 
           <rect className="sch-part" x={144} y={124} width={56} height={24} rx={2} />
           <rect className="sch-part" x={144} y={164} width={56} height={24} rx={2} />
-          <text className="sch-label" x={172} y={140} textAnchor="middle">bakır</text>
+          <text className="sch-label" x={172} y={140} textAnchor="middle">{text.copper}</text>
           <text className="sch-label" x={172} y={180} textAnchor="middle">FR-4</text>
 
           <Node x={92} y={156} />

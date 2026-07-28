@@ -5,7 +5,7 @@ import { MODE_POWER, MODE_VOLTAGE, MODE_DBM } from './model'
 // İki kapılı blok: solda giriş, ortada dönüşüm, sağda çıkış.
 // dBm modunda çıkış kapısı yerine referans empedans yükü çizilir; çünkü
 // mutlak seviyenin gerilim karşılığı ancak bir yük üzerinde tanımlıdır.
-export default function DecibelSchematic({ r }) {
+export default function DecibelSchematic({ r, text }) {
   const live = r.ok
   const mode = live ? r.mode : MODE_POWER
   const isDbm = mode === MODE_DBM
@@ -33,15 +33,13 @@ export default function DecibelSchematic({ r }) {
 
   const ratioValue = !live || isDbm
     ? null
-    : `oran ×${fmt(isVolt ? r.voltageRatio : r.powerRatio, 3)}`
+    : text.ratioValue(fmt(isVolt ? r.voltageRatio : r.powerRatio, 3))
 
   return (
     <Schematic
       viewBox="0 0 272 142"
-      title="İki kapılı kazanç bloğu"
-      caption={isDbm
-        ? 'Mutlak seviye referans empedans üzerinde tanımlıdır'
-        : 'Giriş ve çıkış büyüklüğünün oranı dB olarak yazılır'}
+      title={text.title}
+      caption={isDbm ? text.captionDbm : text.captionRatio}
     >
       {/* Giriş kapısı */}
       <line className="sch-wire" x1={26} x2={88} y1={40} y2={40} />

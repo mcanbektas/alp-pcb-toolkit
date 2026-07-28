@@ -106,10 +106,10 @@ function wire(awgExact, d) {
 // Numaradan tel. Aralık dışı numara için sonuç üretilmez.
 export function wireFromAwg(awg) {
   if (!Number.isFinite(awg)) {
-    return { error: AWG_ERR_INVALID, message: 'AWG numarası sayısal olmalı.' }
+    return { error: AWG_ERR_INVALID }
   }
   if (!inAwgRange(awg)) {
-    return { error: AWG_ERR_RANGE, message: `AWG numarası ${AWG_MIN} ile ${AWG_MAX} arasında olmalı.` }
+    return { error: AWG_ERR_RANGE }
   }
   return wire(awg, awgDiameter(awg))
 }
@@ -117,14 +117,14 @@ export function wireFromAwg(awg) {
 // Çaptan tel. Karşılığı ölçek dışına düşerse sonuç üretilmez.
 export function wireFromDiameter(d) {
   if (!(d > 0)) {
-    return { error: AWG_ERR_INVALID, message: 'Çap pozitif olmalı.' }
+    return { error: AWG_ERR_INVALID }
   }
   const awg = awgFromDiameter(d)
   if (!Number.isFinite(awg)) {
-    return { error: AWG_ERR_INVALID, message: 'Çap sayısal olmalı.' }
+    return { error: AWG_ERR_INVALID }
   }
   if (!inAwgRange(awg)) {
-    return { error: AWG_ERR_RANGE, message: `Çap, AWG ${AWG_MIN} … ${AWG_MAX} ölçeğinin dışında.` }
+    return { error: AWG_ERR_RANGE }
   }
   return wire(awg, d)
 }
@@ -166,13 +166,10 @@ function span(min, nom, max) {
  */
 export function diameterTolerance(d, tol = 0) {
   if (!(d > 0)) {
-    return { error: AWG_ERR_INVALID, message: 'Çap pozitif olmalı.' }
+    return { error: AWG_ERR_INVALID }
   }
   if (!Number.isFinite(tol) || tol < 0 || tol >= AWG_TOL_MAX) {
-    return {
-      error: AWG_ERR_TOLERANCE,
-      message: 'Çap toleransı 0 ile %100 arasında olmalı (100 hariç).',
-    }
+    return { error: AWG_ERR_TOLERANCE }
   }
 
   const dMin = d * (1 - tol)

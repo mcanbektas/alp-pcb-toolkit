@@ -2,7 +2,21 @@ import { describe, it, expect, afterEach } from 'vitest'
 import {
   memoryStorage, nullStorage, browserStorage, defaultStorage,
   STORAGE_ERR_UNAVAILABLE, STORAGE_ERR_WRITE,
+  STORAGE_OP_WRITE, STORAGE_OP_REMOVE,
 } from './storage'
+
+// Hata yükü dilsiz olmalı: sayılabilir her dize alanı kod biçiminde
+// (küçük harf + tire) olmalı, kurulmuş bir cümle olmamalı. Bu kontrol
+// Türkçe (ya da tarayıcı dilinde) bir cümlenin yüke geri sızmasını engeller.
+const CODE_RE = /^[a-z][a-z0-9-]*$/
+
+function expectCodeOnly(payload) {
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === 'number') continue
+    expect(typeof value, `${key} alanı dize ya da sayı olmalı`).toBe('string')
+    expect(value, `${key} alanı kod değil, cümle taşıyor`).toMatch(CODE_RE)
+  }
+}
 
 // browserStorage global `localStorage` kimliğine bakar. Testler bu globali geçici
 // olarak kurar; afterEach başlangıç durumunu birebir geri koyar, global sızmaz.
@@ -129,19 +143,25 @@ describe('nullStorage', () => {
     expect(nullStorage.read('a')).toBeNull()
   })
 
-  it('yazma açık hata döner, istisna fırlatmaz', () => {
+  it('yazma açık hata kodu döner, istisna fırlatmaz', () => {
     const r = nullStorage.write('a', 'x')
     expect(r.error).toBe(STORAGE_ERR_UNAVAILABLE)
-    expect(typeof r.message).toBe('string')
-    expect(r.message.length).toBeGreaterThan(0)
+    expect(r.op).toBe(STORAGE_OP_WRITE)
     expect(r.ok).toBeUndefined()
+    expectCodeOnly(r)
   })
 
-  it('silme açık hata döner, istisna fırlatmaz', () => {
+  it('silme açık hata kodu döner, istisna fırlatmaz', () => {
     const r = nullStorage.remove('a')
     expect(r.error).toBe(STORAGE_ERR_UNAVAILABLE)
-    expect(typeof r.message).toBe('string')
+    expect(r.op).toBe(STORAGE_OP_REMOVE)
     expect(r.ok).toBeUndefined()
+    expectCodeOnly(r)
+  })
+
+  it('hata yükü cümle taşımaz — yalnızca error ve op alanları vardır', () => {
+    expect(Object.keys(nullStorage.write('a', 'x')).sort()).toEqual(['error', 'op'])
+    expect(Object.keys(nullStorage.remove('a')).sort()).toEqual(['error', 'op'])
   })
 
   it('hiçbir çağrı fırlatmaz', () => {
@@ -205,20 +225,39 @@ describe('browserStorage — fırlatan depolama', () => {
     expect(browserStorage().read('k')).toBeNull()
   })
 
-  it('yazma istisnası yazma hata kodu ve nedenle döner', () => {
+  it('yazma istisnası yazma hata kodunu op ile döner', () => {
     installLocalStorage(thrower)
     const r = browserStorage().write('k', 'v')
     expect(r.error).toBe(STORAGE_ERR_WRITE)
-    expect(r.message).toContain('kota dolu')
+    expect(r.op).toBe(STORAGE_OP_WRITE)
     expect(r.ok).toBeUndefined()
+    expectCodeOnly(r)
   })
 
-  it('silme istisnası yazma hata kodu ve nedenle döner', () => {
+  it('silme istisnası yazma hata kodunu remove op ile döner', () => {
     installLocalStorage(thrower)
     const r = browserStorage().remove('k')
     expect(r.error).toBe(STORAGE_ERR_WRITE)
-    expect(r.message).toContain('silme engelli')
+    expect(r.op).toBe(STORAGE_OP_REMOVE)
     expect(r.ok).toBeUndefined()
+    expectCodeOnly(r)
+  })
+
+  // Tarayıcının kendi istisna metni kullanıcıya gösterilemez: dili tarayıcının
+  // diline bağlıdır. Yalnızca geliştirici teşhisi için, sayılamayan `_cause`
+  // alanında durur — Object.keys, spread ve JSON.stringify onu görmez.
+  it('tarayıcının istisna metni sayılabilir alan olarak sızmaz', () => {
+    installLocalStorage(thrower)
+    const r = browserStorage().write('k', 'v')
+
+    expect(Object.keys(r).sort()).toEqual(['error', 'op'])
+    expect(JSON.stringify(r)).not.toContain('kota dolu')
+    expect(JSON.stringify({ ...r })).not.toContain('kota dolu')
+    expect(Object.values(r).join(' ')).not.toContain('kota dolu')
+
+    // Teşhis alanı yine de erişilebilir kalır, ama yalnızca adıyla istenirse
+    expect(r._cause).toContain('kota dolu')
+    expect(Object.getOwnPropertyDescriptor(r, '_cause').enumerable).toBe(false)
   })
 
   it('hiçbir çağrı fırlatmaz', () => {

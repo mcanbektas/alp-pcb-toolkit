@@ -5,6 +5,7 @@ import {
   COMPLEX_ERR_UNDEFINED_PHASE, COMPLEX_ERR_NEGATIVE_MAGNITUDE, COMPLEX_ERR_INVALID,
   KIND_INDUCTIVE, KIND_CAPACITIVE, KIND_RESISTIVE,
 } from './convertComplex'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('yardımcılar', () => {
   it('|Z| = √(R² + X²)', () => {
@@ -151,5 +152,17 @@ describe('gidiş dönüş tutarlılığı', () => {
       expect(back.magnitude).toBeCloseTo(7.5, 10)
       expect(back.phaseDeg).toBeCloseTo(deg, 10)
     }
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      rectToPolar({ R: 0, X: 0 }),
+      rectToPolar({ R: NaN, X: 1 }),
+      rectToPolar({ R: 1, X: Infinity }),
+      polarToRect({ magnitude: 0, phase: 1 }),
+      polarToRect({ magnitude: -1, phase: 1 }),
+    ])
   })
 })

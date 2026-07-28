@@ -14,7 +14,7 @@ import { fmtEng } from '../../../lib/num'
 // çizgisinin üstüne oturduğu için çizgi etiketin geçtiği yerde iki parça
 // çizilir ve sonuç satırları alt alta bölündü — en uzun değer (9 karakter)
 // tek satıra sığmıyordu.
-export default function CrosstalkSchematic({ r }) {
+export default function CrosstalkSchematic({ r, text }) {
   const x0 = 52
   const x1 = 218
   const span = x1 - x0
@@ -30,12 +30,12 @@ export default function CrosstalkSchematic({ r }) {
   return (
     <Schematic
       viewBox="0 0 260 172"
-      title="Aggressor ve victim hatları — üstten görünüm"
-      caption="Sinyal aggressor üzerinde near-end'den far-end'e ilerler; NEXT victim'in near-end, FEXT far-end ucunda görünür"
+      title={text.title}
+      caption={text.caption}
     >
       {/* Uç adları */}
-      <text className="sch-label dim" x={x0} y={16} textAnchor="middle">near-end</text>
-      <text className="sch-label dim" x={x1} y={16} textAnchor="middle">far-end</text>
+      <text className="sch-label dim" x={x0} y={16} textAnchor="middle">{text.nearEnd}</text>
+      <text className="sch-label dim" x={x1} y={16} textAnchor="middle">{text.farEnd}</text>
 
       {/* Yayılma yönü — uç adlarının arasındaki boşlukta */}
       <g>
@@ -45,13 +45,13 @@ export default function CrosstalkSchematic({ r }) {
 
       {/* Aggressor hattı */}
       <rect className="sch-copper" x={x0} y={aggY} width={span} height={traceH} />
-      <text className="sch-label" x={135} y={33} textAnchor="middle">aggressor</text>
+      <text className="sch-label" x={135} y={33} textAnchor="middle">{text.aggressor}</text>
       <Terminal x={x0} y={aggMid} r={3} />
       <Terminal x={x1} y={aggMid} r={3} />
 
       {/* Victim hattı */}
       <rect className="sch-copper" x={x0} y={vicY} width={span} height={traceH} />
-      <text className="sch-label" x={135} y={101} textAnchor="middle">victim</text>
+      <text className="sch-label" x={135} y={101} textAnchor="middle">{text.victim}</text>
       <Terminal x={x0} y={vicMid} r={3} />
       <Terminal x={x1} y={vicMid} r={3} />
 
@@ -81,7 +81,7 @@ export default function CrosstalkSchematic({ r }) {
         <line x1={x0} x2={x0} y1={117} y2={127} />
         <line x1={x1} x2={x1} y1={117} y2={127} />
       </g>
-      <text className="sch-label" x={135} y={126} textAnchor="middle">paralel uzunluk L</text>
+      <text className="sch-label" x={135} y={126} textAnchor="middle">{text.parallelLength}</text>
 
       {r.ok && (
         <>
@@ -95,7 +95,7 @@ export default function CrosstalkSchematic({ r }) {
             V_NEXT = {fmtEng(r.Vnext, 'V', 3)}
           </text>
           <text className="sch-value" x={16} y={166}>
-            V_FEXT = {r.fext.available ? fmtEng(r.fext.Vfext, 'V', 3) : 'hesaplanmadı'}
+            V_FEXT = {r.fext.available ? fmtEng(r.fext.Vfext, 'V', 3) : text.notComputed}
           </text>
         </>
       )}

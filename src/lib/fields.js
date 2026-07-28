@@ -8,7 +8,9 @@
 // Alan tanımı (spec):
 //   { key, label, unitKey?, table?, optional?, min?, max?, allowZero? }
 //     key       — form nesnesindeki alan adı
-//     label     — hata mesajında gösterilecek ad (çağıranın dilinde)
+//     label     — hata mesajında gösterilecek ad (çağıranın dilinde). Saf
+//                 katmanda kurulan alan tanımları buraya alan anahtarını yazar;
+//                 ekran kendi çevirisiyle üzerine geçer.
 //     unitKey   — birim seçicinin form alanı adı; yoksa çarpan uygulanmaz
 //     table     — birim → SI çarpan tablosu (units.js)
 //     optional  — boş bırakılabilir; boşsa değer null olur
@@ -96,9 +98,13 @@ export function readForm(form, specs) {
  * Her satır kendi içinde aynı alan tanımlarını taşır. Hatalı satırın numarası
  * etikete eklenir, böylece kullanıcı hangi satırı düzelteceğini bilir.
  *
+ * `rowLabel` çağıranın dilindedir ve çağıran tarafından verilir. Verilmezse
+ * dilsiz `'row'` belirteci kullanılır — saf katman kendi başına Türkçe (ya da
+ * İngilizce) bir sözcük üretmez; eksik etiket teşhis edilebilir kalır.
+ *
  * @returns {{ rows: object[], ambiguous: string[], invalid: string[], ok: boolean }}
  */
-export function readRows(rows, specs, rowLabel = 'Satır') {
+export function readRows(rows, specs, rowLabel = 'row') {
   const out = []
   const ambiguous = []
   const invalid = []

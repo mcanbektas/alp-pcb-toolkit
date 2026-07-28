@@ -28,26 +28,29 @@ const COUNT = { adet: 1 }
 const COND = { 'W/(m·K)': 1 }
 const DIA = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 
-export function formFields(mode) {
+// Etiketler `labels` ile çağıran taraftan gelir (geçerli dilde, text.js'ten);
+// `lib/` bunları bilmez. Etiket verilmezse alan anahtarı gösterilir.
+export function formFields(mode, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
     [
-      { key: 'Df', label: 'Bitmiş delik çapı (D_f)', unitKey: 'Dfu', table: DIA, min: 0 },
-      { key: 'tp', label: 'Kaplama kalınlığı (t_p)', unitKey: 'tpu', table: DIA, min: 0 },
-      { key: 'H', label: 'Via uzunluğu (H)', unitKey: 'Hu', table: DIA, min: 0 },
-      { key: 'k', label: 'Bakır termal iletkenliği', unit: 'W/(m·K)', table: COND, min: 0 },
-      { key: 'deltaT', label: 'Sıcaklık farkı (ΔT)', unit: '°C', table: TEMP, min: 0 },
+      { key: 'Df', label: L('Df'), unitKey: 'Dfu', table: DIA, min: 0 },
+      { key: 'tp', label: L('tp'), unitKey: 'tpu', table: DIA, min: 0 },
+      { key: 'H', label: L('H'), unitKey: 'Hu', table: DIA, min: 0 },
+      { key: 'k', label: L('k'), unit: 'W/(m·K)', table: COND, min: 0 },
+      { key: 'deltaT', label: L('deltaT'), unit: '°C', table: TEMP, min: 0 },
     ],
     when(mode === MODE_ANALYSIS, [
-      { key: 'N', label: 'Via sayısı', unit: 'adet', table: COUNT, min: 1 },
+      { key: 'N', label: L('N'), unit: 'adet', table: COUNT, min: 1 },
     ]),
     when(mode === MODE_SYNTHESIS, [
-      { key: 'Q', label: 'İletilecek ısı', unitKey: 'Qu', table: POWER, min: 0 },
+      { key: 'Q', label: L('Q'), unitKey: 'Qu', table: POWER, min: 0 },
     ]),
   ])
 }
 
-export function compute(mode, f) {
-  const read = readForm(f, formFields(mode))
+export function compute(mode, f, labels = {}) {
+  const read = readForm(f, formFields(mode, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

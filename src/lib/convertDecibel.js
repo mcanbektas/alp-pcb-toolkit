@@ -15,12 +15,10 @@ export const DB_ERR_POWER = 'power'
 // olurdu; ayrı bir kodla bildirilir.
 export const DB_ERR_RANGE = 'range'
 
-const RANGE_MESSAGE = 'Sonuç kayan nokta aralığının dışına taşıyor.'
-
 // Sonuç alanlarının hepsi sonlu mu? Değilse aralık hatası döner.
 function finiteOrRange(result, ...values) {
   for (const x of values) {
-    if (!Number.isFinite(x)) return { error: DB_ERR_RANGE, message: RANGE_MESSAGE }
+    if (!Number.isFinite(x)) return { error: DB_ERR_RANGE }
   }
   return result
 }
@@ -42,12 +40,7 @@ function ratioGuard(ratio) {
 export function powerRatioToDb(ratio) {
   const bad = ratioGuard(ratio)
   if (bad) {
-    return {
-      error: bad,
-      message: bad === DB_ERR_RATIO
-        ? 'Güç oranı pozitif olmalı; log10 sıfır ve negatif değerde tanımsızdır.'
-        : 'Güç oranı sonlu bir sayı olmalı.',
-    }
+    return { error: bad }
   }
   return { ratio, dB: 10 * Math.log10(ratio) }
 }
@@ -55,7 +48,7 @@ export function powerRatioToDb(ratio) {
 // P₂/P₁ = 10^(G_dB/10)
 export function dbToPowerRatio(dB) {
   if (!Number.isFinite(dB)) {
-    return { error: DB_ERR_INVALID, message: 'Kazanç sonlu bir sayı olmalı.' }
+    return { error: DB_ERR_INVALID }
   }
   const ratio = Math.pow(10, dB / 10)
   return finiteOrRange({ dB, ratio }, ratio)
@@ -71,12 +64,7 @@ export function dbToPowerRatio(dB) {
 export function voltageRatioToDb(ratio) {
   const bad = ratioGuard(ratio)
   if (bad) {
-    return {
-      error: bad,
-      message: bad === DB_ERR_RATIO
-        ? 'Gerilim oranı pozitif olmalı; log10 sıfır ve negatif değerde tanımsızdır.'
-        : 'Gerilim oranı sonlu bir sayı olmalı.',
-    }
+    return { error: bad }
   }
   return { ratio, dB: 20 * Math.log10(ratio) }
 }
@@ -84,7 +72,7 @@ export function voltageRatioToDb(ratio) {
 // V₂/V₁ = 10^(G_dB/20)
 export function dbToVoltageRatio(dB) {
   if (!Number.isFinite(dB)) {
-    return { error: DB_ERR_INVALID, message: 'Kazanç sonlu bir sayı olmalı.' }
+    return { error: DB_ERR_INVALID }
   }
   const ratio = Math.pow(10, dB / 20)
   return finiteOrRange({ dB, ratio }, ratio)
@@ -95,12 +83,7 @@ export function dbToVoltageRatio(dB) {
 export function powerRatioFromVoltageRatio(vr) {
   const bad = ratioGuard(vr)
   if (bad) {
-    return {
-      error: bad,
-      message: bad === DB_ERR_RATIO
-        ? 'Gerilim oranı pozitif olmalı.'
-        : 'Gerilim oranı sonlu bir sayı olmalı.',
-    }
+    return { error: bad }
   }
   const powerRatio = vr * vr
   return finiteOrRange({ voltageRatio: vr, powerRatio }, powerRatio)
@@ -120,10 +103,10 @@ export function ratiosFromDb(dB) {
 // P_dBm = 10·log₁₀(P_mW)
 export function wattToDbm(P_W) {
   if (!Number.isFinite(P_W)) {
-    return { error: DB_ERR_INVALID, message: 'Güç sonlu bir sayı olmalı.' }
+    return { error: DB_ERR_INVALID }
   }
   if (!(P_W > 0)) {
-    return { error: DB_ERR_POWER, message: 'Güç pozitif olmalı; 0 W için dBm tanımsızdır.' }
+    return { error: DB_ERR_POWER }
   }
   const mW = P_W / DBM_REF_W
   return finiteOrRange({ W: P_W, mW, dBm: 10 * Math.log10(mW) }, mW)
@@ -132,7 +115,7 @@ export function wattToDbm(P_W) {
 // P_mW = 10^(P_dBm/10)   ve   P_W = 10^((P_dBm − 30)/10)
 export function dbmToWatt(dBm) {
   if (!Number.isFinite(dBm)) {
-    return { error: DB_ERR_INVALID, message: 'Seviye sonlu bir sayı olmalı.' }
+    return { error: DB_ERR_INVALID }
   }
   const mW = Math.pow(10, dBm / 10)
   const W = Math.pow(10, (dBm - 30) / 10)
@@ -145,13 +128,13 @@ export function dbmToWatt(dBm) {
 // harcandığı ve gerilimin RMS olduğu varsayılır.
 export function rmsVoltage(P_W, R) {
   if (!Number.isFinite(P_W) || !Number.isFinite(R)) {
-    return { error: DB_ERR_INVALID, message: 'Güç ve direnç sonlu sayı olmalı.' }
+    return { error: DB_ERR_INVALID }
   }
   if (!(P_W > 0)) {
-    return { error: DB_ERR_POWER, message: 'Güç pozitif olmalı.' }
+    return { error: DB_ERR_POWER }
   }
   if (!(R > 0)) {
-    return { error: DB_ERR_INVALID, message: 'Referans empedans pozitif olmalı.' }
+    return { error: DB_ERR_INVALID }
   }
   const V = Math.sqrt(P_W * R)
   return finiteOrRange({ V, P: P_W, R }, V)

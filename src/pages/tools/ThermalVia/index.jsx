@@ -4,10 +4,12 @@ import NumberField from '../../../components/NumberField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtPow, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtPow } from '../../../lib/num'
 import ThermalViaSchematic from './schematic'
 import { INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS, compute, buildSweep } from './model'
-import { CHART, reasonText, commentary } from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
@@ -16,126 +18,125 @@ const DIA_UNITS = ['mm', 'µm', 'mil']
 export default function ThermalVia() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(mode, f), [mode, f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(mode, f, text.fieldLabels), [mode, f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
-  const chartSeries = s ? [{ key: 'rth', name: 'R_θ dizi', tone: toneClass(0), points: s.points }] : []
+  const chartSeries = s ? [{ key: 'rth', name: text.schematic.arrayR, tone: toneClass(0), points: s.points }] : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/via-padstack">← Via ve Padstack</Link>
+      <Link className="backlink" to="/kategori/via-padstack">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Thermal Via Array</h1>
-        <p>
-          Via barrel üzerinden katmanlar arası ısı iletimini tahmin eder: tek via ve dizi termal
-          direnci, via sayısına göre göreceli iyileşme ve iletilen ısı.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <ThermalViaSchematic r={r} />
+          <ThermalViaSchematic r={r} text={text.schematic} />
 
           <Segmented
             value={mode}
             onChange={setMode}
             options={[
-              { value: MODE_ANALYSIS, label: 'Analiz — direnci bul' },
-              { value: MODE_SYNTHESIS, label: 'Sentez — via sayısı bul' },
+              { value: MODE_ANALYSIS, label: text.modeAnalysis },
+              { value: MODE_SYNTHESIS, label: text.modeSynthesis },
             ]}
           />
 
           <NumberField
-            label="Bitmiş delik çapı (D_f)"
+            label={text.fields.Df.label}
             value={f.Df} onChange={set('Df')}
             units={DIA_UNITS} unit={f.Dfu} onUnit={set('Dfu')}
-            hint="Termal viada tipik 0.2–0.4 mm"
+            hint={text.fields.Df.hint}
           />
           <NumberField
-            label="Kaplama kalınlığı (t_p)"
+            label={text.fields.tp.label}
             value={f.tp} onChange={set('tp')}
             units={DIA_UNITS} unit={f.tpu} onUnit={set('tpu')}
           />
           <NumberField
-            label="Via uzunluğu (H)"
+            label={text.fields.H.label}
             value={f.H} onChange={set('H')}
             units={DIA_UNITS} unit={f.Hu} onUnit={set('Hu')}
           />
 
           {mode === MODE_ANALYSIS ? (
             <NumberField
-              label="Via sayısı"
+              label={text.fields.N.label}
               value={f.N} onChange={set('N')}
-              units={['adet']} unit="adet" onUnit={() => {}}
+              units={[text.countUnit]} unit={text.countUnit} onUnit={() => {}}
             />
           ) : (
             <NumberField
-              label="İletilecek ısı"
+              label={text.fields.Q.label}
               value={f.Q} onChange={set('Q')}
               units={['W', 'mW']} unit={f.Qu} onUnit={set('Qu')}
             />
           )}
 
           <NumberField
-            label="Sıcaklık farkı (ΔT)"
+            label={text.fields.deltaT.label}
             value={f.deltaT} onChange={set('deltaT')}
             units={['°C']} unit="°C" onUnit={() => {}}
-            hint="Vianın iki ucu arasındaki fark"
+            hint={text.fields.deltaT.hint}
           />
 
           <label className="check-row">
             <input type="checkbox" checked={f.filled} onChange={(e) => set('filled')(e.target.checked)} />
-            Bakır dolgulu via
+            {text.fields.filled}
           </label>
 
           <NumberField
-            label="Bakır termal iletkenliği"
+            label={text.fields.k.label}
             value={f.k} onChange={set('k')}
             units={['W/(m·K)']} unit="W/(m·K)" onUnit={() => {}}
-            hint="Tipik aralık 385–400"
+            hint={text.fields.k.hint}
           />
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
                 <div className="label">
-                  {r.mode === MODE_SYNTHESIS ? 'Gereken via sayısı' : 'Dizi termal direnci'}
+                  {r.mode === MODE_SYNTHESIS ? text.bigResult.synthesis : text.bigResult.analysis}
                 </div>
                 <div className="value">
                   {r.mode === MODE_SYNTHESIS ? r.N : `${fmt(r.Rarray, 4)} °C/W`}
                 </div>
                 <div className="alt">
                   {r.mode === MODE_SYNTHESIS
-                    ? <>dizi direnci {fmt(r.Rarray, 4)} °C/W &nbsp;·&nbsp; taşınan {fmtPow(r.actualQ, 3)}</>
-                    : <>tek via {fmt(r.Rsingle, 4)} °C/W &nbsp;·&nbsp; taşınan {fmtPow(r.actualQ, 3)}</>}
+                    ? <>{text.bigResult.arrayR} {fmt(r.Rarray, 4)} °C/W &nbsp;·&nbsp; {text.bigResult.conducted} {fmtPow(r.actualQ, 3)}</>
+                    : <>{text.bigResult.singleR} {fmt(r.Rsingle, 4)} °C/W &nbsp;·&nbsp; {text.bigResult.conducted} {fmtPow(r.actualQ, 3)}</>}
                 </div>
               </div>
 
@@ -144,45 +145,45 @@ export default function ThermalVia() {
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Barrel kesit alanı</td>
+                    <td>{text.table.area}</td>
                     <td>{fmt(r.area * 1e6, 4)} mm²</td>
                   </tr>
                   {r.filled && (
                     <tr>
-                      <td>Bakır dolgu alanı</td>
+                      <td>{text.table.fillArea}</td>
                       <td>{fmt(r.fillArea * 1e6, 4)} mm²</td>
                     </tr>
                   )}
                   <tr>
-                    <td>Tek via termal direnci</td>
+                    <td>{text.table.Rsingle}</td>
                     <td>{fmt(r.Rsingle, 5)} °C/W</td>
                   </tr>
                   <tr>
-                    <td>Dizi termal direnci ({r.N} via)</td>
+                    <td>{text.table.Rarray(r.N)}</td>
                     <td>{fmt(r.Rarray, 5)} °C/W</td>
                   </tr>
                   <tr>
-                    <td>Tek viaya göre iyileşme</td>
+                    <td>{text.table.improvement}</td>
                     <td>{fmt(r.improvementVsOne, 4)}×</td>
                   </tr>
                   <tr>
-                    <td>Sıcaklık farkı</td>
+                    <td>{text.table.deltaT}</td>
                     <td>{fmt(r.deltaT, 4)} °C</td>
                   </tr>
                   <tr>
-                    <td>Tahmini iletilen ısı</td>
+                    <td>{text.table.actualQ}</td>
                     <td>{fmtPow(r.actualQ, 5)}</td>
                   </tr>
                   {r.mode === MODE_SYNTHESIS && (
                     <tr>
-                      <td>Hedef için gereken direnç</td>
+                      <td>{text.table.Rneeded}</td>
                       <td>{fmt(r.Rneeded, 5)} °C/W</td>
                     </tr>
                   )}
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -197,47 +198,24 @@ export default function ThermalVia() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{`A_barrel = π·t_p·(D_f + t_p)
-Bakır dolgulu:
-    A = A_barrel + π·D_f²/4
-
-Tek via: R_θ = H / (k·A)
-N via: R_θ,dizi = R_θ / N
-
-İletilen ısı: Q = ΔT / R_θ
-
-Gerçek toplam yol:
-  R_θ,toplam = R_θ,üst yayılım
-             + R_θ,vialar
-             + R_θ,alt yayılım
-             + R_θ,ortam`}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>Kullanılan termal iletkenlik {fmt(r.k, 4)} W/(m·K).</li>
-              <li>İletken kesit {fmtEng(r.area, 'm²', 5)}; via uzunluğu {fmtEng(r.H, 'm', 4)}.</li>
-              <li>Dizi direnci tek via direncinin via sayısına bölümüdür — vialar aynı kabul edilir.</li>
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.conductivity(r.k)}</li>
+              <li>{text.detail.section(r.area, r.H)}</li>
+              <li>{text.detail.division}</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Sonuç yalnızca via barrel direncidir. Sistemin toplam termal direnci buna üst ve alt
-              bakır yayılımı ile ortam direncini de ekler; junction sıcaklığı bu hesapla
-              belirlenemez.
-            </li>
-            <li>
-              Tüm vialar aynı geometride ve eşit yüklü kabul edilir. Gerçekte kenar vialar merkez
-              vialardan daha çok ısı taşır.
-            </li>
-            <li>Bakır düzgün kalınlıkta kaplanmış varsayılır; delik ortasında incelme modelde yoktur.</li>
-            <li>Dielektrik üzerinden paralel iletim yolu ihmal edilir — FR-4 bakırın binde biri kadar iletir.</li>
-            <li>Konveksiyon, radyasyon ve komşu bileşenlerin ısısı modelde yoktur.</li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
           </ul>
         </section>
       </div>
@@ -245,42 +223,42 @@ Gerçek toplam yol:
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
           <>
             <ChartLegend
               items={[
-                { label: 'dizi termal direnci', tone: toneClass(0), kind: 'line' },
-                ...s.refs.map(() => ({ label: 'hedef için gereken', tone: 'tone-muted', kind: 'line' })),
+                { label: text.chart.seriesArray, tone: toneClass(0), kind: 'line' },
+                ...s.refs.map(() => ({ label: text.chart.neededLegend, tone: 'tone-muted', kind: 'line' })),
               ]}
             />
 
             <LineChart
               xScale="linear"
-              xLabel={CHART.x}
-              yLabel={CHART.y}
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
-                key: ref.key, y: ref.y, label: `gereken ${fmt(ref.y, 3)} °C/W`,
+                key: ref.key, y: ref.y, label: text.chart.refNeeded(ref.y),
               }))}
-              marker={{ ...s.marker, label: `${r.N} via` }}
+              marker={{ ...s.marker, label: `${r.N} ${text.countUnit}` }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmt(v, 3)}
-              caption={CHART.caption}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel={CHART.x}
+              xLabel={text.chart.x}
               series={chartSeries}
               every={3}
-              formatX={(v) => `${fmt(v, 2)} via`}
+              formatX={(v) => `${fmt(v, 2)} ${text.countUnit}`}
               formatY={(v) => `${fmt(v, 4)} °C/W`}
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

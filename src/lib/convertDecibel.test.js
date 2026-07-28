@@ -6,6 +6,7 @@ import {
   wattToDbm, dbmToWatt, rmsVoltage,
   DBM_REF_W, DB_ERR_RATIO, DB_ERR_POWER, DB_ERR_INVALID, DB_ERR_RANGE,
 } from './convertDecibel'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('güç oranı ↔ dB (spec §11.4)', () => {
   it('oran 1 → 0 dB', () => {
@@ -229,5 +230,25 @@ describe('taşma — sonuç kayan nokta aralığının dışına çıkınca hata
     expect(r.dB).toBeUndefined()
     expect(dbmToWatt(3200).W).toBeUndefined()
     expect(dbmToWatt(3200).mW).toBeUndefined()
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      powerRatioToDb(0),
+      powerRatioToDb(-2),
+      powerRatioToDb(NaN),
+      voltageRatioToDb(0),
+      voltageRatioToDb(Infinity),
+      powerRatioFromVoltageRatio(0),
+      dbToPowerRatio(NaN),
+      dbToVoltageRatio(NaN),
+      ratiosFromDb(NaN),
+      wattToDbm(0),
+      wattToDbm(-1e-3),
+      dbmToWatt(NaN),
+      rmsVoltage(0, 50),
+    ])
   })
 })

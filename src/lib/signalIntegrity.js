@@ -20,7 +20,7 @@ export const SI_METHOD_EMPIRICAL = 'empirical-coupling'
 
 export function wavelength({ f, epsEff }) {
   if (!(f > 0) || !(epsEff >= 1)) {
-    return { error: SI_ERR_INVALID, message: 'Frekans ve εeff pozitif olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
 
   const lambda0 = C0 / f
@@ -39,7 +39,7 @@ export function wavelength({ f, epsEff }) {
 export function electricalLength({ length, f, epsEff }) {
   const w = wavelength({ f, epsEff })
   if (w.error) return w
-  if (!(length > 0)) return { error: SI_ERR_INVALID, message: 'Uzunluk pozitif olmalı.' }
+  if (!(length > 0)) return { error: SI_ERR_INVALID }
 
   const fraction = length / w.lambdaG
   return {
@@ -60,9 +60,9 @@ export const RISE_TIME_K_MIN = 0.35
 export const RISE_TIME_K_MAX = 0.5
 
 export function riseTimeBandwidth({ tr, k = RISE_TIME_K_MIN }) {
-  if (!(tr > 0)) return { error: SI_ERR_INVALID, message: 'Yükselme süresi pozitif olmalı.' }
+  if (!(tr > 0)) return { error: SI_ERR_INVALID }
   if (!(k >= RISE_TIME_K_MIN && k <= RISE_TIME_K_MAX)) {
-    return { error: SI_ERR_INVALID, message: 'Katsayı 0.35 ile 0.5 arasında olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
   return { fBW: k / tr, k, tr }
 }
@@ -76,7 +76,7 @@ export const CRITICAL_DIVISORS = [6, 4, 2]
 
 export function criticalLength({ tr, epsEff, divisor = 6, length = null }) {
   if (!(tr > 0) || !(epsEff >= 1) || !(divisor > 0)) {
-    return { error: SI_ERR_INVALID, message: 'Yükselme süresi, εeff ve kriter pozitif olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
 
   const tpd = delayPerLength(epsEff)
@@ -105,7 +105,7 @@ export function criticalLength({ tr, epsEff, divisor = 6, length = null }) {
 
 export function skew({ lengthP, lengthN, epsEff, epsEffN = null, skewMax = null }) {
   if (!(lengthP > 0) || !(lengthN > 0) || !(epsEff >= 1)) {
-    return { error: SI_ERR_INVALID, message: 'Uzunluklar ve εeff pozitif olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
 
   const tpdP = delayPerLength(epsEff)
@@ -179,7 +179,7 @@ export function skew({ lengthP, lengthN, epsEff, epsEffN = null, skewMax = null 
 const GEOM_REL_TOL = 1e-9
 
 export function threeWRule({ W, S }) {
-  if (!(W > 0) || !(S > 0)) return { error: SI_ERR_INVALID, message: 'W ve S pozitif olmalı.' }
+  if (!(W > 0) || !(S > 0)) return { error: SI_ERR_INVALID }
 
   const required = 3 * W
   return {
@@ -192,7 +192,7 @@ export function threeWRule({ W, S }) {
 
 export function nextCoupling({ Zeven, Zodd }) {
   if (!(Zeven > 0) || !(Zodd > 0) || Zeven <= Zodd) {
-    return { error: SI_ERR_INVALID, message: 'Z_even, Z_odd değerinden büyük ve ikisi pozitif olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
   return { Kb: (Zeven - Zodd) / (2 * (Zeven + Zodd)) }
 }
@@ -204,7 +204,7 @@ export function crosstalk({
   const kb = nextCoupling({ Zeven, Zodd })
   if (kb.error) return kb
   if (!(epsEff >= 1) || !(tr > 0) || !(coupledLength > 0) || !(Vagg > 0)) {
-    return { error: SI_ERR_INVALID, message: 'εeff, yükselme süresi, uzunluk ve gerilim pozitif olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
 
   // Doyma uzunluğu: bu uzunluktan sonra NEXT artmaz, yalnızca uzar
@@ -261,16 +261,13 @@ export function crosstalk({
 
 export function seriesTermination({ Z0, Rdriver }) {
   if (!(Z0 > 0) || !(Rdriver >= 0)) {
-    return { error: SI_ERR_INVALID, message: 'Z₀ pozitif, sürücü direnci negatif olmayan olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
 
   const Rs = Z0 - Rdriver
   if (Rs < 0) {
-    return {
-      error: SI_ERR_NEGATIVE_SERIES,
-      message: 'Sürücü çıkış direnci hat empedansından büyük; seri terminasyon önerilmez.',
-      Rs, Z0, Rdriver,
-    }
+    // Kodun yanında yalnızca ham sayı döner; cümlesini ekranın text.js'i kurar.
+    return { error: SI_ERR_NEGATIVE_SERIES, Rs, Z0, Rdriver }
   }
 
   const near = nearestValues(Rs, 'E24', 3)
@@ -286,10 +283,10 @@ export function seriesTermination({ Z0, Rdriver }) {
 
 export function parallelTermination({ Z0, V, duty = 1 }) {
   if (!(Z0 > 0) || !(V > 0)) {
-    return { error: SI_ERR_INVALID, message: 'Z₀ ve gerilim pozitif olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
   if (!(duty > 0 && duty <= 1)) {
-    return { error: SI_ERR_INVALID, message: 'Duty cycle 0 ile 1 arasında olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
 
   const RT = Z0
@@ -316,7 +313,7 @@ export function parallelTermination({ Z0, V, duty = 1 }) {
  */
 export function theveninTermination({ Z0, Vcc, Vbias, series = 'E24' }) {
   if (!(Z0 > 0) || !(Vcc > 0) || !(Vbias > 0) || Vbias >= Vcc) {
-    return { error: SI_ERR_INVALID, message: 'Bias gerilimi V_cc\'den küçük ve tüm değerler pozitif olmalı.' }
+    return { error: SI_ERR_INVALID }
   }
 
   const a = Vbias / Vcc

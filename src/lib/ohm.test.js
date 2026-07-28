@@ -3,6 +3,7 @@ import {
   ohmsLaw, parallelResistance, seriesResistance,
   seriesCapacitance, parallelCapacitance, twoInParallel,
 } from './ohm'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('Ohm kanunu', () => {
   it('V ve R\'den I ile P türetir', () => {
@@ -56,5 +57,15 @@ describe('seri / paralel', () => {
 
   it('sıfır dirençli kol paraleli kısa devre eder', () => {
     expect(parallelResistance([0, 100])).toBe(0)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      ohmsLaw({ V: 12 }),
+      ohmsLaw({}),
+      ohmsLaw({ R: -4, P: 36 }),
+    ])
   })
 })

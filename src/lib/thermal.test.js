@@ -5,6 +5,9 @@ import {
   parallelThermalPaths, temperatureRise,
   PSI_JT, PSI_JB,
   THERMAL_ERR_INVALID, THERMAL_ERR_NEGATIVE_SINK,
+  THERMAL_EXCLUDES,
+  EXCLUDE_CONVECTION, EXCLUDE_RADIATION, EXCLUDE_SPREADING,
+  EXCLUDE_PACKAGE_INTERNALS, EXCLUDE_NEIGHBOURING_SOURCES,
 } from './thermal'
 import { K_CU, K_FR4 } from './units'
 
@@ -135,12 +138,64 @@ describe('bakır termal ağı (spec §8.6)', () => {
   it('yalnızca iletim modellendiğini bildirir', () => {
     const r = temperatureRise({ P: 1, Rth: 30 })
     expect(r.firstOrder).toBe(true)
-    expect(r.excludes).toContain('konveksiyon')
-    expect(r.excludes).toContain('radyasyon')
+    expect(r.excludes).toContain(EXCLUDE_CONVECTION)
+    expect(r.excludes).toContain(EXCLUDE_RADIATION)
+    expect(r.excludes).toEqual(THERMAL_EXCLUDES)
+  })
+
+  // Saf katman kullanıcıya görünen metin taşımaz (CLAUDE.md §Mimari-1):
+  // `excludes` dil bilmeyen kodlardan oluşur, cümle veya Türkçe sözcük değil.
+  it('excludes yalnızca dilden bağımsız kod içerir', () => {
+    const r = temperatureRise({ P: 1, Rth: 30 })
+    expect(r.excludes).toEqual([
+      EXCLUDE_CONVECTION,
+      EXCLUDE_RADIATION,
+      EXCLUDE_SPREADING,
+      EXCLUDE_PACKAGE_INTERNALS,
+      EXCLUDE_NEIGHBOURING_SOURCES,
+    ])
+    r.excludes.forEach((code) => {
+      expect(code).toMatch(/^[a-z][a-z-]*$/)
+    })
+  })
+
+  it('dönen excludes motorun sabitinden ayrı bir kopyadır', () => {
+    const r = temperatureRise({ P: 1, Rth: 30 })
+    expect(r.excludes).not.toBe(THERMAL_EXCLUDES)
+    r.excludes.push('x')
+    expect(THERMAL_EXCLUDES).toHaveLength(5)
   })
 
   it('geçersiz geometri reddedilir', () => {
     expect(copperStripResistance({ L: mm(20), W: 0, t: um(35) }).error).toBe(THERMAL_ERR_INVALID)
     expect(parallelThermalPaths([]).error).toBe(THERMAL_ERR_INVALID)
+  })
+})
+
+// Sözleşme KODDUR: motor hiçbir yolda kullanıcıya dönük cümle döndürmez.
+describe('hata sözleşmesi — yalnızca kod, metin yok', () => {
+  const failures = [
+    junctionTemperature({ Ta: 25, P: 1, thetaJA: 0 }),
+    heatsink({ Ta: 130, P: 5, thetaJC: 1, thetaCS: 0.5, TjMax: 125 }),
+    heatsink({ Ta: 40, P: 50, thetaJC: 1.5, thetaCS: 0.5, TjMax: 125 }),
+    junctionFromSurface({ Tsurface: 70, P: 2, psi: 3, metric: 'theta-jc' }),
+    copperStripResistance({ L: mm(20), W: 0, t: um(35) }),
+    dielectricResistance({ H: 0, area: 1e-4 }),
+    parallelThermalPaths([]),
+    parallelThermalPaths([10, -1]),
+    temperatureRise({ P: 1, Rth: 0 }),
+  ]
+
+  it('hata sonuçlarında message alanı bulunmaz', () => {
+    failures.forEach((r) => {
+      expect(r.error).toBeTruthy()
+      expect(r).not.toHaveProperty('message')
+    })
+  })
+
+  it('hata kodu bilinen kodlardan biridir', () => {
+    failures.forEach((r) => {
+      expect([THERMAL_ERR_INVALID, THERMAL_ERR_NEGATIVE_SINK]).toContain(r.error)
+    })
   })
 })

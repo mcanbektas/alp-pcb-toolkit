@@ -9,8 +9,9 @@
 // bellek içi depoyla da çalışır.
 //
 // Hata durumu burada tutulmaz: `save`/`remove` depo sözleşmesinin sonucunu
-// ({ record } | { ok: true } | { error, message }) olduğu gibi döndürür, kodu
-// Türkçeleştirmek ekranın `text.js` dosyasının işidir.
+// ({ record } | { ok: true } | { error, ...ayrıntı }) olduğu gibi döndürür.
+// Ayrıntı alanları dilsizdir (kod, sayı, alan anahtarı); onlardan iki dilli
+// cümleyi kurmak ekranın `text.js` dosyasının işidir.
 
 import { useCallback, useMemo, useState } from 'react'
 import { defaultStorage, nullStorage } from '../lib/storage'

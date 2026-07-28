@@ -5,87 +5,70 @@ import SelectField from '../../../components/SelectField'
 import RowList from '../../../components/RowList'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import {
-  fmt, fmtEng, fmtOhm, fmtAmp, fmtVolt, fmtPow, THOUSANDS_MESSAGE,
-} from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtOhm, fmtAmp, fmtVolt, fmtPow } from '../../../lib/num'
 import { OZ_TABLE } from '../../../lib/traceCalc'
 import PlaneSchematic from './schematic'
 import {
-  INITIAL_FORM, TOOLS, TOOL_PLANE, TOOL_PARALLEL, TRACE_COLUMNS,
-  compute, buildSweep,
+  INITIAL_FORM, TOOLS, TOOL_PLANE,
+  traceColumns, compute, buildSweep,
 } from './model'
-import { TOOL_LABEL, CHART, reasonText, commentary } from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = {
-  [TOOL_PLANE]: `R_□ = ρ(T) / t   (kare direnci)
-R = R_□ · (L / W)   (kare sayısı)
-
-ρ(T) = ρ₂₀·[1 + α(T − 20)]
-  ρ₂₀ = 1.724×10⁻⁸ Ω·m
-  α = 0.00393 /°C
-
-V_düşüm = I·R   P = I²·R`,
-  [TOOL_PARALLEL]: `Rᵢ = ρ(T)·Lᵢ / (Wᵢ·t)
-R_eş = (Σ 1/Rᵢ)⁻¹
-
-Akım payı:
-  Iᵢ = I · (1/Rᵢ) / Σ(1/Rⱼ)
-
-Eşit geometride: Iᵢ = I / n`,
-}
-
 export default function PowerPlane() {
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f.tool, f), [f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f.tool, f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const isPlane = f.tool === TOOL_PLANE
-  const chartMeta = s ? CHART[s.kind] : null
+  const chartMeta = s ? text.chart[s.kind] : null
   const chartSeries = s
     ? [{ key: 'main', name: chartMeta.y, tone: toneClass(0), points: s.points }]
     : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
+      <Link className="backlink" to="/kategori/akim-guc-bakir">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Power Plane &amp; Parallel Trace</h1>
-        <p>
-          Güç düzleminin boyun ve ortalama geometrisi için direnci, gerilim düşümünü ve güç
-          kaybını; paralel yollarda ise akım paylaşımını ve en yüklü kolu hesaplar.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <PlaneSchematic r={r} form={f} />
+          <PlaneSchematic r={r} form={f} text={text.schematic} />
 
           <SelectField
-            label="Hesap"
+            label={text.fields.tool.label}
             value={f.tool} onChange={set('tool')}
-            options={TOOLS.map((t) => ({ value: t, label: TOOL_LABEL[t] }))}
+            options={TOOLS.map((x) => ({ value: x, label: text.toolLabel[x] }))}
           />
 
           <NumberField
-            label="Toplam akım (I)"
+            label={text.fields.I.label}
             value={f.I} onChange={set('I')}
             units={['A', 'mA']} unit={f.Iu} onUnit={set('Iu')}
           />
@@ -93,92 +76,93 @@ export default function PowerPlane() {
           {isPlane ? (
             <>
               <NumberField
-                label="Akım yolu uzunluğu (L)"
+                label={text.fields.L.label}
                 value={f.L} onChange={set('L')}
                 units={['mm', 'cm', 'mil', 'inch']} unit={f.Lu} onUnit={set('Lu')}
-                hint="Kaynaktan yüke bakır üzerinden gidilen yol"
+                hint={text.fields.L.hint}
               />
               <NumberField
-                label="Ortalama düzlem genişliği"
+                label={text.fields.Wavg.label}
                 value={f.Wavg} onChange={set('Wavg')}
                 units={['mm', 'mil']} unit={f.Wavgu} onUnit={set('Wavgu')}
               />
               <NumberField
-                label="Minimum boyun genişliği"
+                label={text.fields.Wneck.label}
                 value={f.Wneck} onChange={set('Wneck')}
                 units={['mm', 'mil']} unit={f.Wnecku} onUnit={set('Wnecku')}
-                hint="Poligonun en dar yeri — direncin çoğu burada oluşur"
+                hint={text.fields.Wneck.hint}
               />
             </>
           ) : (
             <RowList
-              label="Paralel yollar"
+              label={text.rowList.label}
               rows={f.traces}
-              columns={TRACE_COLUMNS}
+              columns={traceColumns(text.fieldLabels)}
               onChange={set('traces')}
-              rowLabel="Yol"
-              addLabel="Yol ekle"
-              hint="Farklı uzunluk ve genişlikteki kollar akımı eşit paylaşmaz"
+              rowLabel={text.fieldLabels.rowLabel}
+              addLabel={text.rowList.addLabel}
+              hint={text.rowList.hint}
             />
           )}
 
           <SelectField
-            label="Bakır kalınlığı"
+            label={text.fields.oz.label}
             value={f.oz} onChange={set('oz')}
-            options={OZ_TABLE.map((o) => ({ value: o.key, label: o.label }))}
+            options={OZ_TABLE.map((o) => ({
+              value: o.key,
+              label: o.key === 'custom' ? text.fields.ozCustom : o.label,
+            }))}
           />
 
           {f.oz === 'custom' && (
             <NumberField
-              label="Özel bakır kalınlığı"
+              label={text.fields.tCustom.label}
               value={f.tCustom} onChange={set('tCustom')}
               units={['µm']} unit="µm" onUnit={() => {}}
             />
           )}
 
           <SelectField
-            label="Katman"
+            label={text.fields.layer.label}
             value={f.layer} onChange={set('layer')}
             options={[
-              { value: 'external', label: 'Dış katman' },
-              { value: 'internal', label: 'İç katman' },
+              { value: 'external', label: text.fields.layerExternal },
+              { value: 'internal', label: text.fields.layerInternal },
             ]}
           />
 
           <NumberField
-            label="Çalışma sıcaklığı"
+            label={text.fields.T.label}
             value={f.T} onChange={set('T')}
             units={['°C']} unit="°C" onUnit={() => {}}
-            hint="Özdirenç bu sıcaklığa göre düzeltilir"
+            hint={text.fields.T.hint}
           />
 
           <NumberField
-            label="Besleme gerilimi (opsiyonel)"
+            label={text.fields.Vs.label}
             value={f.Vs} onChange={set('Vs')}
             units={['V', 'mV']} unit={f.Vsu} onUnit={set('Vsu')}
-            hint="Girilirse yüzdesel gerilim düşümü gösterilir"
+            hint={text.fields.Vs.hint}
           />
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason, r)}</p>
+              <p className="empty-note">{text.reasonText(r.reason, r)}</p>
             )
           ) : isPlane ? (
             <>
               <div className="big-result">
-                <div className="label">Boyun bölgesi direnci</div>
+                <div className="label">{text.bigResultPlane}</div>
                 <div className="value">{fmtOhm(r.neck.R)}</div>
                 <div className="alt">
-                  ortalama geometri: {fmtOhm(r.average.R)} &nbsp;·&nbsp; oran {fmt(r.neckFactor, 3)}×
+                  {text.bigResultPlaneAlt(fmtOhm(r.average.R), fmt(r.neckFactor, 3))}
                 </div>
               </div>
 
@@ -187,50 +171,52 @@ export default function PowerPlane() {
               <table className="result-table">
                 <tbody>
                   <tr className="mini-head">
-                    <td>Geometri</td>
-                    <td>boyun · ortalama</td>
+                    <td>{text.planeTable.geometry}</td>
+                    <td>{text.planeTable.geometryCols}</td>
                   </tr>
                   <tr>
-                    <td>Direnç</td>
+                    <td>{text.planeTable.resistance}</td>
                     <td>{fmtOhm(r.neck.R)} · {fmtOhm(r.average.R)}</td>
                   </tr>
                   <tr>
-                    <td>Kare sayısı</td>
+                    <td>{text.planeTable.squares}</td>
                     <td>{fmt(r.neck.squares, 3)} · {fmt(r.average.squares, 3)}</td>
                   </tr>
                   <tr>
-                    <td>Gerilim düşümü</td>
+                    <td>{text.planeTable.vdrop}</td>
                     <td>{fmtVolt(r.neck.Vdrop)} · {fmtVolt(r.average.Vdrop)}</td>
                   </tr>
                   <tr>
-                    <td>Güç kaybı</td>
+                    <td>{text.planeTable.ploss}</td>
                     <td>{fmtPow(r.neck.Ploss, 3)} · {fmtPow(r.average.Ploss, 3)}</td>
                   </tr>
                   <tr>
-                    <td>Akım yoğunluğu</td>
+                    <td>{text.planeTable.density}</td>
                     <td>{fmt(r.neck.J / 1e6, 3)} · {fmt(r.average.J / 1e6, 3)} A/mm²</td>
                   </tr>
                   {r.neck.pct != null && (
                     <tr>
-                      <td>Beslemeye oranı</td>
-                      <td>%{fmt(r.neck.pct, 3)} · %{fmt(r.average.pct, 3)}</td>
+                      <td>{text.planeTable.supplyShare}</td>
+                      <td>{text.pct(fmt(r.neck.pct, 3))} · {text.pct(fmt(r.average.pct, 3))}</td>
                     </tr>
                   )}
                   <tr>
-                    <td>Kare direnci</td>
+                    <td>{text.planeTable.sheet}</td>
                     <td>{fmtOhm(r.Rsheet)}/□</td>
                   </tr>
                   <tr>
-                    <td>Boyun akım kapasitesi</td>
+                    <td>{text.planeTable.neckCapacity}</td>
                     <td>
                       {fmtAmp(r.neckCapacity, 3)}{' '}
-                      <span className="sub">(%{fmt(r.neckUtil * 100, 3)} kullanım)</span>
+                      <span className="sub">
+                        {text.planeTable.utilisation(fmt(r.neckUtil * 100, 3))}
+                      </span>
                     </td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -243,11 +229,11 @@ export default function PowerPlane() {
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Eşdeğer direnç</div>
+                <div className="label">{text.bigResultParallel}</div>
                 <div className="value">{fmtOhm(r.Req)}</div>
                 <div className="alt">
-                  {r.branches.length} kol &nbsp;·&nbsp; toplam düşüm {fmtVolt(r.Vdrop)}
-                  {r.pct != null && <> ({fmt(r.pct, 3)} %)</>}
+                  {text.bigResultParallelAlt(r.branches.length, fmtVolt(r.Vdrop))}
+                  {r.pct != null && <> ({text.pct(fmt(r.pct, 3))})</>}
                 </div>
               </div>
 
@@ -257,11 +243,11 @@ export default function PowerPlane() {
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Direnç</th>
-                    <th>Akım</th>
-                    <th>Pay</th>
-                    <th>Kapasite</th>
-                    <th>Kullanım</th>
+                    <th>{text.branchCols.resistance}</th>
+                    <th>{text.branchCols.current}</th>
+                    <th>{text.branchCols.share}</th>
+                    <th>{text.branchCols.capacity}</th>
+                    <th>{text.branchCols.utilisation}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -270,10 +256,10 @@ export default function PowerPlane() {
                       <td>{i + 1}</td>
                       <td>{fmtOhm(b.R)}</td>
                       <td>{fmtAmp(b.I, 3)}</td>
-                      <td>%{fmt(b.share * 100, 3)}</td>
+                      <td>{text.pct(fmt(b.share * 100, 3))}</td>
                       <td>{fmtAmp(b.capacity, 3)}</td>
                       <td>
-                        %{fmt(b.util * 100, 3)}
+                        {text.pct(fmt(b.util * 100, 3))}
                         {b.util > 1 && <span className="flag"> !</span>}
                       </td>
                     </tr>
@@ -284,25 +270,28 @@ export default function PowerPlane() {
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Toplam güç kaybı</td>
+                    <td>{text.parallelTable.totalLoss}</td>
                     <td>{fmtPow(r.Ploss, 3)}</td>
                   </tr>
                   <tr>
-                    <td>Eşit pay olsaydı</td>
-                    <td>%{fmt(r.equalShare * 100, 3)} · {fmtAmp(r.I / r.branches.length, 3)}</td>
+                    <td>{text.parallelTable.equalShare}</td>
+                    <td>
+                      {text.pct(fmt(r.equalShare * 100, 3))} ·{' '}
+                      {fmtAmp(r.I / r.branches.length, 3)}
+                    </td>
                   </tr>
                   <tr>
-                    <td>Eşdeğer tek yol genişliği</td>
+                    <td>{text.parallelTable.equivalentW}</td>
                     <td>{fmtEng(r.equivalentW, 'm', 3)}</td>
                   </tr>
                   <tr>
-                    <td>Kollara bölünen toplam genişlik</td>
+                    <td>{text.parallelTable.totalWidth}</td>
                     <td>{fmtEng(r.totalWidth, 'm', 3)}</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -317,47 +306,30 @@ export default function PowerPlane() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA[f.tool]}</pre>
+          <pre className="formula">{text.formula[f.tool]}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>Bakır kalınlığı {fmtEng(r.t, 'm', 3)}; kare direnci {fmtOhm(r.Rsheet ?? r.branches[0].Rsheet)}/□ @ {fmt(r.T, 3)} °C.</li>
-              {isPlane && (
-                <li>
-                  Boyun / ortalama genişlik oranı {fmt(r.average.W / r.neck.W, 3)}; direnç oranı da
-                  aynıdır çünkü uzunluk ikisinde de eşit alınır.
-                </li>
-              )}
-              {!isPlane && (
-                <li>
-                  Akım payı iletkenlikle orantılıdır; en düşük dirençli kol en çok akımı çeker.
-                </li>
-              )}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>
+                {text.detail.sheet(
+                  fmtEng(r.t, 'm', 3),
+                  fmtOhm(r.Rsheet ?? r.branches[0].Rsheet),
+                  fmt(r.T, 3),
+                )}
+              </li>
+              {isPlane && <li>{text.detail.neckRatio(fmt(r.average.W / r.neck.W, 3))}</li>}
+              {!isPlane && <li>{text.detail.share}</li>}
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Akımın düzgün bir genişlik boyunca aktığı varsayılır. Geniş poligonda dağılım düzgün
-              değildir; boyun ve ortalama sonuçları alt/üst sınır olarak okunmalıdır.
-            </li>
-            <li>
-              Via geçişleri, pad girişleri ve düzlem kesikleri modelde yoktur; hepsi direnci
-              artırır.
-            </li>
-            <li>
-              Akım kapasitesi klasik ampirik ısınma denkleminden gelir ve tekil bir iletken içindir.
-            </li>
-            <li>
-              Birbirine yakın paralel yolların ısıl etkileşimi hesaba katılmaz; toplam kapasite
-              tek tek kapasitelerin toplamından düşüktür.
-            </li>
-            <li>Kesit dikdörtgen kabul edilir; aşındırmadan gelen trapez kesit modelde yoktur.</li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
           </ul>
         </section>
       </div>
@@ -365,7 +337,7 @@ export default function PowerPlane() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -374,7 +346,7 @@ export default function PowerPlane() {
               items={[
                 { label: chartMeta.y, tone: toneClass(0), kind: 'line' },
                 ...s.refs.map((ref) => ({
-                  label: ref.key === 'avg' ? 'ortalama genişlik direnci' : 'mevcut eşdeğer',
+                  label: text.chartRefLegend[ref.key],
                   tone: 'tone-muted',
                   kind: 'line',
                 })),
@@ -389,9 +361,9 @@ export default function PowerPlane() {
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: ref.key === 'avg' ? `ortalama ${fmtOhm(ref.y)}` : `mevcut ${fmtOhm(ref.y)}`,
+                label: text.chartRefLabel[ref.key](ref.y),
               }))}
-              marker={{ ...s.marker, label: isPlane ? 'boyun' : 'mevcut' }}
+              marker={{ ...s.marker, label: text.chartMarker[f.tool] }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmtEng(v, '', 3)}
               caption={chartMeta.caption}
@@ -401,12 +373,12 @@ export default function PowerPlane() {
               xLabel={chartMeta.x}
               series={chartSeries}
               every={isPlane ? 6 : 1}
-              formatX={(v) => (isPlane ? `${fmt(v, 3)} mm` : `${fmt(v, 2)} kol`)}
+              formatX={(v) => (isPlane ? `${fmt(v, 3)} mm` : `${fmt(v, 2)} ${text.branchUnit}`)}
               formatY={(v) => fmtOhm(v)}
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

@@ -27,27 +27,19 @@ import { TERM_SERIES, TERM_PARALLEL, TERM_THEVENIN } from './model'
 // tipteki R_T düzeniyle aynı, 14 px satır aralığı): R_top/R_bot dirençlerin
 // solundan sağ kolona alındı, böylece sayı kendi etiketinin altında okunuyor ve
 // Z₀ etiketinin sağındaki 5 px'lik dar aralık ortadan kalktı.
-const CAPTION = {
-  [TERM_SERIES]: 'Seri terminasyon — direnç sürücünün hemen çıkışında',
-  [TERM_PARALLEL]: 'Paralel terminasyon — direnç hattın uç yükünde',
-  [TERM_THEVENIN]: 'Thevenin terminasyonu — bölücü hem eşler hem bias verir',
-}
-
-const TITLE = {
-  [TERM_SERIES]: 'Seri terminasyon devresi',
-  [TERM_PARALLEL]: 'Paralel terminasyon devresi',
-  [TERM_THEVENIN]: 'Thevenin terminasyon devresi',
-}
-
-export default function TerminationSchematic({ r }) {
+//
+// Başlık, açıklama ve tek sözcüklük "sürücü" etiketi `text` prop'undan gelir;
+// çizimde çıplak dize kalmaz. İki dilde de altı karakterlik bir sözcük
+// kullanıldığı için yukarıdaki kutu ölçüsü değişmedi.
+export default function TerminationSchematic({ r, text }) {
   const type = r.type ?? TERM_SERIES
   const show = r.ok
 
   return (
-    <Schematic viewBox="0 0 276 160" title={TITLE[type]} caption={CAPTION[type]}>
+    <Schematic viewBox="0 0 276 160" title={text.title[type]} caption={text.caption[type]}>
       {/* Sürücü ve dönüş yolu — üç tipte de ortak */}
       <rect className="sch-part" x={9} y={60} width={48} height={34} rx={2} />
-      <text className="sch-value" x={33} y={81} textAnchor="middle">sürücü</text>
+      <text className="sch-value" x={33} y={81} textAnchor="middle">{text.driver}</text>
 
       <g className="sch-wire">
         <line x1={33} x2={33} y1={94} y2={140} />
@@ -143,7 +135,7 @@ export default function TerminationSchematic({ r }) {
                 {fmtRes(r.Z0, 3)}
               </text>
               <text className="sch-value" x={134} y={126} textAnchor="middle">
-                bias {fmtVolt(r.standard.bias)}
+                {text.biasValue(fmtVolt(r.standard.bias))}
               </text>
             </>
           )}

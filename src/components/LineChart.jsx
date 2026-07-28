@@ -10,8 +10,15 @@
 // Seri adı, çalışma noktası ve referans çizgisi etiketleri opak bir kutu
 // (.chart-tip-box) üzerine yazılır ve birbirleriyle çakışmayacak şekilde
 // yerleştirilir; eksen tikleri sığmıyorsa seyreltilir.
+//
+// `EpsEffFields` ve `RowList` gibi istisna: dili doğrudan `useLang()`'den okur.
+// Grafik çerçevesinin kendi metni ("Veri tablosu", boş grafik notu) her ekranda
+// aynıdır; prop olarak geçirmek aynı iki dilli dizeyi yirmi beş ekrana
+// kopyalamak olurdu. Ekrana özgü olan eksen başlıkları ve açıklama yine prop.
 
 import { useMemo, useRef, useState } from 'react'
+import { useLang } from '../hooks/useLang'
+import { commonText } from '../data/uiText'
 
 // Renk JSX'e yazılmaz: eleman `tone-N` sınıfını alır, gerçek değer
 // theme.css içindeki --series-N değişkeninden gelir.
@@ -194,13 +201,16 @@ function layoutLabels(items, bounds) {
  * @param {Function} [props.formatY]
  * @param {string}   [props.caption]
  * @param {string}   [props.empty]       veri yokken gösterilecek metin
+ *                                      (verilmezse ortak metinden gelir)
  */
 export default function LineChart({
   xLabel, yLabel, xScale = 'linear',
   series = [], band = null, refLines = [], marker = null,
   formatX = (v) => String(v), formatY = (v) => String(v),
-  caption, empty = 'Grafik için geçerli girdi gerekli.',
+  caption, empty,
 }) {
+  const { lang } = useLang()
+  const emptyNote = empty ?? commonText(lang).chartNeedsInput
   const svgRef = useRef(null)
   const [hover, setHover] = useState(null)
 
@@ -246,8 +256,8 @@ export default function LineChart({
   if (!model) {
     return (
       <figure className="chart-figure">
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={empty}>
-          <text className="chart-empty" x={W / 2} y={H / 2} textAnchor="middle">{empty}</text>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={emptyNote}>
+          <text className="chart-empty" x={W / 2} y={H / 2} textAnchor="middle">{emptyNote}</text>
         </svg>
       </figure>
     )
@@ -474,6 +484,7 @@ export function ChartLegend({ items }) {
 // Erişilebilirlik: grafiğin sayısal karşılığı her zaman tabloyla da verilir.
 // Eğri yüzlerce noktadan oluşabildiği için tablo `every` adımda bir örneklenir.
 export function ChartDataTable({ xLabel, series, formatX, formatY, every = 1 }) {
+  const { lang } = useLang()
   const live = series.filter((s) => s.points?.length)
   if (live.length === 0) return null
 
@@ -486,7 +497,7 @@ export function ChartDataTable({ xLabel, series, formatX, formatY, every = 1 }) 
   // `open`: sayısal okuma grafiğin eşdeğeridir, tıklama arkasında saklı durmaz.
   return (
     <details className="chart-data" open>
-      <summary>Veri tablosu</summary>
+      <summary>{commonText(lang).chartDataTable}</summary>
       <div className="scroll">
         <table className="pick-table">
           <thead>

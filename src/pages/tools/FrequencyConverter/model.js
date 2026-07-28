@@ -30,19 +30,21 @@ export const INITIAL_FORM = {
 // Sıfır ve negatif giriş alan doğrulamasında değil, hesap motorunda yakalanır:
 // kullanıcı "1/0 tanımsız" gerekçesini görsün diye allowZero açık bırakılır ve
 // alt sınır konmaz.
-export function formFields(f) {
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     when(f.source === SOURCE_PERIOD, [
-      { key: 'period', label: 'Periyot (T)', unitKey: 'periodu', table: TIME, allowZero: true },
+      { key: 'period', label: L('period'), unitKey: 'periodu', table: TIME, allowZero: true },
     ]),
     when(f.source !== SOURCE_PERIOD, [
-      { key: 'freq', label: 'Frekans (f)', unitKey: 'frequ', table: FREQUENCY, allowZero: true },
+      { key: 'freq', label: L('freq'), unitKey: 'frequ', table: FREQUENCY, allowZero: true },
     ]),
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

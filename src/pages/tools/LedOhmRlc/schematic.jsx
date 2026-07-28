@@ -270,13 +270,7 @@ function ComboCircuit({ r, form }) {
   )
 }
 
-const CAPTION = {
-  [TOOL_OHM]: 'Tek dirençli çevrim',
-  [TOOL_LED]: 'LED kolu — akımı seri direnç sınırlar',
-  [TOOL_RLC]: 'Seri RLC kolu',
-}
-
-export default function CircuitSchematic({ r, form }) {
+export default function CircuitSchematic({ r, form, text }) {
   const tool = r.ok ? r.tool : form.tool
   const combo = r.ok && r.tool === TOOL_COMBO ? r.combo : form.combo
   const isParallel = tool === TOOL_COMBO && combo !== COMBO_SERIES
@@ -286,11 +280,16 @@ export default function CircuitSchematic({ r, form }) {
   // serbest — paralel ağ dört kolda 36 px aralıkla 160 px'e ihtiyaç duyar.
   const height = tool === TOOL_LED ? 150 : isParallel ? 160 : 140
 
+  // Başlık ve alt yazı dile göre gelir; SVG içindeki yerleşim yalnızca
+  // biçimlenmiş sayı genişliklerine bakar, bu yüzden dilden etkilenmez.
+  const caption = text.caption[tool]
+    ?? (combo === COMBO_SERIES ? text.captionSeries : text.captionParallel)
+
   return (
     <Schematic
       viewBox={`0 0 260 ${height}`}
-      title="Devre şeması"
-      caption={CAPTION[tool] ?? (combo === COMBO_SERIES ? 'Seri bağlı dirençler' : 'Paralel bağlı dirençler')}
+      title={text.title}
+      caption={caption}
     >
       {tool === TOOL_OHM && <OhmCircuit r={r} />}
       {tool === TOOL_LED && <LedCircuit r={r} />}

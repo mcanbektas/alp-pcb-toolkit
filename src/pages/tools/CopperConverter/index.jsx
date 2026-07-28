@@ -7,17 +7,16 @@ import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
 import useSavedThickness from '../../../hooks/useSavedThickness'
-import { fmt, fmtEng, fmtOhm, fmtPct, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtOhm, fmtPct } from '../../../lib/num'
+import { METHOD_NOMINAL, METHOD_DERIVED } from '../../../lib/copper'
 import CopperSchematic from './schematic'
 import {
-  INITIAL_FORM, SOURCES, SOURCE_WEIGHT, SOURCE_FINISHED, OZ_OPTIONS, OZ_ROWS, OZ_CUSTOM,
+  INITIAL_FORM, SOURCES, SOURCE_WEIGHT, SOURCE_FINISHED, OZ_ROWS, OZ_CUSTOM,
   compute, buildSweep, recordFrom, formFromRecord,
 } from './model'
-import {
-  SOURCE_LABEL, SOURCE_LONG, LAYER_LABEL, CHART, OZ_PICK_OPTIONS, METHOD_OPTIONS,
-  METHOD_LABEL, OZ_TABLE_CAPTION, TOLERANCE_CAPTION, TOLERANCE_BAND_LABEL, SAVED,
-  reasonText, commentary, toleranceReason, toleranceNote, savedNotice,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
@@ -25,31 +24,37 @@ const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 export default function CopperConverter() {
   const { f, set, patch } = useToolForm(INITIAL_FORM)
   const saved = useSavedThickness()
+  const { lang } = useLang()
+
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
 
   // Son kayıt eyleminin ekrandaki tek satırlık sonucu ve listede işaretli kayıt.
   // Yalnızca sunum durumu; hesaba girmez.
   const [notice, setNotice] = useState(null)
   const [activeId, setActiveId] = useState(null)
 
-  const r = useMemo(() => compute(f), [f])
+  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const chartSeries = s ? [{ key: 'rsheet', name: 'R_□', tone: toneClass(0), points: s.points }] : []
   // Tolerans bandı yalnızca tolerans girildiğinde vardır; boşken grafik bugünkü
   // hâliyle çizilir.
-  const chartBand = s?.band ? { name: TOLERANCE_BAND_LABEL, tone: toneClass(0), points: s.band } : null
+  const chartBand = s?.band
+    ? { name: text.toleranceTable.bandLabel, tone: toneClass(0), points: s.band }
+    : null
   const tol = r.ok ? r.tolerance : null
-  const tolText = toleranceNote(r)
+  const tolText = text.toleranceNote(r)
 
   // --- Kalınlık kayıtları (spec §4.3) ---
   // Ekran yalnızca çağırır: kayıt zarfını model.js kurar, doğrulama ve saklama
@@ -57,10 +62,10 @@ export default function CopperConverter() {
   const saveName = f.saveName.trim()
 
   const onSave = () => {
-    if (!r.ok) { setNotice({ level: 'warn', text: SAVED.needResult }); return }
-    if (saveName === '') { setNotice({ level: 'warn', text: SAVED.needName }); return }
+    if (!r.ok) { setNotice({ level: 'warn', text: text.saved.needResult }); return }
+    if (saveName === '') { setNotice({ level: 'warn', text: text.saved.needName }); return }
     const res = saved.save(recordFrom(saveName, r))
-    setNotice(savedNotice('save', res))
+    setNotice(text.savedNotice('save', res))
     if (!res.error) setActiveId(res.record.id)
   }
 
@@ -68,75 +73,70 @@ export default function CopperConverter() {
     // Ad da geri gelir: aynı kaydı düzeltip yeniden kaydetmek üzerine yazar.
     patch({ ...formFromRecord(rec), saveName: rec.name })
     setActiveId(rec.id)
-    setNotice(savedNotice('restore', { ok: true }))
+    setNotice(text.savedNotice('restore', { ok: true }))
   }
 
   const onRemove = (rec) => {
     const res = saved.remove(rec.id)
-    setNotice(savedNotice('remove', res))
+    setNotice(text.savedNotice('remove', res))
     if (!res.error && activeId === rec.id) setActiveId(null)
   }
 
   return (
     <>
-      <Link className="backlink" to="/kategori/akim-guc-bakir">← PCB Akım, Güç ve Bakır</Link>
+      <Link className="backlink" to="/kategori/akim-guc-bakir">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Copper Thickness Converter</h1>
-        <p>
-          Bakır ağırlığı ile kalınlık arasında çevirir; nominal tablo ile yoğunluktan türetilen
-          değeri karşılaştırır, kaplamayla bitmiş kalınlığı ve trapez kesit etkisini gösterir.
-          Ölçülen bitmiş kalınlık doğrudan girilebilir — o yolda kaplama geriye çözülür — ve
-          nominal ile bitmiş kalınlıklar adlandırılıp bu tarayıcıda saklanabilir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <CopperSchematic r={r} />
+          <CopperSchematic r={r} text={text.schematic} />
 
           <Segmented
             value={f.source}
             onChange={set('source')}
-            options={SOURCES.map((x) => ({ value: x, label: SOURCE_LABEL[x] }))}
+            options={SOURCES.map((x) => ({ value: x, label: text.sourceLabel[x] }))}
           />
 
           {f.source === SOURCE_WEIGHT ? (
             <>
               <SelectField
-                label="Bakır ağırlığı"
+                label={text.fields.ozPick.label}
                 value={f.ozPick} onChange={set('ozPick')}
-                options={OZ_PICK_OPTIONS}
-                hint={`Nominal tablo basamakları: ${OZ_OPTIONS.join(', ')} oz/ft². Ara bir değer için “Özel değer…” seçin.`}
+                options={text.ozPickOptions}
+                hint={text.fields.ozPick.hint}
               />
 
               {f.ozPick === OZ_CUSTOM && (
                 <NumberField
-                  label="Özel bakır ağırlığı"
+                  label={text.fields.oz.label}
                   value={f.oz} onChange={set('oz')}
                   units={['oz/ft²']} unit="oz/ft²" onUnit={() => {}}
-                  hint="Tablo dışı ağırlıklar doğrusal nominal kuralla çevrilir: t[µm] = 35 × oz."
+                  hint={text.fields.oz.hint}
                 />
               )}
 
               <SelectField
-                label="Dönüşüm yöntemi"
+                label={text.fields.method.label}
                 value={f.method} onChange={set('method')}
-                options={METHOD_OPTIONS}
-                hint="Varsayılan nominal tablodur; seçim sonuç panelinde ve teknik detayda yazar."
+                options={text.methodOptions}
+                hint={text.fields.method.hint}
               />
             </>
           ) : (
             <>
               {f.source === SOURCE_FINISHED && (
                 <NumberField
-                  label="Ölçülen bitmiş kalınlık"
+                  label={text.fields.finished.label}
                   value={f.finished} onChange={set('finished')}
                   units={['µm', 'mm', 'mil', 'inch']} unit={f.finishedu} onUnit={set('finishedu')}
-                  hint="Kupon ya da kesit ölçümünden gelen bitmiş bakır kalınlığı; türetilmez, olduğu gibi kullanılır."
+                  hint={text.fields.finished.hint}
                 />
               )}
 
@@ -144,23 +144,23 @@ export default function CopperConverter() {
                   geriye çözülecek bir şey kalmaz ve folyo alanı istenmez. */}
               {(f.source !== SOURCE_FINISHED || f.layer === 'external') && (
                 <NumberField
-                  label="Başlangıç (folyo) kalınlığı"
+                  label={text.fields.thickness.label}
                   value={f.thickness} onChange={set('thickness')}
                   units={['µm', 'mm', 'mil', 'inch']} unit={f.thicknessu} onUnit={set('thicknessu')}
                   hint={f.source === SOURCE_FINISHED
-                    ? 'Sipariş edilen folyo kalınlığı. Kaplama bundan geriye çözülür: kaplama = bitmiş − folyo.'
-                    : 'Ağırlık çevrimi yapılmaz; yöntem seçimi yalnızca ağırlıktan çevirirken geçerlidir.'}
+                    ? text.fields.thickness.hintFinished
+                    : text.fields.thickness.hintDirect}
                 />
               )}
             </>
           )}
 
           <SelectField
-            label="Katman"
+            label={text.fields.layer.label}
             value={f.layer} onChange={set('layer')}
             options={[
-              { value: 'external', label: 'Dış katman (kaplama eklenir)' },
-              { value: 'internal', label: 'İç katman (kaplama yok)' },
+              { value: 'external', label: text.fields.layer.external },
+              { value: 'internal', label: text.fields.layer.internal },
             ]}
           />
 
@@ -168,69 +168,69 @@ export default function CopperConverter() {
               alan gizlenir ve çözülen değer sonuç panelinde yazar. */}
           {f.source !== SOURCE_FINISHED && (
             <NumberField
-              label="Kaplama kalınlığı"
+              label={text.fields.plating.label}
               value={f.plating} onChange={set('plating')}
               units={['µm']} unit="µm" onUnit={() => {}}
-              hint="Tipik delik kaplaması 20–30 µm; iç katmanda yok sayılır"
+              hint={text.fields.plating.hint}
             />
           )}
 
           <NumberField
-            label="Yol genişliği"
+            label={text.fields.W.label}
             value={f.W} onChange={set('W')}
             units={['mm', 'mil']} unit={f.Wu} onUnit={set('Wu')}
-            hint="Kesit alanı ve trapez etkisi bu genişlikte hesaplanır"
+            hint={text.fields.W.hint}
           />
 
           <NumberField
-            label="Aşındırma oranı"
+            label={text.fields.etch.label}
             value={f.etch} onChange={set('etch')}
             units={['%']} unit="%" onUnit={() => {}}
-            hint="W_üst = W_alt · (1 − E). Sıfır girilirse kesit dikdörtgen sayılır"
+            hint={text.fields.etch.hint}
           />
 
           <NumberField
-            label="Sıcaklık"
+            label={text.fields.T.label}
             value={f.T} onChange={set('T')}
             units={['°C']} unit="°C" onUnit={() => {}}
-            hint="Kare direnci bu sıcaklığa göre düzeltilir"
+            hint={text.fields.T.hint}
           />
 
-          <h2 className="section">Üretim toleransı (isteğe bağlı)</h2>
+          <h2 className="section">{text.fields.toleranceHeading}</h2>
 
           <NumberField
-            label="Folyo kalınlığı toleransı"
+            label={text.fields.tolStart.label}
             value={f.tolStart} onChange={set('tolStart')}
             units={['± %']} unit="± %" onUnit={() => {}}
-            placeholder="boş = tolerans yok"
-            hint="Girilen ya da ağırlıktan çevrilen başlangıç kalınlığına uygulanır"
+            placeholder={text.fields.tolPlaceholder}
+            hint={text.fields.tolStart.hint}
           />
 
           <NumberField
-            label="Kaplama kalınlığı toleransı"
+            label={text.fields.tolPlate.label}
             value={f.tolPlate} onChange={set('tolPlate')}
             units={['± %']} unit="± %" onUnit={() => {}}
-            placeholder="boş = tolerans yok"
-            hint="İç katmanda kaplama olmadığı için sonucu etkilemez"
+            placeholder={text.fields.tolPlaceholder}
+            hint={text.fields.tolPlate.hint}
           />
 
           <NumberField
-            label="Aşındırma oranı toleransı"
+            label={text.fields.tolEtch.label}
             value={f.tolEtch} onChange={set('tolEtch')}
             units={['± %']} unit="± %" onUnit={() => {}}
-            placeholder="boş = tolerans yok"
-            hint="Aşındırma oranının kendi değerine göre bağıl sapması; yalnızca kesit alanını oynatır"
+            placeholder={text.fields.tolPlaceholder}
+            hint={text.fields.tolEtch.hint}
           />
 
-          <h2 className="section">{SAVED.caption}</h2>
+          <h2 className="section">{text.saved.caption}</h2>
 
-          {!saved.available && <p className="empty-note warn">{SAVED.unavailable}</p>}
+          {!saved.available && <p className="empty-note warn">{text.saved.unavailable}</p>}
 
           <TextField
-            label={SAVED.nameLabel}
+            label={text.saved.nameLabel}
             value={f.saveName} onChange={set('saveName')}
-            placeholder={SAVED.namePlaceholder}
-            hint={SAVED.nameHint}
+            placeholder={text.saved.namePlaceholder}
+            hint={text.saved.nameHint}
           />
 
           {/* Yalnızca depolama yokken düğme kapanır: o durumun tek çaresi
@@ -243,7 +243,7 @@ export default function CopperConverter() {
             onClick={onSave}
             disabled={!saved.available}
           >
-            + {SAVED.saveLabel}
+            + {text.saved.saveLabel}
           </button>
 
           {notice && (
@@ -253,13 +253,13 @@ export default function CopperConverter() {
           )}
 
           {saved.records.length === 0 ? (
-            <p className="empty-note">{SAVED.empty}</p>
+            <p className="empty-note">{text.saved.empty}</p>
           ) : (
             <div className="row-list">
               <div className="row-list-head">
                 <span className="idx" />
-                <span>{SAVED.headName}</span>
-                <span>{SAVED.headSummary}</span>
+                <span>{text.saved.headName}</span>
+                <span>{text.saved.headSummary}</span>
                 <span className="act" />
               </div>
 
@@ -271,7 +271,7 @@ export default function CopperConverter() {
                       type="button"
                       className="row-add"
                       onClick={() => onRestore(rec)}
-                      aria-label={`${rec.name} — ${SAVED.restoreLabel}`}
+                      aria-label={`${rec.name} — ${text.saved.restoreLabel}`}
                     >
                       {rec.name}
                     </button>
@@ -285,7 +285,7 @@ export default function CopperConverter() {
                     type="button"
                     className="act"
                     onClick={() => onRemove(rec)}
-                    aria-label={`${rec.name} — ${SAVED.removeLabel}`}
+                    aria-label={`${rec.name} — ${text.saved.removeLabel}`}
                   >
                     ×
                   </button>
@@ -297,20 +297,18 @@ export default function CopperConverter() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Bitmiş bakır kalınlığı</div>
+                <div className="label">{text.bigLabel}</div>
                 <div className="value">{fmt(r.units.finished.um, 4)} µm</div>
                 <div className="alt">
                   {fmt(r.units.finished.mil, 4)} mil &nbsp;·&nbsp; {fmt(r.units.finished.mm, 4)} mm
@@ -323,8 +321,8 @@ export default function CopperConverter() {
               <table className="result-table">
                 <tbody>
                   <tr className="mini-head">
-                    <td>Kalınlık</td>
-                    <td>başlangıç · bitmiş</td>
+                    <td>{text.thicknessTable.head}</td>
+                    <td>{text.thicknessTable.headCols}</td>
                   </tr>
                   <tr>
                     <td>µm</td>
@@ -343,7 +341,7 @@ export default function CopperConverter() {
                     <td>{fmt(r.units.starting.inch, 4)} · {fmt(r.units.finished.inch, 4)}</td>
                   </tr>
                   <tr>
-                    <td>oz/ft² (nominal)</td>
+                    <td>{text.thicknessTable.ozNominal}</td>
                     <td>{fmt(r.units.starting.ozNominal, 4)} · {fmt(r.units.finished.ozNominal, 4)}</td>
                   </tr>
                 </tbody>
@@ -351,27 +349,27 @@ export default function CopperConverter() {
 
               {r.nominal != null && (
                 <>
-                  <h2 className="section">Nominal ve türetilmiş</h2>
+                  <h2 className="section">{text.nominalTable.caption}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr className="mini-head">
-                        <td>Kullanılan yöntem</td>
-                        <td>{METHOD_LABEL[r.method]}</td>
+                        <td>{text.nominalTable.methodUsed}</td>
+                        <td>{text.methodLabel[r.method]}</td>
                       </tr>
                       <tr>
-                        <td>Endüstri nominal tablosu</td>
+                        <td>{text.methodLabel[METHOD_NOMINAL]}</td>
                         <td>{fmt(r.nominal * 1e6, 4)} µm</td>
                       </tr>
                       <tr>
-                        <td>Bakır yoğunluğundan türetilen</td>
+                        <td>{text.methodLabel[METHOD_DERIVED]}</td>
                         <td>{fmt(r.derived * 1e6, 4)} µm</td>
                       </tr>
                       <tr>
-                        <td>Fark</td>
-                        <td>{fmt(((r.nominal - r.derived) / r.derived) * 100, 3)} %</td>
+                        <td>{text.nominalTable.difference}</td>
+                        <td>{text.pct(fmt(((r.nominal - r.derived) / r.derived) * 100, 3))}</td>
                       </tr>
                       <tr>
-                        <td>Başlangıç kalınlığı</td>
+                        <td>{text.nominalTable.starting}</td>
                         <td>{fmt(r.units.starting.um, 4)} µm</td>
                       </tr>
                     </tbody>
@@ -381,29 +379,31 @@ export default function CopperConverter() {
 
               {r.platingSolved && (
                 <>
-                  <h2 className="section">Geriye çözülen kaplama</h2>
+                  <h2 className="section">{text.platingTable.caption}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr className="mini-head">
-                        <td>Kaplama</td>
+                        <td>{text.platingTable.plating}</td>
                         <td>
                           {fmt(r.plating * 1e6, 4)} µm{' '}
                           <span className="sub">
-                            {r.layer === 'external' ? '(bitmiş − folyo)' : '(iç katmanda yok)'}
+                            {r.layer === 'external'
+                              ? text.platingTable.subExternal
+                              : text.platingTable.subInternal}
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Ölçülen bitmiş kalınlık</td>
+                        <td>{text.platingTable.finished}</td>
                         <td>{fmt(r.units.finished.um, 4)} µm</td>
                       </tr>
                       <tr>
-                        <td>Başlangıç (folyo) kalınlığı</td>
+                        <td>{text.platingTable.starting}</td>
                         <td>{fmt(r.units.starting.um, 4)} µm</td>
                       </tr>
                       <tr>
-                        <td>Kaplamanın kesitteki payı</td>
-                        <td>{fmt(r.platingShare * 100, 3)} %</td>
+                        <td>{text.platingTable.share}</td>
+                        <td>{text.pct(fmt(r.platingShare * 100, 3))}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -412,49 +412,49 @@ export default function CopperConverter() {
 
               {r.recommended && (
                 <>
-                  <h2 className="section">Üretim için önerilen bakır ağırlığı</h2>
+                  <h2 className="section">{text.recommendedTable.caption}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr className="mini-head">
                         <td>{fmt(r.recommended.oz, 3)} oz/ft²</td>
                         <td>
                           {r.recommended.outOfRange
-                            ? 'tablo aralığının dışı'
+                            ? text.recommendedTable.outOfRange
                             : r.recommended.exact
-                              ? 'bitmiş kalınlığın kendisi'
-                              : 'en yakın sipariş basamağı'}
+                              ? text.recommendedTable.exact
+                              : text.recommendedTable.nearest}
                         </td>
                       </tr>
                       <tr>
-                        <td>Basamağın nominal kalınlığı</td>
+                        <td>{text.recommendedTable.stepThickness}</td>
                         <td>{fmt(r.recommended.um, 4)} µm</td>
                       </tr>
                       <tr>
-                        <td>Bitmiş kalınlık</td>
+                        <td>{text.recommendedTable.finished}</td>
                         <td>{fmt(r.units.finished.um, 4)} µm</td>
                       </tr>
                       <tr>
-                        <td>Fark</td>
-                        <td>{fmtPct(r.recommended.deltaPct)}</td>
+                        <td>{text.recommendedTable.difference}</td>
+                        <td>{text.pct(fmtPct(r.recommended.deltaPct))}</td>
                       </tr>
                     </tbody>
                   </table>
                 </>
               )}
 
-              <h2 className="section">{OZ_TABLE_CAPTION}</h2>
+              <h2 className="section">{text.ozTable.caption}</h2>
               <table className="result-table">
                 <tbody>
                   <tr className="mini-head">
-                    <td>Bakır ağırlığı</td>
-                    <td>nominal kalınlık</td>
+                    <td>{text.ozTable.head}</td>
+                    <td>{text.ozTable.headCols}</td>
                   </tr>
                   {OZ_ROWS.map((row) => (
                     <tr key={row.oz}>
                       <td>
                         {fmt(row.oz, 3)} oz/ft²
                         {r.recommended && r.recommended.oz === row.oz && (
-                          <span className="sub"> (önerilen)</span>
+                          <span className="sub">{text.ozTable.recommended}</span>
                         )}
                       </td>
                       <td>{fmt(row.um, 4)} µm</td>
@@ -463,30 +463,30 @@ export default function CopperConverter() {
                 </tbody>
               </table>
 
-              <h2 className="section">Kesit ve direnç</h2>
+              <h2 className="section">{text.sectionTable.caption}</h2>
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Dikdörtgen kesit alanı</td>
+                    <td>{text.sectionTable.rectArea}</td>
                     <td>{fmt(r.rect.area * 1e6, 4)} mm²</td>
                   </tr>
                   <tr>
-                    <td>Trapez kesit alanı</td>
+                    <td>{text.sectionTable.trapArea}</td>
                     <td>
                       {fmt(r.trap.area * 1e6, 4)} mm²{' '}
-                      <span className="sub">(−{fmt(r.trap.lossPct, 3)} %)</span>
+                      <span className="sub">(−{text.pct(fmt(r.trap.lossPct, 3))})</span>
                     </td>
                   </tr>
                   <tr>
-                    <td>Üst / alt genişlik</td>
+                    <td>{text.sectionTable.widths}</td>
                     <td>{fmtEng(r.trap.Wtop, 'm', 4)} · {fmtEng(r.trap.Wbottom, 'm', 4)}</td>
                   </tr>
                   <tr>
-                    <td>Kare direnci @ {fmt(r.T, 3)} °C</td>
+                    <td>{text.sectionTable.sheet(fmt(r.T, 3))}</td>
                     <td>{fmtOhm(r.Rsheet)}/□</td>
                   </tr>
                   <tr>
-                    <td>Trapez kesitle etkin kare direnci</td>
+                    <td>{text.sectionTable.sheetTrap}</td>
                     <td>{fmtOhm(r.RsheetTrap)}/□</td>
                   </tr>
                 </tbody>
@@ -494,55 +494,58 @@ export default function CopperConverter() {
 
               {tol && tol.error && (
                 <>
-                  <h2 className="section">{TOLERANCE_CAPTION}</h2>
-                  <p className="empty-note warn">{toleranceReason(tol.error)}</p>
+                  <h2 className="section">{text.toleranceTable.caption}</h2>
+                  <p className="empty-note warn">{text.toleranceReason(tol.error)}</p>
                 </>
               )}
 
               {tol && !tol.error && tol.active && (
                 <>
-                  <h2 className="section">{TOLERANCE_CAPTION}</h2>
+                  <h2 className="section">{text.toleranceTable.caption}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr className="mini-head">
-                        <td>Worst-case köşe taraması</td>
-                        <td>{tol.corners.length} köşe · min · nominal · maks</td>
+                        <td>{text.toleranceTable.head}</td>
+                        <td>{text.toleranceTable.headCols(tol.corners.length)}</td>
                       </tr>
                       <tr>
-                        <td>Bitmiş kalınlık (µm)</td>
+                        <td>{text.toleranceTable.finished}</td>
                         <td>
                           {fmt(tol.finished.min * 1e6, 4)} · {fmt(tol.finished.nom * 1e6, 4)} ·{' '}
                           {fmt(tol.finished.max * 1e6, 4)}{' '}
                           <span className="sub">
-                            ({fmtPct(tol.finished.minPct)} / {fmtPct(tol.finished.maxPct)})
+                            ({text.pct(fmtPct(tol.finished.minPct))} / {text.pct(fmtPct(tol.finished.maxPct))})
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Kesit alanı (mm²)</td>
+                        <td>{text.toleranceTable.area}</td>
                         <td>
                           {fmt(tol.area.min * 1e6, 4)} · {fmt(tol.area.nom * 1e6, 4)} ·{' '}
                           {fmt(tol.area.max * 1e6, 4)}{' '}
                           <span className="sub">
-                            ({fmtPct(tol.area.minPct)} / {fmtPct(tol.area.maxPct)})
+                            ({text.pct(fmtPct(tol.area.minPct))} / {text.pct(fmtPct(tol.area.maxPct))})
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Kare direnci</td>
+                        <td>{text.toleranceTable.sheet}</td>
                         <td>
                           {fmtOhm(tol.Rsheet.min)}/□ · {fmtOhm(tol.Rsheet.nom)}/□ ·{' '}
                           {fmtOhm(tol.Rsheet.max)}/□{' '}
                           <span className="sub">
-                            ({fmtPct(tol.Rsheet.minPct)} / {fmtPct(tol.Rsheet.maxPct)})
+                            ({text.pct(fmtPct(tol.Rsheet.minPct))} / {text.pct(fmtPct(tol.Rsheet.maxPct))})
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Uygulanan tolerans</td>
+                        <td>{text.toleranceTable.applied}</td>
                         <td>
-                          folyo ±{fmt(tol.tol.starting * 100, 3)} % · kaplama ±
-                          {fmt(tol.tol.plating * 100, 3)} % · aşındırma ±{fmt(tol.tol.etch * 100, 3)} %
+                          {text.toleranceTable.appliedValue(
+                            fmt(tol.tol.starting * 100, 3),
+                            fmt(tol.tol.plating * 100, 3),
+                            fmt(tol.tol.etch * 100, 3),
+                          )}
                         </td>
                       </tr>
                     </tbody>
@@ -550,7 +553,7 @@ export default function CopperConverter() {
                 </>
               )}
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -566,16 +569,16 @@ export default function CopperConverter() {
               de görünür, çünkü geri yüklemek girdiyi düzeltmenin yoludur. */}
           {saved.records.length > 0 && (
             <>
-              <h2 className="section">{SAVED.caption}</h2>
+              <h2 className="section">{text.saved.caption}</h2>
               <table className="pick-table">
                 <thead>
                   <tr>
-                    <th>Ad</th>
-                    <th>kaynak</th>
-                    <th>katman</th>
-                    <th>başlangıç</th>
-                    <th>kaplama</th>
-                    <th>bitmiş</th>
+                    <th>{text.saved.colName}</th>
+                    <th>{text.saved.colSource}</th>
+                    <th>{text.saved.colLayer}</th>
+                    <th>{text.saved.colStarting}</th>
+                    <th>{text.saved.colPlating}</th>
+                    <th>{text.saved.colFinished}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -591,8 +594,8 @@ export default function CopperConverter() {
                       aria-selected={rec.id === activeId}
                     >
                       <td>{rec.name}</td>
-                      <td>{SOURCE_LONG[rec.source]}</td>
-                      <td>{LAYER_LABEL[rec.layer]}</td>
+                      <td>{text.sourceLong[rec.source]}</td>
+                      <td>{text.layerLabel[rec.layer]}</td>
                       <td>{fmt(rec.starting, 4)}</td>
                       <td>{fmt(rec.plating, 4)}</td>
                       <td>{fmt(rec.finished, 4)}</td>
@@ -600,190 +603,42 @@ export default function CopperConverter() {
                   ))}
                 </tbody>
               </table>
-              <p className="empty-note">{SAVED.tableNote}</p>
+              <p className="empty-note">{text.saved.tableNote}</p>
             </>
           )}
         </section>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{`Yoğunluktan kalınlık:
-  m_A = 0.0283495 kg /
-          0.092903 m²
-      ≈ 0.30515 kg/m²
-  t = m_A / ρ_m
-    = 0.30515 / 8960
-    ≈ 34.06 µm
-
-Nominal tablo:
-  t[µm] ≈ 35 × oz
-
-Birim dönüşümleri:
-  t[mm]  = t[µm] / 1000
-  t[mil] = t[mm] / 0.0254
-  t[µm]  = 25.4 × t[mil]
-
-Kesit:
-  Dikdörtgen:
-    A = W·t
-  Trapez:
-    A = t·(W_üst + W_alt)/2
-    W_üst = W_alt·(1 − E)
-
-Kare direnci:
-  R_□ = ρ(T) / t`}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>
-                Kullanılan yöntem:{' '}
-                {r.method
-                  ? `${METHOD_LABEL[r.method]} — başlangıç kalınlığı ${fmtEng(r.starting, 'm', 5)} buradan geldi.`
-                  : r.platingSolved
-                    ? `bitmiş kalınlık ölçümden girildi (${fmtEng(r.finished, 'm', 5)}), ağırlık çevrimi yapılmadı; kaplama ${fmtEng(r.plating, 'm', 4)} olarak geriye çözüldü.`
-                    : 'kalınlık doğrudan girildi, ağırlık çevrimi yapılmadı.'}
-              </li>
-              <li>
-                Kullanılan kalınlık: bitmiş {fmtEng(r.finished, 'm', 5)}
-                {r.plating > 0 && <> (folyo {fmtEng(r.starting, 'm', 4)} + kaplama {fmtEng(r.plating, 'm', 4)})</>}.
-              </li>
-              {r.recommended && (
-                <li>
-                  Üretim için önerilen sipariş basamağı {fmt(r.recommended.oz, 3)} oz/ft²
-                  ({fmt(r.recommended.um, 4)} µm); bitmiş kalınlığa göre fark{' '}
-                  {fmtPct(r.recommended.deltaPct)}.
-                </li>
-              )}
-              <li>Elektriksel kesit yalnızca bakır geometrisidir; PCB kalınlığı buna eklenmez.</li>
-              {r.etch > 0 && (
-                <li>Aşındırma oranı %{fmt(r.etch, 3)}; kesit kaybı %{fmt(r.trap.lossPct, 3)}.</li>
-              )}
+              <li>{text.detail.method(r)}</li>
+              <li>{text.detail.thicknessUsed(r)}</li>
+              {r.recommended && <li>{text.detail.recommended(r.recommended)}</li>}
+              <li>{text.detail.copperOnly}</li>
+              {r.etch > 0 && <li>{text.detail.etch(r)}</li>}
               {tolText && <li>{tolText}</li>}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik aralığı</h2>
+          <h2 className="section">{text.validityHeading}</h2>
           <ul className="detail-list">
-            <li>
-              Nominal tablo {fmt(OZ_ROWS[0].oz, 3)}–{fmt(OZ_ROWS[OZ_ROWS.length - 1].oz, 3)} oz/ft²
-              arasını, yani {fmt(OZ_ROWS[0].um, 4)}–{fmt(OZ_ROWS[OZ_ROWS.length - 1].um, 4)} µm
-              aralığını kapsar. Bu aralığın dışı doğrusal kuralla (t[µm] = 35 × oz) uzatılır ve
-              sipariş basamağı önerisi uç değere yapışır.
-            </li>
-            <li>
-              Nominal ile yoğunluktan türetilen değer 1 oz/ft²'de 35 µm ile ≈34.06 µm'dir; aradaki
-              fark ≈ %2.8. Endüstri nominal tanımları 34.8–35 µm bandında verilir.
-            </li>
-            <li>
-              Aşındırma oranı 0 ≤ E &lt; 100 %. E = 100 % üst genişliği sıfırlar, bu yüzden
-              reddedilir. Kaplama ≥ 0 µm; dış katmanda tipik delik kaplaması 20–30 µm.
-            </li>
-            <li>
-              Bakır ağırlığı, kalınlık ve yol genişliği sıfırdan büyük olmalıdır; sıfır ve negatif
-              girdi hesaplanmaz.
-            </li>
-            <li>
-              Ölçülen bitmiş kalınlık yolunda kaplama geriye çözülür:
-              kaplama = bitmiş − folyo. Bu yüzden ölçüm folyo kalınlığından küçük olamaz —
-              negatif kaplama hesaplanmaz. İç katmanda kaplama tanım gereği sıfırdır, ölçülen
-              değer doğrudan folyo kalınlığı sayılır ve ayrı bir folyo girdisi istenmez.
-            </li>
-            <li>
-              Tolerans alanları isteğe bağlıdır ve boş bırakılabilir; boşken tolerans taraması hiç
-              çalışmaz. Her tolerans %0 ile %100 arasında olmalıdır (100 hariç): %100 folyo
-              toleransı kalınlığı sıfırlar ve kare direncini tanımsız yapar. Aşındırma toleransının
-              üst ucu da aşındırma oranını %100'e çıkaramaz.
-            </li>
-            <li>
-              Kare direnci 20 °C referanslı doğrusal modelle düzeltilir:
-              ρ(T) = 1.724×10⁻⁸ · [1 + 0.00393·(T − 20)] Ω·m. Bu doğrusal modelin tanımlı bir
-              sayısal sıcaklık üst sınırı yoktur; oda sıcaklığından uzaklaştıkça doğrusallık bozulur.
-            </li>
+            {text.validityRange.map((n) => <li key={n}>{n}</li>)}
           </ul>
 
-          <h2 className="section">Kaynak ve tanımlar</h2>
+          <h2 className="section">{ui.sources}</h2>
           <ul className="detail-list">
-            <li>
-              Uzunluk: uluslararası inç tanımı 1 inch = 25.4 mm (tam). Buradan 1 mil = 0.001 inch =
-              25.4 µm. Tüm mil/inch dönüşümleri yalnızca bu tanımdan gelir.
-            </li>
-            <li>
-              Kütle ve alan: uluslararası avoirdupois ons 1 oz = 0.0283495231 kg; uluslararası foot
-              ile 1 ft² = 0.09290304 m². İkisinden 1 oz/ft² ≈ 0.30515 kg/m².
-            </li>
-            <li>
-              Bakır yoğunluğu ρ_m = 8960 kg/m³ (oda sıcaklığı). Yoğunluktan türetilen kalınlık
-              yalnızca bu sabitten çıkar; ölçüm ya da tablo değil, tanım gereği hesaptır.
-            </li>
-            <li>
-              1 oz/ft² ≈ 35 µm eşitliği fizikten değil, endüstri nominal folyo tablosundan gelir.
-              Lisanslı tablonun tamamı kullanılmaz; hesap yalnızca yaygın olarak yayımlanan altı
-              nominal basamağa dayanır.
-            </li>
-            <li>
-              Bakır özdirenci ρ₂₀ = 1.724×10⁻⁸ Ω·m ve sıcaklık katsayısı α = 0.00393 1/°C —
-              kare direnci ve sıcaklık düzeltmesi bu iki sabite dayanır.
-            </li>
+            {text.sourceNotes.map((n) => <li key={n}>{n}</li>)}
           </ul>
 
-          <h2 className="section">Varsayımlar</h2>
+          <h2 className="section">{text.assumptionsHeading}</h2>
           <ul className="detail-list">
-            <li>
-              Nominal tablo ile yoğunluktan türetilen değer arasındaki fark bilinçlidir; ikisi de
-              gösterilir, hesapta hangisinin kullanıldığı yöntem seçicisiyle belirlenir ve sonuç
-              panelinde yazar. Varsayılan nominal tablodur.
-            </li>
-            <li>
-              Sipariş basamağı önerisi, bitmiş kalınlığa en yakın nominal ağırlıktır; eşit
-              uzaklıkta kalın basamak seçilir. Öneri bir yuvarlamadır, üretici onayı değildir.
-            </li>
-            <li>
-              Grafik ve "oz/ft² (nominal)" satırı her zaman nominal kuralı (35 µm/oz) kullanır;
-              yöntem seçimi yalnızca ağırlıktan kalınlığa çevrimi etkiler.
-            </li>
-            <li>
-              Kaplama yalnızca dış katmanlara eklenir ve düzgün kalınlıkta varsayılır. Gerçekte
-              kaplama dağılımı panel üzerinde değişir.
-            </li>
-            <li>
-              Aşındırma oranı tek bir sayıyla temsil edilir. Üreticinin gerçek üst-alt genişlik
-              verisi varsa o tercih edilmelidir.
-            </li>
-            <li>
-              Tolerans analizi basit worst-case yaklaşımıdır: toleranslı üç giriş — folyo
-              kalınlığı, kaplama kalınlığı ve aşındırma oranı — yalnızca uç değerlerine konur ve
-              2³ = 8 köşenin hepsi hesaplanır. Sonuçların üçü de her girişte monoton olduğundan
-              köşeler gerçek uçları verir. Toleranslar bağımsız ve eşit olasılıklı sayılmaz;
-              istatistiksel bir dağılım varsayılmaz, bu yüzden üçlü bir olasılık aralığı değil,
-              mutlak sınırdır. Bu hesabın varsayılan bir sayısal tolerans değeri yoktur —
-              yüzdeler üreticinin kendi verisinden girilmelidir.
-            </li>
-            <li>
-              Grafikteki tolerans bandı, çalışma noktasında bulunan bağıl kalınlık aralığının eğri
-              boyunca sabit kaldığı varsayımıyla çizilir. Gerçekte kaplamanın bitmiş kalınlıktaki
-              payı bakır ağırlığıyla değişir; bağlayıcı olan sayı orta paneldeki üçlüdür.
-            </li>
-            <li>
-              Kare direnci DC içindir; yüksek frekansta deri etkisi akımı yüzeye iter ve etkin
-              kesiti küçültür.
-            </li>
-            <li>
-              Ölçülen bitmiş kalınlık yolunda kaplama tek bir sayıya indirgenir: ölçüm ile folyo
-              arasındaki bütün fark kaplamaya yazılır. Folyonun kendi toleransı, kaplamanın panel
-              üzerindeki dağılımı ve ölçüm belirsizliği bu tek sayının içinde toplanır — çözülen
-              kaplama bir ölçüm değil, iki sayının farkıdır.
-            </li>
-            <li>
-              Kalınlık kayıtları yalnızca bu tarayıcıda, site verisi içinde tutulur; sunucuya
-              gönderilmez, cihazlar arasında taşınmaz ve tarayıcı verisi silinince kaybolur.
-              Kayıt zarfı sürüm numarası taşır: format değişirse eski kayıt sessizce yanlış
-              okunmaz, hiç yüklenmez. Kayıtlar kanonik olarak µm saklanır; geri yüklerken birim
-              seçicileri µm'ye ayarlanır, sayının kendisi değişmez.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.assumptions.map((n) => <li key={n}>{n}</li>)}
           </ul>
         </section>
       </div>
@@ -791,32 +646,36 @@ Kare direnci:
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
           <>
             <ChartLegend
               items={[
-                { label: 'kare direnci', tone: toneClass(0), kind: 'line' },
-                ...(chartBand ? [{ label: TOLERANCE_BAND_LABEL, tone: toneClass(0), faded: true }] : []),
+                { label: text.chart.legend, tone: toneClass(0), kind: 'line' },
+                ...(chartBand
+                  ? [{ label: text.toleranceTable.bandLabel, tone: toneClass(0), faded: true }]
+                  : []),
               ]}
             />
 
             <LineChart
               xScale="linear"
-              xLabel={CHART.x}
-              yLabel={CHART.y}
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
               band={chartBand}
-              marker={{ ...s.marker, label: 'seçilen' }}
+              marker={{ ...s.marker, label: text.chart.marker }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmtEng(v, '', 3)}
-              caption={chartBand ? `${CHART.caption} ${CHART.bandNote}` : CHART.caption}
+              caption={chartBand
+                ? `${text.chart.caption} ${text.chart.bandNote}`
+                : text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel={CHART.x}
+              xLabel={text.chart.x}
               series={chartSeries}
               every={5}
               formatX={(v) => `${fmt(v, 3)} oz`}
@@ -824,7 +683,7 @@ Kare direnci:
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

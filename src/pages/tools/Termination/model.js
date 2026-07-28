@@ -1,7 +1,7 @@
 // Terminasyon hesap ekranının modeli (spec §7.7).
 //
-// Saf: React, DOM ve kullanıcıya görünen metin bilmez. Hata kodu döner,
-// kodu Türkçeye çeviren taraf text.js'tir.
+// Saf: React, DOM ve kullanıcıya görünen metin bilmez. Dili de bilmez. Hata
+// kodu döner, kodu dile çeviren taraf text.js'tir.
 //
 // Bütün hesap lib/signalIntegrity.js içindeki mevcut fonksiyonlardan gelir;
 // bu dosyada tek bir denklem yazılmaz. Yüzde sapma karşılaştırması da
@@ -47,33 +47,38 @@ export const INITIAL_FORM = {
 
 const DUTY = { '%': 0.01 }
 
-export function formFields(f, type) {
+// Alan etiketleri dışarıdan gelir: model dili bilmez, ekran `text.fieldLabels`
+// sözlüğünü geçirir. Etiket verilmezse alan anahtarı görünür — sessiz boşluk
+// yerine teşhis edilebilir bir ad.
+export function formFields(f, type, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     [
       // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
       // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
-      { key: 'Z0', label: 'Hat empedansı (Z₀)', unit: 'Ω', table: RESISTANCE, min: 0 },
+      { key: 'Z0', label: L('Z0'), unit: 'Ω', table: RESISTANCE, min: 0 },
     ],
     when(type === TERM_SERIES, [
       // Motor R_driver = 0 durumunu kabul ediyor (ideal gerilim kaynağı)
       {
-        key: 'Rdriver', label: 'Sürücü çıkış direnci (R_driver)',
+        key: 'Rdriver', label: L('Rdriver'),
         unit: 'Ω', table: RESISTANCE, min: 0, allowZero: true,
       },
     ]),
     when(type === TERM_PARALLEL, [
-      { key: 'V', label: 'Terminasyon gerilimi (V)', unitKey: 'Vu', table: VOLTAGE, min: 0 },
-      { key: 'duty', label: 'Duty cycle', unit: '%', table: DUTY, min: 0, max: 1 },
+      { key: 'V', label: L('V'), unitKey: 'Vu', table: VOLTAGE, min: 0 },
+      { key: 'duty', label: L('duty'), unit: '%', table: DUTY, min: 0, max: 1 },
     ]),
     when(type === TERM_THEVENIN, [
-      { key: 'Vcc', label: 'Besleme gerilimi (V_cc)', unitKey: 'Vccu', table: VOLTAGE, min: 0 },
-      { key: 'Vbias', label: 'Hedef bias gerilimi (V_bias)', unitKey: 'Vbiasu', table: VOLTAGE, min: 0 },
+      { key: 'Vcc', label: L('Vcc'), unitKey: 'Vccu', table: VOLTAGE, min: 0 },
+      { key: 'Vbias', label: L('Vbias'), unitKey: 'Vbiasu', table: VOLTAGE, min: 0 },
     ]),
   ])
 }
 
-export function compute(type, f) {
-  const read = readForm(f, formFields(f, type))
+export function compute(type, f, labels = {}) {
+  const read = readForm(f, formFields(f, type, labels))
   if (read.ambiguous.length) return { ok: false, type, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, type, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

@@ -12,7 +12,18 @@ import { fmt, fmtEng } from '../../../lib/num'
 //   sağ sütun  (x > 206)  → kalınlık ölçüsü, etiketi ve değeri
 //   alt şerit  (y > 118)  → alt genişlik ölçüsü; etiket ölçü çizgisinin
 //                           kesildiği boşlukta durur, değer onun altında
-export default function CopperSchematic({ r }) {
+//
+// Yazılar `text` prop'undan gelir; şema dili bilmez.
+
+// Yazı kutusu modeli. Tek aralıklı yazıda ilerleme yalnızca karakter sayısına
+// ve punto boyuna bağlıdır; alt genişlik etiketi için ölçü çizgisinde açılan
+// boşluk buradan hesaplanır, yoksa daha uzun bir çeviri ("W_bottom") çizginin
+// üstüne biner.
+const LABEL_FS = 11
+const CH_ADVANCE = 0.62
+const textW = (s, fs) => String(s).length * CH_ADVANCE * fs
+
+export default function CopperSchematic({ r, text }) {
   const live = r.ok
   const etch = live ? Math.min(0.6, r.etch / 100) : 0
   const bottomHalf = 62
@@ -28,15 +39,13 @@ export default function CopperSchematic({ r }) {
   const thickLabelX = 212
   // Alt genişlik ölçüsü: çizgi yüksekliği ve etiket için bırakılan boşluk
   const widthY = 126
-  const widthGap = 24
+  const widthGap = Math.max(24, textW(text.wBottom, LABEL_FS) / 2 + 6)
 
   return (
     <Schematic
       viewBox="0 0 280 152"
-      title="Bakır kesiti"
-      caption={live && r.plating > 0
-        ? 'Bitmiş kesit — folyo üstüne kaplama eklenir'
-        : 'Bakır kesiti — aşındırma üst genişliği daraltır'}
+      title={text.title}
+      caption={live && r.plating > 0 ? text.captionPlated : text.captionPlain}
     >
       {/* Dielektrik taban */}
       <rect className="sch-dielectric" x={cx - 110} y={bottom} width={220} height={26} rx={2} />
@@ -60,7 +69,7 @@ export default function CopperSchematic({ r }) {
             y={top + platingH / 2 + 3}
             textAnchor="end"
           >
-            kaplama
+            {text.plating}
           </text>
         </>
       )}
@@ -71,7 +80,7 @@ export default function CopperSchematic({ r }) {
           {fmtEng(r.trap.Wtop, 'm', 3)}
         </text>
       )}
-      <text className="sch-label" x={cx} y={38} textAnchor="middle">W_üst</text>
+      <text className="sch-label" x={cx} y={38} textAnchor="middle">{text.wTop}</text>
 
       {/* Kalınlık ölçüsü — sağ sütun, kesitin ve kaplama etiketinin dışında */}
       <g className="sch-dim">
@@ -79,7 +88,7 @@ export default function CopperSchematic({ r }) {
         <line x1={thickX - 6} x2={thickX + 6} y1={top} y2={top} />
         <line x1={thickX - 6} x2={thickX + 6} y1={bottom} y2={bottom} />
       </g>
-      <text className="sch-label" x={thickLabelX} y={62}>t</text>
+      <text className="sch-label" x={thickLabelX} y={62}>{text.thickness}</text>
       {live && <text className="sch-value" x={thickLabelX} y={76}>{fmt(r.units.finished.um, 3)} µm</text>}
 
       {/* Alt genişlik ölçüsü — çizgi etiketin geçtiği yerde kesilir */}
@@ -89,7 +98,7 @@ export default function CopperSchematic({ r }) {
         <line x1={cx - bottomHalf} x2={cx - bottomHalf} y1={widthY - 6} y2={widthY + 6} />
         <line x1={cx + bottomHalf} x2={cx + bottomHalf} y1={widthY - 6} y2={widthY + 6} />
       </g>
-      <text className="sch-label" x={cx} y={widthY + 3} textAnchor="middle">W_alt</text>
+      <text className="sch-label" x={cx} y={widthY + 3} textAnchor="middle">{text.wBottom}</text>
       {live && (
         <text className="sch-value" x={cx} y={144} textAnchor="middle">
           {fmtEng(r.trap.Wbottom, 'm', 3)}

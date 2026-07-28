@@ -3,7 +3,7 @@ import { fmt, fmtEng } from '../../../lib/num'
 
 // Hat üzerinde dalga: sinüsün periyodu λg'nin hat uzunluğuna oranını gösterir.
 // Bir tam periyot = bir dalga boyu.
-export default function WaveSchematic({ r }) {
+export default function WaveSchematic({ r, text }) {
   const x0 = 24
   const x1 = 236
   const span = x1 - x0
@@ -25,10 +25,8 @@ export default function WaveSchematic({ r }) {
   return (
     <Schematic
       viewBox="0 0 260 148"
-      title="Hat üzerinde dalga"
-      caption={r.ok && r.fraction > 4
-        ? 'Hat dört dalga boyundan uzun — çizimde ilk dört periyot gösteriliyor'
-        : 'Bir tam periyot bir dalga boyudur'}
+      title={text.title}
+      caption={r.ok && r.fraction > 4 ? text.captionLong : text.captionShort}
     >
       {/* Dalga */}
       <path className="chart-line tone-1" d={path.join('')} />

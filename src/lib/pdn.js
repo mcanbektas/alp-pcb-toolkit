@@ -20,7 +20,7 @@ export const PDN_ERR_SINGULAR = 'singular'
 
 export function targetImpedance({ Vrail = null, tolerancePct = null, deltaV = null, deltaI }) {
   if (!(deltaI > 0)) {
-    return { error: PDN_ERR_INVALID, message: 'Ani yük değişimi pozitif olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
 
   // Doğrudan ΔV verildiyse o kullanılır; verilmediyse raydan ve toleranstan türetilir
@@ -28,10 +28,7 @@ export function targetImpedance({ Vrail = null, tolerancePct = null, deltaV = nu
   let fromTolerance = false
   if (!(dV > 0)) {
     if (!(Vrail > 0) || !(tolerancePct > 0)) {
-      return {
-        error: PDN_ERR_INVALID,
-        message: 'İzin verilen gerilim değişimi ya doğrudan ya da ray gerilimi + tolerans ile verilmeli.',
-      }
+      return { error: PDN_ERR_INVALID }
     }
     dV = (Vrail * tolerancePct) / 100
     fromTolerance = true
@@ -57,7 +54,7 @@ export function targetImpedance({ Vrail = null, tolerancePct = null, deltaV = nu
 // bunu alan olarak taşır ki arayüz idealliği gizlemesin.
 export function minimumCapacitance({ deltaI, deltaT, deltaV }) {
   if (!(deltaI > 0) || !(deltaT > 0) || !(deltaV > 0)) {
-    return { error: PDN_ERR_INVALID, message: 'Akım değişimi, süre ve gerilim değişimi pozitif olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
 
   const charge = deltaI * deltaT
@@ -77,14 +74,14 @@ export function minimumCapacitance({ deltaI, deltaT, deltaV }) {
 
 export function selfResonantFrequency({ C, ESL }) {
   if (!(C > 0) || !(ESL > 0)) {
-    return { error: PDN_ERR_INVALID, message: 'Kapasite ve ESL pozitif olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
   return { srf: 1 / (2 * Math.PI * Math.sqrt(ESL * C)) }
 }
 
 export function capacitorImpedance({ C, ESR = 0, ESL = 0, f }) {
   if (!(C > 0) || !(f > 0) || !(ESR >= 0) || !(ESL >= 0)) {
-    return { error: PDN_ERR_INVALID, message: 'Kapasite ve frekans pozitif, ESR/ESL negatif olmayan olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
 
   const omega = 2 * Math.PI * f
@@ -132,16 +129,16 @@ function admittanceOf(re, im) {
  */
 export function parallelNetworkImpedance(caps, f) {
   if (!Array.isArray(caps) || caps.length === 0) {
-    return { error: PDN_ERR_INVALID, message: 'En az bir kapasitör gerekli.' }
+    return { error: PDN_ERR_INVALID }
   }
-  if (!(f > 0)) return { error: PDN_ERR_INVALID, message: 'Frekans pozitif olmalı.' }
+  if (!(f > 0)) return { error: PDN_ERR_INVALID }
 
   let g = 0
   let b = 0
 
   for (const c of caps) {
     const n = c.count ?? 1
-    if (!(n > 0)) return { error: PDN_ERR_INVALID, message: 'Kapasitör adedi pozitif olmalı.' }
+    if (!(n > 0)) return { error: PDN_ERR_INVALID }
 
     // ESR > 0 ZORUNLU. Kayıpsız kapasitör bu modelde dejenere: kendi rezonans
     // frekansında empedansı tam sıfır, anti-rezonans tepesi ise sonsuz olur ve
@@ -149,17 +146,14 @@ export function parallelNetworkImpedance(caps, f) {
     // Gerçek kapasitörün ESR'si vardır; spec §8.2.1 modeli de ESR'yi açıkça
     // içerir. Tahmin üretmek yerine hata döndürülür.
     if (!(c.ESR > 0)) {
-      return {
-        error: PDN_ERR_SINGULAR,
-        message: 'Her kapasitör için ESR > 0 girilmeli; kayıpsız kapasitör rezonansta sıfır empedans verir ve sonuç anlamsızlaşır.',
-      }
+      return { error: PDN_ERR_SINGULAR }
     }
 
     const z = capacitorImpedance({ C: c.C, ESR: c.ESR, ESL: c.ESL ?? 0, f })
     if (z.error) return z
 
     const y = admittanceOf(z.re, z.im)
-    if (!y) return { error: PDN_ERR_SINGULAR, message: 'Kapasitör empedansı bu frekansta tekil.' }
+    if (!y) return { error: PDN_ERR_SINGULAR }
 
     g += n * y.g
     b += n * y.b
@@ -167,7 +161,7 @@ export function parallelNetworkImpedance(caps, f) {
 
   const y2 = g * g + b * b
   if (!(y2 > 0)) {
-    return { error: PDN_ERR_SINGULAR, message: 'Ağ empedansı bu frekansta hesaplanamıyor.' }
+    return { error: PDN_ERR_SINGULAR }
   }
 
   const re = g / y2
@@ -187,7 +181,7 @@ export function parallelNetworkImpedance(caps, f) {
 // Ayrı fonksiyon, çünkü ekran bu üç sayıyı doğrudan gösteriyor.
 export function identicalBank({ C, ESR, ESL, count }) {
   if (!(C > 0) || !(count > 0)) {
-    return { error: PDN_ERR_INVALID, message: 'Kapasite ve adet pozitif olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
   return {
     Ceq: count * C,
@@ -205,7 +199,7 @@ export function identicalBank({ C, ESR, ESL, count }) {
 // Kenar saçılması bu basit denklemde YOKTUR (spec §8.2.3).
 export function planeCapacitance({ area, d, epsR }) {
   if (!(area > 0) || !(d > 0) || !(epsR >= 1)) {
-    return { error: PDN_ERR_INVALID, message: 'Alan, dielektrik kalınlığı pozitif ve εr ≥ 1 olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
   return {
     C: (EPS0 * epsR * area) / d,
@@ -222,7 +216,7 @@ export function planeCapacitance({ area, d, epsR }) {
 // R + jωL olarak alınır; ωL endüktif reaktansın tanımıdır, uydurma bir model
 // değildir. L verilmezse VRM saf dirençtir.
 export function pdnImpedance({ caps = [], vrm = null, Cplane = 0, f }) {
-  if (!(f > 0)) return { error: PDN_ERR_INVALID, message: 'Frekans pozitif olmalı.' }
+  if (!(f > 0)) return { error: PDN_ERR_INVALID }
 
   const omega = 2 * Math.PI * f
   let g = 0
@@ -232,7 +226,7 @@ export function pdnImpedance({ caps = [], vrm = null, Cplane = 0, f }) {
   if (capsZ && capsZ.error) return capsZ
   if (capsZ) {
     const y = admittanceOf(capsZ.re, capsZ.im)
-    if (!y) return { error: PDN_ERR_SINGULAR, message: 'Kapasitör ağı bu frekansta tekil.' }
+    if (!y) return { error: PDN_ERR_SINGULAR }
     g += y.g
     b += y.b
   }
@@ -241,10 +235,10 @@ export function pdnImpedance({ caps = [], vrm = null, Cplane = 0, f }) {
     const R = vrm.R ?? 0
     const L = vrm.L ?? 0
     if (!(R > 0) && !(L > 0)) {
-      return { error: PDN_ERR_INVALID, message: 'VRM için direnç veya endüktans verilmeli.' }
+      return { error: PDN_ERR_INVALID }
     }
     const y = admittanceOf(R, omega * L)
-    if (!y) return { error: PDN_ERR_SINGULAR, message: 'VRM empedansı bu frekansta tekil.' }
+    if (!y) return { error: PDN_ERR_SINGULAR }
     g += y.g
     b += y.b
   }
@@ -257,7 +251,7 @@ export function pdnImpedance({ caps = [], vrm = null, Cplane = 0, f }) {
 
   const y2 = g * g + b * b
   if (!(y2 > 0)) {
-    return { error: PDN_ERR_INVALID, message: 'En az bir PDN bileşeni (kapasitör, VRM veya düzlem) gerekli.' }
+    return { error: PDN_ERR_INVALID }
   }
 
   const re = g / y2
@@ -289,12 +283,12 @@ export function pdnImpedance({ caps = [], vrm = null, Cplane = 0, f }) {
 export function loopInductance({ eslComponent = 0, Lmount = 0, Lvia = 0, Lspread = 0 }) {
   const terms = [eslComponent, Lmount, Lvia, Lspread]
   if (terms.some((x) => !(x >= 0))) {
-    return { error: PDN_ERR_INVALID, message: 'Endüktans terimleri negatif olmayan olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
 
   const total = terms.reduce((a, x) => a + x, 0)
   if (!(total > 0)) {
-    return { error: PDN_ERR_INVALID, message: 'En az bir endüktans terimi pozitif olmalı.' }
+    return { error: PDN_ERR_INVALID }
   }
 
   return {

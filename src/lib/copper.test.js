@@ -6,6 +6,7 @@ import {
   METHOD_NOMINAL, METHOD_DERIVED, toleranceCorners,
   COPPER_ERR_INVALID, COPPER_ERR_TOLERANCE,
 } from './copper'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('bakır ağırlığı ↔ kalınlık', () => {
   it('nominal tablo: 1 oz = 35 µm', () => {
@@ -286,5 +287,25 @@ describe('worst-case tolerans köşeleri (spec §3.4)', () => {
     expect(toleranceCorners({ ...base, W: 0 }).error).toBe(COPPER_ERR_INVALID)
     expect(toleranceCorners({ ...base, plating: -1e-6 }).error).toBe(COPPER_ERR_INVALID)
     expect(toleranceCorners({ ...base, etchFactor: 1 }).error).toBe(COPPER_ERR_INVALID)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    const corners = {
+      starting: 35e-6, plating: 25e-6, layer: 'external',
+      W: 0.25e-3, etchFactor: 0, T: 20,
+    }
+    expectErrorShapes([
+      finishedThickness({ starting: 35e-6, plating: -1 }),
+      finishedThickness({ starting: 0, plating: 25e-6 }),
+      trapezoidArea({ t: 35e-6, Wbottom: 1e-4, etchFactor: 1 }),
+      trapezoidArea({ t: 35e-6, Wbottom: 1e-4, etchFactor: -0.1 }),
+      toleranceCorners({ ...corners, tol: { starting: 1 } }),
+      toleranceCorners({ ...corners, tol: { plating: 1.5 } }),
+      toleranceCorners({ ...corners, tol: { etch: -0.1 } }),
+      toleranceCorners({ ...corners, starting: 0 }),
+      toleranceCorners({ ...corners, etchFactor: 1 }),
+    ])
   })
 })

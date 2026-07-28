@@ -63,39 +63,43 @@ const TEMP = { '°C': 1 }
 const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 const SURF = { 'mm²': AREA['mm²'], 'mil²': AREA['mil²'], 'm²': AREA['m²'] }
 
-export function formFields(mode, f) {
+// Alan etiketleri `labels` ile çağıran taraftan gelir (geçerli dilde,
+// text.js'ten); bu dosya dil bilmez. Etiket verilmezse alan anahtarı görünür —
+// sessiz boşluk yerine teşhis edilebilir bir ad.
+export function formFields(mode, f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
     when(mode === MODE_JUNCTION, [
-      { key: 'Ta', label: 'Ortam sıcaklığı (T_A)', unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Ta', label: L('Ta'), unit: '°C', table: TEMP, allowZero: true },
       // Motor bu modda P = 0'ı kabul ediyor (junctionTemperature: P >= 0) ve
       // P = 0 fiziksel olarak anlamlıdır: T_J = T_A. Sıfır geçersiz sayılmaz.
-      { key: 'P', label: 'Güç kaybı (P)', unitKey: 'Pu', table: POWER, min: 0, allowZero: true },
-      { key: 'thetaJA', label: 'Junction–ortam direnci (θ_JA)', unit: '°C/W', table: THERMAL_R, min: 0 },
-      { key: 'TjMax', label: 'İzin verilen junction sıcaklığı (T_J,max)', unit: '°C', table: TEMP, allowZero: true },
+      { key: 'P', label: L('P'), unitKey: 'Pu', table: POWER, min: 0, allowZero: true },
+      { key: 'thetaJA', label: L('thetaJA'), unit: '°C/W', table: THERMAL_R, min: 0 },
+      { key: 'TjMax', label: L('TjMax'), unit: '°C', table: TEMP, allowZero: true },
     ]),
     when(mode === MODE_HEATSINK, [
-      { key: 'Ta', label: 'Ortam sıcaklığı (T_A)', unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Ta', label: L('Ta'), unit: '°C', table: TEMP, allowZero: true },
       // Bu modda sıfır bilinçli olarak geçersiz: heatsink() P > 0 istiyor
       // (termal bütçe P'ye bölünüyor), P = 0 sonuç üretmez.
-      { key: 'P', label: 'Güç kaybı (P)', unitKey: 'Pu', table: POWER, min: 0 },
-      { key: 'thetaJC', label: 'Junction–case direnci (θ_JC)', unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true },
-      { key: 'thetaCS', label: 'Case–soğutucu direnci (θ_CS)', unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true },
-      { key: 'TjMax', label: 'İzin verilen junction sıcaklığı (T_J,max)', unit: '°C', table: TEMP, allowZero: true },
-      { key: 'thetaSA', label: 'Seçilen soğutucu direnci (θ_SA)', unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true, optional: true },
+      { key: 'P', label: L('P'), unitKey: 'Pu', table: POWER, min: 0 },
+      { key: 'thetaJC', label: L('thetaJC'), unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true },
+      { key: 'thetaCS', label: L('thetaCS'), unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true },
+      { key: 'TjMax', label: L('TjMax'), unit: '°C', table: TEMP, allowZero: true },
+      { key: 'thetaSA', label: L('thetaSA'), unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true, optional: true },
     ]),
     when(mode === MODE_SURFACE, [
-      { key: 'Tsurface', label: 'Ölçülen sıcaklık', unit: '°C', table: TEMP, allowZero: true },
+      { key: 'Tsurface', label: L('Tsurface'), unit: '°C', table: TEMP, allowZero: true },
       // junctionFromSurface de P >= 0 kabul ediyor; P = 0 iken T_J = ölçülen sıcaklık.
-      { key: 'P', label: 'Güç kaybı (P)', unitKey: 'Pu', table: POWER, min: 0, allowZero: true },
-      { key: 'psi', label: 'Ψ değeri', unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true },
-      { key: 'TjMax', label: 'İzin verilen junction sıcaklığı (T_J,max)', unit: '°C', table: TEMP, allowZero: true, optional: true },
+      { key: 'P', label: L('P'), unitKey: 'Pu', table: POWER, min: 0, allowZero: true },
+      { key: 'psi', label: L('psi'), unit: '°C/W', table: THERMAL_R, min: 0, allowZero: true },
+      { key: 'TjMax', label: L('TjMax'), unit: '°C', table: TEMP, allowZero: true, optional: true },
     ]),
     when(f.copper === COPPER_ON, [
-      { key: 'Lcu', label: 'Bakır şerit uzunluğu (L)', unitKey: 'Lcuu', table: DIM, min: 0 },
-      { key: 'Wcu', label: 'Bakır şerit genişliği (W)', unitKey: 'Wcuu', table: DIM, min: 0 },
-      { key: 'tcu', label: 'Bakır kalınlığı (t)', unitKey: 'tcuu', table: DIM, min: 0 },
-      { key: 'Hdi', label: 'Dielektrik kalınlığı (H)', unitKey: 'Hdiu', table: DIM, min: 0 },
-      { key: 'area', label: 'Dielektrik alanı (A)', unitKey: 'areau', table: SURF, min: 0 },
+      { key: 'Lcu', label: L('Lcu'), unitKey: 'Lcuu', table: DIM, min: 0 },
+      { key: 'Wcu', label: L('Wcu'), unitKey: 'Wcuu', table: DIM, min: 0 },
+      { key: 'tcu', label: L('tcu'), unitKey: 'tcuu', table: DIM, min: 0 },
+      { key: 'Hdi', label: L('Hdi'), unitKey: 'Hdiu', table: DIM, min: 0 },
+      { key: 'area', label: L('area'), unitKey: 'areau', table: SURF, min: 0 },
     ]),
   ])
 }
@@ -118,8 +122,8 @@ function copperNetwork(v, P) {
   return { strip, dielectric: diel, eq, rise }
 }
 
-export function compute(mode, f) {
-  const read = readForm(f, formFields(mode, f))
+export function compute(mode, f, labels = {}) {
+  const read = readForm(f, formFields(mode, f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
@@ -154,8 +158,9 @@ export function compute(mode, f) {
     })
     if (h.error === THERMAL_ERR_INVALID) return { ok: false, reason: THERMAL_ERR_INVALID }
 
-    // Motorun kullanıcıya dönük metnini taşımayız; kod yeterli, çeviri text.js'te.
-    const { error, message, ...rest } = h
+    // Motor yalnızca hata KODU döner (metin yok); kod burada bayrağa çevrilir,
+    // cümleye çeviren taraf text.js'tir.
+    const { error, ...rest } = h
     return {
       ok: true, mode, copperOn, copper, ...rest,
       negativeSink: error === THERMAL_ERR_NEGATIVE_SINK,

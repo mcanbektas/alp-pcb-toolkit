@@ -6,18 +6,38 @@
 //
 // Arayüz sözleşmesi:
 //   read(key)         → string | null
-//   write(key, value) → { ok: true } | { error, message }
-//   remove(key)       → { ok: true } | { error, message }
+//   write(key, value) → { ok: true } | { error, op }
+//   remove(key)       → { ok: true } | { error, op }
+//
+// Hata yükü dilsizdir: yalnızca kod taşır, cümle taşımaz. Cümleyi kuran taraf
+// ekranın text.js dosyasıdır. `op` hangi eylemin başarısız olduğunu söyler —
+// "yazılamadı" ile "silinemedi" ayrımı burada cümleyle değil kodla yapılır.
 
 export const STORAGE_ERR_UNAVAILABLE = 'unavailable'
 export const STORAGE_ERR_WRITE = 'write'
+
+export const STORAGE_OP_WRITE = 'write'
+export const STORAGE_OP_REMOVE = 'remove'
+
+// Tarayıcının kendi istisna metni (kota, izin) hata yüküne sayılabilir alan
+// olarak eklenmez: dili tarayıcının diline bağlıdır, kullanıcıya gösterilemez.
+// Yalnızca geliştirici teşhisi için, sayılamayan (non-enumerable) `_cause`
+// alanında taşınır — Object.keys, spread ve JSON.stringify onu görmez, bu yüzden
+// hiçbir ekrana sızamaz.
+function storageError(error, op, cause) {
+  const payload = { error, op }
+  if (cause !== undefined) {
+    Object.defineProperty(payload, '_cause', { value: cause, enumerable: false })
+  }
+  return payload
+}
 
 // Depolama hiç yoksa (SSR, kapalı çerez, gizli sekme) sessizce boş davranır:
 // okuma null döner, yazma açık hata döner. Uygulama çalışmaya devam eder.
 export const nullStorage = {
   read: () => null,
-  write: () => ({ error: STORAGE_ERR_UNAVAILABLE, message: 'Tarayıcı depolaması kullanılamıyor.' }),
-  remove: () => ({ error: STORAGE_ERR_UNAVAILABLE, message: 'Tarayıcı depolaması kullanılamıyor.' }),
+  write: () => storageError(STORAGE_ERR_UNAVAILABLE, STORAGE_OP_WRITE),
+  remove: () => storageError(STORAGE_ERR_UNAVAILABLE, STORAGE_OP_REMOVE),
 }
 
 // Test ve önizleme için bellek içi depo. Aynı sözleşmeyi uygular.
@@ -56,8 +76,9 @@ export function browserStorage() {
         ls.setItem(key, value)
         return { ok: true }
       } catch (e) {
-        // Kota dolması en olası neden; mesaj kullanıcıya gösterilir
-        return { error: STORAGE_ERR_WRITE, message: `Kaydedilemedi: ${e.message}` }
+        // Kota dolması en olası neden. Tarayıcının kendi metni kullanıcıya
+        // gösterilmez, yalnızca teşhis için `_cause` altında taşınır.
+        return storageError(STORAGE_ERR_WRITE, STORAGE_OP_WRITE, e?.message)
       }
     },
     remove(key) {
@@ -65,7 +86,7 @@ export function browserStorage() {
         ls.removeItem(key)
         return { ok: true }
       } catch (e) {
-        return { error: STORAGE_ERR_WRITE, message: `Silinemedi: ${e.message}` }
+        return storageError(STORAGE_ERR_WRITE, STORAGE_OP_REMOVE, e?.message)
       }
     },
   }

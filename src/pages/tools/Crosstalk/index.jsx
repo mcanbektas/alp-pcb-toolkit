@@ -5,73 +5,39 @@ import Segmented from '../../../components/Segmented'
 import EpsEffFields, { epsEffRows } from '../../../components/EpsEffFields'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtRes, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtRes } from '../../../lib/num'
 import CrosstalkSchematic from './schematic'
 import {
   INITIAL_FORM, FEXT_OFF, FEXT_ON,
   DIM_UNITS, LEN_UNITS, TIME_UNITS, VOLT_UNITS,
   compute, buildSweep,
 } from './model'
-import {
-  CHART, METHOD_NOTE, SOURCE_NOTE, THREE_W_NOTE, MODAL_EPS_HINT, THRESHOLD_NOTE,
-  reasonText, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `Tanımı belirsizlik taşımayan
-TEK ifade — yalnızca geometrik
-kontrol:
-  S ≥ 3·W
-
-Kestirim — AMPİRİK, doğrulanmış
-kaynağa dayanmıyor:
-  K_b = (Z_even − Z_odd)
-        / (2·(Z_even + Z_odd))
-  L_sat = t_r / (2·t'_pd)
-  ölçek = L ≥ L_sat
-          ? 1 : L / L_sat
-  V_NEXT = K_b · V_agg · ölçek
-  t_NEXT = 2·L·t'_pd
-
-  Δt = |t'_pd,even − t'_pd,odd|
-       · L
-  V_FEXT ≈ (Δt / t_r) · V_agg / 2
-
-Çok iletkenli hat çözümü
-— UYGULANMADI:
-  ∂V/∂x = −(R + jωL)·I
-  ∂I/∂x = −(G + jωC)·V
-  Z = R + jωL,  Y = G + jωC
-  M = [[0, Z], [Y, 0]]
-  X(ℓ) = e^(−M·ℓ) · X(0)
-  L = μ₀ε₀·C₀⁻¹
-    (vakum kapasitans matrisinden)
-  G ≈ ω·tanδ·C
-    (homojen dielektrik yaklaşımı)
-  C matrisi 2B alan çözücüden
-  gelir; aggressor sinyali FFT →
-  her frekansta çözüm → IFFT ile
-  NEXT/FEXT dalga biçimi.
-  Alan çözücü olmadığı için
-  hiçbir adımı yapılamadı.`
-
 export default function Crosstalk() {
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f), [f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const chartSeries = s
     ? [{ key: 'vnext', name: 'V_NEXT', tone: toneClass(0), points: s.points }]
@@ -79,174 +45,167 @@ export default function Crosstalk() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Crosstalk Estimator</h1>
-        <p>
-          Paralel iki hat arasındaki near-end crosstalk tepe gerilimini, doyma uzunluğunu ve NEXT
-          süresini kestirir; S ≥ 3·W geometrik kontrolünü yapar. Modal εeff değerleri girilirse
-          far-end crosstalk da hesaplanır. Sonuç çok iletkenli iletim hattı çözümünden gelmez —
-          kaba bir kestirimdir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <CrosstalkSchematic r={r} />
+          <CrosstalkSchematic r={r} text={text.schematic} />
 
           <EpsEffFields f={f} set={set} />
 
           <NumberField
-            label="Even mod empedansı (Z_even)"
+            label={text.fields.Zeven.label}
             value={f.Zeven} onChange={set('Zeven')}
             units={['Ω']} unit="Ω" onUnit={() => {}}
-            hint="Kuplajlı çiftte Z_even her zaman Z_odd'dan büyüktür"
+            hint={text.fields.Zeven.hint}
           />
 
           <NumberField
-            label="Odd mod empedansı (Z_odd)"
+            label={text.fields.Zodd.label}
             value={f.Zodd} onChange={set('Zodd')}
             units={['Ω']} unit="Ω" onUnit={() => {}}
           />
 
           <NumberField
-            label="Kuplajlı hat genişliği (W)"
+            label={text.fields.W.label}
             value={f.W} onChange={set('W')}
             units={DIM_UNITS} unit={f.Wu} onUnit={set('Wu')}
           />
 
           <NumberField
-            label="Hat aralığı (S)"
+            label={text.fields.S.label}
             value={f.S} onChange={set('S')}
             units={DIM_UNITS} unit={f.Su} onUnit={set('Su')}
-            hint="Kenar-kenar mesafe; 3W geometrik kontrolü bu değerle yapılır"
+            hint={text.fields.S.hint}
           />
 
           <NumberField
-            label="Paralel uzunluk"
+            label={text.fields.len.label}
             value={f.len} onChange={set('len')}
             units={LEN_UNITS} unit={f.lenu} onUnit={set('lenu')}
-            hint="İki hattın yan yana ilerlediği uzunluk"
+            hint={text.fields.len.hint}
           />
 
           <NumberField
-            label="Yükselme süresi (t_r)"
+            label={text.fields.tr.label}
             value={f.tr} onChange={set('tr')}
             units={TIME_UNITS} unit={f.tru} onUnit={set('tru')}
           />
 
           <NumberField
-            label="Aggressor gerilimi (V_agg)"
+            label={text.fields.Vagg.label}
             value={f.Vagg} onChange={set('Vagg')}
             units={VOLT_UNITS} unit={f.Vaggu} onUnit={set('Vaggu')}
           />
 
-          <h2 className="section">Far-end crosstalk</h2>
+          <h2 className="section">{text.fextHeading}</h2>
 
           <Segmented
             value={f.fextMode}
             onChange={set('fextMode')}
             options={[
-              { value: FEXT_OFF, label: 'FEXT hesaplama' },
-              { value: FEXT_ON, label: 'FEXT hesapla — modal εeff gir' },
+              { value: FEXT_OFF, label: text.fextOff },
+              { value: FEXT_ON, label: text.fextOn },
             ]}
           />
 
           {f.fextMode === FEXT_ON ? (
             <>
               <NumberField
-                label="Odd mod εeff"
+                label={text.fields.epsOdd.label}
                 value={f.epsOdd} onChange={set('epsOdd')}
                 units={['']} unit="" onUnit={() => {}}
-                hint="Alan çözücüden ya da üretici yığın raporundan"
+                hint={text.fields.epsOdd.hint}
               />
               <NumberField
-                label="Even mod εeff"
+                label={text.fields.epsEven.label}
                 value={f.epsEven} onChange={set('epsEven')}
                 units={['']} unit="" onUnit={() => {}}
-                hint={MODAL_EPS_HINT}
+                hint={text.modalEpsHint}
               />
             </>
           ) : (
-            <p className="empty-note">{MODAL_EPS_HINT}</p>
+            <p className="empty-note">{text.modalEpsHint}</p>
           )}
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Near-end crosstalk tepe gerilimi</div>
+                <div className="label">{text.bigLabel}</div>
                 <div className="value">{fmtEng(r.Vnext, 'V', 4)}</div>
                 <div className="alt">
-                  aggressor geriliminin %{fmt(r.nextPct, 4)} kadarı &nbsp;·&nbsp;{' '}
+                  {text.bigAltPct(fmt(r.nextPct, 4))} &nbsp;·&nbsp;{' '}
                   {r.fext.available
-                    ? <>FEXT {fmtEng(r.fext.Vfext, 'V', 4)} (%{fmt(r.fext.fextPct, 3)})</>
-                    : 'FEXT: modal εeff girilmedi — hesaplanmadı'}
+                    ? text.fextShort(fmtEng(r.fext.Vfext, 'V', 4), fmt(r.fext.fextPct, 3))
+                    : text.fextMissingShort}
                 </div>
               </div>
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{METHOD_NOTE}</p>
-              <p className="method-note">{SOURCE_NOTE}</p>
-              <p className="method-note">{THREE_W_NOTE}</p>
+              <p className="method-note">{text.methodNote}</p>
+              <p className="method-note">{text.sourceNote}</p>
+              <p className="method-note">{text.threeWNote}</p>
 
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>NEXT kuplaj katsayısı (K_b)</td>
+                    <td>{text.table.Kb}</td>
                     <td>{fmt(r.Kb, 5)}</td>
                   </tr>
                   <tr>
-                    <td>NEXT tepe gerilimi</td>
+                    <td>{text.table.Vnext}</td>
                     <td>{fmtEng(r.Vnext, 'V', 5)}</td>
                   </tr>
                   <tr>
-                    <td>NEXT yüzdesi</td>
-                    <td>{fmt(r.nextPct, 5)} %</td>
+                    <td>{text.table.nextPct}</td>
+                    <td>{text.pct(fmt(r.nextPct, 5))}</td>
                   </tr>
                   <tr>
-                    <td>Doyma uzunluğu (L_sat)</td>
+                    <td>{text.table.Lsat}</td>
                     <td>{fmtEng(r.Lsat, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Doymuş mu</td>
-                    <td>{r.saturated ? 'evet' : 'hayır'}</td>
+                    <td>{text.table.saturated}</td>
+                    <td>{r.saturated ? text.yes : text.no}</td>
                   </tr>
                   <tr>
-                    <td>Ölçek katsayısı</td>
+                    <td>{text.table.scale}</td>
                     <td>{fmt(r.scale, 5)}</td>
                   </tr>
                   <tr>
-                    <td>NEXT süresi</td>
+                    <td>{text.table.nextDuration}</td>
                     <td>{fmtEng(r.nextDuration, 's', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Paralel uzunluk</td>
+                    <td>{text.table.coupledLength}</td>
                     <td>{fmtEng(r.coupledLength, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Aggressor gerilimi</td>
+                    <td>{text.table.Vagg}</td>
                     <td>{fmtEng(r.Vagg, 'V', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Yükselme süresi</td>
+                    <td>{text.table.riseTime}</td>
                     <td>{fmtEng(r.tr, 's', 5)}</td>
                   </tr>
                   <tr>
@@ -255,85 +214,85 @@ export default function Crosstalk() {
                   </tr>
 
                   <tr className="mini-head">
-                    <td>3W geometrik kontrolü</td>
-                    <td>{r.geom.satisfied ? 'sağlandı' : 'sağlanmadı'}</td>
+                    <td>{text.table.geomHead}</td>
+                    <td>{r.geom.satisfied ? text.table.geomOk : text.table.geomFail}</td>
                   </tr>
                   <tr>
-                    <td>S / W oranı</td>
+                    <td>{text.table.swRatio}</td>
                     <td>{fmt(r.geom.ratio, 5)}</td>
                   </tr>
                   <tr>
-                    <td>Gereken aralık (3·W)</td>
+                    <td>{text.table.required}</td>
                     <td>{fmtEng(r.geom.required, 'm', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Girilen aralık (S) · genişlik (W)</td>
+                    <td>{text.table.enteredSW}</td>
                     <td>{fmtEng(r.S, 'm', 4)} · {fmtEng(r.W, 'm', 4)}</td>
                   </tr>
 
                   {r.fext.available ? (
                     <>
                       <tr className="mini-head">
-                        <td>Far-end crosstalk</td>
-                        <td>hesaplandı</td>
+                        <td>{text.table.fextHead}</td>
+                        <td>{text.table.fextComputed}</td>
                       </tr>
                       <tr>
-                        <td>Odd · even mod εeff</td>
+                        <td>{text.table.modalEps}</td>
                         <td>{fmt(r.fext.epsEffOdd, 4)} · {fmt(r.fext.epsEffEven, 4)}</td>
                       </tr>
                       <tr>
-                        <td>Modal gecikme farkı (Δt)</td>
+                        <td>{text.table.modalDelayDiff}</td>
                         <td>{fmtEng(r.fext.modalDelayDiff, 's', 5)}</td>
                       </tr>
                       <tr>
-                        <td>FEXT tepe gerilimi</td>
+                        <td>{text.table.Vfext}</td>
                         <td>{fmtEng(r.fext.Vfext, 'V', 5)}</td>
                       </tr>
                       <tr>
-                        <td>FEXT yüzdesi</td>
-                        <td>{fmt(r.fext.fextPct, 5)} %</td>
+                        <td>{text.table.fextPct}</td>
+                        <td>{text.pct(fmt(r.fext.fextPct, 5))}</td>
                       </tr>
                       <tr>
-                        <td>Modal hızlar homojen mi</td>
-                        <td>{r.fext.homogeneous ? 'evet — FEXT sıfır' : 'hayır'}</td>
+                        <td>{text.table.homogeneous}</td>
+                        <td>{r.fext.homogeneous ? text.table.homogeneousYes : text.no}</td>
                       </tr>
                     </>
                   ) : (
                     <>
                       <tr className="mini-head">
-                        <td>Far-end crosstalk</td>
-                        <td>hesaplanmadı</td>
+                        <td>{text.table.fextHead}</td>
+                        <td>{text.table.fextNotComputed}</td>
                       </tr>
                       <tr>
-                        <td>Neden</td>
-                        <td>modal εeff girilmedi</td>
+                        <td>{text.table.reason}</td>
+                        <td>{text.table.reasonNoModal}</td>
                       </tr>
                     </>
                   )}
 
                   <tr className="mini-head">
-                    <td>Yöntem</td>
+                    <td>{text.table.methodHead}</td>
                     <td>{r.method}</td>
                   </tr>
                   <tr>
-                    <td>Çok iletkenli model uygulandı mı</td>
-                    <td>{r.multiconductorModel ? 'evet' : 'hayır'}</td>
+                    <td>{text.table.multiconductor}</td>
+                    <td>{r.multiconductorModel ? text.yes : text.no}</td>
                   </tr>
 
-                  {epsEffRows(r.eps, fmt).map((row) => (
+                  {epsEffRows(r.eps, fmt, lang).map((row) => (
                     <tr key={row.label}>
                       <td>{row.label}</td>
                       <td>{row.value}</td>
                     </tr>
                   ))}
                   <tr>
-                    <td>Birim uzunluk gecikmesi</td>
+                    <td>{text.table.tpd}</td>
                     <td>{fmt(r.tpdPsPerMm, 5)} ps/mm</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -348,102 +307,36 @@ export default function Crosstalk() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
+              <li>{text.detail.method(r.method, r.multiconductorModel)}</li>
               <li>
-                Sonucun yöntem etiketi `{r.method}`; çok iletkenli model uygulandı mı:{' '}
-                {r.multiconductorModel ? 'evet' : 'hayır'}. Bu etiket kapalı form sonuçlarının
-                taşıdığı `closed-form` etiketiyle aynı güven seviyesinde değildir.
+                {text.detail.coupling(
+                  fmt(r.Kb, 5),
+                  fmtEng(r.Lsat, 'm', 4),
+                  fmt(r.scale, 4),
+                )}
               </li>
-              <li>
-                K_b = {fmt(r.Kb, 5)}; doyma uzunluğu {fmtEng(r.Lsat, 'm', 4)}, ölçek katsayısı{' '}
-                {fmt(r.scale, 4)} (uzunluk L_sat değerinin altındaysa doğrusal ölçekleme).
-              </li>
-              <li>
-                NEXT süresi gidiş dönüş gecikmesidir: 2·L·t′_pd = {fmtEng(r.nextDuration, 's', 4)}.
-                Tepe değerin ne kadar sürdüğünü gösterir, ne kadar büyük olduğunu değil.
-              </li>
-              <li>
-                3W kontrolü kayan nokta karşılaştırmasını bağıl toleransla yapar; tam sınırdaki
-                geometri (S = 3·W) yanlışlıkla "sağlanmadı" görünmez.
-              </li>
-              <li>
-                {r.fext.available
-                  ? `FEXT modal gecikme farkından hesaplandı: Δt = ${fmtEng(r.fext.modalDelayDiff, 's', 4)}. Δt ≪ t_r varsayımı geçerli olduğu sürece anlamlıdır.`
-                  : 'FEXT hesaplanmadı — modal εeff değerleri girilmedi. Motor bu iki değere ≥ 1 eşiği uygular; altındaki bir değer FEXT\'i hesaplatmaz.'}
-              </li>
-              <li>{THRESHOLD_NOTE}</li>
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.duration(fmtEng(r.nextDuration, 's', 4))}</li>
+              <li>{text.detail.threeW}</li>
+              <li>{text.detail.fext(r.fext)}</li>
+              <li>{text.thresholdNote}</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              <strong>Bilinen sapma — çok iletkenli hat çözümü uygulanmadı.</strong> O çözüm
-              kapasitans matrisini 2B alan çözücüden alır, endüktans matrisini L = μ₀ε₀·C₀⁻¹,
-              iletkenlik matrisini G ≈ ω·tanδ·C ile kurar; aggressor sinyalini FFT ile frekans
-              alanına taşır, her frekansta e^(−Mℓ) çözer, IFFT ile zaman alanına döner. Alan
-              çözücü olmadığı için bu adımların hiçbiri yapılmadı. Bu ekran dalga biçimi üretmez.
-            </li>
-            <li>
-              <strong>Kullanılan ifadeler ampiriktir.</strong> K_b, L_sat ve V_FEXT
-              bağıntılarının sayısal biçimi ve geçerlilik aralığı doğrulanmış bir kaynağa
-              dayanmıyor. Sonuç bu yüzden `empirical-coupling` etiketi ve
-              "çok iletkenli model: hayır" bayrağı taşır.
-            </li>
-            <li>
-              <strong>Hat aralığı duyarlılık grafiği üretilmedi.</strong> Alttaki parametrik
-              grafik hat aralığı duyarlılığı yerine paralel uzunluk taraması
-              çiziyor. Nedeni: bu ekranda Z_odd ve Z_even
-              kullanıcıdan gelir ve hat aralığına bağlı bir modelleri yoktur — aralık
-              süpürüldüğünde K_b hiç değişmez, dolayısıyla duyarlılık eğrisi üretilemez. Aralık
-              duyarlılığı için Z_odd/Z_even'in aralıkla birlikte değişmesi gerekir; o da
-              kapasitans matrisi, yani 2B alan çözücü işidir. Hat aralığı bu ekranda yalnızca
-              3W geometrik kontrolüne girer.
-            </li>
-            <li>
-              <strong>3W yalnızca geometrik bir kontroldür.</strong> Bu ekranda tanımı belirsizlik
-              taşımayan tek ifade S ≥ 3·W'dir ve o da görsel bir tasarım kontrolüdür.
-              Sağlandığında "3W geometrik kuralı sağlandı" denir; "crosstalk yoktur" denmez.
-            </li>
-            <li>
-              Bu ekranın sayılarıyla üretim kararı verilmemelidir. Gürültü bütçesi kapatma,
-              yığın onayı veya kart çıkışı için alan çözücü sonucu ya da ölçüm gerekir.
-            </li>
-            <li>
-              Z_even ve Z_odd kullanıcıdan gelir. Diferansiyel çift ekranından alındıysa o
-              değerler de ampirik bir kuplaj katsayısından türemiştir; belirsizlik buraya
-              doğrudan geçer.
-            </li>
-            <li>
-              Far-end crosstalk modal hız farkına bağlıdır ve Z_odd/Z_even değerlerinden
-              türetilemez. Tek bir εeff kullanan bir model iki modu aynı hızda kabul eder ve FEXT
-              katsayısı K_f = −½·t'_pd·(C_m/C − L_m/L) özdeş olarak sıfır çıkar; microstrip'te bu
-              yanlıştır. Bu yüzden modal εeff girilmezse sayı üretilmez.
-            </li>
-            <li>
-              Odd ve even mod εeff eşitse FEXT sıfır çıkar ve bu DOĞRUDUR — homojen dielektrikte
-              (stripline) iki mod aynı hızda ilerler. Bu durum "hesaplanamadı" durumundan farklıdır
-              ve tabloda ayrı gösterilir.
-            </li>
-            <li>
-              Kestirim tek bir aggressor içindir. Birden fazla aggressor, dönüş yolu süreksizliği,
-              via geçişi, konnektör ve düzlem yarıkları hesaba katılmaz; gerçek kartta bunlar
-              baskın olabilir.
-            </li>
-            <li>
-              Victim hattının sonlandırması, kaynak ve yük empedansları modele girmez. Çok
-              iletkenli hat çözümü bunları girdi olarak kullanır; bu kestirim kullanamaz.
-            </li>
-            <li>
-              Kayıp (R, G) ve dispersiyon ihmal edilir; εeff frekanstan bağımsız alınır.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((item, i) => (
+              <li key={i}>
+                {item.strong && <><strong>{item.strong}</strong>{' '}</>}
+                {item.text}
+              </li>
+            ))}
           </ul>
         </section>
       </div>
@@ -451,7 +344,7 @@ export default function Crosstalk() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -459,28 +352,28 @@ export default function Crosstalk() {
             <ChartLegend
               items={[
                 { label: 'V_NEXT', tone: toneClass(0), kind: 'line' },
-                { label: 'doyma seviyesi', tone: 'tone-muted', kind: 'line' },
+                { label: text.chart.satLegend, tone: 'tone-muted', kind: 'line' },
               ]}
             />
 
             <LineChart
               xScale="log"
-              xLabel={CHART.x}
-              yLabel={CHART.y}
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: `doyma — L_sat = ${fmt(s.LsatMm, 4)} mm`,
+                label: text.chart.satRef(s.LsatMm),
               }))}
-              marker={{ ...s.marker, label: 'çalışma noktası' }}
+              marker={{ ...s.marker, label: text.chart.operatingPoint }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmt(v, 3)}
-              caption={CHART.caption}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel={CHART.x}
+              xLabel={text.chart.x}
               series={chartSeries}
               every={6}
               formatX={(v) => `${fmt(v, 4)} mm`}
@@ -488,7 +381,7 @@ export default function Crosstalk() {
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

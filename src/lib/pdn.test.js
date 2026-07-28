@@ -7,6 +7,7 @@ import {
   PDN_ERR_INVALID, PDN_ERR_SINGULAR,
 } from './pdn'
 import { EPS0 } from './units'
+import { expectErrorShapes } from './errorShape.testkit'
 
 const uF = (x) => x * 1e-6
 const nH = (x) => x * 1e-9
@@ -252,5 +253,18 @@ describe('bağlantı loop endüktansı (spec §8.2.4)', () => {
 
   it('hepsi sıfırsa hata döner', () => {
     expect(loopInductance({}).error).toBe(PDN_ERR_INVALID)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      targetImpedance({ Vrail: 1, tolerancePct: 3, deltaI: 0 }),
+      targetImpedance({ deltaI: 5 }),
+      minimumCapacitance({ deltaI: 0, deltaT: 1e-6, deltaV: 0.1 }),
+      parallelNetworkImpedance([], 1e6),
+      pdnImpedance({ caps: [], f: 1e6 }),
+      loopInductance({}),
+    ])
   })
 })

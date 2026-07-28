@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  readField, readForm, when, fieldsFor,
+  readField, readForm, readRows, when, fieldsFor,
   FIELD_ERR_AMBIGUOUS, FIELD_ERR_MISSING, FIELD_ERR_INVALID,
   FIELD_ERR_RANGE, FIELD_ERR_UNIT,
 } from './fields'
@@ -82,6 +82,43 @@ describe('readForm', () => {
     const r = readForm({ Vin: '12', R1: '', RL: '' }, specs)
     expect(r.values.R1).toBeUndefined()
     expect(r.values.Vin).toBe(12)
+  })
+})
+
+describe('readRows', () => {
+  const rowSpecs = [
+    { key: 'R', label: 'R', unitKey: 'Ru', table: R_TABLE },
+    { key: 'C', label: 'C' },
+  ]
+
+  it('geçerli satırlar SI değerine çevrilir', () => {
+    const r = readRows([{ R: '1', Ru: 'kΩ', C: '2' }], rowSpecs, 'Kapasitör')
+    expect(r.ok).toBe(true)
+    expect(r.rows).toEqual([{ R: 1000, C: 2 }])
+  })
+
+  it('hatalı satırın numarası etikete eklenir', () => {
+    const r = readRows([{ R: '1', Ru: 'Ω', C: '2' }, { R: 'abc', Ru: 'Ω', C: '2' }], rowSpecs, 'Kapasitör')
+    expect(r.ok).toBe(false)
+    expect(r.invalid).toEqual(['Kapasitör 2 — R'])
+  })
+
+  it('belirsiz binlik ayırıcı satırda da ayrı listelenir', () => {
+    const r = readRows([{ R: '1.000', Ru: 'Ω', C: '2' }], rowSpecs, 'Kapasitör')
+    expect(r.ambiguous).toEqual(['Kapasitör 1 — R'])
+    expect(r.invalid).toEqual([])
+  })
+
+  it('boş liste satır etiketiyle hata döner', () => {
+    expect(readRows([], rowSpecs, 'Kapasitör').invalid).toEqual(['Kapasitör'])
+  })
+
+  // Saf katman dil bilmez: etiket verilmezse Türkçe bir sözcük uydurulmaz.
+  it('satır etiketi verilmezse dilsiz belirteç kullanılır', () => {
+    const r = readRows([{ R: 'abc', Ru: 'Ω', C: '2' }], rowSpecs)
+    expect(r.invalid).toEqual(['row 1 — R'])
+    expect(readRows([], rowSpecs).invalid).toEqual(['row'])
+    expect(r.invalid.join(' ')).not.toMatch(/[ğİışĞŞÇÖÜöçü]/)
   })
 })
 

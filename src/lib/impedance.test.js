@@ -7,6 +7,7 @@ import {
   solveWidthForZ0, solveSpacingForZdiff, impedanceTolerance,
   METHOD_CLOSED_FORM, METHOD_EMPIRICAL, IMP_ERR_INVALID, IMP_ERR_NO_SOLUTION,
 } from './impedance'
+import { expectErrorShapes } from './errorShape.testkit'
 
 const mm = (x) => x * 1e-3
 
@@ -278,5 +279,19 @@ describe('tolerans', () => {
   it('yüzde sapmalar simetrik değildir', () => {
     const t = impedanceTolerance({ W: mm(0.4), H: mm(0.2), epsR: 4.2, tolW: 20 })
     expect(Math.abs(t.maxPct)).not.toBeCloseTo(Math.abs(t.minPct), 6)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      microstrip({ W: 0, H: mm(0.2), epsR: 4.2 }),
+      microstrip({ W: mm(0.4), H: mm(0.2), epsR: 0.5 }),
+      stripline({ W: 0, b: mm(0.5), epsR: 4.2 }),
+      coplanarWaveguide({ W: 0, S: mm(0.2), epsR: 4.2 }),
+      differentialPair({ W: mm(0.2), H: mm(0.2), S: 0, epsR: 4.2 }),
+      solveWidthForZ0({ target: 500, H: mm(0.2), epsR: 4.2 }),
+      solveSpacingForZdiff({ target: 400, W: mm(0.2), H: mm(0.2), epsR: 4.2 }),
+    ])
   })
 })

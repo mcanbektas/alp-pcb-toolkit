@@ -2,8 +2,12 @@ import { describe, it, expect } from 'vitest'
 import {
   parseNum, parseNumResult,
   fmt, fmtEng, fmtPct, fmtOhm, fmtVolt, fmtWatt, fmtRes, fmtAmp, fmtPow,
-  NUM_ERR_EMPTY, NUM_ERR_THOUSANDS, NUM_ERR_INVALID, THOUSANDS_MESSAGE,
+  NUM_ERR_EMPTY, NUM_ERR_THOUSANDS, NUM_ERR_INVALID,
 } from './num'
+// `fmtPct` sayıyı, `commonText(lang).pct` yüzde işaretini yazar. İkisi tek bir
+// sözleşmedir, o yüzden eşleşmeleri burada da kilitlenir — saf katmanın kendisi
+// hâlâ dil bilmez, yalnızca test iki tarafı yan yana koyar.
+import { commonText } from '../data/uiText'
 
 describe('hata kodları', () => {
   it('üç kod birbirinden ayrıdır', () => {
@@ -12,9 +16,14 @@ describe('hata kodları', () => {
     expect(codes).toEqual(['empty', 'thousands', 'invalid'])
   })
 
-  it('binlik uyarısı metni doludur', () => {
-    expect(typeof THOUSANDS_MESSAGE).toBe('string')
-    expect(THOUSANDS_MESSAGE.length).toBeGreaterThan(0)
+  // Uyarı metni artık `commonText(lang).thousandsNote(fields)` içindedir; saf
+  // katman yalnızca kodu döner, cümleyi kurmaz.
+  it('binlik uyarısı iki dilli ve alan adlarını taşır', () => {
+    for (const lang of ['tr', 'en']) {
+      const note = commonText(lang).thousandsNote(['W'])
+      expect(typeof note).toBe('string')
+      expect(note).toContain('W')
+    }
   })
 })
 
@@ -276,37 +285,64 @@ describe('fmtEng — birim ve anlamlı basamak', () => {
 
 describe('fmtPct', () => {
   it('işaret her zaman yazılır', () => {
-    expect(fmtPct(1)).toBe('+1 %')
-    expect(fmtPct(0.5)).toBe('+0.5 %')
-    expect(fmtPct(100)).toBe('+100 %')
+    expect(fmtPct(1)).toBe('+1')
+    expect(fmtPct(0.5)).toBe('+0.5')
+    expect(fmtPct(100)).toBe('+100')
   })
 
   it('negatifte tipografik eksi (U+2212) kullanılır', () => {
-    expect(fmtPct(-1)).toBe('−1 %')
-    expect(fmtPct(-0.5)).toBe('−0.5 %')
-    expect(fmtPct(-12.345)).toBe('−12.3 %')
+    expect(fmtPct(-1)).toBe('−1')
+    expect(fmtPct(-0.5)).toBe('−0.5')
+    expect(fmtPct(-12.345)).toBe('−12.3')
   })
 
   it('sıfır ve negatif sıfır artı işareti alır', () => {
-    expect(fmtPct(0)).toBe('+0 %')
-    expect(fmtPct(-0)).toBe('+0 %')
+    expect(fmtPct(0)).toBe('+0')
+    expect(fmtPct(-0)).toBe('+0')
   })
 
   it('varsayılan 3 anlamlı basamak kullanır', () => {
-    expect(fmtPct(12.345)).toBe('+12.3 %')
-    expect(fmtPct(12.345, 4)).toBe('+12.35 %')
-    expect(fmtPct(2.5, 1)).toBe('+3 %')
+    expect(fmtPct(12.345)).toBe('+12.3')
+    expect(fmtPct(12.345, 4)).toBe('+12.35')
+    expect(fmtPct(2.5, 1)).toBe('+3')
   })
 
   it('uç değerlerde üstel gösterime düşer', () => {
-    expect(fmtPct(1e-5)).toBe('+1.000e-5 %')
-    expect(fmtPct(-1e-5)).toBe('−1.000e-5 %')
-    expect(fmtPct(1e8)).toBe('+1.000e+8 %')
+    expect(fmtPct(1e-5)).toBe('+1.000e-5')
+    expect(fmtPct(-1e-5)).toBe('−1.000e-5')
+    expect(fmtPct(1e8)).toBe('+1.000e+8')
   })
 
   it('sonlu olmayan değer için tire döner', () => {
     expect(fmtPct(NaN)).toBe('—')
     expect(fmtPct(Infinity)).toBe('—')
+  })
+
+  // Yüzde işaretini saf katman yazmaz: işaretin yeri dile göre değişir ve tek
+  // yetkili yer `commonText(lang).pct`. Aksi hâlde aynı sayfada iki biçim çıkar.
+  it('yüzde işaretini kendisi yazmaz', () => {
+    expect(fmtPct(12.345)).not.toContain('%')
+    expect(fmtPct(-12.345)).not.toContain('%')
+    expect(fmtPct(0)).not.toContain('%')
+  })
+
+  it('ondalık ayırıcı iki dilde de noktadır', () => {
+    // Mühendislik çıktısı kopyalanıp başka araca yapıştırılır; virgüle dönmez.
+    expect(fmtPct(12.345)).toBe('+12.3')
+    expect(commonText('tr').pct(fmtPct(12.345))).toContain('12.3')
+    expect(commonText('en').pct(fmtPct(12.345))).toContain('12.3')
+  })
+
+  it('işaret sayıya bitişik kalır, yüzde işaretini dil yerleştirir', () => {
+    expect(commonText('tr').pct(fmtPct(3.2))).toBe('%+3.2')
+    expect(commonText('en').pct(fmtPct(3.2))).toBe('+3.2%')
+    expect(commonText('tr').pct(fmtPct(-12.5))).toBe('%−12.5')
+    expect(commonText('en').pct(fmtPct(-12.5))).toBe('−12.5%')
+  })
+
+  it('sonlu olmayan değere yüzde işareti takılmaz', () => {
+    expect(commonText('tr').pct(fmtPct(NaN))).toBe('—')
+    expect(commonText('en').pct(fmtPct(Infinity))).toBe('—')
   })
 })
 

@@ -5,6 +5,7 @@ import {
   thermalVia, thermalViaCount,
   VIA_ERR_INVALID,
 } from './via'
+import { expectErrorShapes } from './errorShape.testkit'
 
 const mm = (x) => x * 1e-3
 
@@ -192,5 +193,16 @@ describe('termal via dizisi', () => {
     const one = thermalVia({ ...base, N: 1 })
     const need = thermalViaCount({ ...base, deltaT: 20, Q: 20 / (one.Rsingle / 4) })
     expect(need.N).toBe(4)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      barrelArea(0, mm(0.025)),
+      barrelArea(mm(0.3), 0),
+      annularRing({ Dpad: mm(0.3), Ddrill: mm(0.3) }),
+      viaElectrical({ Df: 0, tp: mm(0.025), H: mm(1.6), I: 1 }),
+    ])
   })
 })

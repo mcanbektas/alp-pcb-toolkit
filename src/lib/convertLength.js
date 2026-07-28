@@ -85,12 +85,12 @@ export function fromMeters(meters, unit) {
  */
 export function convertLength(value, from, to) {
   if (!Number.isFinite(value)) {
-    return { error: LEN_ERR_INVALID, message: 'Uzunluk sonlu bir sayı olmalı.' }
+    return { error: LEN_ERR_INVALID }
   }
   const fFrom = unitFactor(from)
   const fTo = unitFactor(to)
   if (!Number.isFinite(fFrom) || !Number.isFinite(fTo)) {
-    return { error: LEN_ERR_UNIT, message: 'Bilinmeyen uzunluk birimi.' }
+    return { error: LEN_ERR_UNIT }
   }
   const meters = value * fFrom
   const converted = meters / fTo
@@ -98,7 +98,7 @@ export function convertLength(value, from, to) {
   // taşar (ör. 1e308 m → µm). Infinity'yi geçerli bir sonuç gibi döndürmek,
   // tanımsız bir değeri sayı diye göstermek olurdu.
   if (!Number.isFinite(meters) || !Number.isFinite(converted)) {
-    return { error: LEN_ERR_RANGE, message: 'Sonuç kayan nokta aralığının dışına taşıyor.' }
+    return { error: LEN_ERR_RANGE }
   }
   return { value: converted, meters, from, to }
 }

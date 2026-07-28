@@ -38,22 +38,25 @@ export const INITIAL_EPS_FORM = {
 const PLAIN = { '': 1 }
 const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 
+// Saf katman dil bilmez: etiket olarak alan anahtarı döner. Ekran
+// `labels[s.key] ?? s.label` ile kendi çevirisini geçirir; çeviri eksikse
+// anahtar görünür — sessizce Türkçeye düşmez.
 export function epsFields(f) {
   const geometry = f.epsSource === EPS_GEOMETRY
   const microstripGeometry = geometry && f.epsStructure === EPS_STRUCT_MICROSTRIP
 
   return fieldsFor([
     when(!geometry, [
-      { key: 'epsEffManual', label: 'Efektif dielektrik sabiti (εeff)', unit: '', table: PLAIN, min: 1 },
+      { key: 'epsEffManual', label: 'epsEffManual', unit: '', table: PLAIN, min: 1 },
     ]),
     when(geometry, [
-      { key: 'epsR', label: 'Dielektrik sabiti (εr)', unit: '', table: PLAIN, min: 1 },
+      { key: 'epsR', label: 'epsR', unit: '', table: PLAIN, min: 1 },
     ]),
     // Stripline homojen dielektriktedir: εeff = εr, geometri sorulmaz
     when(microstripGeometry, [
-      { key: 'epsW', label: 'Hat genişliği (W)', unitKey: 'epsWu', table: DIM, min: 0 },
-      { key: 'epsH', label: 'Dielektrik yüksekliği (H)', unitKey: 'epsHu', table: DIM, min: 0 },
-      { key: 'epsT', label: 'Bakır kalınlığı (t)', unitKey: 'epsTu', table: DIM, min: 0, allowZero: true },
+      { key: 'epsW', label: 'epsW', unitKey: 'epsWu', table: DIM, min: 0 },
+      { key: 'epsH', label: 'epsH', unitKey: 'epsHu', table: DIM, min: 0 },
+      { key: 'epsT', label: 'epsT', unitKey: 'epsTu', table: DIM, min: 0, allowZero: true },
     ]),
   ])
 }

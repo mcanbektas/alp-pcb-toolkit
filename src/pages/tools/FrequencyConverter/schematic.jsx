@@ -21,7 +21,7 @@ function wavePath() {
   return parts.join(' ')
 }
 
-export default function FrequencySchematic({ r }) {
+export default function FrequencySchematic({ r, text }) {
   const live = r.ok
   const x1 = X0 + 2 * HALF // ikinci yükselen kenar
   const mid = (X0 + x1) / 2 // periyot ölçüsünün ortası
@@ -29,8 +29,8 @@ export default function FrequencySchematic({ r }) {
   return (
     <Schematic
       viewBox="-8 0 268 140"
-      title="Periyodik sinyal — periyot ve frekans"
-      caption="Bir tam çevrim T sürer; birim zamandaki çevrim sayısı f = 1/T"
+      title={text.title}
+      caption={text.caption}
     >
       {/* Dalga */}
       <path className="sch-wire" d={wavePath()} />

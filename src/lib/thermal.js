@@ -24,7 +24,7 @@ export const THERMAL_ERR_NEGATIVE_SINK = 'negative-sink'
 // alan olarak taşır ki arayüz gizlemesin.
 export function junctionTemperature({ Ta, P, thetaJA, TjMax = null }) {
   if (!(P >= 0) || !(thetaJA > 0) || !Number.isFinite(Ta)) {
-    return { error: THERMAL_ERR_INVALID, message: 'Güç negatif olmayan, termal direnç pozitif, ortam sıcaklığı sayı olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
 
   const rise = P * thetaJA
@@ -58,10 +58,10 @@ export function junctionTemperature({ Ta, P, thetaJA, TjMax = null }) {
 // artırılmalı veya farklı paket seçilmelidir (spec §8.4).
 export function heatsink({ Ta, P, thetaJC, thetaCS, TjMax, thetaSA = null }) {
   if (!(P > 0) || !(thetaJC >= 0) || !(thetaCS >= 0) || !Number.isFinite(Ta) || !Number.isFinite(TjMax)) {
-    return { error: THERMAL_ERR_INVALID, message: 'Güç pozitif, termal dirençler negatif olmayan, sıcaklıklar sayı olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
   if (!(TjMax > Ta)) {
-    return { error: THERMAL_ERR_INVALID, message: 'İzin verilen junction sıcaklığı ortam sıcaklığından büyük olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
 
   const budget = (TjMax - Ta) / P
@@ -77,7 +77,6 @@ export function heatsink({ Ta, P, thetaJC, thetaCS, TjMax, thetaSA = null }) {
 
   if (!(thetaSAmax > 0)) {
     out.error = THERMAL_ERR_NEGATIVE_SINK
-    out.message = 'Paket ve arayüz direnci tek başına termal bütçeyi aşıyor; soğutucu seçimi bu durumu çözmez. Gücü azaltın, hava akışını artırın veya farklı paket seçin.'
     return out
   }
 
@@ -113,10 +112,10 @@ export const PSI_JB = 'psi-jb'
 
 export function junctionFromSurface({ Tsurface, P, psi, metric = PSI_JT }) {
   if (!(P >= 0) || !(psi >= 0) || !Number.isFinite(Tsurface)) {
-    return { error: THERMAL_ERR_INVALID, message: 'Güç ve Ψ negatif olmayan, ölçülen sıcaklık sayı olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
   if (metric !== PSI_JT && metric !== PSI_JB) {
-    return { error: THERMAL_ERR_INVALID, message: 'Metrik Ψ_JT veya Ψ_JB olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
 
   const rise = psi * P
@@ -139,10 +138,27 @@ export function junctionFromSurface({ Tsurface, P, psi, metric = PSI_JT }) {
 // ısı yayılımı, paket iç yapısı, yakındaki sıcak komponentler ve bakır
 // poligonun iki boyutlu spreading etkisi YOKTUR (spec §8.6). Sonuç bu yüzden
 // "ilk derece termal ağ tahmini" olarak sunulur — `firstOrder: true`.
+//
+// Modelde bulunmayan mekanizmalar KOD olarak bildirilir; kodu okunabilir bir ada
+// çeviren taraf ekranın text.js dosyasıdır. Sabitler dışa aktarılır ki tüketici
+// dizeyi elle yazmasın.
+export const EXCLUDE_CONVECTION = 'convection'
+export const EXCLUDE_RADIATION = 'radiation'
+export const EXCLUDE_SPREADING = 'spreading'
+export const EXCLUDE_PACKAGE_INTERNALS = 'package-internals'
+export const EXCLUDE_NEIGHBOURING_SOURCES = 'neighbouring-sources'
+
+export const THERMAL_EXCLUDES = [
+  EXCLUDE_CONVECTION,
+  EXCLUDE_RADIATION,
+  EXCLUDE_SPREADING,
+  EXCLUDE_PACKAGE_INTERNALS,
+  EXCLUDE_NEIGHBOURING_SOURCES,
+]
 
 export function copperStripResistance({ L, W, t }) {
   if (!(L > 0) || !(W > 0) || !(t > 0)) {
-    return { error: THERMAL_ERR_INVALID, message: 'Uzunluk, genişlik ve bakır kalınlığı pozitif olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
   return {
     Rth: L / (K_CU * W * t),
@@ -154,7 +170,7 @@ export function copperStripResistance({ L, W, t }) {
 
 export function dielectricResistance({ H, area, k = K_FR4 }) {
   if (!(H > 0) || !(area > 0) || !(k > 0)) {
-    return { error: THERMAL_ERR_INVALID, message: 'Kalınlık, alan ve iletkenlik pozitif olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
   return {
     Rth: H / (k * area),
@@ -166,10 +182,10 @@ export function dielectricResistance({ H, area, k = K_FR4 }) {
 // Paralel ısı yolları — elektriksel paralel dirençle aynı bağıntı
 export function parallelThermalPaths(resistances) {
   if (!Array.isArray(resistances) || resistances.length === 0) {
-    return { error: THERMAL_ERR_INVALID, message: 'En az bir termal yol gerekli.' }
+    return { error: THERMAL_ERR_INVALID }
   }
   if (resistances.some((r) => !(r > 0))) {
-    return { error: THERMAL_ERR_INVALID, message: 'Termal dirençler pozitif olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
 
   const conductance = resistances.reduce((a, r) => a + 1 / r, 0)
@@ -186,13 +202,14 @@ export function parallelThermalPaths(resistances) {
 
 export function temperatureRise({ P, Rth }) {
   if (!(P >= 0) || !(Rth > 0)) {
-    return { error: THERMAL_ERR_INVALID, message: 'Güç negatif olmayan, termal direnç pozitif olmalı.' }
+    return { error: THERMAL_ERR_INVALID }
   }
   return {
     deltaT: P * Rth,
     P, Rth,
     // İletim dışı hiçbir mekanizma yok (spec §8.6)
     firstOrder: true,
-    excludes: ['konveksiyon', 'radyasyon', 'iki boyutlu yayılım', 'paket iç yapısı', 'komşu ısı kaynakları'],
+    // Kopya döner; çağıran listeyi değiştirse motorun sabiti bozulmasın
+    excludes: [...THERMAL_EXCLUDES],
   }
 }

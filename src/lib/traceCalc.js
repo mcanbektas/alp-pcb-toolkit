@@ -22,7 +22,11 @@ export const OZ_TABLE = [
     .map(Number)
     .sort((a, b) => a - b)
     .map((oz) => ({ key: String(oz), label: `${oz} oz (${OZ_NOMINAL_UM[oz]} µm)`, um: OZ_NOMINAL_UM[oz] })),
-  { key: 'custom', label: 'Özel kalınlık…', um: null },
+  // "Özel kalınlık" satırının etiketi saf katmanda dil bilmez: burada anahtarın
+  // kendisi durur, ekran `text.fields.ozCustom` ile üzerine yazar (TraceWidth ve
+  // PowerPlane bunu yapıyor). Etiket verilmezse alan anahtarı görünür — sessiz
+  // boşluk ya da tek dilli cümle yerine teşhis edilebilir bir ad.
+  { key: 'custom', label: 'custom', um: null },
 ]
 
 // Seçim anahtarından nominal kalınlık (m). Özel kalınlık ve tabloda olmayan
@@ -57,14 +61,13 @@ export function traceResistance(L_m, W_m, t_m, T) {
   return (rhoCuAt(T) * L_m) / (W_m * t_m)
 }
 
-// Denklemin kabaca geçerli olduğu aralık için uyarı üretir
+// Denklemin kabaca geçerli olduğu aralık için uyarı üretir. Saf katman cümle
+// kurmaz: her uyarı bir kod ve uyarıyı doğuran değerle döner
+// (`{ code: 'dt-range', dT }`), cümleyi ekranın text.js dosyası yazar.
+// Sıra sabittir: önce ΔT, sonra akım.
 export function validityWarnings(I, dT) {
   const w = []
-  if (dT < 10 || dT > 100) {
-    w.push(`ΔT = ${dT} °C, denklemin tipik geçerlilik aralığı (10–100 °C) dışında.`)
-  }
-  if (I > 35) {
-    w.push(`I = ${I} A, denklemin tipik geçerlilik üst sınırının (≈35 A) üzerinde.`)
-  }
+  if (dT < 10 || dT > 100) w.push({ code: 'dt-range', dT })
+  if (I > 35) w.push({ code: 'i-range', I })
   return w
 }

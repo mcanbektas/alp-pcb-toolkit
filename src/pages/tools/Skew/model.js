@@ -34,23 +34,27 @@ const DIM = { mm: LENGTH.mm, cm: LENGTH.cm, m: LENGTH.m, mil: LENGTH.mil, inch: 
 // Skew bütçesi ps–ns mertebesindedir; daha büyük birimler bu ekranda sunulmaz
 const TIME_SMALL = { ps: TIME.ps, ns: TIME.ns }
 
-export function formFields(f) {
+// Alan etiketleri `labels` ile çağıran taraftan gelir (geçerli dilde,
+// text.js'ten); `lib/` bunları bilmez. εeff alanlarının etiketi de aynı
+// sözlükten çevrilir — verilmezse lib'in kendi etiketi kalır.
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
-    epsFields(f),
+    epsFields(f).map((s) => ({ ...s, label: labels[s.key] ?? s.label })),
     [
-      { key: 'lengthP', label: 'P hattı uzunluğu', unitKey: 'lengthPu', table: DIM, min: 0 },
-      { key: 'lengthN', label: 'N hattı uzunluğu', unitKey: 'lengthNu', table: DIM, min: 0 },
-      { key: 'skewMax', label: 'İzin verilen maksimum skew', unitKey: 'skewMaxu', table: TIME_SMALL, min: 0 },
+      { key: 'lengthP', label: L('lengthP'), unitKey: 'lengthPu', table: DIM, min: 0 },
+      { key: 'lengthN', label: L('lengthN'), unitKey: 'lengthNu', table: DIM, min: 0 },
+      { key: 'skewMax', label: L('skewMax'), unitKey: 'skewMaxu', table: TIME_SMALL, min: 0 },
     ],
     // Farklı katmanda εeff de farklıdır; motor bunu epsEffN olarak ister.
     when(f.layer === LAYER_DIFFERENT, [
-      { key: 'epsEffN', label: 'N hattı efektif dielektrik sabiti (εeff,N)', unit: '', table: PLAIN, min: 1 },
+      { key: 'epsEffN', label: L('epsEffN'), unit: '', table: PLAIN, min: 1 },
     ]),
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

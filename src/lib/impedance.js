@@ -107,7 +107,7 @@ function thicknessCorrections(u, tau, epsR) {
  */
 export function microstrip({ W, H, t = 0, epsR }) {
   if (!(W > 0) || !(H > 0) || !(epsR > 1)) {
-    return { error: IMP_ERR_INVALID, message: 'W, H pozitif ve εr > 1 olmalı.' }
+    return { error: IMP_ERR_INVALID }
   }
 
   const u = W / H
@@ -149,7 +149,7 @@ export function microstrip({ W, H, t = 0, epsR }) {
 // yoktur; kalınlık ve asimetri alan çözücü fazına bırakılmıştır.
 export function stripline({ W, b, epsR }) {
   if (!(W > 0) || !(b > 0) || !(epsR > 1)) {
-    return { error: IMP_ERR_INVALID, message: 'W, b pozitif ve εr > 1 olmalı.' }
+    return { error: IMP_ERR_INVALID }
   }
 
   const x = (Math.PI * W) / (2 * b)
@@ -177,7 +177,7 @@ export function stripline({ W, b, epsR }) {
 // yapı alan çözücü fazına bırakılmıştır.
 export function coplanarWaveguide({ W, S, epsR }) {
   if (!(W > 0) || !(S > 0) || !(epsR > 1)) {
-    return { error: IMP_ERR_INVALID, message: 'W, S pozitif ve εr > 1 olmalı.' }
+    return { error: IMP_ERR_INVALID }
   }
 
   const k = W / (W + 2 * S)
@@ -247,7 +247,7 @@ export function couplingFactor(structure, ratio) {
  * @param {number} epsR
  */
 export function differentialPair({ structure = 'microstrip', W, S, H, t = 0, epsR }) {
-  if (!(S > 0)) return { error: IMP_ERR_INVALID, message: 'Hat aralığı pozitif olmalı.' }
+  if (!(S > 0)) return { error: IMP_ERR_INVALID }
 
   const single = structure === 'stripline'
     ? stripline({ W, b: H, epsR })
@@ -256,7 +256,7 @@ export function differentialPair({ structure = 'microstrip', W, S, H, t = 0, eps
 
   const ratio = S / H
   const kc = couplingFactor(structure, ratio)
-  if (!Number.isFinite(kc)) return { error: IMP_ERR_INVALID, message: 'Kuplaj katsayısı hesaplanamadı.' }
+  if (!Number.isFinite(kc)) return { error: IMP_ERR_INVALID }
 
   const Zodd = single.Z0 * (1 - kc)
   const Zeven = single.Z0 * (1 + kc)
@@ -294,10 +294,10 @@ export function differentialPair({ structure = 'microstrip', W, S, H, t = 0, eps
 // kapatılır; sınırlar içinde kök yoksa hata döner, tahmin üretilmez.
 
 export function solveWidthForZ0({ target, H, t = 0, epsR, structure = 'microstrip', b, S }) {
-  if (!(target > 0)) return { error: IMP_ERR_INVALID, message: 'Hedef empedans pozitif olmalı.' }
+  if (!(target > 0)) return { error: IMP_ERR_INVALID }
 
   const height = structure === 'stripline' ? b : H
-  if (!(height > 0)) return { error: IMP_ERR_INVALID, message: 'Dielektrik yüksekliği pozitif olmalı.' }
+  if (!(height > 0)) return { error: IMP_ERR_INVALID }
 
   const evaluate = (W) => {
     if (structure === 'stripline') return stripline({ W, b: height, epsR })
@@ -317,10 +317,7 @@ export function solveWidthForZ0({ target, H, t = 0, epsR, structure = 'microstri
     max: height * 100,
   })
   if (solved.error) {
-    return {
-      error: IMP_ERR_NO_SOLUTION,
-      message: 'Verilen yığın için bu empedans fiziksel genişlik aralığında elde edilemiyor.',
-    }
+    return { error: IMP_ERR_NO_SOLUTION }
   }
 
   return { W: solved.value, solvedBy: solved.method, ...evaluate(solved.value) }
@@ -328,7 +325,7 @@ export function solveWidthForZ0({ target, H, t = 0, epsR, structure = 'microstri
 
 // Hedef diferansiyel empedans için hat aralığı (W sabit tutulur, spec §6.8.2)
 export function solveSpacingForZdiff({ target, W, H, t = 0, epsR, structure = 'microstrip' }) {
-  if (!(target > 0)) return { error: IMP_ERR_INVALID, message: 'Hedef empedans pozitif olmalı.' }
+  if (!(target > 0)) return { error: IMP_ERR_INVALID }
 
   const F = (S) => {
     const r = differentialPair({ structure, W, S, H, t, epsR })
@@ -337,10 +334,7 @@ export function solveSpacingForZdiff({ target, W, H, t = 0, epsR, structure = 'm
 
   const solved = solveBounded(F, { x0: H, min: H / 500, max: H * 50 })
   if (solved.error) {
-    return {
-      error: IMP_ERR_NO_SOLUTION,
-      message: 'Hedef diferansiyel empedans bu genişlik ve yığınla elde edilemiyor. Hat genişliğini değiştirin.',
-    }
+    return { error: IMP_ERR_NO_SOLUTION }
   }
 
   return {

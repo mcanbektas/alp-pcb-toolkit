@@ -3,6 +3,7 @@ import {
   crystalLoad, crystalCapsForLoad,
   CRYSTAL_ERR_STRAY, CRYSTAL_ERR_PIN,
 } from './crystal'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('kristal yük kapasitesi', () => {
   it('basitleştirilmiş model: C = 2(C_L − C_stray)', () => {
@@ -29,5 +30,21 @@ describe('kristal yük kapasitesi', () => {
 
   it('pin kapasitesi hedefi aşarsa hesap yapmaz', () => {
     expect(crystalCapsForLoad({ CL: 6, Cin: 20, Cout: 20 }).error).toBe(CRYSTAL_ERR_PIN)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod ve sayı taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      crystalCapsForLoad({ CL: 8, Cstray: 10 }),
+      crystalCapsForLoad({ CL: 6, Cin: 20, Cout: 20 }),
+      crystalCapsForLoad({ CL: 0 }),
+    ])
+  })
+
+  it('sınıra dayanan değerler kodun yanında sayı olarak döner', () => {
+    const r = crystalCapsForLoad({ CL: 8, Cstray: 10 })
+    expect(r.CL).toBe(8)
+    expect(r.Cstray).toBe(10)
   })
 })

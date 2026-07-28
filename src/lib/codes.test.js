@@ -4,7 +4,9 @@ import {
   decodeSmd, decodeCapacitor,
   CODE_ERR_FORMAT, CODE_ERR_DIGIT, CODE_ERR_RANGE,
   BAND_ROLE_DIGIT, CODE_VARIANT_CAP_LETTER, CODE_VARIANT_TOLERANCE,
+  CODE_VARIANT_EIA96_LETTER, CODE_VARIANT_EIA96_INDEX, CODE_VARIANT_TCR,
 } from './codes'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('spec §13 Test 5 — direnç kodu', () => {
   it('472 → 4.7 kΩ', () => {
@@ -41,7 +43,7 @@ describe('renk bantları', () => {
     const r = decodeColorBands(['gold', 'violet', 'red', 'gold'])
     expect(r.error).toBe(CODE_ERR_DIGIT)
     // Hangi bandın hangi rolü karşılamadığı alan olarak döner; cümleyi ekran kurar
-    expect(r.message).toEqual({ band: 1, role: BAND_ROLE_DIGIT, color: 'gold' })
+    expect(r.detail).toEqual({ band: 1, role: BAND_ROLE_DIGIT, color: 'gold' })
   })
 
   it('değerden renge ve geri dönünce aynı değeri verir', () => {
@@ -53,7 +55,7 @@ describe('renk bantları', () => {
   it('renklerle temsil edilemeyen tolerans hata döner', () => {
     const r = encodeColorBands(4700, 3, 4)
     expect(r.error).toBe(CODE_ERR_RANGE)
-    expect(r.message).toEqual({ variant: CODE_VARIANT_TOLERANCE, tolerance: 3 })
+    expect(r.detail).toEqual({ variant: CODE_VARIANT_TOLERANCE, tolerance: 3 })
   })
 })
 
@@ -126,13 +128,13 @@ describe('kondansatör kodları', () => {
     expect(decodeCapacitor('10').error).toBe(CODE_ERR_FORMAT)
     const r = decodeCapacitor('104Q')
     expect(r.error).toBe(CODE_ERR_FORMAT)
-    expect(r.message).toEqual({ variant: CODE_VARIANT_CAP_LETTER, letter: 'Q' })
+    expect(r.detail).toEqual({ variant: CODE_VARIANT_CAP_LETTER, letter: 'Q' })
   })
 })
 
 describe('hata sonuçları', () => {
   it('kullanıcıya görünen cümle taşımaz — yalnızca kod ve alanlar', () => {
-    const failures = [
+    expectErrorShapes([
       decodeColorBands(['red', 'red']),
       decodeColorBands(['red', 'red', 'pink', 'gold']),
       decodeColorBands(['gold', 'violet', 'red', 'gold']),
@@ -147,10 +149,16 @@ describe('hata sonuçları', () => {
       decodeCapacitor(104),
       decodeCapacitor('10'),
       decodeCapacitor('104Q'),
-    ]
-    for (const r of failures) {
-      expect(typeof r.error).toBe('string')
-      expect(typeof r.message).not.toBe('string')
-    }
+    ])
+  })
+
+  it('ayrıntı alanları veriyi taşır, cümleyi değil', () => {
+    // Ekranın cümle kurabilmesi için gereken veri kodun yanında durur:
+    // hangi bant, hangi rol, hangi renk / harf / sayı.
+    expect(decodeSmd('01H').detail).toEqual({ variant: CODE_VARIANT_EIA96_LETTER, letter: 'H' })
+    expect(decodeSmd('00A').detail).toEqual({ variant: CODE_VARIANT_EIA96_INDEX, index: '00' })
+    expect(encodeColorBands(4700, 5, 6, 7).detail).toEqual({ variant: CODE_VARIANT_TCR, tcr: 7 })
+    // Bant sayısı hatasının kodu tek başına yeter — ayrıntıya ihtiyaç yok
+    expect(decodeColorBands(['red', 'red']).detail).toBeUndefined()
   })
 })

@@ -1,5 +1,8 @@
 import { HashRouter, Routes, Route, Link } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
+import { LangProvider, useLang } from './hooks/useLang'
+import { commonText } from './data/uiText'
+import { LANGS, LANG_LABEL, pick } from './lib/i18n'
 import logo from './assets/logo.png'
 import Home from './pages/Home'
 import CategoryPage from './pages/CategoryPage'
@@ -33,15 +36,76 @@ const DecibelConverter = lazy(() => import('./pages/tools/DecibelConverter'))
 const TemperatureConverter = lazy(() => import('./pages/tools/TemperatureConverter'))
 const ComplexConverter = lazy(() => import('./pages/tools/ComplexConverter'))
 
+// Uygulama geneli metinler. Ekran metni gibi bunlar da `pick()` ile çözülür:
+// doğrudan `DICT[lang]` indekslemesi eksik çeviride `undefined` verirdi, `pick`
+// ise Türkçeye düşer — eksik çeviri boş kutu değil, okunabilir metin olur.
+const FOOTER = {
+  tr: 'Sonuçlar yaklaşık mühendislik tahminleridir. Kritik tasarımlarda üretici verisi ve '
+    + 'ölçümle doğrulayın.',
+  en: 'Results are approximate engineering estimates. Verify against manufacturer data and '
+    + 'measurement for critical designs.',
+}
+
+// Slogan çevrilirken kapsamı daraltılmaz: Türkçe metin "mühendislik karar
+// destek araçları" idi, İngilizce karşılığı da aynı genişlikte kalır.
+const TAGLINE = {
+  tr: 'mühendislik karar destek araçları',
+  en: 'engineering decision support tools',
+}
+
+// Marka adının kendisi çevrilmez; yalnızca bağlantının amacı iki dillidir.
+const HOME_LINK = {
+  tr: 'ALP PCB Toolkit — ana sayfa',
+  en: 'ALP PCB Toolkit — home',
+}
+
+const LANG_SWITCH = {
+  tr: 'Arayüz dili',
+  en: 'Interface language',
+}
+
+function LangSwitch() {
+  const { lang, setLang } = useLang()
+  return (
+    // Düğme listesi `LANGS`'ten türetilir: dizi burada yeniden yazılırsa
+    // `isLang()` ile sessizce ayrışır ve seçilemeyen bir düğme kalırdı.
+    <div className="lang-switch" role="group" aria-label={pick(LANG_SWITCH, lang)}>
+      {LANGS.map((code) => (
+        <button
+          key={code}
+          type="button"
+          onClick={() => setLang(code)}
+          aria-pressed={lang === code}
+          // Düğmenin kendi adı her zaman kendi dilinde yazılır: kullanıcı
+          // anlamadığı bir dildeyken çıkışı bulabilsin. Aynı gerekçeyle
+          // ipucu metni de dilin kendi adıdır (endonim), seçili dile göre
+          // değişmez — bu yüzden `pick` değil, doğrudan kod ile okunur.
+          lang={code}
+          title={LANG_LABEL[code] ?? code}
+        >
+          {code.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function LoadingNote() {
+  const { lang } = useLang()
+  return <p className="empty-note">{commonText(lang).loadingTool}</p>
+}
+
 function Layout({ children }) {
+  const { lang } = useLang()
   return (
     <>
       <header className="site-header">
         <div className="container">
-          <Link to="/" className="wordmark">
+          <Link to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>
             <img src={logo} alt="ALP PCB Toolkit" />
           </Link>
-          <span className="tagline">mühendislik karar destek araçları</span>
+          <span className="tagline">{pick(TAGLINE, lang)}</span>
+          <LangSwitch />
         </div>
         <svg className="trace-motif" viewBox="0 0 1200 26" preserveAspectRatio="none" aria-hidden="true">
           <path d="M0 13 H760 L784 5 H1080" fill="none" stroke="var(--accent-dim)" strokeWidth="2" />
@@ -50,10 +114,7 @@ function Layout({ children }) {
       </header>
       <main className="container">{children}</main>
       <footer className="site-footer">
-        <div className="container">
-          Sonuçlar yaklaşık mühendislik tahminleridir. Kritik tasarımlarda üretici verisi ve
-          ölçümle doğrulayın.
-        </div>
+        <div className="container">{pick(FOOTER, lang)}</div>
       </footer>
     </>
   )
@@ -61,40 +122,42 @@ function Layout({ children }) {
 
 export default function App() {
   return (
-    <HashRouter>
-      <Layout>
-        <Suspense fallback={<p className="empty-note">Araç yükleniyor…</p>}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/kategori/:slug" element={<CategoryPage />} />
-            <Route path="/arac/trace-width" element={<TraceWidth />} />
-            <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
-            <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
-            <Route path="/arac/led-ohm-rlc" element={<LedOhmRlc />} />
-            <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
-            <Route path="/arac/guc-duzlemi" element={<PowerPlane />} />
-            <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
-            <Route path="/arac/via-ozellikleri" element={<ViaProperties />} />
-            <Route path="/arac/termal-via" element={<ThermalVia />} />
-            <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
-            <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
-            <Route path="/arac/yayilma-gecikmesi" element={<PropDelay />} />
-            <Route path="/arac/kritik-hat-uzunlugu" element={<CriticalLength />} />
-            <Route path="/arac/skew" element={<Skew />} />
-            <Route path="/arac/crosstalk" element={<Crosstalk />} />
-            <Route path="/arac/terminasyon" element={<Termination />} />
-            <Route path="/arac/pdn-hedef-empedans" element={<Pdn />} />
-            <Route path="/arac/decoupling" element={<Decoupling />} />
-            <Route path="/arac/junction-sicakligi" element={<Junction />} />
-            <Route path="/arac/uzunluk-donusturucu" element={<LengthConverter />} />
-            <Route path="/arac/awg-donusturucu" element={<AwgConverter />} />
-            <Route path="/arac/frekans-periyot" element={<FrequencyConverter />} />
-            <Route path="/arac/db-kazanc" element={<DecibelConverter />} />
-            <Route path="/arac/sicaklik-donusturucu" element={<TemperatureConverter />} />
-            <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
-          </Routes>
-        </Suspense>
-      </Layout>
-    </HashRouter>
+    <LangProvider>
+      <HashRouter>
+        <Layout>
+          <Suspense fallback={<LoadingNote />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/kategori/:slug" element={<CategoryPage />} />
+              <Route path="/arac/trace-width" element={<TraceWidth />} />
+              <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
+              <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
+              <Route path="/arac/led-ohm-rlc" element={<LedOhmRlc />} />
+              <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
+              <Route path="/arac/guc-duzlemi" element={<PowerPlane />} />
+              <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
+              <Route path="/arac/via-ozellikleri" element={<ViaProperties />} />
+              <Route path="/arac/termal-via" element={<ThermalVia />} />
+              <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
+              <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
+              <Route path="/arac/yayilma-gecikmesi" element={<PropDelay />} />
+              <Route path="/arac/kritik-hat-uzunlugu" element={<CriticalLength />} />
+              <Route path="/arac/skew" element={<Skew />} />
+              <Route path="/arac/crosstalk" element={<Crosstalk />} />
+              <Route path="/arac/terminasyon" element={<Termination />} />
+              <Route path="/arac/pdn-hedef-empedans" element={<Pdn />} />
+              <Route path="/arac/decoupling" element={<Decoupling />} />
+              <Route path="/arac/junction-sicakligi" element={<Junction />} />
+              <Route path="/arac/uzunluk-donusturucu" element={<LengthConverter />} />
+              <Route path="/arac/awg-donusturucu" element={<AwgConverter />} />
+              <Route path="/arac/frekans-periyot" element={<FrequencyConverter />} />
+              <Route path="/arac/db-kazanc" element={<DecibelConverter />} />
+              <Route path="/arac/sicaklik-donusturucu" element={<TemperatureConverter />} />
+              <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
+            </Routes>
+          </Suspense>
+        </Layout>
+      </HashRouter>
+    </LangProvider>
   )
 }

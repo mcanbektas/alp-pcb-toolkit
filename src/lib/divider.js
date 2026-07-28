@@ -12,9 +12,9 @@ export const DIVIDER_ERR_NO_PAIR = 'no-pair'
 
 export function voltageDivider({ Vin, R1, R2, RL = null }) {
   if (!isNum(Vin) || !isNum(R1) || !isNum(R2) || R1 < 0 || R2 < 0) {
-    return { error: DIVIDER_ERR_INVALID, message: 'Vin, R1 ve R2 sayısal ve negatif olmayan olmalı.' }
+    return { error: DIVIDER_ERR_INVALID }
   }
-  if (R1 + R2 === 0) return { error: DIVIDER_ERR_INVALID, message: 'R1 + R2 sıfır olamaz.' }
+  if (R1 + R2 === 0) return { error: DIVIDER_ERR_INVALID }
 
   const Vout = Vin * (R2 / (R1 + R2))
   const Idiv = Vin / (R1 + R2)
@@ -50,7 +50,7 @@ export function outputVoltage(r) {
 // Hedef çıkışa göre oran: k = Vout/Vin, R1/R2 = (1 − k)/k
 export function dividerRatio(Vin, Vout) {
   if (!(Vin > 0) || !(Vout > 0) || Vout >= Vin) {
-    return { error: DIVIDER_ERR_RANGE, message: 'Vout, Vin\'den küçük ve ikisi de pozitif olmalı.' }
+    return { error: DIVIDER_ERR_RANGE }
   }
   const k = Vout / Vin
   return { k, ratio: (1 - k) / k }
@@ -101,7 +101,7 @@ export function dividerFindings({
   targetVout = null, acceptPct = null, maxPowerEach = null,
 }) {
   const r = voltageDivider({ Vin, R1, R2, RL })
-  if (r.error) return { error: r.error, message: r.message }
+  if (r.error) return { error: r.error }
 
   const out = []
   const Vout = outputVoltage(r)
@@ -191,7 +191,7 @@ export function findDividerPair({
   // değil; yalnızca fazla dar bir aralıktır — kullanıcıya aynı öneri verilir.
   const values = seriesValues(series, min, max)
   if (values.length === 0) {
-    return { error: DIVIDER_ERR_NO_PAIR, message: 'Verilen aralıkta standart değer yok.' }
+    return { error: DIVIDER_ERR_NO_PAIR }
   }
 
   const out = []
@@ -224,7 +224,7 @@ export function findDividerPair({
   }
 
   if (out.length === 0) {
-    return { error: DIVIDER_ERR_NO_PAIR, message: 'Verilen aralıkta uygun çift bulunamadı.' }
+    return { error: DIVIDER_ERR_NO_PAIR }
   }
 
   out.sort((a, b) => a.score - b.score)

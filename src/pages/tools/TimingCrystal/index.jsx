@@ -5,139 +5,97 @@ import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtRes, fmtAmp, fmtVolt, fmtPct, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtRes, fmtAmp, fmtVolt, fmtPct } from '../../../lib/num'
 import TimingSchematic from './schematic'
 import {
   INITIAL_FORM, TOOLS, TOOL_RC, TOOL_RL, TOOL_CRYSTAL,
   MODE_ANALYSIS, MODE_SYNTHESIS,
   compute, buildSweep,
 } from './model'
-import { TOOL_LABEL, MODE_LABEL, CHART, reasonText, commentary } from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = {
-  [TOOL_RC]: `τ = R·C
-
-Şarj:
-  V_C(t) = V_s·(1 − e^(−t/τ))
-Deşarj:
-  V_C(t) = V₀·e^(−t/τ)
-
-%10 → %90 yükselme:
-  t_r = τ·ln(9) ≈ 2.2·τ
-1τ: %63.2   3τ: %95.0   5τ: %99.3`,
-  [TOOL_RL]: `τ = L / R
-
-Akım yükselmesi:
-  I(t) = (V/R)·(1 − e^(−t·R/L))
-
-%10 → %90 yükselme:
-  t_r = τ·ln(9) ≈ 2.2·τ
-1τ: %63.2   3τ: %95.0   5τ: %99.3`,
-  [TOOL_CRYSTAL]: `Genel:
-  C_L =
-    (C_IN + C1)(C_OUT + C2)
-    ──────────────────── + C_stray
-    C_IN + C1 + C_OUT + C2
-
-C1 = C2 = C ve giriş
-kapasiteleri ihmal edilirse:
-  C_L = C/2 + C_stray
-  C = 2·(C_L − C_stray)`,
-}
-
-const ASSUMPTIONS = {
-  [TOOL_RC]: [
-    'Kaynak iç direnci sıfır, kondansatör ideal kabul edilir.',
-    'Kaçak akım ve dielektrik soğurma modelde yoktur; uzun zaman sabitlerinde gerçek davranış sapar.',
-    'Yükleme etkisi yoktur — çıkışa bağlanan devre zaman sabitini değiştirir.',
-  ],
-  [TOOL_RL]: [
-    'Bobin ideal kabul edilir: sargı direnci ve öz kapasite modelde yoktur.',
-    'Sargı direnci gerçek zaman sabitini kısaltır ve son akımı düşürür.',
-    'Çekirdek doyması dikkate alınmaz; doyan bobinde endüktans düşer.',
-  ],
-  [TOOL_CRYSTAL]: [
-    'C1 ve C2 kollarının simetrik olduğu varsayılır.',
-    'Parazitik kapasite tek bir sayıyla temsil edilir; gerçekte iz geometrisine bağlıdır.',
-    'Osilatörün negatif direnç marjı bu hesapta yoktur — yük kapasitesi doğru olsa da sürücü gücü yetersiz kalabilir.',
-    'Kristalin çekme duyarlılığı (ppm/pF) üreticiye göre değişir; frekans kayması burada sayısallaştırılmaz.',
-  ],
-}
-
 export default function TimingCrystal() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f.tool, mode, f), [f, mode])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f.tool, mode, f, text.fieldLabels), [f, mode, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const isTiming = f.tool === TOOL_RC || f.tool === TOOL_RL
-  const chartMeta = s ? CHART[s.kind] : null
+  const chartMeta = s ? text.chart[s.kind] : null
   const chartSeries = s
     ? [
         {
           key: 'main',
-          name: s.kind === TOOL_RC ? 'şarj' : s.kind === TOOL_RL ? 'akım' : 'C_L',
+          name: text.chart.series[s.kind],
           tone: toneClass(0),
           points: s.points,
         },
         ...(s.dischargePoints
-          ? [{ key: 'discharge', name: 'deşarj', tone: toneClass(1), points: s.dischargePoints }]
+          ? [{
+            key: 'discharge',
+            name: text.chart.discharge,
+            tone: toneClass(1),
+            points: s.dischargePoints,
+          }]
           : []),
       ]
     : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/komponent">← Komponent ve Devre Hesapları</Link>
+      <Link className="backlink" to="/kategori/komponent">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>RC/RL Zaman Sabiti &amp; Kristal</h1>
-        <p>
-          RC ve RL zaman sabitlerini, yükselme sürelerini ve şarj/deşarj eğrilerini; kristal
-          osilatörler için gerekli yük kapasitörlerini hesaplar.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <TimingSchematic r={r} form={f} />
+          <TimingSchematic r={r} form={f} text={text.schematic} />
 
           <SelectField
-            label="Hesap"
+            label={text.fields.tool}
             value={f.tool} onChange={set('tool')}
-            options={TOOLS.map((t) => ({ value: t, label: TOOL_LABEL[t] }))}
+            options={TOOLS.map((tool) => ({ value: tool, label: text.toolLabel[tool] }))}
           />
 
           <Segmented
             value={mode}
             onChange={setMode}
             options={[
-              { value: MODE_ANALYSIS, label: MODE_LABEL[f.tool].ana },
-              { value: MODE_SYNTHESIS, label: MODE_LABEL[f.tool].syn },
+              { value: MODE_ANALYSIS, label: text.modeLabel[f.tool].ana },
+              { value: MODE_SYNTHESIS, label: text.modeLabel[f.tool].syn },
             ]}
           />
 
           {isTiming && (
             <>
               <NumberField
-                label="Direnç (R)"
+                label={text.fields.R.label}
                 value={f.R} onChange={set('R')}
                 units={['Ω', 'kΩ', 'MΩ']} unit={f.Ru} onUnit={set('Ru')}
               />
@@ -145,30 +103,30 @@ export default function TimingCrystal() {
               {mode === MODE_ANALYSIS ? (
                 f.tool === TOOL_RC ? (
                   <NumberField
-                    label="Kapasite (C)"
+                    label={text.fields.C.label}
                     value={f.C} onChange={set('C')}
                     units={['F', 'µF', 'nF', 'pF']} unit={f.Cu} onUnit={set('Cu')}
                   />
                 ) : (
                   <NumberField
-                    label="Endüktans (L)"
+                    label={text.fields.L.label}
                     value={f.L} onChange={set('L')}
                     units={['H', 'mH', 'µH', 'nH']} unit={f.Lu} onUnit={set('Lu')}
                   />
                 )
               ) : (
                 <NumberField
-                  label="Hedef zaman sabiti (τ)"
+                  label={text.fields.targetTau.label}
                   value={f.targetTau} onChange={set('targetTau')}
                   units={['s', 'ms', 'µs', 'ns']} unit={f.targetTauu} onUnit={set('targetTauu')}
                 />
               )}
 
               <NumberField
-                label="Besleme gerilimi"
+                label={text.fields.Vs.label}
                 value={f.Vs} onChange={set('Vs')}
                 units={['V', 'mV']} unit={f.Vsu} onUnit={set('Vsu')}
-                hint="Eğri ve tepe akım için"
+                hint={text.fields.Vs.hint}
               />
             </>
           )}
@@ -177,20 +135,20 @@ export default function TimingCrystal() {
             <>
               {mode === MODE_SYNTHESIS ? (
                 <NumberField
-                  label="Kristal yük kapasitesi (C_L)"
+                  label={text.fields.CL.label}
                   value={f.CL} onChange={set('CL')}
                   units={['pF']} unit="pF" onUnit={() => {}}
-                  hint="Kristalin veri sayfasından okunur"
+                  hint={text.fields.CL.hint}
                 />
               ) : (
                 <>
                   <NumberField
-                    label="C1"
+                    label={text.fields.C1.label}
                     value={f.C1} onChange={set('C1')}
                     units={['pF']} unit="pF" onUnit={() => {}}
                   />
                   <NumberField
-                    label="C2"
+                    label={text.fields.C2.label}
                     value={f.C2} onChange={set('C2')}
                     units={['pF']} unit="pF" onUnit={() => {}}
                   />
@@ -198,27 +156,27 @@ export default function TimingCrystal() {
               )}
 
               <NumberField
-                label="PCB parazitik kapasitesi"
+                label={text.fields.Cstray.label}
                 value={f.Cstray} onChange={set('Cstray')}
                 units={['pF']} unit="pF" onUnit={() => {}}
-                hint="Kısa izlerde tipik olarak 2–5 pF"
+                hint={text.fields.Cstray.hint}
               />
               <NumberField
-                label="MCU giriş kapasitesi"
+                label={text.fields.Cin.label}
                 value={f.Cin} onChange={set('Cin')}
                 units={['pF']} unit="pF" onUnit={() => {}}
-                hint="Veri sayfasında verilmişse girin; boş bırakmak basit modeli kullanır"
+                hint={text.fields.Cin.hint}
               />
               <NumberField
-                label="MCU çıkış kapasitesi"
+                label={text.fields.Cout.label}
                 value={f.Cout} onChange={set('Cout')}
                 units={['pF']} unit="pF" onUnit={() => {}}
               />
               <NumberField
-                label="Kristal frekansı (opsiyonel)"
+                label={text.fields.fXtal.label}
                 value={f.fXtal} onChange={set('fXtal')}
                 units={['Hz', 'kHz', 'MHz']} unit={f.fXtalu} onUnit={set('fXtalu')}
-                hint="Yalnızca şemada gösterilir; hesaba girmez"
+                hint={text.fields.fXtal.hint}
               />
             </>
           )}
@@ -226,15 +184,13 @@ export default function TimingCrystal() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason, r)}</p>
+              <p className="empty-note">{text.reasonText(r.reason, r)}</p>
             )
           ) : (
             <>
@@ -243,8 +199,8 @@ export default function TimingCrystal() {
                   <div className="big-result">
                     <div className="label">
                       {r.mode === MODE_SYNTHESIS
-                        ? f.tool === TOOL_RC ? 'Gerekli kapasite' : 'Gerekli endüktans'
-                        : 'Zaman sabiti (τ)'}
+                        ? f.tool === TOOL_RC ? text.big.requiredC : text.big.requiredL
+                        : text.big.tau}
                     </div>
                     <div className="value">
                       {r.mode === MODE_SYNTHESIS
@@ -261,28 +217,33 @@ export default function TimingCrystal() {
 
                   <table className="result-table">
                     <tbody>
-                      <tr><td>Zaman sabiti τ</td><td>{fmtEng(r.tau, 's', 5)}</td></tr>
-                      <tr><td>%10 → %90 yükselme</td><td>{fmtEng(r.riseTime1090, 's', 5)}</td></tr>
-                      <tr className="mini-head"><td>Yerleşme</td><td>süre · ulaşılan oran</td></tr>
+                      <tr><td>{text.table.tau}</td><td>{fmtEng(r.tau, 's', 5)}</td></tr>
+                      <tr><td>{text.table.rise}</td><td>{fmtEng(r.riseTime1090, 's', 5)}</td></tr>
+                      <tr className="mini-head">
+                        <td>{text.table.settleHead}</td>
+                        <td>{text.table.settleSub}</td>
+                      </tr>
                       {r.steps.map((st) => (
                         <tr key={st.n}>
                           <td>{st.n}τ</td>
-                          <td>{fmtEng(st.time, 's', 4)} · %{fmt(st.pct, 4)}</td>
+                          <td>{fmtEng(st.time, 's', 4)} · {text.pct(fmt(st.pct, 4))}</td>
                         </tr>
                       ))}
                       <tr>
-                        <td>{f.tool === TOOL_RC ? 'Anahtarlama tepe akımı' : 'Sürekli rejim akımı'}</td>
+                        <td>
+                          {f.tool === TOOL_RC ? text.table.peakCurrent : text.table.steadyCurrent}
+                        </td>
                         <td>{fmtAmp(r.Ifinal, 4)}</td>
                       </tr>
                       {r.mode === MODE_SYNTHESIS && (
                         <tr>
-                          <td>En yakın E24 değeri</td>
+                          <td>{text.table.nearestE24}</td>
                           <td>
                             {f.tool === TOOL_RC
                               ? `${fmt(r.nearestC.value, 4)} nF`
                               : `${fmt(r.nearestL.value, 4)} µH`}{' '}
                             <span className="sub">
-                              ({fmtPct(f.tool === TOOL_RC ? r.nearestC.errorPct : r.nearestL.errorPct)})
+                              ({text.pct(fmtPct(f.tool === TOOL_RC ? r.nearestC.errorPct : r.nearestL.errorPct))})
                             </span>
                           </td>
                         </tr>
@@ -294,15 +255,19 @@ export default function TimingCrystal() {
                 <>
                   <div className="big-result">
                     <div className="label">
-                      {r.mode === MODE_SYNTHESIS ? 'Gerekli harici kapasitör (C1 = C2)' : 'Yük kapasitesi (C_L)'}
+                      {r.mode === MODE_SYNTHESIS ? text.big.requiredCaps : text.big.loadCap}
                     </div>
                     <div className="value">
                       {fmt(r.mode === MODE_SYNTHESIS ? r.C : r.achieved, 4)} pF
                     </div>
                     <div className="alt">
                       {r.mode === MODE_SYNTHESIS
-                        ? `en yakın E24: ${fmt(r.nearest.value, 3)} pF → C_L = ${fmt(r.withStandard, 4)} pF (${fmtPct(r.standardErrPct)})`
-                        : `parazitik ${fmt(r.Cstray, 3)} pF dahil`}
+                        ? text.big.crystalAltSyn(
+                          fmt(r.nearest.value, 3),
+                          fmt(r.withStandard, 4),
+                          text.pct(fmtPct(r.standardErrPct)),
+                        )
+                        : text.big.crystalAltAna(fmt(r.Cstray, 3))}
                     </div>
                   </div>
 
@@ -312,18 +277,21 @@ export default function TimingCrystal() {
                     <tbody>
                       {r.mode === MODE_SYNTHESIS ? (
                         <>
-                          <tr><td>Hedef C_L</td><td>{fmt(r.CL, 4)} pF</td></tr>
-                          <tr><td>Hesaplanan C1 = C2</td><td>{fmt(r.C, 5)} pF</td></tr>
+                          <tr><td>{text.table.targetCL}</td><td>{fmt(r.CL, 4)} pF</td></tr>
+                          <tr><td>{text.table.computedCaps}</td><td>{fmt(r.C, 5)} pF</td></tr>
                           <tr>
-                            <td>Bu değerle gerçekleşen C_L</td>
+                            <td>{text.table.achievedWithComputed}</td>
                             <td>{fmt(r.achieved, 5)} pF</td>
                           </tr>
-                          <tr className="mini-head"><td>Standart değerle</td><td>kapasitör · C_L · sapma</td></tr>
+                          <tr className="mini-head">
+                            <td>{text.table.standardHead}</td>
+                            <td>{text.table.standardSub}</td>
+                          </tr>
                           <tr>
-                            <td>E24</td>
+                            <td>{text.table.e24}</td>
                             <td>
                               {fmt(r.nearest.value, 4)} pF · {fmt(r.withStandard, 4)} pF ·{' '}
-                              {fmtPct(r.standardErrPct)}
+                              {text.pct(fmtPct(r.standardErrPct))}
                             </td>
                           </tr>
                         </>
@@ -331,17 +299,20 @@ export default function TimingCrystal() {
                         <>
                           <tr><td>C1</td><td>{fmt(r.C1, 4)} pF</td></tr>
                           <tr><td>C2</td><td>{fmt(r.C2, 4)} pF</td></tr>
-                          <tr><td>Gerçekleşen C_L</td><td>{fmt(r.achieved, 5)} pF</td></tr>
+                          <tr><td>{text.table.achieved}</td><td>{fmt(r.achieved, 5)} pF</td></tr>
                         </>
                       )}
-                      <tr><td>PCB parazitik kapasitesi</td><td>{fmt(r.Cstray, 4)} pF</td></tr>
-                      <tr><td>MCU giriş / çıkış kapasitesi</td><td>{fmt(r.Cin, 3)} / {fmt(r.Cout, 3)} pF</td></tr>
+                      <tr><td>{text.table.stray}</td><td>{fmt(r.Cstray, 4)} pF</td></tr>
+                      <tr>
+                        <td>{text.table.pinCaps}</td>
+                        <td>{fmt(r.Cin, 3)} / {fmt(r.Cout, 3)} pF</td>
+                      </tr>
                     </tbody>
                   </table>
                 </>
               )}
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -356,39 +327,31 @@ export default function TimingCrystal() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA[f.tool]}</pre>
+          <pre className="formula">{text.formula[f.tool]}</pre>
 
           {r.ok && isTiming && (
             <ul className="detail-list">
-              <li>
-                τ = {fmtEng(r.tau, 's', 6)}; bu değer {f.tool === TOOL_RC ? 'R·C' : 'L/R'} çarpımından gelir.
-              </li>
-              <li>Besleme {fmtVolt(r.Vs)}, seri direnç {fmtRes(r.R, 4)}.</li>
-              {r.mode === MODE_SYNTHESIS && (
-                <li>Değer kapalı formdan başlatılıp {r.solvedBy} yöntemiyle doğrulandı.</li>
-              )}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.tauSource(fmtEng(r.tau, 's', 6), f.tool === TOOL_RC)}</li>
+              <li>{text.detail.supply(fmtVolt(r.Vs), fmtRes(r.R, 4))}</li>
+              {r.mode === MODE_SYNTHESIS && <li>{text.detail.solved(r.solvedBy)}</li>}
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
           {r.ok && !isTiming && (
             <ul className="detail-list">
-              <li>
-                Kullanılan model: {r.mode === MODE_SYNTHESIS && r.simplified
-                  ? 'basitleştirilmiş (giriş kapasiteleri sıfır)'
-                  : 'genel denklem (giriş kapasiteleri dahil)'}.
-              </li>
-              <li>Harici kapasitörlerin seri eşdeğeri C/2, parazitik doğrudan eklenir.</li>
-              <li>Eğrinin eğimi 1/2'dir: harici kapasitörü 2 pF artırmak C_L'yi 1 pF artırır.</li>
+              <li>{text.detail.crystalModel(r.mode === MODE_SYNTHESIS && r.simplified)}</li>
+              <li>{text.detail.seriesEquivalent}</li>
+              <li>{text.detail.slope}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            {ASSUMPTIONS[f.tool].map((a) => <li key={a}>{a}</li>)}
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity[f.tool].map((a) => <li key={a}>{a}</li>)}
+            <li>{text.validity.approximate}</li>
           </ul>
         </section>
       </div>
@@ -396,7 +359,7 @@ export default function TimingCrystal() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -405,7 +368,7 @@ export default function TimingCrystal() {
               items={[
                 ...chartSeries.map((cs) => ({ label: cs.name, tone: cs.tone, kind: 'line' })),
                 ...s.refs.map((ref) => ({
-                  label: ref.key === 'final' ? 'son değer' : ref.key === 'tau' ? '1τ seviyesi (%63.2)' : 'hedef C_L',
+                  label: text.chart.legendRef(ref.key),
                   tone: 'tone-muted',
                   kind: 'line',
                 })),
@@ -420,13 +383,12 @@ export default function TimingCrystal() {
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: ref.key === 'final'
-                  ? 'son değer'
-                  : ref.key === 'tau'
-                    ? '%63.2'
-                    : `hedef ${fmt(ref.y, 3)} pF`,
+                label: text.chart.refLine(ref.key, ref.y),
               }))}
-              marker={{ ...s.marker, label: isTiming ? '1τ' : 'seçilen' }}
+              marker={{
+                ...s.marker,
+                label: isTiming ? text.chart.markerTiming : text.chart.markerCrystal,
+              }}
               formatX={(v) => (isTiming ? fmtEng(v, '', 3) : fmt(v, 3))}
               formatY={(v) => fmt(v, 3)}
               caption={chartMeta.caption}
@@ -441,7 +403,7 @@ export default function TimingCrystal() {
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

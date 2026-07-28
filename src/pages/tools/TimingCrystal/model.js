@@ -40,40 +40,44 @@ export const INITIAL_FORM = {
 
 const PF = { pF: 1 } // kristal hesabı kendi içinde pF ile tutarlı
 
-export function formFields(tool, mode, f) { // eslint-disable-line no-unused-vars
+// Alan etiketleri dışarıdan gelir: model dil bilmez. Etiket verilmezse alan
+// anahtarı görünür — sessiz boşluk yerine teşhis edilebilir bir ad.
+export function formFields(tool, mode, f, labels = {}) { // eslint-disable-line no-unused-vars
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     when(tool === TOOL_RC, [
-      { key: 'R', label: 'Direnç (R)', unitKey: 'Ru', table: RESISTANCE, min: 0 },
-      { key: 'Vs', label: 'Besleme gerilimi', unitKey: 'Vsu', table: VOLTAGE, min: 0 },
+      { key: 'R', label: L('R'), unitKey: 'Ru', table: RESISTANCE, min: 0 },
+      { key: 'Vs', label: L('Vs'), unitKey: 'Vsu', table: VOLTAGE, min: 0 },
     ]),
     when(tool === TOOL_RC && mode === MODE_ANALYSIS, [
-      { key: 'C', label: 'Kapasite (C)', unitKey: 'Cu', table: CAPACITANCE, min: 0 },
+      { key: 'C', label: L('C'), unitKey: 'Cu', table: CAPACITANCE, min: 0 },
     ]),
 
     when(tool === TOOL_RL, [
-      { key: 'R', label: 'Direnç (R)', unitKey: 'Ru', table: RESISTANCE, min: 0 },
-      { key: 'Vs', label: 'Besleme gerilimi', unitKey: 'Vsu', table: VOLTAGE, min: 0 },
+      { key: 'R', label: L('R'), unitKey: 'Ru', table: RESISTANCE, min: 0 },
+      { key: 'Vs', label: L('Vs'), unitKey: 'Vsu', table: VOLTAGE, min: 0 },
     ]),
     when(tool === TOOL_RL && mode === MODE_ANALYSIS, [
-      { key: 'L', label: 'Endüktans (L)', unitKey: 'Lu', table: INDUCTANCE, min: 0 },
+      { key: 'L', label: L('L'), unitKey: 'Lu', table: INDUCTANCE, min: 0 },
     ]),
 
     when((tool === TOOL_RC || tool === TOOL_RL) && mode === MODE_SYNTHESIS, [
-      { key: 'targetTau', label: 'Hedef zaman sabiti', unitKey: 'targetTauu', table: TIME, min: 0 },
+      { key: 'targetTau', label: L('targetTau'), unitKey: 'targetTauu', table: TIME, min: 0 },
     ]),
 
     when(tool === TOOL_CRYSTAL, [
-      { key: 'Cstray', label: 'PCB parazitik kapasitesi', unit: 'pF', table: PF, min: 0, allowZero: true },
-      { key: 'Cin', label: 'MCU giriş kapasitesi', unit: 'pF', table: PF, min: 0, allowZero: true },
-      { key: 'Cout', label: 'MCU çıkış kapasitesi', unit: 'pF', table: PF, min: 0, allowZero: true },
-      { key: 'fXtal', label: 'Kristal frekansı', unitKey: 'fXtalu', table: FREQUENCY, min: 0, optional: true },
+      { key: 'Cstray', label: L('Cstray'), unit: 'pF', table: PF, min: 0, allowZero: true },
+      { key: 'Cin', label: L('Cin'), unit: 'pF', table: PF, min: 0, allowZero: true },
+      { key: 'Cout', label: L('Cout'), unit: 'pF', table: PF, min: 0, allowZero: true },
+      { key: 'fXtal', label: L('fXtal'), unitKey: 'fXtalu', table: FREQUENCY, min: 0, optional: true },
     ]),
     when(tool === TOOL_CRYSTAL && mode === MODE_ANALYSIS, [
-      { key: 'C1', label: 'C1', unit: 'pF', table: PF, min: 0 },
-      { key: 'C2', label: 'C2', unit: 'pF', table: PF, min: 0 },
+      { key: 'C1', label: L('C1'), unit: 'pF', table: PF, min: 0 },
+      { key: 'C2', label: L('C2'), unit: 'pF', table: PF, min: 0 },
     ]),
     when(tool === TOOL_CRYSTAL && mode === MODE_SYNTHESIS, [
-      { key: 'CL', label: 'Kristal yük kapasitesi (C_L)', unit: 'pF', table: PF, min: 0 },
+      { key: 'CL', label: L('CL'), unit: 'pF', table: PF, min: 0 },
     ]),
   ])
 }
@@ -177,8 +181,8 @@ function computeCrystal(mode, v) {
   }
 }
 
-export function compute(tool, mode, f) {
-  const read = readForm(f, formFields(tool, mode, f))
+export function compute(tool, mode, f, labels = {}) {
+  const read = readForm(f, formFields(tool, mode, f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

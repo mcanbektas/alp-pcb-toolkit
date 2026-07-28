@@ -5,60 +5,38 @@ import SelectField from '../../../components/SelectField'
 import EpsEffFields, { epsEffRows } from '../../../components/EpsEffFields'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, THOUSANDS_MESSAGE } from '../../../lib/num'
-import { EPS_GEOMETRY } from '../../../lib/epsEff'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng } from '../../../lib/num'
 import CriticalLengthSchematic from './schematic'
 import {
-  INITIAL_FORM, DIVISORS, LENGTH_UNITS, RISE_UNITS, K_MIN, K_MAX,
+  INITIAL_FORM, DIVISORS, LENGTH_UNITS, RISE_UNITS,
   compute, buildSweep,
 } from './model'
-import {
-  CHART, DIVISOR_LABEL, DIVISOR_SHORT, METHOD_NOTE, LEGACY_METHOD_NOTE, LEVEL_SOURCE_NOTE,
-  reasonText, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `t'_pd = √εeff / c
-  (birim uzunluk gecikmesi)
-t_d = L · t'_pd
-  (hat gecikmesi)
-
-Kriter — N ∈ {6, 4, 2}:
-  t_d ≥ t_r / N
-    → iletim hattı değerlendirmesi
-
-Kritik uzunluk:
-  L_crit = t_r / (N · t'_pd)
-         = c · t_r / (N · √εeff)
-
-Oranlar:
-  t_d / t_r
-    (gecikmenin kenara oranı)
-  L / L_crit
-    (eşiğe uzaklık)
-
-Yükselme süresi bant genişliği
-— yaklaşık bağıntı:
-  f_BW = K / t_r , K ∈ [0.35, 0.5]
-  (bu değer VERİ HIZI DEĞİLDİR)`
-
 export default function CriticalLength() {
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f), [f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const chartSeries = s
     ? s.series.map((ser, i) => ({
@@ -71,113 +49,107 @@ export default function CriticalLength() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Critical Trace Length</h1>
-        <p>
-          Hattın ne zaman iletim hattı gibi ele alınması gerektiğini yükselme süresi kriterinden
-          hesaplar; üç kriterin verdiği eşiği karşılaştırır ve girilen hat uzunluğunu eşiğe göre
-          değerlendirir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <CriticalLengthSchematic r={r} />
+          <CriticalLengthSchematic r={r} text={text.schematic} />
 
           <EpsEffFields f={f} set={set} />
 
           <NumberField
-            label="Yükselme süresi (t_r)"
+            label={text.fields.tr.label}
             value={f.tr} onChange={set('tr')}
             units={RISE_UNITS} unit={f.tru} onUnit={set('tru')}
-            hint="Sürücünün gerçek kenar hızı — veri sayfasındaki tipik değer genelde iyimserdir"
+            hint={text.fields.tr.hint}
           />
 
           <SelectField
-            label="Kriter"
+            label={text.fields.divisor.label}
             value={f.divisor} onChange={set('divisor')}
-            options={DIVISORS.map((d) => ({ value: String(d), label: DIVISOR_LABEL[d] }))}
-            hint="Mutlak sınır değil, tasarım eşiği"
+            options={DIVISORS.map((d) => ({ value: String(d), label: text.divisorLabel[d] }))}
+            hint={text.fields.divisor.hint}
           />
 
           <NumberField
-            label="Bant genişliği katsayısı (K)"
+            label={text.fields.k.label}
             value={f.k} onChange={set('k')}
             units={['']} unit="" onUnit={() => {}}
-            hint={`f_BW = K / t_r — ${fmt(K_MIN, 3)} birinci dereceden sistem, ${fmt(K_MAX, 3)}'e kadar seçilebilir`}
+            hint={text.fields.k.hint}
           />
 
           <NumberField
-            label="Hat uzunluğu (isteğe bağlı)"
+            label={text.fields.length.label}
             value={f.length} onChange={set('length')}
             units={LENGTH_UNITS} unit={f.lengthu} onUnit={set('lengthu')}
-            hint="Girilirse hat eşiğin üstünde mi diye kontrol edilir"
+            hint={text.fields.length.hint}
           />
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Kritik hat uzunluğu</div>
+                <div className="label">{text.bigLabel}</div>
                 <div className="value">{fmtEng(r.critical, 'm', 4)}</div>
                 <div className="alt">
-                  kriter {DIVISOR_SHORT[r.divisor] ?? `1/${fmt(r.divisor, 3)}`} &nbsp;·&nbsp;
+                  {text.bigAltCriterion} {text.divisorShort(r.divisor)} &nbsp;·&nbsp;
                   t&apos;_pd = {fmt(r.tpdPsPerMm, 4)} ps/mm
                 </div>
               </div>
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{METHOD_NOTE}</p>
-              <p className="method-note">{LEGACY_METHOD_NOTE}</p>
-              <p className="method-note">{LEVEL_SOURCE_NOTE}</p>
+              <p className="method-note">{text.methodNote}</p>
+              <p className="method-note">{text.legacyMethodNote}</p>
+              <p className="method-note">{text.levelSourceNote}</p>
 
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Kritik uzunluk (seçilen kriter)</td>
+                    <td>{text.table.criticalSelected}</td>
                     <td>{fmtEng(r.critical, 'm', 5)}</td>
                   </tr>
                   {r.byDivisor.map((b) => (
                     <tr key={b.divisor}>
-                      <td>Kriter 1/{fmt(b.divisor, 2)} ile</td>
+                      <td>{text.table.criticalWith(b.divisor)}</td>
                       <td>{fmtEng(b.critical, 'm', 5)}</td>
                     </tr>
                   ))}
                   <tr>
-                    <td>Birim uzunluk gecikmesi</td>
+                    <td>{text.table.tpd}</td>
                     <td>{fmt(r.tpdPsPerMm, 5)} ps/mm</td>
                   </tr>
                   <tr>
-                    <td>Yükselme süresi</td>
+                    <td>{text.table.riseTime}</td>
                     <td>{fmtEng(r.tr, 's', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Yükselme süresi bant genişliği (f_BW)</td>
+                    <td>{text.table.fBW}</td>
                     <td>{fmtEng(r.bw.fBW, 'Hz', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Bant genişliği katsayısı (K)</td>
+                    <td>{text.table.k}</td>
                     <td>{fmt(r.bw.k, 3)}</td>
                   </tr>
-                  {epsEffRows(r.eps, fmt).map((row) => (
+                  {epsEffRows(r.eps, fmt, lang).map((row) => (
                     <tr key={row.label}>
                       <td>{row.label}</td>
                       <td>{row.value}</td>
@@ -187,31 +159,35 @@ export default function CriticalLength() {
                   {r.hasLength && (
                     <>
                       <tr>
-                        <td>Hat uzunluğu</td>
+                        <td>{text.table.length}</td>
                         <td>{fmtEng(r.length, 'm', 5)}</td>
                       </tr>
                       <tr>
-                        <td>Hat gecikmesi (t_d)</td>
+                        <td>{text.table.delay}</td>
                         <td>{fmtEng(r.delay, 's', 5)}</td>
                       </tr>
                       <tr>
-                        <td>Gecikme / yükselme süresi</td>
+                        <td>{text.table.delayFraction}</td>
                         <td>{fmt(r.delayFraction, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Uzunluk / kritik uzunluk</td>
+                        <td>{text.table.ratio}</td>
                         <td>{fmt(r.ratio, 5)}</td>
                       </tr>
                       <tr>
-                        <td>İletim hattı gibi davranıyor mu</td>
-                        <td>{r.transmissionLine ? 'evet — eşiğin üstünde' : 'hayır — eşiğin altında'}</td>
+                        <td>{text.table.transmissionLine}</td>
+                        <td>
+                          {r.transmissionLine
+                            ? text.table.transmissionLineYes
+                            : text.table.transmissionLineNo}
+                        </td>
                       </tr>
                     </>
                   )}
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -226,69 +202,29 @@ export default function CriticalLength() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>
-                εeff kaynağı: {r.eps.source === EPS_GEOMETRY
-                  ? `geometriden hesaplandı (${r.eps.model}, yöntem \`${r.eps.method}\`)`
-                  : 'elle girildi'}.
-              </li>
-              <li>√εeff = {fmt(Math.sqrt(r.eps.epsEff), 5)}; kritik uzunluk bu çarpanla ters orantılıdır.</li>
-              <li>
-                Kritik uzunluk bölenle ters orantılıdır: kriter 1/6&apos;dan 1/2&apos;ye gevşetilirse eşik
-                üç katına çıkar. Sayısal karşılığı sonuç tablosundaki üç satırdır.
-              </li>
-              <li>
-                Hat gecikmesi ve kritik uzunluk aynı t&apos;_pd değerinden gelir; εeff&apos;teki sapma
-                ikisine de aynı yönde geçer, oranları korunur.
-              </li>
-              <li>
-                f_BW yalnızca bilgi amaçlıdır: kritik uzunluk hesabına girmez, ayrı bir yan
-                sonuçtur.
-              </li>
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.epsSource(r.eps)}</li>
+              <li>{text.detail.sqrtEps(fmt(Math.sqrt(r.eps.epsEff), 5))}</li>
+              <li>{text.detail.divisorScale}</li>
+              <li>{text.detail.sharedTpd}</li>
+              <li>{text.detail.fbwInfo}</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              <strong>Kriter eşiktir, sınır değildir.</strong> 1/6, 1/4 ve 1/2 uygulamada
-              kullanılan farklı tasarım eşikleridir. Eşiğin altındaki
-              hat da fiziksel olarak iletim hattıdır; yalnızca yansımaların etkisi çoğu tasarımda
-              ihmal edilebilir kabul edilir.
-            </li>
-            <li>
-              <strong>Uygulanmayan yöntem:</strong> maksimum hat uzunluğu, artık aktif olarak
-              sürdürülmeyen bir kılavuza dayanan frekans alanı yöntemiyle de kestirilebilir.
-              O yöntem bu araçta uygulanmadı; sonuç yalnızca yükselme süresi kriterinden gelir.
-            </li>
-            <li>
-              <strong>f_BW veri hızı değildir.</strong> K/t_r ifadesi sürücü kenarının kapladığı
-              yaklaşık spektrum genişliğidir. Sinyal bütünlüğü açısından belirleyici olan çoğunlukla
-              saat frekansı değil, sürücünün yükselme ve düşme süresidir.
-            </li>
-            <li>
-              εeff doğrudan sonuca girer: L_crit ∝ 1/√εeff. εeff elle girildiyse doğruluğu girene
-              aittir; kapalı formdan geldiyse alan çözücü sonucu sayılmaz ve sapması buraya taşınır.
-            </li>
-            <li>
-              Hat kayıpsız ve dispersiyonsuz kabul edilir; tüm frekans bileşenleri aynı hızda
-              ilerler. Kenar, hat boyunca yavaşlamıyor varsayılır.
-            </li>
-            <li>
-              Via geçişleri, konnektör, pad ve stub süreksizlikleri gecikmeye eklenmez. Dallanmış
-              (multi-drop) topolojide en uzun dal ayrı değerlendirilmelidir.
-            </li>
-            <li>
-              Yükselme süresi olarak sürücünün en hızlı kenarı kullanılmalıdır; hızlı köşe
-              koşulunda kenar keskinleşir ve eşik kısalır.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((line, i) => (
+              <li key={i}>
+                {line.strong && <strong>{line.strong}</strong>}
+                {line.rest}
+              </li>
+            ))}
           </ul>
         </section>
       </div>
@@ -296,7 +232,7 @@ export default function CriticalLength() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -304,32 +240,32 @@ export default function CriticalLength() {
             <ChartLegend
               items={[
                 ...s.series.map((ser, i) => ({
-                  label: `kriter 1/${ser.divisor}`,
+                  label: text.chart.criterionLegend(ser.divisor),
                   tone: toneClass(i),
                   kind: 'line',
                 })),
-                ...s.refs.map(() => ({ label: 'hat uzunluğu', tone: 'tone-muted', kind: 'line' })),
+                ...s.refs.map(() => ({ label: text.chart.lengthLegend, tone: 'tone-muted', kind: 'line' })),
               ]}
             />
 
             <LineChart
               xScale="log"
-              xLabel={CHART.x}
-              yLabel={CHART.y}
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: `hat uzunluğu ${fmt(ref.y, 3)} mm`,
+                label: text.chart.lengthRef(ref.y),
               }))}
-              marker={{ ...s.marker, label: 'çalışma noktası' }}
+              marker={{ ...s.marker, label: text.chart.operatingPoint }}
               formatX={(v) => fmtEng(v, '', 3).replace(' ', '')}
               formatY={(v) => fmt(v, 3)}
-              caption={CHART.caption}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel={CHART.x}
+              xLabel={text.chart.x}
               series={chartSeries}
               every={6}
               formatX={(v) => fmtEng(v, 's', 4)}
@@ -337,7 +273,7 @@ export default function CriticalLength() {
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

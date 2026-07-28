@@ -7,16 +7,13 @@ export const LED_ERR_HEADROOM = 'headroom'
 
 export function ledResistor({ Vs, Vf, n = 1, I, derating = 1 }) {
   if (!isNum(Vs) || !isNum(Vf) || !isNum(I) || !(I > 0) || !(n >= 1)) {
-    return { error: LED_ERR_INVALID, message: 'Vs, Vf ve I sayısal, I ve n pozitif olmalı.' }
+    return { error: LED_ERR_INVALID }
   }
 
   const Vled = Vf * n
   if (Vled >= Vs) {
-    return {
-      error: LED_ERR_HEADROOM,
-      message: 'Seri LED gerilimi besleme geriliminden düşük olmalı.',
-      Vled, Vs,
-    }
+    // Kodun yanında yalnızca ham sayı döner; cümlesini ekranın text.js'i kurar.
+    return { error: LED_ERR_HEADROOM, Vled, Vs }
   }
 
   const R = (Vs - Vled) / I

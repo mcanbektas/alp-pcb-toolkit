@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { seriesRLC, reactanceC, reactanceL } from './reactance'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('reaktans', () => {
   it('X_C = 1/(2πfC)', () => {
@@ -42,5 +43,15 @@ describe('seri RLC', () => {
 
   it('geçersiz girişte hesap yapmaz', () => {
     expect(seriesRLC({ R: 10, L: 1e-6, C: 0, f: 1e6 }).error).toBe('invalid')
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      seriesRLC({ R: 10, L: 1e-6, C: 0, f: 1e6 }),
+      seriesRLC({ R: -1, L: 1e-6, C: 1e-9, f: 1e6 }),
+      seriesRLC({ R: 10, L: 1e-6, C: 1e-9, f: 0 }),
+    ])
   })
 })

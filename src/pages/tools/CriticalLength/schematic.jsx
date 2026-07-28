@@ -4,7 +4,7 @@ import { fmtEng } from '../../../lib/num'
 // Sürücü → hat → alıcı. Altta iki ölçü çubuğu: kritik uzunluk eşiği ve
 // (girildiyse) gerçek hat uzunluğu. İkisi aynı ölçeğe göre çizilir, böylece
 // hangisinin uzun olduğu doğrudan görülür. Renk yazılmaz; sınıflar theme.css'ten.
-export default function CriticalLengthSchematic({ r }) {
+export default function CriticalLengthSchematic({ r, text }) {
   const x0 = 24
   const x1 = 236
   const span = x1 - x0
@@ -20,23 +20,23 @@ export default function CriticalLengthSchematic({ r }) {
   const caption = r.ok
     ? length > 0
       ? r.transmissionLine
-        ? 'Hat kritik uzunluğun üstünde — iletim hattı değerlendirmesi gerekir'
-        : 'Hat kritik uzunluğun altında — seçilen kriterde toplu eleman'
-      : 'Yalnızca eşik gösteriliyor; hat uzunluğu girilmedi'
-    : 'Sürücü, hat ve alıcı'
+        ? text.captionAbove
+        : text.captionBelow
+      : text.captionThresholdOnly
+    : text.captionIdle
 
   return (
     <Schematic
       viewBox="0 0 260 152"
-      title="Sürücü, hat ve kritik uzunluk karşılaştırması"
+      title={text.title}
       caption={caption}
     >
       {/* Sürücü ve alıcı — kutu genişliği 40, etiket ile uç terminali arasında
           3 px'ten fazla açıklık kalsın diye */}
       <rect className="sch-part" x={6} y={20} width={40} height={22} rx={2} />
       <rect className="sch-part" x={214} y={20} width={40} height={22} rx={2} />
-      <text className="sch-label dim" x={26} y={34} textAnchor="middle">SÜR</text>
-      <text className="sch-label dim" x={234} y={34} textAnchor="middle">ALC</text>
+      <text className="sch-label dim" x={26} y={34} textAnchor="middle">{text.driver}</text>
+      <text className="sch-label dim" x={234} y={34} textAnchor="middle">{text.receiver}</text>
 
       {/* Hat ve dönüş yolu — şerit, kutuların altına iner: SÜR/ALC etiketleri
           dielektrik şeridin üstüne binmesin */}
@@ -95,7 +95,7 @@ export default function CriticalLengthSchematic({ r }) {
           {/* Ölçü çizgisinin altına yazılır; üstüne yazıldığında çizgiyle ve
               uzunluk çubuğuyla çakışıyordu */}
           <text className="sch-value" x={130} y={144} textAnchor="middle">
-            ölçek: {fmtEng(scale, 'm', 3)}
+            {text.scale} {fmtEng(scale, 'm', 3)}
           </text>
         </>
       )}

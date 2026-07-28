@@ -100,14 +100,14 @@ export function fromCelsius(c, unit) {
  * diğer iki ölçek türetilir. Böylece kullanıcının yazdığı sayı çevrim
  * artığıyla değişmiş gibi görünmez.
  *
- * @returns {{ C, F, K, unit, value, marginK, atAbsoluteZero }} | { error, message }
+ * @returns {{ C, F, K, unit, value, marginK, atAbsoluteZero }} | { error }
  */
 export function convertTemperature({ value, unit }) {
   if (!Number.isFinite(value)) {
-    return { error: TEMP_ERR_INVALID, message: 'sayısal olmayan sıcaklık değeri' }
+    return { error: TEMP_ERR_INVALID }
   }
   if (!TEMP_UNITS.includes(unit)) {
-    return { error: TEMP_ERR_UNIT, message: 'bilinmeyen sıcaklık birimi' }
+    return { error: TEMP_ERR_UNIT }
   }
 
   const C = unit === UNIT_C ? value : toCelsius(value, unit)
@@ -115,7 +115,7 @@ export function convertTemperature({ value, unit }) {
   const F = unit === UNIT_F ? value : cToF(C)
 
   if (K < -ABS_ZERO_EPS) {
-    return { error: TEMP_ERR_ABSOLUTE_ZERO, message: 'mutlak sıfırın altında sıcaklık' }
+    return { error: TEMP_ERR_ABSOLUTE_ZERO }
   }
 
   return {
@@ -134,14 +134,14 @@ export function convertTemperature({ value, unit }) {
  * Ofset yoktur: ΔT_C ile ΔT_K özdeştir, ΔT_F yalnızca 9/5 eğimiyle ayrılır.
  * Negatif fark (soğuma) geçerlidir; mutlak sıfır kontrolü farka uygulanmaz.
  *
- * @returns {{ dC, dK, dF, unit, value }} | { error, message }
+ * @returns {{ dC, dK, dF, unit, value }} | { error }
  */
 export function convertDelta({ value, unit }) {
   if (!Number.isFinite(value)) {
-    return { error: TEMP_ERR_INVALID, message: 'sayısal olmayan sıcaklık farkı' }
+    return { error: TEMP_ERR_INVALID }
   }
   if (!TEMP_UNITS.includes(unit)) {
-    return { error: TEMP_ERR_UNIT, message: 'bilinmeyen sıcaklık birimi' }
+    return { error: TEMP_ERR_UNIT }
   }
 
   const dC = unit === UNIT_F ? (value * 5) / 9 : value
@@ -156,7 +156,7 @@ export function convertDelta({ value, unit }) {
  * Ortam mutlak, artış farktır — dönüşümleri de öyle yapılır. Toplam yalnızca
  * doğrusal bir eklemedir; artışın nereden geldiği bu modülün konusu değildir.
  *
- * @returns {{ C, F, K, ambient, delta }} | { error, message }
+ * @returns {{ C, F, K, ambient, delta }} | { error }
  */
 export function finalTemperature({ ambient, ambientUnit, delta, deltaUnit }) {
   const a = convertTemperature({ value: ambient, unit: ambientUnit })
@@ -168,7 +168,7 @@ export function finalTemperature({ ambient, ambientUnit, delta, deltaUnit }) {
   const C = a.C + d.dC
   const K = cToK(C)
   if (K < -ABS_ZERO_EPS) {
-    return { error: TEMP_ERR_ABSOLUTE_ZERO, message: 'toplam sıcaklık mutlak sıfırın altında' }
+    return { error: TEMP_ERR_ABSOLUTE_ZERO }
   }
 
   return { C, F: cToF(C), K, ambient: a, delta: d }

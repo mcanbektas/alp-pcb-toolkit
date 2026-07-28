@@ -4,17 +4,15 @@ import NumberField from '../../../components/NumberField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtPct, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtPct } from '../../../lib/num'
 import AwgSchematic from './schematic'
 import {
   INITIAL_FORM, DIRECTIONS, DIR_DIAMETER, SWEEPS, SWEEP_D, DIAMETER_UNITS,
   compute, buildSweep,
 } from './model'
-import {
-  CHART, DIR_LABEL, SWEEP_LABEL, SWEEP_AXIS, SWEEP_CAPTION, FIELD_HINT,
-  TOLERANCE_CAPTION, TOLERANCE_FIELD_CAPTION, TOLERANCE_SQUARE_NOTE, SCALE_SOURCE,
-  awgLabel, reasonText, toleranceReason, commentary, validityNotes,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
@@ -22,97 +20,96 @@ const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 export default function AwgConverter() {
   const { f, set } = useToolForm(INITIAL_FORM)
   const [sweep, setSweep] = useState(SWEEP_D)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f), [f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+  const { awgLabel } = text
+
+  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r, sweep), [r, sweep])
   // Tolerans bandı yalnızca alan doldurulduğunda vardır; boşken null kalır ve
   // sonuç paneli bugünkü hâliyle çizilir.
   const tol = r.ok ? r.tolerance : null
-  const notes = useMemo(() => commentary(r), [r])
-  const validity = useMemo(() => validityNotes(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
+  const validity = useMemo(() => text.validityNotes(r), [r, text])
 
   // Durum çipi — en kötü bulgu seviyesi
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const chartSeries = s ? [{ key: 'awg', name: 'AWG', tone: toneClass(0), points: s.points }] : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
+      <Link className="backlink" to="/kategori/donusturucular">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>AWG Wire Gauge Converter</h1>
-        <p>
-          AWG numarası ile çıplak iletken çapı ve kesit alanı arasında iki yönlü çevirir; çaptan
-          numaraya dönüşü analitik tersiyle çözer, sonucu hem kesirli hem en yakın standart
-          numara olarak verir ve ölçeğin geçerli sınırlarını birlikte gösterir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <AwgSchematic r={r} />
+          <AwgSchematic r={r} text={text.schematic} />
 
           <Segmented
             value={f.dir}
             onChange={set('dir')}
-            options={DIRECTIONS.map((x) => ({ value: x, label: DIR_LABEL[x] }))}
+            options={DIRECTIONS.map((x) => ({ value: x, label: text.dirLabel[x] }))}
           />
 
           {f.dir === DIR_DIAMETER ? (
             <NumberField
-              label="İletken çapı (çıplak)"
+              label={text.fields.d.label}
               value={f.d} onChange={set('d')}
               units={DIAMETER_UNITS} unit={f.du} onUnit={set('du')}
-              hint={FIELD_HINT.d}
+              hint={text.fields.d.hint}
             />
           ) : (
             <NumberField
-              label="AWG numarası"
+              label={text.fields.awg.label}
               value={f.awg} onChange={set('awg')}
               units={['AWG']} unit="AWG" onUnit={() => {}}
-              hint={FIELD_HINT.awg}
+              hint={text.fields.awg.hint}
             />
           )}
 
-          <h2 className="section">{TOLERANCE_FIELD_CAPTION}</h2>
+          <h2 className="section">{text.toleranceFieldCaption}</h2>
 
           <NumberField
-            label="Çap toleransı"
+            label={text.fields.tolD.label}
             value={f.tolD} onChange={set('tolD')}
             units={['± %']} unit="± %" onUnit={() => {}}
-            placeholder="boş = tolerans yok"
-            hint={FIELD_HINT.tolD}
+            placeholder={text.fields.tolD.placeholder}
+            hint={text.fields.tolD.hint}
           />
         </section>
 
         {/* ---------- Orta: Sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
                 <div className="label">
-                  {r.dir === DIR_DIAMETER ? 'AWG numarası (kesirli)' : 'Çıplak iletken çapı'}
+                  {r.dir === DIR_DIAMETER ? text.bigFromDiameter : text.bigFromAwg}
                 </div>
                 <div className="value">
                   {r.dir === DIR_DIAMETER
@@ -122,7 +119,7 @@ export default function AwgConverter() {
                 <div className="alt">
                   {r.dir === DIR_DIAMETER ? (
                     <>
-                      en yakın standart AWG {awgLabel(r.awgNearest)} &nbsp;·&nbsp;
+                      {text.nearestStdPrefix} {awgLabel(r.awgNearest)} &nbsp;·&nbsp;
                       {' '}{fmt(r.nearest.dUnits.mm, 4)} mm &nbsp;·&nbsp;
                       {' '}{fmt(r.nearest.aUnits.mm2, 4)} mm²
                     </>
@@ -140,7 +137,7 @@ export default function AwgConverter() {
               <table className="result-table">
                 <tbody>
                   <tr className="mini-head">
-                    <td>Çap</td>
+                    <td>{text.table.diameterHead}</td>
                     <td>{r.standard ? `AWG ${awgLabel(r.awgExact)}` : `AWG ${fmt(r.awgExact, 5)}`}</td>
                   </tr>
                   <tr><td>mm</td><td>{fmt(r.dUnits.mm, 5)}</td></tr>
@@ -154,12 +151,12 @@ export default function AwgConverter() {
                 </tbody>
               </table>
 
-              <h2 className="section">Kesit alanı</h2>
+              <h2 className="section">{text.table.areaSection}</h2>
               <table className="result-table">
                 <tbody>
                   <tr className="mini-head">
                     <td>A = π·d²/4</td>
-                    <td>yuvarlak kesit</td>
+                    <td>{text.table.areaHeadNote}</td>
                   </tr>
                   <tr><td>mm²</td><td>{fmt(r.aUnits.mm2, 5)}</td></tr>
                   <tr><td>mil²</td><td>{fmt(r.aUnits.mil2, 6)}</td></tr>
@@ -170,59 +167,59 @@ export default function AwgConverter() {
 
               {tol && tol.error && (
                 <>
-                  <h2 className="section">{TOLERANCE_CAPTION}</h2>
-                  <p className="empty-note warn">{toleranceReason(tol.error)}</p>
+                  <h2 className="section">{text.toleranceCaption}</h2>
+                  <p className="empty-note warn">{text.toleranceReason(tol.error)}</p>
                 </>
               )}
 
               {tol && !tol.error && tol.active && (
                 <>
-                  <h2 className="section">{TOLERANCE_CAPTION}</h2>
+                  <h2 className="section">{text.toleranceCaption}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr className="mini-head">
-                        <td>Çekme toleransı ±{fmt(tol.tol * 100, 3)} %</td>
-                        <td>minimum · nominal · maksimum</td>
+                        <td>{text.tolTable.head(fmt(tol.tol * 100, 3))}</td>
+                        <td>{text.tolTable.headNote}</td>
                       </tr>
                       <tr>
-                        <td>Çap (mm)</td>
+                        <td>{text.tolTable.dMm}</td>
                         <td>
                           {fmt(tol.dUnits.min.mm, 5)} · {fmt(tol.dUnits.nom.mm, 5)} ·{' '}
                           {fmt(tol.dUnits.max.mm, 5)}{' '}
                           <span className="sub">
-                            ({fmtPct(tol.d.minPct, 4)} / {fmtPct(tol.d.maxPct, 4)})
+                            ({text.pct(fmtPct(tol.d.minPct, 4))} / {text.pct(fmtPct(tol.d.maxPct, 4))})
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Çap (mil)</td>
+                        <td>{text.tolTable.dMil}</td>
                         <td>
                           {fmt(tol.dUnits.min.mil, 5)} · {fmt(tol.dUnits.nom.mil, 5)} ·{' '}
                           {fmt(tol.dUnits.max.mil, 5)}
                         </td>
                       </tr>
                       <tr>
-                        <td>Kesit alanı (mm²)</td>
+                        <td>{text.tolTable.aMm2}</td>
                         <td>
                           {fmt(tol.aUnits.min.mm2, 5)} · {fmt(tol.aUnits.nom.mm2, 5)} ·{' '}
                           {fmt(tol.aUnits.max.mm2, 5)}{' '}
                           <span className="sub">
-                            ({fmtPct(tol.area.minPct, 4)} / {fmtPct(tol.area.maxPct, 4)})
+                            ({text.pct(fmtPct(tol.area.minPct, 4))} / {text.pct(fmtPct(tol.area.maxPct, 4))})
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Kesit alanı (mil²)</td>
+                        <td>{text.tolTable.aMil2}</td>
                         <td>
                           {fmt(tol.aUnits.min.mil2, 6)} · {fmt(tol.aUnits.nom.mil2, 6)} ·{' '}
                           {fmt(tol.aUnits.max.mil2, 6)}
                         </td>
                       </tr>
                       <tr>
-                        <td>Bant genişliği</td>
+                        <td>{text.tolTable.band}</td>
                         <td>
-                          çap {fmt(tol.d.spreadPct, 4)} % · kesit {fmt(tol.area.spreadPct, 4)} %{' '}
-                          <span className="sub">(kesit bandı çapınkinin ≈ iki katı)</span>
+                          {text.tolTable.bandRow(fmt(tol.d.spreadPct, 4), fmt(tol.area.spreadPct, 4))}{' '}
+                          <span className="sub">{text.tolTable.bandNote}</span>
                         </td>
                       </tr>
                     </tbody>
@@ -230,32 +227,32 @@ export default function AwgConverter() {
                 </>
               )}
 
-              <h2 className="section">En yakın standart numara</h2>
+              <h2 className="section">{text.nearestSection}</h2>
               <table className="result-table">
                 <tbody>
                   <tr className="mini-head">
                     <td>AWG {awgLabel(r.awgNearest)}</td>
-                    <td>{r.standard ? 'girilen değerin kendisi' : 'yuvarlanmış karşılık'}</td>
+                    <td>{r.standard ? text.nearest.self : text.nearest.rounded}</td>
                   </tr>
-                  <tr><td>Çap</td><td>{fmt(r.nearest.dUnits.mm, 5)} mm <span className="sub">({fmt(r.nearest.dUnits.mil, 4)} mil)</span></td></tr>
-                  <tr><td>Kesit alanı</td><td>{fmt(r.nearest.aUnits.mm2, 5)} mm² <span className="sub">({fmt(r.nearest.aUnits.mil2, 6)} mil²)</span></td></tr>
-                  <tr><td>Çap farkı</td><td>{fmtPct(r.dDeltaPct)}</td></tr>
-                  <tr><td>Kesit farkı</td><td>{fmtPct(r.areaDeltaPct)}</td></tr>
+                  <tr><td>{text.nearest.d}</td><td>{fmt(r.nearest.dUnits.mm, 5)} mm <span className="sub">({fmt(r.nearest.dUnits.mil, 4)} mil)</span></td></tr>
+                  <tr><td>{text.nearest.area}</td><td>{fmt(r.nearest.aUnits.mm2, 5)} mm² <span className="sub">({fmt(r.nearest.aUnits.mil2, 6)} mil²)</span></td></tr>
+                  <tr><td>{text.nearest.dDelta}</td><td>{text.pct(fmtPct(r.dDeltaPct))}</td></tr>
+                  <tr><td>{text.nearest.areaDelta}</td><td>{text.pct(fmtPct(r.areaDeltaPct))}</td></tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Komşu standart numaralar</h2>
+              <h2 className="section">{text.neighborsSection}</h2>
               <table className="result-table">
                 <tbody>
                   <tr className="mini-head">
-                    <td>Numara</td>
-                    <td>çap · kesit</td>
+                    <td>{text.neighbors.gauge}</td>
+                    <td>{text.neighbors.cols}</td>
                   </tr>
                   {r.neighbors.map((n) => (
                     <tr key={n.awg}>
                       <td>
                         AWG {awgLabel(n.awg)}
-                        {n.awg === r.awgNearest && <span className="sub"> (en yakın)</span>}
+                        {n.awg === r.awgNearest && <span className="sub"> {text.neighbors.nearestTag}</span>}
                       </td>
                       <td>{fmt(n.dUnits.mm, 4)} mm · {fmt(n.aUnits.mm2, 4)} mm²</td>
                     </tr>
@@ -263,7 +260,7 @@ export default function AwgConverter() {
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -278,63 +275,45 @@ export default function AwgConverter() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{`Numaradan çap:
-  d[inch] =
-    0.005 × 92^((36 − AWG)/39)
-  d[mm] =
-    0.127 × 92^((36 − AWG)/39)
-
-Kesit alanı:
-  A = π·d²/4
-
-Çaptan numara (analitik ters):
-  AWG = 36 − 39 ·
-    ln(d[mm]/0.127) / ln(92)
-
-Birim bağıntıları:
-  1 inch = 25.4 mm
-  1 mil = 0.001 inch = 0.0254 mm
-  1 mil² = 0.00064516 mm²
-
-Çekme toleransı (isteğe bağlı):
-  d ∈ [d·(1−t), d·(1+t)]
-  A ∈ [A·(1−t)², A·(1+t)²]
-
-Geçerli aralık: AWG -3 (4/0) … 40`}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>Üs: (36 − {fmt(r.awgExact, 5)}) / 39 = {fmt(r.exponent, 5)}</li>
-              <li>Çarpan: 92^{fmt(r.exponent, 5)} = {fmt(r.factor, 6)}</li>
+              <li>{text.detail.exponent(fmt(r.awgExact, 5), fmt(r.exponent, 5))}</li>
+              <li>{text.detail.factor(fmt(r.exponent, 5), fmt(r.factor, 6))}</li>
               <li>
-                Çap: 0.127 mm × {fmt(r.factor, 6)} = {fmt(r.dUnits.mm, 6)} mm
-                {r.dir === DIR_DIAMETER && <> <span className="sub">(çap girildi, numara bundan çözüldü)</span></>}
+                {text.detail.diameter(fmt(r.factor, 6), fmt(r.dUnits.mm, 6))}
+                {r.dir === DIR_DIAMETER && <> <span className="sub">{text.detail.diameterSolvedSub}</span></>}
               </li>
-              <li>Kesit: π·d²/4 = {fmt(r.aUnits.mm2, 6)} mm² = {fmt(r.aUnits.mil2, 6)} mil²</li>
-              <li>Ölçek oranı: 92^(1/39) = {fmt(Math.pow(92, 1 / 39), 6)} — bir numara başına çap oranı</li>
+              <li>{text.detail.area(fmt(r.aUnits.mm2, 6), fmt(r.aUnits.mil2, 6))}</li>
+              <li>{text.detail.ratio(fmt(Math.pow(92, 1 / 39), 6))}</li>
               {tol && !tol.error && tol.active && (
                 <li>
-                  Tolerans: t = {fmt(tol.tol, 5)} → çap {fmt(tol.dUnits.min.mm, 6)} …{' '}
-                  {fmt(tol.dUnits.max.mm, 6)} mm, kesit {fmt(tol.aUnits.min.mm2, 6)} …{' '}
-                  {fmt(tol.aUnits.max.mm2, 6)} mm²
+                  {text.detail.tolerance(
+                    fmt(tol.tol, 5),
+                    fmt(tol.dUnits.min.mm, 6),
+                    fmt(tol.dUnits.max.mm, 6),
+                    fmt(tol.aUnits.min.mm2, 6),
+                    fmt(tol.aUnits.max.mm2, 6),
+                  )}
                 </li>
               )}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Kullanılan ölçek ve kaynak</h2>
+          <h2 className="section">{text.scaleSourceSection}</h2>
           <ul className="detail-list">
-            {SCALE_SOURCE.map((line) => <li key={line}>{line}</li>)}
+            {text.scaleSource.map((line) => <li key={line}>{line}</li>)}
           </ul>
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
             {validity.map((w) => <li key={w} className="w">{w}</li>)}
-            <li>{TOLERANCE_SQUARE_NOTE}</li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            <li>{text.toleranceSquareNote}</li>
+            <li>{text.approxNote}</li>
           </ul>
         </section>
       </div>
@@ -342,31 +321,31 @@ Geçerli aralık: AWG -3 (4/0) … 40`}</pre>
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
           <Segmented
             value={sweep}
             onChange={setSweep}
-            options={SWEEPS.map((x) => ({ value: x, label: SWEEP_LABEL[x] }))}
+            options={SWEEPS.map((x) => ({ value: x, label: text.sweepLabel[x] }))}
           />
         </div>
 
         {s ? (
           <>
-            <ChartLegend items={[{ label: 'tam numaralar', tone: toneClass(0), kind: 'line' }]} />
+            <ChartLegend items={[{ label: text.chartLegend, tone: toneClass(0), kind: 'line' }]} />
 
             <LineChart
               xScale="log"
-              xLabel={SWEEP_AXIS[sweep]}
-              yLabel={CHART.y}
+              xLabel={text.sweepAxis[sweep]}
+              yLabel={text.chartY}
               series={chartSeries}
-              marker={s.marker ? { ...s.marker, label: 'seçilen' } : null}
+              marker={s.marker ? { ...s.marker, label: text.selected } : null}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmt(v, 3)}
-              caption={SWEEP_CAPTION[sweep]}
+              caption={text.sweepCaption[sweep]}
             />
 
             <ChartDataTable
-              xLabel={SWEEP_AXIS[sweep]}
+              xLabel={text.sweepAxis[sweep]}
               series={chartSeries}
               every={5}
               formatX={(v) => fmt(v, 4)}
@@ -374,7 +353,7 @@ Geçerli aralık: AWG -3 (4/0) … 40`}</pre>
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

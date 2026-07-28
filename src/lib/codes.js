@@ -2,10 +2,10 @@
 // seramik kondansatör kodları (spec §9.1, §9.2, §9.3).
 //
 // Saf katman: kullanıcıya görünen metin üretmez. Hata durumunda
-// { error: <kod>, message: <ayrıntı> } döner. `message` bir cümle değil, kodu
+// { error: <kod>, detail: <ayrıntı> } döner. `detail` bir cümle değil, kodu
 // tamamlayan simgesel/sayısal alanları taşıyan düz veri nesnesidir (bant sırası,
-// bant rolü, renk anahtarı, harf, sayı). Kodu ve alanlarını Türkçe cümleye
-// çeviren taraf ekranın text.js dosyasıdır.
+// bant rolü, renk anahtarı, harf, sayı). Kodu ve alanlarını cümleye çeviren
+// taraf ekranın text.js dosyasıdır.
 
 import { E96 } from './eseries'
 
@@ -65,7 +65,7 @@ export const CODE_VARIANT_TOLERANCE = 'tolerance'
 export const CODE_VARIANT_TCR = 'tcr'
 
 // Tek hata biçimi: kod + kodu tamamlayan alanlar. Cümle burada kurulmaz.
-const codeError = (error, message) => ({ error, message })
+const codeError = (error, detail) => ({ error, detail })
 
 // Renk bantlarından direnç değeri.
 // 4 bant: [d1, d2, çarpan, tolerans]

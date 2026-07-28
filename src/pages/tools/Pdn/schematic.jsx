@@ -19,7 +19,7 @@ import { fmtEng, fmtRes } from '../../../lib/num'
 // 7.78 px) ve sonuç satırları y = 173 / 188'e kaydı. Artan yer için viewBox
 // yüksekliği 186 → 196; genişlik değişmedi, yani çizimin ölçeği aynı kaldı.
 // Sıraların yeri: etiketler y = 139, denklemler y = 157, sonuçlar y = 173 ve 188.
-export default function PdnSchematic({ r }) {
+export default function PdnSchematic({ r, text }) {
   const top = 48
   const bot = 122
   const capXs = [160, 192]
@@ -27,8 +27,8 @@ export default function PdnSchematic({ r }) {
   return (
     <Schematic
       viewBox="0 0 260 196"
-      title="Güç dağıtım ağı blok şeması"
-      caption="VRM → düzlem çifti → kapasitör bankası → yük; hedef empedans yükün besleme düğümünde"
+      title={text.title}
+      caption={text.caption}
     >
       {/* Besleme ve dönüş rayları */}
       <g className="sch-wire">
@@ -44,7 +44,7 @@ export default function PdnSchematic({ r }) {
       <rect className="sch-part" x={12} y={64} width={40} height={42} rx={2} />
       <rect className="sch-part" x={206} y={64} width={40} height={42} rx={2} />
       <text className="sch-label" x={32} y={89} textAnchor="middle">VRM</text>
-      <text className="sch-label" x={226} y={89} textAnchor="middle">YÜK</text>
+      <text className="sch-label" x={226} y={89} textAnchor="middle">{text.load}</text>
 
       {/* Düzlem çifti — örtüşen bakır alan bir kapasitör oluşturur */}
       <rect className="sch-copper" x={72} y={top - 4} width={58} height={6} />
@@ -59,7 +59,7 @@ export default function PdnSchematic({ r }) {
       </g>
       {/* Düzlem kolonunun etiketi kolon ortasının 6 px soluna alındı: sağdaki
           "kapasitörler" kutusuyla arasındaki açıklık 6.8 → 12.8 px. */}
-      <text className="sch-label" x={95} y={139} textAnchor="middle">C_düzlem</text>
+      <text className="sch-label" x={95} y={139} textAnchor="middle">{text.cPlane}</text>
 
       {/* Kapasitör bankası */}
       {capXs.map((x) => (
@@ -74,14 +74,14 @@ export default function PdnSchematic({ r }) {
           <Node x={x} y={bot} r={2.5} />
         </g>
       ))}
-      <text className="sch-label" x={176} y={139} textAnchor="middle">kapasitörler</text>
+      <text className="sch-label" x={176} y={139} textAnchor="middle">{text.caps}</text>
 
       {/* Hedef empedansın tanımlı olduğu düğüm */}
       <Node x={226} y={top} />
-      <text className="sch-label" x={226} y={37} textAnchor="middle">Z_hedef</text>
+      <text className="sch-label" x={226} y={37} textAnchor="middle">{text.zTarget}</text>
 
       {/* Blok açıklamaları */}
-      <text className="sch-value" x={34} y={39}>V_ray</text>
+      <text className="sch-value" x={34} y={39}>{text.vRail}</text>
       <text className="sch-value" x={32} y={157} textAnchor="middle">R + jωL</text>
       <text className="sch-value" x={95} y={157} textAnchor="middle">ε₀·εr·A/d</text>
       <text className="sch-value" x={176} y={157} textAnchor="middle">ESR, ESL</text>
@@ -90,7 +90,7 @@ export default function PdnSchematic({ r }) {
       {r.ok && (
         <>
           <text className="sch-value" x={12} y={173}>
-            Z_hedef = {fmtRes(r.Ztarget, 4)}
+            {text.zTarget} = {fmtRes(r.Ztarget, 4)}
           </text>
           {r.curve && (
             <text className="sch-value" x={12} y={188}>

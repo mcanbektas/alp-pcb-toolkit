@@ -5,89 +5,53 @@ import Segmented from '../../../components/Segmented'
 import RowList from '../../../components/RowList'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtRes, fmtVolt, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtRes, fmtVolt } from '../../../lib/num'
 import { VOLTAGE, fromSI } from '../../../lib/units'
 import DecouplingSchematic from './schematic'
 import {
-  INITIAL_FORM, MODE_MIN, MODE_NETWORK, CAP_COLUMNS, compute, buildSweep,
+  INITIAL_FORM, MODE_MIN, MODE_NETWORK, capColumns, compute, buildSweep,
 } from './model'
-import {
-  MODE_LABEL, NOTE_MIN, NOTE_NETWORK, CHART_MIN, CHART_MIN_X_UNIT, CHART_NET,
-  netCaption, reasonText, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = {
-  [MODE_MIN]: `Çekilen yük:
-  ΔQ = ΔI·Δt
-  ΔQ = C·ΔV
-
-Minimum ideal kapasite:
-  C_min = ΔI·Δt / ΔV
-
-Bu ifade ESR ve ESL etkisini
-İÇERMEZ. Gerçek kapasitörde ESR
-anlık gerilim düşümü, ESL ise
-akım değişimine direnç üretir;
-ikisi de ripple'ı büyütür.`,
-
-  [MODE_NETWORK]: `Gerçek kapasitör, seri RLC:
-  Z_C = ESR + j(ω·ESL − 1/(ω·C))
-  |Z_C| =
-    √(ESR² + (ω·ESL − 1/(ω·C))²)
-
-Kendi rezonans frekansı:
-  SRF = 1 / (2π·√(ESL·C))
-  SRF'de reaktanslar götürür
-    → |Z_C| ≈ ESR
-  SRF üstünde kapasitör
-  endüktiftir
-
-Paralel ağ:
-  Z_ağ(ω) = [ Σ 1/Z_i(ω) ]⁻¹
-  toplam KOMPLEKS admitans
-  üzerinden alınır; anti-rezonans
-  tepeleri böyle görünür
-
-N adet aynı kapasitör:
-  C_eq = N·C
-  ESR_eq = ESR/N
-  ESL_eq = ESL/N
-  ortak via/dar bağlantı varsa
-  ESL 1/N azalmaz`,
-}
-
 export default function Decoupling() {
   const [mode, setMode] = useState(MODE_MIN)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(mode, f), [mode, f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(mode, f, text.fieldLabels), [mode, f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const isMin = mode === MODE_MIN
-  const chartMeta = isMin ? CHART_MIN : CHART_NET
+  const chartX = isMin ? text.chart.minX : text.chart.netX
+  const chartY = isMin ? text.chart.minY : text.chart.netY
 
   const chartSeries = !s
     ? []
     : s.kind === MODE_MIN
       ? [{ key: 'cmin', name: 'C_min', tone: toneClass(0), points: s.points }]
       : [
-          { key: 'net', name: 'ağ |Z|', tone: toneClass(0), points: s.points },
+          { key: 'net', name: text.chart.seriesNet, tone: toneClass(0), points: s.points },
           ...s.series.map((x) => ({
             key: `row${x.index}`,
-            name: `satır ${x.index + 1}`,
+            name: text.chart.seriesRow(x.index),
             tone: toneClass(x.index + 1),
             points: x.points,
           })),
@@ -95,8 +59,8 @@ export default function Decoupling() {
 
   // Minimum kapasite modunda x ekseni SI (V) gelir; gösterim birimine çevrim
   // burada, units.js tablosundan yapılır. Birim adı eksen etiketiyle aynı
-  // sabitten (CHART_MIN_X_UNIT) gelir.
-  const toChartX = (v) => fromSI(v, CHART_MIN_X_UNIT, VOLTAGE)
+  // sabitten (text.chart.minXUnit) gelir.
+  const toChartX = (v) => fromSI(v, text.chart.minXUnit, VOLTAGE)
 
   const formatY = isMin
     ? (v) => fmtEng(v, 'F', 3)
@@ -107,70 +71,66 @@ export default function Decoupling() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/guc-termal">← Güç Bütünlüğü ve Termal</Link>
+      <Link className="backlink" to="/kategori/guc-termal">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Decoupling Network</h1>
-        <p>
-          Ani akım talebi için gereken minimum ideal kapasiteyi; paralel kapasitör ağının
-          seçilen frekanstaki empedansını, her kapasitörün kendi rezonans frekansını ve
-          aradaki anti-rezonans tepelerini hesaplar.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <DecouplingSchematic r={r} mode={mode} />
+          <DecouplingSchematic r={r} mode={mode} text={text.schematic} />
 
           <Segmented
             value={mode}
             onChange={setMode}
             options={[
-              { value: MODE_MIN, label: MODE_LABEL[MODE_MIN] },
-              { value: MODE_NETWORK, label: MODE_LABEL[MODE_NETWORK] },
+              { value: MODE_MIN, label: text.modeLabel[MODE_MIN] },
+              { value: MODE_NETWORK, label: text.modeLabel[MODE_NETWORK] },
             ]}
           />
 
           {isMin ? (
             <>
               <NumberField
-                label="Ani akım değişimi (ΔI)"
+                label={text.fields.dI.label}
                 value={f.dI} onChange={set('dI')}
                 units={['A', 'mA']} unit={f.dIu} onUnit={set('dIu')}
-                hint="Yükün bir anda çektiği akım basamağı"
+                hint={text.fields.dI.hint}
               />
               <NumberField
-                label="Geçiş süresi (Δt)"
+                label={text.fields.dT.label}
                 value={f.dT} onChange={set('dT')}
                 units={['ns', 'µs', 'ms', 's']} unit={f.dTu} onUnit={set('dTu')}
-                hint="Akım basamağının süresi — yükün bu süre boyunca kapasitörden beslendiği kabul edilir"
+                hint={text.fields.dT.hint}
               />
               <NumberField
-                label="İzin verilen gerilim değişimi (ΔV)"
+                label={text.fields.dV.label}
                 value={f.dV} onChange={set('dV')}
                 units={['mV', 'V']} unit={f.dVu} onUnit={set('dVu')}
-                hint="Ray toleransının bu olaya ayrılan payı"
+                hint={text.fields.dV.hint}
               />
             </>
           ) : (
             <>
               <RowList
-                label="Kapasitör satırları"
+                label={text.rowList.label}
                 rows={f.caps}
-                columns={CAP_COLUMNS}
+                columns={capColumns(text.capCols)}
                 onChange={set('caps')}
-                rowLabel="Kapasitör"
-                addLabel="Kapasitör ekle"
-                hint="ESR sıfır bırakılamaz: kayıpsız kapasitör rezonansta sıfır empedans verir ve sonuç anlamsızlaşır"
+                rowLabel={text.rowList.rowLabel}
+                addLabel={text.rowList.addLabel}
+                hint={text.rowList.hint}
               />
               <NumberField
-                label="Değerlendirme frekansı"
+                label={text.fields.fEval.label}
                 value={f.fEval} onChange={set('fEval')}
                 units={['kHz', 'MHz', 'GHz']} unit={f.fEvalu} onUnit={set('fEvalu')}
-                hint="Empedansın okunacağı frekans; grafik 1 kHz – 1 GHz aralığını tarar"
+                hint={text.fields.fEval.hint}
               />
             </>
           )}
@@ -178,20 +138,18 @@ export default function Decoupling() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : isMin ? (
             <>
               <div className="big-result">
-                <div className="label">Minimum ideal kapasite</div>
+                <div className="label">{text.bigMin.label}</div>
                 <div className="value">{fmtEng(r.C, 'F', 4)}</div>
                 <div className="alt">
                   ΔQ = {fmtEng(r.charge, 'C', 4)} &nbsp;·&nbsp; ΔV = {fmtVolt(r.deltaV)}
@@ -200,38 +158,38 @@ export default function Decoupling() {
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{NOTE_MIN}</p>
+              <p className="method-note">{text.noteMin}</p>
 
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Minimum ideal kapasite (C_min)</td>
+                    <td>{text.tableMin.cmin}</td>
                     <td>{fmtEng(r.C, 'F', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Çekilen yük (ΔQ = ΔI·Δt)</td>
+                    <td>{text.tableMin.charge}</td>
                     <td>{fmtEng(r.charge, 'C', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Ani akım değişimi (ΔI)</td>
+                    <td>{text.tableMin.dI}</td>
                     <td>{fmtEng(r.deltaI, 'A', 4)}</td>
                   </tr>
                   <tr>
-                    <td>Geçiş süresi (Δt)</td>
+                    <td>{text.tableMin.dT}</td>
                     <td>{fmtEng(r.deltaT, 's', 4)}</td>
                   </tr>
                   <tr>
-                    <td>İzin verilen gerilim değişimi (ΔV)</td>
+                    <td>{text.tableMin.dV}</td>
                     <td>{fmtVolt(r.deltaV)}</td>
                   </tr>
                   <tr>
-                    <td>ESR ve ESL dahil mi</td>
-                    <td>{r.includesEsrEsl ? 'evet' : 'hayır'}</td>
+                    <td>{text.tableMin.includesEsrEsl}</td>
+                    <td>{text.words.yesNo(r.includesEsrEsl)}</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -244,31 +202,30 @@ export default function Decoupling() {
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Ağ empedansı @ {fmtEng(r.f, 'Hz', 4)}</div>
+                <div className="label">{text.bigNet.label(r.f)}</div>
                 <div className="value">{fmtRes(r.mag, 4)}</div>
                 <div className="alt">
                   R = {fmtRes(r.re, 3)} &nbsp;·&nbsp; X = {fmtRes(r.im, 3)} (
-                  {r.inductive ? 'endüktif' : 'kapasitif'})
+                  {text.words.reactive(r.inductive)})
                 </div>
               </div>
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{NOTE_NETWORK}</p>
+              <p className="method-note">{text.noteNetwork}</p>
 
               <table className="result-table">
                 <tbody>
                   {r.items.map((it, i) => (
                     <tr key={i}>
-                      <td>
-                        Satır {i + 1} — {fmtEng(it.C, 'F', 3)} × {fmt(it.count, 3)} adet ·
-                        ESR {fmtRes(it.ESR, 3)} · ESL {fmtEng(it.ESL, 'H', 3)}
-                      </td>
+                      <td>{text.tableNet.rowCell(i, it)}</td>
                       <td>
                         {fmtRes(it.group ? it.group.mag : NaN, 3)}
                         <span className="sub">
-                          {' '}· SRF {it.srf != null ? fmtEng(it.srf, 'Hz', 3) : '—'} ·{' '}
-                          {it.single ? (it.single.aboveSrf ? 'endüktif' : 'kapasitif') : '—'}
+                          {' '}· SRF {it.srf != null ? fmtEng(it.srf, 'Hz', 3) : text.words.dash} ·{' '}
+                          {it.single
+                            ? text.words.reactive(it.single.aboveSrf)
+                            : text.words.dash}
                         </span>
                       </td>
                     </tr>
@@ -276,20 +233,14 @@ export default function Decoupling() {
                 </tbody>
               </table>
 
-              <p className="method-note">
-                Satır empedansı, o satırdaki N kapasitörün birlikte empedansıdır. SRF tekil
-                kapasitörle aynıdır, çünkü C_eq·ESL_eq çarpımı değişmez.
-              </p>
+              <p className="method-note">{text.noteRowImpedance}</p>
 
-              <h2 className="section">Aynı değerli N kapasitör eşdeğeri</h2>
+              <h2 className="section">{text.tableNet.bankHeading}</h2>
               <table className="result-table">
                 <tbody>
                   {r.items.map((it, i) => (
                     <tr key={i}>
-                      <td>
-                        Satır {i + 1} eşdeğeri — N = {fmt(it.count, 3)} · tekil kapasitör
-                        empedansı {fmtRes(it.single ? it.single.mag : NaN, 3)}
-                      </td>
+                      <td>{text.tableNet.bankCell(i, it)}</td>
                       <td>
                         {fmtEng(it.bank ? it.bank.Ceq : NaN, 'F', 3)}
                         <span className="sub">
@@ -302,72 +253,72 @@ export default function Decoupling() {
                 </tbody>
               </table>
 
-              <h2 className="section">Ağ toplamı</h2>
+              <h2 className="section">{text.tableNet.totalHeading}</h2>
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Ağ empedansı |Z|</td>
+                    <td>{text.tableNet.mag}</td>
                     <td>{fmtRes(r.mag, 5)}</td>
                   </tr>
                   <tr>
-                    <td>Direnç bileşeni (R)</td>
+                    <td>{text.tableNet.re}</td>
                     <td>{fmtRes(r.re, 4)}</td>
                   </tr>
                   <tr>
-                    <td>Reaktans (X)</td>
+                    <td>{text.tableNet.im}</td>
                     <td>
                       {fmtRes(r.im, 4)}{' '}
-                      <span className="sub">({r.inductive ? 'endüktif' : 'kapasitif'})</span>
+                      <span className="sub">({text.words.reactive(r.inductive)})</span>
                     </td>
                   </tr>
                   <tr>
-                    <td>Toplam kapasitör adedi</td>
+                    <td>{text.tableNet.count}</td>
                     <td>{fmt(r.count, 4)}</td>
                   </tr>
                   <tr>
-                    <td>Kendi rezonansının üstünde olan satır</td>
+                    <td>{text.tableNet.aboveCount}</td>
                     <td>{fmt(r.aboveCount, 3)} / {fmt(r.items.length, 3)}</td>
                   </tr>
                   <tr>
-                    <td>ESL'si sıfır girilen satır</td>
+                    <td>{text.tableNet.noEslCount}</td>
                     <td>
                       {fmt(r.noEslCount, 3)} / {fmt(r.items.length, 3)}
                       {r.noEslCount > 0 && (
-                        <span className="sub"> · rezonans frekansı tanımsız</span>
+                        <span className="sub">{text.tableNet.noEslSub}</span>
                       )}
                     </td>
                   </tr>
                   <tr>
-                    <td>Anti-rezonans tepesi</td>
+                    <td>{text.tableNet.peak}</td>
                     <td>
                       {r.peak
                         ? <>{fmtEng(r.peak.f, 'Hz', 4)} · {fmtRes(r.peak.mag, 4)}</>
-                        : 'taramada yok'}
+                        : text.words.noPeak}
                     </td>
                   </tr>
                   {r.peak && r.peakWorstSingle != null && (
                     <tr>
-                      <td>Tepede en yüksek tekil satır |Z|</td>
+                      <td>{text.tableNet.peakWorstSingle}</td>
                       <td>
                         {fmtRes(r.peakWorstSingle, 4)}{' '}
                         <span className="sub">
-                          ({r.peakAbove ? 'tepe daha yüksek' : 'tepe daha alçak'})
+                          ({text.tableNet.peakCompare(r.peakAbove)})
                         </span>
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td>ESL için 1/N ideal paylaşım varsayımı</td>
-                    <td>{r.idealSharing ? 'evet' : 'hayır'}</td>
+                    <td>{text.tableNet.idealSharing}</td>
+                    <td>{text.words.yesNo(r.idealSharing)}</td>
                   </tr>
                   <tr>
-                    <td>Montaj, via ve yayılma endüktansı dahil mi</td>
-                    <td>hayır</td>
+                    <td>{text.tableNet.mountingIncluded}</td>
+                    <td>{text.words.yesNo(false)}</td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -382,83 +333,28 @@ export default function Decoupling() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA[mode]}</pre>
+          <pre className="formula">{text.formula[mode]}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              {isMin ? (
-                <>
-                  <li>
-                    ΔQ = ΔI·Δt = {fmtEng(r.charge, 'C', 4)}; aynı yük C·ΔV olarak yazılınca
-                    C_min = {fmtEng(r.C, 'F', 4)} çıkar.
-                  </li>
-                  <li>
-                    Motorun bildirdiği alan: ESR/ESL dahil = {r.includesEsrEsl ? 'evet' : 'hayır'}.
-                    Sonuç bu yüzden ideal kapasitörün alt sınırıdır.
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li>
-                    Ağ toplamı kompleks admitans üzerinden alınır; büyüklükleri toplamak
-                    anti-rezonans tepelerini yok ederdi.
-                  </li>
-                  <li>
-                    Değerlendirme frekansı {fmtEng(r.f, 'Hz', 4)}; grafik taraması 1 kHz – 1 GHz,
-                    dekat başına 40 nokta. Tepe konumu bu çözünürlükle sınırlıdır.
-                  </li>
-                  <li>
-                    SRF tekil kapasitörle N adetli grup için aynıdır: C_eq = N·C ve ESL_eq = ESL/N
-                    çarpımı değişmez, dolayısıyla rezonans frekansı kaymaz. Değişen şey empedans
-                    seviyesidir.
-                  </li>
-                  <li>
-                    Grafiğin y ekseni logaritmiktir; eksen etiketleri ve veri tablosu gerçek
-                    empedans değerlerini gösterir.
-                  </li>
-                </>
-              )}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              {(isMin ? text.detail.min(r) : text.detail.network(r)).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Seri RLC modeli yalnızca <strong>kapasitörün kendisini</strong> modeller. Bağlantı
-              endüktansı — montaj pedi, via ve düzlem yayılma endüktansı — bu sonuca DAHİL
-              DEĞİLDİR ve ayrıca eklenmelidir; o hesap PDN ekranındadır. Yüksek
-              frekansta baskın terim genellikle kapasitörün kendi ESL'si değil, bu bağlantıdır.
-            </li>
-            <li>
-              Üretici S-parametresi veya ölçülmüş empedans eğrisi bu üç terimli modelden daha
-              doğrudur. ESR ve ESL burada sabit alınır; gerçekte ikisi de frekansa ve sıcaklığa
-              göre değişir.
-            </li>
-            <li>
-              Nominal kapasite kullanılır. Seramik kapasitörde uygulanan DC gerilim ve sıcaklık
-              gerçek kapasiteyi nominalin altına indirir; bu düşüş modelde yoktur.
-            </li>
-            <li>
-              Her kapasitör için ESR &gt; 0 zorunludur: kayıpsız kapasitör kendi rezonansında
-              sıfır empedans, anti-rezonansta ise sonsuz tepe verir ve sonuç fizik değil yuvarlama
-              gürültüsü olur.
-            </li>
-            <li>
-              ESR/N ve ESL/N ölçeklemesi bağımsız ve eşit bağlantı yolları varsayar. Ortak via
-              veya ortak dar bağlantı varsa ESL tam olarak 1/N azalmaz.
-            </li>
-            <li>
-              Düzlem kapasitansı ve VRM empedansı bu ekranda yoktur; toplam PDN eğrisi ve hedef
-              empedans karşılaştırması için PDN ekranı gerekir.
-            </li>
-            <li>
-              Decoupling değeri işlemci clock frekansından tek başına seçilmez: ani akım, izin
-              verilen ripple, ESR, ESL ve bağlantı endüktansı birlikte değerlendirilir.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((line, i) => (
+              <li key={i}>
+                {line.lead}
+                {line.strong && <strong>{line.strong}</strong>}
+                {line.rest}
+              </li>
+            ))}
           </ul>
         </section>
       </div>
@@ -466,7 +362,7 @@ export default function Decoupling() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -475,7 +371,7 @@ export default function Decoupling() {
               items={[
                 ...chartSeries.map((x) => ({ label: x.name, tone: x.tone, kind: 'line' })),
                 ...s.refs.map(() => ({
-                  label: isMin ? 'hesaplanan C_min' : 'anti-rezonans tepesi',
+                  label: isMin ? text.chart.legendCmin : text.chart.legendPeak,
                   tone: 'tone-muted',
                   kind: 'line',
                 })),
@@ -484,39 +380,39 @@ export default function Decoupling() {
 
             <LineChart
               xScale="log"
-              xLabel={chartMeta.x}
-              yLabel={chartMeta.y}
+              xLabel={chartX}
+              yLabel={chartY}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
                 label: isMin
-                  ? `C_min ${fmtEng(r.C, 'F', 3)}`
-                  : `tepe ${fmtRes(r.peak ? r.peak.mag : NaN, 3)}`,
+                  ? text.chart.refCmin(r.C)
+                  : text.chart.refPeak(r.peak ? r.peak.mag : NaN),
               }))}
               marker={{
                 ...s.marker,
-                label: isMin ? 'çalışma noktası' : 'değerlendirme frekansı',
+                label: isMin ? text.chart.markerMin : text.chart.markerNet,
               }}
               formatX={formatX}
               formatY={formatY}
               caption={isMin
-                ? CHART_MIN.caption
-                : netCaption(s.hidden, r.peak, r.peakAbove, r.peakWorstSingle)}
+                ? text.chart.minCaption
+                : text.netCaption(s.hidden, r.peak, r.peakAbove, r.peakWorstSingle)}
             />
 
             <ChartDataTable
-              xLabel={chartMeta.x}
+              xLabel={chartX}
               series={chartSeries}
               every={isMin ? 6 : 20}
               formatX={isMin
-                ? (v) => `${fmt(toChartX(v), 4)} ${CHART_MIN_X_UNIT}`
+                ? (v) => `${fmt(toChartX(v), 4)} ${text.chart.minXUnit}`
                 : (v) => fmtEng(v, 'Hz', 4)}
               formatY={isMin ? (v) => fmtEng(v, 'F', 4) : (v) => fmtRes(Math.pow(10, v), 4)}
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

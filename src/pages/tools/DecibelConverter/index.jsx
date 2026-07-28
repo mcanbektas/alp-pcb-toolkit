@@ -5,7 +5,9 @@ import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtOhm, fmtVolt, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtOhm, fmtVolt } from '../../../lib/num'
 import DecibelSchematic from './schematic'
 import {
   INITIAL_FORM, MODES, DIRS,
@@ -14,32 +16,33 @@ import {
   POWER_UNITS, VOLTAGE_UNITS,
   compute, buildSweep,
 } from './model'
-import {
-  MODE_LABEL, DIR_LABEL, DIR_FIELD_LABEL, CHART,
-  METHOD_NOTE, EQUAL_Z_NOTE, SOURCE_NOTES, LIMIT_NOTES, reasonText, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
 export default function DecibelConverter() {
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f), [f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const forward = f.dir === DIR_FORWARD
-  const chart = s ? CHART[s.kind] : null
+  const chart = s ? text.chart[s.kind] : null
 
   const chartSeries = !s
     ? []
@@ -52,50 +55,45 @@ export default function DecibelConverter() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/uretim-dfm">← PCB Üretim, DFM ve Dönüşümler</Link>
+      <Link className="backlink" to="/kategori/donusturucular">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Decibel, Gain & dBm Converter</h1>
-        <p>
-          Güç ve gerilim oranlarını dB'ye, dB değerini oranlara çevirir; ayrıca 1 mW referanslı
-          dBm seviyesi ile mW/W arasında dönüşüm yapar ve seçilen referans empedansta RMS gerilim
-          karşılığını gösterir. 10·log₁₀ ile 20·log₁₀ arasındaki farkı ve bu farkın hangi koşulda
-          geçerli olduğunu birlikte değerlendirir.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <DecibelSchematic r={r} />
+          <DecibelSchematic r={r} text={text.schematic} />
 
           <Segmented
             value={f.mode}
             onChange={set('mode')}
-            options={MODES.map((m) => ({ value: m, label: MODE_LABEL[m] }))}
+            options={MODES.map((m) => ({ value: m, label: text.modeLabel[m] }))}
           />
 
           <SelectField
-            label={DIR_FIELD_LABEL}
+            label={text.fields.dir}
             value={f.dir}
             onChange={set('dir')}
-            options={DIRS.map((d) => ({ value: d, label: DIR_LABEL[f.mode][d] }))}
+            options={DIRS.map((d) => ({ value: d, label: text.dirLabel[f.mode][d] }))}
           />
 
           {f.mode === MODE_POWER && forward && (
             <>
               <NumberField
-                label="Giriş gücü (P₁)"
+                label={text.fields.P1.label}
                 value={f.P1} onChange={set('P1')}
                 units={POWER_UNITS} unit={f.P1u} onUnit={set('P1u')}
               />
               <NumberField
-                label="Çıkış gücü (P₂)"
+                label={text.fields.P2.label}
                 value={f.P2} onChange={set('P2')}
                 units={POWER_UNITS} unit={f.P2u} onUnit={set('P2u')}
-                hint="Oran P₂/P₁ olarak alınır; iki değer de sıfırdan büyük olmalı"
+                hint={text.fields.P2.hint}
               />
             </>
           )}
@@ -103,16 +101,16 @@ export default function DecibelConverter() {
           {f.mode === MODE_POWER && !forward && (
             <>
               <NumberField
-                label="Kazanç (G)"
+                label={text.fields.dB.label}
                 value={f.dB} onChange={set('dB')}
                 units={['dB']} unit="dB" onUnit={() => {}}
-                hint="Negatif değer zayıflamadır"
+                hint={text.fields.dB.hint}
               />
               <NumberField
-                label="Giriş gücü (P₁)"
+                label={text.fields.P1.label}
                 value={f.P1} onChange={set('P1')}
                 units={POWER_UNITS} unit={f.P1u} onUnit={set('P1u')}
-                hint="İsteğe bağlı — girilirse çıkış gücü de hesaplanır"
+                hint={text.fields.P1Optional.hint}
               />
             </>
           )}
@@ -120,15 +118,15 @@ export default function DecibelConverter() {
           {f.mode === MODE_VOLTAGE && forward && (
             <>
               <NumberField
-                label="Giriş gerilimi (V₁)"
+                label={text.fields.V1.label}
                 value={f.V1} onChange={set('V1')}
                 units={VOLTAGE_UNITS} unit={f.V1u} onUnit={set('V1u')}
               />
               <NumberField
-                label="Çıkış gerilimi (V₂)"
+                label={text.fields.V2.label}
                 value={f.V2} onChange={set('V2')}
                 units={VOLTAGE_UNITS} unit={f.V2u} onUnit={set('V2u')}
-                hint="İki gerilim de aynı türden olmalı (ikisi de RMS ya da ikisi de tepe)"
+                hint={text.fields.V2.hint}
               />
             </>
           )}
@@ -136,68 +134,66 @@ export default function DecibelConverter() {
           {f.mode === MODE_VOLTAGE && !forward && (
             <>
               <NumberField
-                label="Kazanç (G)"
+                label={text.fields.dB.label}
                 value={f.dB} onChange={set('dB')}
                 units={['dB']} unit="dB" onUnit={() => {}}
-                hint="Negatif değer zayıflamadır"
+                hint={text.fields.dB.hint}
               />
               <NumberField
-                label="Giriş gerilimi (V₁)"
+                label={text.fields.V1.label}
                 value={f.V1} onChange={set('V1')}
                 units={VOLTAGE_UNITS} unit={f.V1u} onUnit={set('V1u')}
-                hint="İsteğe bağlı — girilirse çıkış gerilimi de hesaplanır"
+                hint={text.fields.V1Optional.hint}
               />
             </>
           )}
 
           {f.mode === MODE_DBM && forward && (
             <NumberField
-              label="Güç (P)"
+              label={text.fields.P.label}
               value={f.P} onChange={set('P')}
               units={POWER_UNITS} unit={f.Pu} onUnit={set('Pu')}
-              hint="Sıfırdan büyük olmalı; 0 W için dBm tanımsızdır"
+              hint={text.fields.P.hint}
             />
           )}
 
           {f.mode === MODE_DBM && !forward && (
             <NumberField
-              label="Güç seviyesi"
+              label={text.fields.dBm.label}
               value={f.dBm} onChange={set('dBm')}
               units={['dBm']} unit="dBm" onUnit={() => {}}
-              hint="0 dBm = 1 mW; negatif değer 1 mW altını gösterir"
+              hint={text.fields.dBm.hint}
             />
           )}
 
           {f.mode === MODE_DBM && (
             <NumberField
-              label="Referans empedans (Z₀)"
+              label={text.fields.Z.label}
               value={f.Z} onChange={set('Z')}
               units={['Ω']} unit="Ω" onUnit={() => {}}
-              hint="RMS gerilim karşılığı bu empedansta hesaplanır"
+              hint={text.fields.Z.hint}
             />
           )}
         </section>
 
         {/* ---------- Orta: Sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">{reasonText(r.reason)}</p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : r.mode === MODE_DBM ? (
             <>
               <div className="big-result">
-                <div className="label">Güç seviyesi</div>
+                <div className="label">{text.bigDbm.label}</div>
                 <div className="value">{fmt(r.dBm, 4)} dBm</div>
                 <div className="alt">
                   {fmtEng(r.W, 'W', 4)} &nbsp;·&nbsp; {fmt(r.mW, 4)} mW
-                  &nbsp;·&nbsp; {fmtVolt(r.Vrms)} RMS @ {fmtOhm(r.Z)}
+                  &nbsp;·&nbsp; {text.bigDbm.rms(fmtVolt(r.Vrms), fmtOhm(r.Z))}
                 </div>
               </div>
 
@@ -205,31 +201,38 @@ export default function DecibelConverter() {
 
               <table className="result-table">
                 <tbody>
-                  <tr className="mini-head"><td>Seviye</td><td>1 mW referansına göre</td></tr>
+                  <tr className="mini-head">
+                    <td>{text.dbmTable.head}</td>
+                    <td>{text.dbmTable.headSub}</td>
+                  </tr>
                   <tr><td>dBm</td><td>{fmt(r.dBm, 5)} dBm</td></tr>
                   <tr>
-                    <td>Güç</td>
+                    <td>{text.dbmTable.power}</td>
                     <td>{fmt(r.mW, 5)} mW <span className="sub">({fmtEng(r.W, 'W', 5)})</span></td>
                   </tr>
                   <tr>
-                    <td>Referansa oran</td>
-                    <td>{fmt(r.powerRatio, 5)}× <span className="sub">(P / 1 mW)</span></td>
+                    <td>{text.dbmTable.ratio}</td>
+                    <td>
+                      {fmt(r.powerRatio, 5)}× <span className="sub">{text.dbmTable.ratioSub}</span>
+                    </td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Referans empedansta gerilim</h2>
+              <h2 className="section">{text.dbmTable.voltageHeading}</h2>
               <table className="result-table">
                 <tbody>
-                  <tr><td>Referans empedans</td><td>{fmtOhm(r.Z)}</td></tr>
+                  <tr><td>{text.dbmTable.refZ}</td><td>{fmtOhm(r.Z)}</td></tr>
                   <tr>
-                    <td>RMS gerilim</td>
-                    <td>{fmtVolt(r.Vrms)} <span className="sub">(V = √(P·Z₀))</span></td>
+                    <td>{text.dbmTable.vrms}</td>
+                    <td>
+                      {fmtVolt(r.Vrms)} <span className="sub">{text.dbmTable.vrmsSub}</span>
+                    </td>
                   </tr>
                 </tbody>
               </table>
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -242,10 +245,10 @@ export default function DecibelConverter() {
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Kazanç</div>
+                <div className="label">{text.bigGain.label}</div>
                 <div className="value">{fmt(r.dB, 4)} dB</div>
                 <div className="alt">
-                  güç oranı ×{fmt(r.powerRatio, 4)} &nbsp;·&nbsp; gerilim oranı ×{fmt(r.voltageRatio, 4)}
+                  {text.bigGain.alt(fmt(r.powerRatio, 4), fmt(r.voltageRatio, 4))}
                 </div>
               </div>
 
@@ -253,42 +256,48 @@ export default function DecibelConverter() {
 
               <table className="result-table">
                 <tbody>
-                  <tr className="mini-head"><td>Oran</td><td>dB karşılığı</td></tr>
+                  <tr className="mini-head">
+                    <td>{text.gainTable.head}</td>
+                    <td>{text.gainTable.headSub}</td>
+                  </tr>
                   <tr>
-                    <td>Güç oranı P₂/P₁</td>
+                    <td>{text.gainTable.powerRatio}</td>
                     <td>{fmt(r.powerRatio, 5)}× <span className="sub">(10·log₁₀)</span></td>
                   </tr>
                   <tr>
-                    <td>Gerilim oranı V₂/V₁</td>
-                    <td>{fmt(r.voltageRatio, 5)}× <span className="sub">(20·log₁₀, eşit empedans)</span></td>
+                    <td>{text.gainTable.voltageRatio}</td>
+                    <td>
+                      {fmt(r.voltageRatio, 5)}×{' '}
+                      <span className="sub">{text.gainTable.voltageSub}</span>
+                    </td>
                   </tr>
-                  <tr><td>Kazanç</td><td>{fmt(r.dB, 5)} dB</td></tr>
+                  <tr><td>{text.gainTable.gain}</td><td>{fmt(r.dB, 5)} dB</td></tr>
                 </tbody>
               </table>
 
               {(r.P1 != null || r.V1 != null) && (
                 <>
-                  <h2 className="section">Giriş ve çıkış</h2>
+                  <h2 className="section">{text.gainTable.ioHeading}</h2>
                   <table className="result-table">
                     <tbody>
                       {r.P1 != null && (
-                        <tr><td>Giriş gücü P₁</td><td>{fmtEng(r.P1, 'W', 5)}</td></tr>
+                        <tr><td>{text.gainTable.P1}</td><td>{fmtEng(r.P1, 'W', 5)}</td></tr>
                       )}
                       {r.P2 != null && (
-                        <tr><td>Çıkış gücü P₂</td><td>{fmtEng(r.P2, 'W', 5)}</td></tr>
+                        <tr><td>{text.gainTable.P2}</td><td>{fmtEng(r.P2, 'W', 5)}</td></tr>
                       )}
                       {r.V1 != null && (
-                        <tr><td>Giriş gerilimi V₁</td><td>{fmtVolt(r.V1)}</td></tr>
+                        <tr><td>{text.gainTable.V1}</td><td>{fmtVolt(r.V1)}</td></tr>
                       )}
                       {r.V2 != null && (
-                        <tr><td>Çıkış gerilimi V₂</td><td>{fmtVolt(r.V2)}</td></tr>
+                        <tr><td>{text.gainTable.V2}</td><td>{fmtVolt(r.V2)}</td></tr>
                       )}
                     </tbody>
                   </table>
                 </>
               )}
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -303,89 +312,29 @@ export default function DecibelConverter() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{`Güç oranı:
-  G_dB = 10·log₁₀(P₂/P₁)
-
-Gerilim oranı (eşit empedansta):
-  G_dB = 20·log₁₀(V₂/V₁)
-
-Ters dönüşüm:
-  P₂/P₁ = 10^(G_dB/10)
-  V₂/V₁ = 10^(G_dB/20)
-
-Mutlak seviye — dBm (ref. 1 mW):
-  P_dBm = 10·log₁₀(P_mW)
-  P_mW = 10^(P_dBm/10)
-  P_W = 10^((P_dBm − 30)/10)
-
-Referans empedansta RMS gerilim:
-  P = V²/R  →  V_RMS = √(P·Z₀)`}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              {r.mode === MODE_DBM ? (
-                <>
-                  <li>
-                    Referansa oran P/1 mW = {fmt(r.powerRatio, 6)}; 10·log₁₀ ile{' '}
-                    {fmt(r.dBm, 6)} dBm.
-                  </li>
-                  <li>
-                    {fmtOhm(r.Z)} üzerinde V_RMS = √({fmtEng(r.W, 'W', 5)} · {fmtOhm(r.Z)}) ={' '}
-                    {fmtVolt(r.Vrms)}.
-                  </li>
-                  <li>
-                    W ve mW aynı seviyeden bağımsız olarak türetilir: 10^((dBm−30)/10) ile
-                    10^(dBm/10)/1000 aynı sonucu verir.
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li>
-                    Güç oranı {fmt(r.powerRatio, 6)}; 10·log₁₀ ile {fmt(r.dB, 6)} dB.
-                  </li>
-                  <li>
-                    Aynı dB değerinin gerilim oranı karşılığı 10^(G/20) = {fmt(r.voltageRatio, 6)};
-                    güç oranı bunun karesidir.
-                  </li>
-                  <li>
-                    Hesap {r.mode === MODE_VOLTAGE ? 'gerilim' : 'güç'} oranı üzerinden yürütüldü;
-                    diğer oran aynı dB değerinden türetildi.
-                  </li>
-                </>
-              )}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              {(r.mode === MODE_DBM ? text.detail.dbm(r) : text.detail.gain(r)).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Kaynak ve tanımlar</h2>
+          <h2 className="section">{ui.sources}</h2>
           <ul className="detail-list">
-            {SOURCE_NOTES.map((t) => <li key={t}>{t}</li>)}
+            {text.sourceNotes.map((n) => <li key={n}>{n}</li>)}
           </ul>
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            {LIMIT_NOTES.map((t) => <li key={t}>{t}</li>)}
-            <li className="w">{EQUAL_Z_NOTE}</li>
-            <li>
-              Gerilim oranı hesabında iki gerilimin aynı türden olduğu varsayılır; RMS ile tepe
-              değeri karıştırılırsa sonuç sabit bir hata taşır.
-            </li>
-            <li className="w">{METHOD_NOTE}</li>
-            <li>
-              dBm 1 mW referansına bağlıdır. dBW (1 W), dBµV (1 µV) gibi başka referanslarla
-              karıştırılmamalıdır: dBm = dBW + 30.
-            </li>
-            <li>
-              RMS gerilim karşılığı, gücün tamamının referans empedans üzerinde harcandığını
-              varsayar. Uyumsuz hatta yansıyan güç bu varsayımı bozar.
-            </li>
-            <li>
-              Model yalnızca cebirsel dönüşüm yapar; frekans bağımlılığı, gürültü tabanı ve
-              doğrusal olmayan davranış hesaba katılmaz.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((n) => (
+              <li key={n.text} className={n.warn ? 'w' : undefined}>{n.text}</li>
+            ))}
           </ul>
         </section>
       </div>
@@ -393,7 +342,7 @@ Referans empedansta RMS gerilim:
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -407,7 +356,7 @@ Referans empedansta RMS gerilim:
               xLabel={chart.x}
               yLabel={chart.y}
               series={chartSeries}
-              marker={{ ...s.marker, label: 'seçilen' }}
+              marker={{ ...s.marker, label: text.chart.marker }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmt(v, 3)}
               caption={chart.caption}
@@ -422,7 +371,7 @@ Referans empedansta RMS gerilim:
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

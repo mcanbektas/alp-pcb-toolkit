@@ -28,6 +28,43 @@ describe('alan tanımları', () => {
     }).map((s) => s.key)
     expect(keys).toEqual(['epsR'])
   })
+
+  // Saf katman dil taşımaz: etiket alan anahtarıdır, cümle değil.
+  it('her alanın etiketi kendi anahtarıdır', () => {
+    const forms = [
+      { ...INITIAL_EPS_FORM, epsSource: EPS_MANUAL },
+      { ...INITIAL_EPS_FORM, epsSource: EPS_GEOMETRY, epsStructure: EPS_STRUCT_MICROSTRIP },
+      { ...INITIAL_EPS_FORM, epsSource: EPS_GEOMETRY, epsStructure: EPS_STRUCT_STRIPLINE },
+    ]
+    for (const f of forms) {
+      for (const spec of epsFields(f)) {
+        expect(spec.label).toBe(spec.key)
+        // Anahtar biçimi: tek sözcük, boşluksuz, Türkçe harf içermez
+        expect(spec.label).toMatch(/^[A-Za-z][A-Za-z0-9]*$/)
+      }
+    }
+  })
+})
+
+describe('etiket enjeksiyonu', () => {
+  const microstripForm = {
+    ...INITIAL_EPS_FORM,
+    epsSource: EPS_GEOMETRY,
+    epsStructure: EPS_STRUCT_MICROSTRIP,
+    epsW: '', epsH: '0.2', epsHu: 'mm', epsT: '35', epsTu: 'µm', epsR: '4.2',
+  }
+
+  it('etiket verilmezse hata mesajında anahtar görünür, Türkçe cümle değil', () => {
+    const r = readForm(microstripForm, epsFields(microstripForm))
+    expect(r.ok).toBe(false)
+    expect(r.invalid).toEqual(['epsW'])
+  })
+
+  it('ekran etiketi geçince onun metni görünür', () => {
+    const labels = { epsW: 'Trace width (W)' }
+    const specs = epsFields(microstripForm).map((s) => ({ ...s, label: labels[s.key] ?? s.label }))
+    expect(readForm(microstripForm, specs).invalid).toEqual(['Trace width (W)'])
+  })
 })
 
 describe('εeff çözümleme', () => {

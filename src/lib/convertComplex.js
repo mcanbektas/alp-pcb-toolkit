@@ -77,11 +77,11 @@ export function quadrantOf(R, X, mag = Math.hypot(R, X)) {
 /**
  * Dikdörtgensel → polar.  Z = R + jX  →  |Z| ∠ φ
  * @returns {{ R, X, magnitude, phase, phaseDeg, phasePrincipal, phasePrincipalDeg, kind, quadrant }
- *           | { error, message }}
+ *           | { error }}
  */
 export function rectToPolar({ R, X }) {
   if (!isNum(R) || !isNum(X)) {
-    return { error: COMPLEX_ERR_INVALID, message: 'R ve X sonlu birer sayı olmalı.' }
+    return { error: COMPLEX_ERR_INVALID }
   }
 
   const mag = Math.hypot(R, X)
@@ -89,10 +89,7 @@ export function rectToPolar({ R, X }) {
   // R = 0 ve X = 0 iken vektörün yönü yoktur. Math.atan2(0, 0) sıfır döndürür
   // ama bu bir açı değil, dilin varsayılan değeridir; faz tanımsız sayılır.
   if (mag === 0) {
-    return {
-      error: COMPLEX_ERR_UNDEFINED_PHASE,
-      message: 'R = 0 ve X = 0 iken faz tanımsızdır.',
-    }
+    return { error: COMPLEX_ERR_UNDEFINED_PHASE }
   }
 
   const phase = phaseOf(R, X)
@@ -114,21 +111,18 @@ export function rectToPolar({ R, X }) {
 /**
  * Polar → dikdörtgensel.  |Z| ∠ φ  →  R + jX   (φ radyan cinsinden verilir)
  * @returns {{ R, X, magnitude, phase, phaseDeg, phasePrincipal, phasePrincipalDeg, kind, quadrant }
- *           | { error, message }}
+ *           | { error }}
  */
 export function polarToRect({ magnitude, phase }) {
   if (!isNum(magnitude) || !isNum(phase)) {
-    return { error: COMPLEX_ERR_INVALID, message: '|Z| ve φ sonlu birer sayı olmalı.' }
+    return { error: COMPLEX_ERR_INVALID }
   }
   if (magnitude < 0) {
-    return { error: COMPLEX_ERR_NEGATIVE_MAGNITUDE, message: '|Z| negatif olamaz.' }
+    return { error: COMPLEX_ERR_NEGATIVE_MAGNITUDE }
   }
   // |Z| = 0 iken R = X = 0 çıkar; bu nokta da yön taşımaz, fazı tanımsızdır.
   if (magnitude === 0) {
-    return {
-      error: COMPLEX_ERR_UNDEFINED_PHASE,
-      message: '|Z| = 0 iken yön yoktur; faz tanımsızdır.',
-    }
+    return { error: COMPLEX_ERR_UNDEFINED_PHASE }
   }
 
   const R = magnitude * Math.cos(phase)

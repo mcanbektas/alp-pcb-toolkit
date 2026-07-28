@@ -1,4 +1,11 @@
 <!doctype html>
+<!--
+  lang="tr" varsayılan dildir (src/lib/i18n.js → DEFAULT_LANG). Kullanıcı dili
+  değiştirdiğinde LangProvider (src/hooks/useLang.jsx) bu özniteliği günceller;
+  `text-transform: uppercase` sayfanın dilini kullandığı için bu şarttır —
+  lang="tr" altında "i" harfi "İ" olur ve İngilizce metin "VİA" diye çıkar.
+  Başlık marka adıdır, çevrilmez.
+-->
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />

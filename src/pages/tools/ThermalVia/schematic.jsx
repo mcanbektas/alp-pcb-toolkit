@@ -3,7 +3,7 @@ import { fmt, fmtEng } from '../../../lib/num'
 
 // Termal ped altında via dizisi — üstten görünüş.
 // Izgara düzeni gerçek yerleşimi değil, via sayısını temsil eder.
-export default function ThermalViaSchematic({ r }) {
+export default function ThermalViaSchematic({ r, text }) {
   const live = r.ok
   const n = live ? Math.min(r.N, 36) : 9
   const cols = Math.ceil(Math.sqrt(n))
@@ -33,10 +33,8 @@ export default function ThermalViaSchematic({ r }) {
     // yandan 5 px genişletildi; eleman koordinatları değişmedi.
     <Schematic
       viewBox="-5 0 270 150"
-      title="Termal via dizisi"
-      caption={live && r.N > 36
-        ? `${r.N} via — şemada ilk 36'sı gösteriliyor`
-        : 'Termal ped altındaki via dizisi (üstten görünüş)'}
+      title={text.title}
+      caption={live && r.N > 36 ? text.captionTruncated(r.N) : text.caption}
     >
       {/* Bakır ped */}
       <rect className="sch-copper-fill" x={padX} y={padY} width={padW} height={padH} rx={3} />
@@ -49,15 +47,15 @@ export default function ThermalViaSchematic({ r }) {
         </g>
       ))}
 
-      <text className="sch-label dim" x={padX} y={19}>termal ped</text>
+      <text className="sch-label dim" x={padX} y={19}>{text.pad}</text>
 
       {live && (
         <>
           <text className="sch-value" x={130} y={126} textAnchor="middle">
-            {r.N} via · {r.filled ? 'bakır dolgulu' : 'dolgusuz'}
+            {r.N} via · {r.filled ? text.filled : text.unfilled}
           </text>
           <text className="sch-value" x={130} y={142} textAnchor="middle">
-            R_θ dizi = {fmt(r.Rarray, 4)} °C/W · H = {fmtEng(r.H, 'm', 3)}
+            {text.arrayR} = {fmt(r.Rarray, 4)} °C/W · H = {fmtEng(r.H, 'm', 3)}
           </text>
         </>
       )}

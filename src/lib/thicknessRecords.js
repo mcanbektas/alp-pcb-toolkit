@@ -29,6 +29,18 @@ export const THICKNESS_ERR_CONSISTENCY = 'consistency'
 export const THICKNESS_ERR_STORAGE = 'storage'
 export const THICKNESS_ERR_LIMIT = 'limit'
 
+// Aynı hata kodunun birden çok durumu varsa ayrıntıdaki `variant` alanı ayırır
+// (codes.js ile aynı desen). Hata yükü dilsizdir: kod + sayı + anahtar taşır,
+// cümle taşımaz; cümleyi ekranın text.js dosyası kurar.
+export const THICKNESS_VARIANT_NOT_OBJECT = 'not-object'
+export const THICKNESS_VARIANT_SCHEMA_NAME = 'schema-name'
+export const THICKNESS_VARIANT_EMPTY = 'empty'
+export const THICKNESS_VARIANT_TOO_LONG = 'too-long'
+export const THICKNESS_VARIANT_POSITIVE = 'positive'
+export const THICKNESS_VARIANT_NON_NEGATIVE = 'non-negative'
+export const THICKNESS_VARIANT_INTERNAL_PLATING = 'internal-plating'
+export const THICKNESS_VARIANT_SUM = 'sum'
+
 // Kaydın geldiği yol. Değerler ekrandaki kaynak seçicisinin anahtarlarıyla
 // birebir aynıdır (CopperConverter/model.js: SOURCE_WEIGHT / SOURCE_THICKNESS /
 // SOURCE_FINISHED); şemanın kendi alan kümesi olduğu için burada tanımlıdır.
@@ -70,69 +82,83 @@ export function unitForSource(source) {
 }
 
 /**
- * Ham nesneyi doğrular. Döner: { record } veya { error, message }
+ * Ham nesneyi doğrular. Döner: { record } veya { error, ...ayrıntı }
+ *
+ * Ayrıntı alanları dilsizdir: kod, sayı, alan anahtarı ya da girdiden aynen
+ * alınan değer taşırlar; kurulmuş cümle taşımazlar. Cümleyi ekranın text.js
+ * dosyası bu alanlardan kurar.
  *
  * Şema sürümü uyuşmazsa kayıt sessizce okunmaz — eski bir zarf yeni alan
  * anlamlarıyla yorumlanırsa kullanıcı yanlış kalınlığı üretime gönderir.
  */
 export function validateRecord(obj) {
   if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
-    return { error: THICKNESS_ERR_SCHEMA, message: 'Kayıt bir nesne olmalı.' }
+    return { error: THICKNESS_ERR_SCHEMA, variant: THICKNESS_VARIANT_NOT_OBJECT }
   }
   if (obj.schema !== THICKNESS_SCHEMA) {
     return {
       error: THICKNESS_ERR_SCHEMA,
-      message: `"schema" alanı "${THICKNESS_SCHEMA}" olmalı.`,
+      variant: THICKNESS_VARIANT_SCHEMA_NAME,
+      expected: THICKNESS_SCHEMA,
+      found: obj.schema,
     }
   }
   if (obj.schemaVersion !== SCHEMA_VERSION) {
     return {
       error: THICKNESS_ERR_VERSION,
-      message: `Şema sürümü ${SCHEMA_VERSION} bekleniyor, kayıtta ${obj.schemaVersion ?? '—'} var. Bu kayıt okunamaz.`,
+      expected: SCHEMA_VERSION,
+      found: obj.schemaVersion,
     }
   }
 
   const name = normalizeName(obj.name)
   if (name === '') {
-    return { error: THICKNESS_ERR_NAME, message: 'Kayıt adı boş olamaz.' }
+    return { error: THICKNESS_ERR_NAME, variant: THICKNESS_VARIANT_EMPTY }
   }
   if (name.length > NAME_MAX) {
-    return { error: THICKNESS_ERR_NAME, message: `Kayıt adı en fazla ${NAME_MAX} karakter olabilir.` }
+    return {
+      error: THICKNESS_ERR_NAME,
+      variant: THICKNESS_VARIANT_TOO_LONG,
+      max: NAME_MAX,
+      length: name.length,
+    }
   }
 
   if (!RECORD_SOURCES.includes(obj.source)) {
-    return {
-      error: THICKNESS_ERR_SOURCE,
-      message: `Bilinmeyen kaynak "${obj.source}". Geçerli değerler: ${RECORD_SOURCES.join(', ')}.`,
-    }
+    return { error: THICKNESS_ERR_SOURCE, found: obj.source, valid: RECORD_SOURCES }
   }
   if (!RECORD_LAYERS.includes(obj.layer)) {
-    return {
-      error: THICKNESS_ERR_LAYER,
-      message: `Bilinmeyen katman "${obj.layer}". Geçerli değerler: ${RECORD_LAYERS.join(', ')}.`,
-    }
+    return { error: THICKNESS_ERR_LAYER, found: obj.layer, valid: RECORD_LAYERS }
   }
   if (obj.unit !== unitForSource(obj.source)) {
     return {
       error: THICKNESS_ERR_UNIT,
-      message: `"${obj.source}" kaydında birim "${unitForSource(obj.source)}" olmalı.`,
+      source: obj.source,
+      expected: unitForSource(obj.source),
+      found: obj.unit,
     }
   }
 
   for (const key of ['value', 'starting', 'finished']) {
     if (!isNum(obj[key]) || !(obj[key] > 0)) {
-      return { error: THICKNESS_ERR_FIELD, message: `"${key}" alanı pozitif bir sayı olmalı.` }
+      return { error: THICKNESS_ERR_FIELD, field: key, variant: THICKNESS_VARIANT_POSITIVE }
     }
   }
   if (!isNum(obj.plating) || obj.plating < 0) {
-    return { error: THICKNESS_ERR_FIELD, message: '"plating" alanı negatif olmayan bir sayı olmalı.' }
+    return {
+      error: THICKNESS_ERR_FIELD,
+      field: 'plating',
+      variant: THICKNESS_VARIANT_NON_NEGATIVE,
+    }
   }
   // İç katmanda delik kaplaması yüzeye bakır eklemez; kayıt bunu etkin
   // değeriyle (0) saklar, girilen ama kullanılmayan değerle değil.
   if (obj.layer === 'internal' && obj.plating !== 0) {
     return {
       error: THICKNESS_ERR_CONSISTENCY,
-      message: 'İç katman kaydında kaplama 0 olmalı — iç katmanda kaplama bitmiş kalınlığa girmez.',
+      variant: THICKNESS_VARIANT_INTERNAL_PLATING,
+      layer: obj.layer,
+      plating: obj.plating,
     }
   }
   // Zarfın kendi içinde tutarlı olması şart: bitmiş = başlangıç + kaplama.
@@ -140,7 +166,11 @@ export function validateRecord(obj) {
   if (Math.abs(obj.finished - (obj.starting + obj.plating)) > 1e-9 * obj.finished) {
     return {
       error: THICKNESS_ERR_CONSISTENCY,
-      message: 'Kayıt tutarsız: bitmiş kalınlık, başlangıç + kaplama toplamına eşit değil.',
+      variant: THICKNESS_VARIANT_SUM,
+      starting: obj.starting,
+      plating: obj.plating,
+      finished: obj.finished,
+      expected: obj.starting + obj.plating,
     }
   }
 
@@ -189,7 +219,9 @@ export function createThicknessStore(storage) {
 
   function writeAll(list) {
     const w = storage.write(STORAGE_KEY, JSON.stringify(list))
-    if (w.error) return { error: THICKNESS_ERR_STORAGE, message: w.message }
+    // Depo yalnızca kod döner; o kod `cause` alanında olduğu gibi iletilir.
+    // Tarayıcının istisna metni bu yolda hiç görünmez.
+    if (w.error) return { error: THICKNESS_ERR_STORAGE, cause: w.error }
     return { ok: true }
   }
 
@@ -210,10 +242,7 @@ export function createThicknessStore(storage) {
 
       const rest = readAll().filter((rec) => rec.id !== check.record.id)
       if (rest.length >= RECORD_MAX) {
-        return {
-          error: THICKNESS_ERR_LIMIT,
-          message: `En fazla ${RECORD_MAX} kayıt saklanabilir. Yeni kayıt için önce bir kaydı silin.`,
-        }
+        return { error: THICKNESS_ERR_LIMIT, limit: RECORD_MAX, stored: rest.length }
       }
 
       const w = writeAll([...rest, check.record])

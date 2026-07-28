@@ -47,14 +47,18 @@ export const INITIAL_FORM = {
   amb: '25', ambu: UNIT_C,
 }
 
-export function formFields(f) {
+// `T` alanının adı moda göre değişir: ekran iki ayrı etiket geçirir
+// (`absT` / `deltaT`), model hangisini kullanacağını moddan seçer.
+export function formFields(f, labels = {}) {
   const delta = f.mode === MODE_DELTA
+  const tLabel = delta ? (labels.deltaT ?? 'deltaT') : (labels.absT ?? 'absT')
+
   return fieldsFor([
     // Sıcaklık afin dönüşür; çarpan tablosu verilmez, ham sayı okunur ve
     // ölçek dönüşümü convertTemperature.js içinde yapılır.
-    [{ key: 'T', label: delta ? 'Sıcaklık farkı (ΔT)' : 'Sıcaklık', allowZero: true }],
+    [{ key: 'T', label: tLabel, allowZero: true }],
     when(delta, [
-      { key: 'amb', label: 'Ortam sıcaklığı', optional: true, allowZero: true },
+      { key: 'amb', label: labels.amb ?? 'amb', optional: true, allowZero: true },
     ]),
   ])
 }
@@ -65,8 +69,8 @@ function reasonFor(err) {
   return REASON_INCOMPLETE
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

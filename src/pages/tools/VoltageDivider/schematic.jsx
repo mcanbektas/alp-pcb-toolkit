@@ -19,15 +19,15 @@ import { fmtRes, fmtVolt, fmtAmp } from '../../../lib/num'
 //    16 px açık kalıyor, en soldaki yazı kutusu x = −8'de biter.
 //  • Yük akımı oku 24 px'e uzatıldı; 18 px'te etiket kutusu ok başına dikeyde
 //    0,8 px kalıyordu, şimdi 3,8 px (toplam açıklık 4,8 px).
-export default function DividerSchematic({ r }) {
+export default function DividerSchematic({ r, text }) {
   const live = r.ok
   const hasLoad = live && r.RL !== null
 
   return (
     <Schematic
       viewBox="-16 0 276 236"
-      title="Gerilim bölücü devre şeması"
-      caption={hasLoad ? 'Yüklü gerilim bölücü' : 'Yüksüz gerilim bölücü — R_L girilirse şemaya eklenir'}
+      title={text.title}
+      caption={hasLoad ? text.captionLoaded : text.captionUnloaded}
     >
       <g className="sch-wire">
         <line x1={70} x2={70} y1={26} y2={54} />

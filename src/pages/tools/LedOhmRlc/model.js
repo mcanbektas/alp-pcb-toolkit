@@ -65,33 +65,38 @@ export const INITIAL_FORM = {
 const PCT = { '%': 1 }
 const COUNT = { adet: 1 }
 
-export function formFields(tool, mode, f) {
+// Etiketler `labels` ile çağıran taraftan gelir (geçerli dilde, text.js'ten);
+// bu dosya dil bilmez. Etiket verilmezse alan anahtarı gösterilir — sessiz
+// boşluk yerine teşhis edilebilir bir ad.
+export function formFields(tool, mode, f, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     when(tool === TOOL_OHM, [
-      { key: 'V', label: 'Gerilim (V)', unitKey: 'Vu', table: VOLTAGE, min: 0, optional: true },
-      { key: 'I', label: 'Akım (I)', unitKey: 'Iu', table: CURRENT, min: 0, optional: true },
-      { key: 'R', label: 'Direnç (R)', unitKey: 'Ru', table: RESISTANCE, min: 0, optional: true },
-      { key: 'P', label: 'Güç (P)', unitKey: 'Pu', table: POWER, min: 0, optional: true },
+      { key: 'V', label: L('V'), unitKey: 'Vu', table: VOLTAGE, min: 0, optional: true },
+      { key: 'I', label: L('I'), unitKey: 'Iu', table: CURRENT, min: 0, optional: true },
+      { key: 'R', label: L('R'), unitKey: 'Ru', table: RESISTANCE, min: 0, optional: true },
+      { key: 'P', label: L('P'), unitKey: 'Pu', table: POWER, min: 0, optional: true },
     ]),
 
     when(tool === TOOL_LED, [
-      { key: 'Vs', label: 'Besleme gerilimi (V_s)', unitKey: 'Vsu', table: VOLTAGE, min: 0 },
-      { key: 'Vf', label: 'LED ileri gerilimi (V_f)', unitKey: 'Vfu', table: VOLTAGE, min: 0 },
-      { key: 'n', label: 'Seri LED sayısı', unit: 'adet', table: COUNT, min: 1 },
-      { key: 'Iled', label: 'LED akımı', unitKey: 'Iledu', table: CURRENT, min: 0 },
-      { key: 'derating', label: 'Güç kullanım oranı', unit: '%', table: PCT, min: 0 },
+      { key: 'Vs', label: L('Vs'), unitKey: 'Vsu', table: VOLTAGE, min: 0 },
+      { key: 'Vf', label: L('Vf'), unitKey: 'Vfu', table: VOLTAGE, min: 0 },
+      { key: 'n', label: L('n'), unit: 'adet', table: COUNT, min: 1 },
+      { key: 'Iled', label: L('Iled'), unitKey: 'Iledu', table: CURRENT, min: 0 },
+      { key: 'derating', label: L('derating'), unit: '%', table: PCT, min: 0 },
     ]),
 
     when(tool === TOOL_RLC, [
-      { key: 'Rr', label: 'Direnç (R)', unitKey: 'Rru', table: RESISTANCE, min: 0, allowZero: true },
-      { key: 'L', label: 'Endüktans (L)', unitKey: 'Lu', table: INDUCTANCE, min: 0 },
+      { key: 'Rr', label: L('Rr'), unitKey: 'Rru', table: RESISTANCE, min: 0, allowZero: true },
+      { key: 'L', label: L('L'), unitKey: 'Lu', table: INDUCTANCE, min: 0 },
     ]),
     when(tool === TOOL_RLC && mode === MODE_ANALYSIS, [
-      { key: 'C', label: 'Kapasite (C)', unitKey: 'Cu', table: CAPACITANCE, min: 0 },
-      { key: 'freq', label: 'Frekans (f)', unitKey: 'frequ', table: FREQUENCY, min: 0 },
+      { key: 'C', label: L('C'), unitKey: 'Cu', table: CAPACITANCE, min: 0 },
+      { key: 'freq', label: L('freq'), unitKey: 'frequ', table: FREQUENCY, min: 0 },
     ]),
     when(tool === TOOL_RLC && mode === MODE_SYNTHESIS, [
-      { key: 'targetF0', label: 'Hedef rezonans frekansı', unitKey: 'targetF0u', table: FREQUENCY, min: 0 },
+      { key: 'targetF0', label: L('targetF0'), unitKey: 'targetF0u', table: FREQUENCY, min: 0 },
     ]),
   ])
 }
@@ -176,8 +181,8 @@ function computeCombo(f) {
   }
 }
 
-export function compute(tool, mode, f) {
-  const read = readForm(f, formFields(tool, mode, f))
+export function compute(tool, mode, f, labels = {}) {
+  const read = readForm(f, formFields(tool, mode, f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok && tool !== TOOL_COMBO) {
     return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }

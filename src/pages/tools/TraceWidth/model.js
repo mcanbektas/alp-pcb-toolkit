@@ -29,30 +29,34 @@ const PCT = { '%': 1 }
 const TEMP = { '°C': 1 }
 const WIDTH = { mm: LENGTH.mm, mil: LENGTH.mil }
 
-export function formFields(mode, f) {
+// Alan tanımları. Etiketler `labels` ile çağıran taraftan gelir (geçerli
+// dilde, text.js'ten); model kullanıcı metni içermez. Etiket verilmezse alan
+// anahtarı gösterilir — sessiz boşluk yerine teşhis edilebilir bir ad.
+export function formFields(mode, f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
     [
-      { key: 'I', label: 'Akım (I)', unitKey: 'Iu', table: CURRENT, min: 0 },
-      { key: 'dT', label: 'Sıcaklık artışı (ΔT)', unit: '°C', table: TEMP, min: 0 },
+      { key: 'I', label: L('I'), unitKey: 'Iu', table: CURRENT, min: 0 },
+      { key: 'dT', label: L('dT'), unit: '°C', table: TEMP, min: 0 },
       // Ortam sıcaklığı sıfır ve negatif olabilir
-      { key: 'Ta', label: 'Ortam sıcaklığı (Tₐ)', unit: '°C', table: TEMP, allowZero: true },
-      { key: 'L', label: 'Yol uzunluğu (L)', unitKey: 'Lu', table: LENGTH, min: 0 },
+      { key: 'Ta', label: L('Ta'), unit: '°C', table: TEMP, allowZero: true },
+      { key: 'L', label: L('L'), unitKey: 'Lu', table: LENGTH, min: 0 },
     ],
     when(f.oz === 'custom', [
-      { key: 'tCustom', label: 'Özel bakır kalınlığı', unit: 'µm', table: LENGTH, min: 0 },
+      { key: 'tCustom', label: L('tCustom'), unit: 'µm', table: LENGTH, min: 0 },
     ]),
     when(mode === MODE_ANALYSIS, [
-      { key: 'W', label: 'Yol genişliği (W)', unitKey: 'Wu', table: WIDTH, min: 0 },
+      { key: 'W', label: L('W'), unitKey: 'Wu', table: WIDTH, min: 0 },
     ]),
     when(mode === MODE_SYNTHESIS, [
-      { key: 'margin', label: 'Güvenlik marjı (M)', unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'margin', label: L('margin'), unit: '%', table: PCT, min: 0, allowZero: true },
     ]),
     [
-      { key: 'Vs', label: 'Besleme gerilimi', unit: 'V', table: VOLTAGE, min: 0, optional: true },
+      { key: 'Vs', label: L('Vs'), unit: 'V', table: VOLTAGE, min: 0, optional: true },
     ],
     when(f.tol, [
-      { key: 'wTol', label: 'Genişlik toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
-      { key: 'tTol', label: 'Bakır kalınlığı toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'wTol', label: L('wTol'), unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tTol', label: L('tTol'), unit: '%', table: PCT, min: 0, allowZero: true },
     ]),
   ])
 }
@@ -85,8 +89,8 @@ function electricals(W_m, t_m, L_m, I, Ta, dT, Vs) {
   }
 }
 
-export function compute(mode, f) {
-  const read = readForm(f, formFields(mode, f))
+export function compute(mode, f, labels = {}) {
+  const read = readForm(f, formFields(mode, f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
@@ -99,6 +103,8 @@ export function compute(mode, f) {
   const t_mil = t_m / LENGTH.mil
   const t_um = t_m * 1e6
 
+  // Geçerlilik uyarıları kod olarak gelir; cümleye `text.js` çevirir. Eşikler
+  // tek yerdedir — lib/traceCalc.js.
   const warnings = validityWarnings(I, dT)
   const k = kCoeff(f.layer)
   const wTol = f.tol ? v.wTol / 100 : 0

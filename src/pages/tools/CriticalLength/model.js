@@ -38,21 +38,23 @@ const RISE = { ps: TIME.ps, ns: TIME.ns, 'µs': TIME['µs'] }
 export const LENGTH_UNITS = ['mm', 'cm', 'm', 'mil', 'inch']
 export const RISE_UNITS = ['ps', 'ns', 'µs']
 
-export function formFields(f) {
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
-    epsFields(f),
+    epsFields(f).map((s) => ({ ...s, label: labels[s.key] ?? s.label })),
     [
-      { key: 'tr', label: 'Yükselme süresi (t_r)', unitKey: 'tru', table: RISE, min: 0 },
+      { key: 'tr', label: L('tr'), unitKey: 'tru', table: RISE, min: 0 },
       // Kriter de sayısal alan gibi okunur; ayrıştırma tek kapıdan geçer
-      { key: 'divisor', label: 'Kriter böleni', unit: '', table: PLAIN, min: 1 },
-      { key: 'k', label: 'Bant genişliği katsayısı (K)', unit: '', table: PLAIN, min: RISE_TIME_K_MIN, max: RISE_TIME_K_MAX },
-      { key: 'length', label: 'Hat uzunluğu', unitKey: 'lengthu', table: DIM, min: 0, optional: true },
+      { key: 'divisor', label: L('divisor'), unit: '', table: PLAIN, min: 1 },
+      { key: 'k', label: L('k'), unit: '', table: PLAIN, min: RISE_TIME_K_MIN, max: RISE_TIME_K_MAX },
+      { key: 'length', label: L('length'), unitKey: 'lengthu', table: DIM, min: 0, optional: true },
     ],
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

@@ -7,7 +7,7 @@ export const reactanceL = (f, L) => (f >= 0 && L >= 0 ? 2 * Math.PI * f * L : Na
 
 export function seriesRLC({ R, L, C, f }) {
   if (!isNum(R) || !isNum(L) || !isNum(C) || !isNum(f) || R < 0 || L < 0 || C <= 0 || f <= 0) {
-    return { error: 'invalid', message: 'R ≥ 0, L ≥ 0, C > 0 ve f > 0 olmalı.' }
+    return { error: 'invalid' }
   }
 
   const w = 2 * Math.PI * f

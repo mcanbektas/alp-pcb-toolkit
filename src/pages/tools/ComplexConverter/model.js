@@ -42,27 +42,32 @@ export const INITIAL_FORM = {
   phase: '-30.96', phaseu: '°',
 }
 
-export function formFields(f) {
+// Alan etiketleri dışarıdan gelir: model dil bilmez, hata mesajında gösterilecek
+// adı ekran geçirir. Etiket verilmezse alan anahtarı görünür — sessiz boşluk
+// yerine teşhis edilebilir bir ad.
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     // R, X ve φ için sıfır ve negatif değer meşrudur: sıfır saf reaktans/saf
     // direnç, negatif X kapasitif davranış, negatif R ise ikinci/üçüncü çeyrek demektir.
     when(f.mode === MODE_RECT, [
-      { key: 'R', label: 'Gerçel bileşen (R)', unitKey: 'Ru', table: RESISTANCE, allowZero: true },
-      { key: 'X', label: 'Sanal bileşen (X)', unitKey: 'Xu', table: RESISTANCE, allowZero: true },
+      { key: 'R', label: L('R'), unitKey: 'Ru', table: RESISTANCE, allowZero: true },
+      { key: 'X', label: L('X'), unitKey: 'Xu', table: RESISTANCE, allowZero: true },
     ]),
     when(f.mode === MODE_POLAR, [
       // min konmaz: negatif |Z| alan hatası yerine kendi açıklamalı nedenini alsın
-      { key: 'mag', label: 'Büyüklük (|Z|)', unitKey: 'magu', table: RESISTANCE, allowZero: true },
+      { key: 'mag', label: L('mag'), unitKey: 'magu', table: RESISTANCE, allowZero: true },
       {
-        key: 'phase', label: 'Faz açısı (φ)', unitKey: 'phaseu', table: ANGLE,
+        key: 'phase', label: L('phase'), unitKey: 'phaseu', table: ANGLE,
         allowZero: true, min: -PHASE_LIMIT_RAD, max: PHASE_LIMIT_RAD,
       },
     ]),
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

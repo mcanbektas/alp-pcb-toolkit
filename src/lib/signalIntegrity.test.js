@@ -9,6 +9,7 @@ import {
 } from './signalIntegrity'
 import { delayPerLength } from './epsEff'
 import { C0 } from './units'
+import { expectErrorShapes } from './errorShape.testkit'
 
 const mm = (x) => x * 1e-3
 const ps = (x) => x * 1e-12
@@ -278,5 +279,27 @@ describe('terminasyon', () => {
 
   it('bias V_cc\'ye eşit veya büyükse reddedilir', () => {
     expect(theveninTermination({ Z0: 50, Vcc: 3.3, Vbias: 3.3 }).error).toBe(SI_ERR_INVALID)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      riseTimeBandwidth({ tr: ns(1), k: 0.2 }),
+      nextCoupling({ Zeven: 40, Zodd: 60 }),
+      seriesTermination({ Z0: 50, Rdriver: 70 }),
+      theveninTermination({ Z0: 50, Vcc: 3.3, Vbias: 3.3 }),
+      crosstalk({ Zeven: 60, Zodd: 40, epsEff: 3.2, tr: ns(1), coupledLength: 0, Vagg: 3.3 }),
+    ])
+  })
+
+  it('hesaplanmayan FEXT de kod ile bildirilir, cümle ile değil', () => {
+    const r = crosstalk({
+      Zeven: 60, Zodd: 40, epsEff: 3.2, tr: ns(1),
+      coupledLength: mm(50), Vagg: 3.3,
+    })
+    expect(r.fext.available).toBe(false)
+    expect(typeof r.fext.reason).toBe('string')
+    expect(r.fext).not.toHaveProperty('message')
   })
 })

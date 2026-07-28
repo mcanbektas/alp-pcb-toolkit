@@ -4,7 +4,7 @@ import { STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW } from './model'
 
 const cx = 130
 
-function Microstrip({ r }) {
+function Microstrip({ r, text }) {
   return (
     <>
       <rect className="sch-dielectric" x={20} y={64} width={220} height={40} />
@@ -12,7 +12,7 @@ function Microstrip({ r }) {
       <rect className="sch-copper" x={cx - 34} y={54} width={68} height={10} />
 
       <text className="sch-label" x={cx} y={48} textAnchor="middle">W</text>
-      <text className="sch-label dim" x={24} y={125}>referans düzlem</text>
+      <text className="sch-label dim" x={24} y={125}>{text.refPlane}</text>
 
       <g className="sch-dim">
         <line x1={206} x2={206} y1={64} y2={104} />
@@ -33,7 +33,7 @@ function Microstrip({ r }) {
   )
 }
 
-function Stripline({ r }) {
+function Stripline({ r, text }) {
   return (
     <>
       <rect className="sch-copper" x={20} y={34} width={220} height={7} />
@@ -45,8 +45,8 @@ function Stripline({ r }) {
           W etiketi sırayla yerleşiyor; 66/52 ikilisinde değer dielektrik
           kenarına 2.7 px kalıyordu, ikisi de 1 px aşağı alındı. */}
       <text className="sch-label" x={cx} y={67} textAnchor="middle">W</text>
-      <text className="sch-label dim" x={24} y={27}>üst düzlem</text>
-      <text className="sch-label dim" x={24} y={133}>alt düzlem</text>
+      <text className="sch-label dim" x={24} y={27}>{text.topPlane}</text>
+      <text className="sch-label dim" x={24} y={133}>{text.bottomPlane}</text>
 
       <g className="sch-dim">
         <line x1={206} x2={206} y1={41} y2={113} />
@@ -66,7 +66,7 @@ function Stripline({ r }) {
   )
 }
 
-function Cpw({ r }) {
+function Cpw({ r, text }) {
   const half = 30
   const gap = 22
   return (
@@ -81,8 +81,8 @@ function Cpw({ r }) {
       <text className="sch-label" x={cx - half - gap / 2} y={90} textAnchor="middle">S</text>
       <text className="sch-label" x={cx + half + gap / 2} y={90} textAnchor="middle">S</text>
       {/* Etiket 20'den başlıyor: 24'te W etiketinin kutusuna 0.3 px kalıyordu. */}
-      <text className="sch-label dim" x={20} y={48}>coplanar toprak</text>
-      <text className="sch-label dim" x={24} y={128}>alt düzlem yok</text>
+      <text className="sch-label dim" x={20} y={48}>{text.coplanarGround}</text>
+      <text className="sch-label dim" x={24} y={128}>{text.noBottomPlane}</text>
 
       {r.ok && (
         <>
@@ -94,20 +94,14 @@ function Cpw({ r }) {
   )
 }
 
-const CAPTION = {
-  [STRUCT_MICROSTRIP]: 'Yüzey microstrip — tek referans düzlemi altta',
-  [STRUCT_STRIPLINE]: 'Simetrik stripline — hat iki düzlem arasında ortada',
-  [STRUCT_CPW]: 'İdeal coplanar waveguide — altında referans düzlem yok',
-}
-
-export default function ImpedanceSchematic({ r, form }) {
+export default function ImpedanceSchematic({ r, form, text }) {
   const structure = r.ok ? r.structure : form.structure
 
   return (
-    <Schematic viewBox="0 0 260 140" title="Hat kesiti" caption={CAPTION[structure]}>
-      {structure === STRUCT_MICROSTRIP && <Microstrip r={r} />}
-      {structure === STRUCT_STRIPLINE && <Stripline r={r} />}
-      {structure === STRUCT_CPW && <Cpw r={r} />}
+    <Schematic viewBox="0 0 260 140" title={text.title} caption={text.caption[structure]}>
+      {structure === STRUCT_MICROSTRIP && <Microstrip r={r} text={text} />}
+      {structure === STRUCT_STRIPLINE && <Stripline r={r} text={text} />}
+      {structure === STRUCT_CPW && <Cpw r={r} text={text} />}
     </Schematic>
   )
 }

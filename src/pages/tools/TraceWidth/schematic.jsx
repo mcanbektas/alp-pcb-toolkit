@@ -4,7 +4,7 @@ import { fmtEng } from '../../../lib/num'
 // Yol kesiti: dielektrik üzerinde dikdörtgen bakır kesit.
 // Ölçüler orantılı değildir — kalınlık genişliğin yanında görünmez kalırdı;
 // şema yalnızca hangi boyutun ne olduğunu gösterir.
-export default function TraceSchematic({ r }) {
+export default function TraceSchematic({ r, text }) {
   const live = r.ok
   const inner = live && r.layer === 'internal'
   const W = live ? (r.mode === 'syn' ? r.Wrec_m : r.W_m) : null
@@ -12,8 +12,8 @@ export default function TraceSchematic({ r }) {
   return (
     <Schematic
       viewBox="0 0 260 156"
-      title="Yol kesiti"
-      caption={inner ? 'İç katman — dielektrik içinde gömülü' : 'Dış katman — üstü açık'}
+      title={text.title}
+      caption={inner ? text.captionInner : text.captionOuter}
     >
       {/* Dielektrik gövde */}
       <rect className="sch-dielectric" x={20} y={58} width={220} height={54} rx={2} />
@@ -53,7 +53,7 @@ export default function TraceSchematic({ r }) {
       {/* Akım kesitten geçer — ok sayfa düzlemine dik yerine yol boyunca çizilir */}
       <CurrentArrow x={72} y={51} dir="right" len={22} label={live ? 'I' : null} labelSide="left" />
 
-      <text className="sch-label dim" x={20} y={22}>{inner ? 'iç katman' : 'dış katman'}</text>
+      <text className="sch-label dim" x={20} y={22}>{inner ? text.innerLabel : text.outerLabel}</text>
     </Schematic>
   )
 }

@@ -7,6 +7,7 @@ import {
   ABS_ZERO_C, ABS_ZERO_F, ABS_ZERO_K,
   TEMP_ERR_INVALID, TEMP_ERR_UNIT, TEMP_ERR_ABSOLUTE_ZERO,
 } from './convertTemperature'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('ölçek dönüşümleri (spec §11.5)', () => {
   it('T_F = (9/5)·T_C + 32', () => {
@@ -194,5 +195,20 @@ describe('ortam üstüne yükselme', () => {
     expect(r.error).toBe(TEMP_ERR_ABSOLUTE_ZERO)
     expect(finalTemperature({ ambient: 25, ambientUnit: 'X', delta: 10, deltaUnit: UNIT_C }).error)
       .toBe(TEMP_ERR_UNIT)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      convertTemperature({ value: -273.16, unit: UNIT_C }),
+      convertTemperature({ value: -460, unit: UNIT_F }),
+      convertTemperature({ value: -1, unit: UNIT_K }),
+      convertTemperature({ value: NaN, unit: UNIT_C }),
+      convertTemperature({ value: Infinity, unit: UNIT_C }),
+      convertTemperature({ value: 25, unit: '°R' }),
+      convertDelta({ value: NaN, unit: UNIT_C }),
+      convertDelta({ value: 1, unit: '°R' }),
+    ])
   })
 })

@@ -11,12 +11,12 @@ function timeConstant(tau) {
 }
 
 export function rcTime({ R, C }) {
-  if (!(R > 0) || !(C > 0)) return { error: 'invalid', message: 'R ve C pozitif olmalı.' }
+  if (!(R > 0) || !(C > 0)) return { error: 'invalid' }
   return timeConstant(R * C)
 }
 
 export function rlTime({ R, L }) {
-  if (!(R > 0) || !(L > 0)) return { error: 'invalid', message: 'R ve L pozitif olmalı.' }
+  if (!(R > 0) || !(L > 0)) return { error: 'invalid' }
   return timeConstant(L / R)
 }
 

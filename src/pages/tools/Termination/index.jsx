@@ -1,74 +1,33 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtRes, fmtPct, fmtVolt, fmtAmp, fmtWatt, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtRes, fmtPct, fmtVolt, fmtAmp, fmtWatt } from '../../../lib/num'
 import TerminationSchematic from './schematic'
 import {
   INITIAL_FORM, TERM_TYPES, TERM_SERIES, TERM_PARALLEL, TERM_THEVENIN,
   THEVENIN_ESERIES_OPTIONS,
   compute, buildSweep,
 } from './model'
-import {
-  TYPE_LABEL, TYPE_NOTE, METHOD_NOTE, SERIES_ESERIES_NOTE, THEVENIN_IDC_NOTE,
-  DEV_THRESHOLD_NOTE, DEV_WARN_PCT, DEV_DANGER_PCT,
-  CHART, REF_LABEL, reasonText, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 const VOLT_UNITS = ['V', 'mV', 'kV']
 
-const FORMULA = `Seri terminasyon:
-  R_s = Z₀ − R_driver
-  R_s < 0 →
-    seri terminasyon önerilmez
-
-Paralel terminasyon:
-  R_T   = Z₀
-  P_dc  = V² / R_T
-  P_ort = D · V² / R_T
-
-Thevenin terminasyonu:
-  a = V_bias / V_cc
-
-  R_top    = Z₀ / a
-           = Z₀ · V_cc / V_bias
-  R_bottom = Z₀ / (1 − a)
-           = Z₀ · V_cc
-             / (V_cc − V_bias)
-
-  R_top ∥ R_bottom = Z₀
-  V_bias = V_cc · R_bottom
-           / (R_top + R_bottom)
-
-Sürekli akım ve güç — OHM YASASI,
-terminasyon denklemlerinin
-parçası DEĞİL:
-  paralel:
-    I_dc = V / R_T
-  Thevenin:
-    I_dc = V_cc
-           / (R_top + R_bottom)
-    P_dc = V_cc²
-           / (R_top + R_bottom)
-
-Standart çift seçildikten sonra
-gerçek bias ve gerçek paralel
-direnç yeniden hesaplanır —
-kuantalama ikisini birden
-kaydırır.`
-
 // Bulgu listesi iki yerde kullanılır: sonuç varken ve seri terminasyonun
 // geçersiz kaldığı durumda (hesap yok ama gerekçe danger seviyesinde yazılır).
-function Commentary({ notes }) {
+// Başlık ortak metinden gelir, bu yüzden prop olarak taşınır.
+function Commentary({ heading, notes }) {
   if (notes.length === 0) return null
   return (
     <>
-      <h2 className="section">Mühendislik yorumu</h2>
+      <h2 className="section">{heading}</h2>
       <ul className="commentary">
         {notes.map((n) => (
           <li key={n.text} className={n.level}>
@@ -84,22 +43,26 @@ function Commentary({ notes }) {
 export default function Termination() {
   const [type, setType] = useState(TERM_SERIES)
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(type, f), [type, f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(type, f, text.fieldLabels), [type, f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
 
   // Durum çipi tek kurala bağlıdır: bulguların en kötü seviyesi gösterilir.
   const status = useMemo(() => {
     if (notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [notes, ui])
 
-  const meta = CHART[type]
+  const meta = text.chart[type]
   const chartSeries = s
     ? s.series.map((serie, i) => ({
         key: serie.key,
@@ -114,58 +77,55 @@ export default function Termination() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">← Sinyal Bütünlüğü</Link>
+      <Link className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>Termination Calculator</h1>
-        <p>
-          Seri, paralel ve Thevenin terminasyon için direnç değerlerini, standart E serisi
-          karşılıklarını ve kuantalamanın empedans ile bias üzerinde bıraktığı sapmayı hesaplar.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <TerminationSchematic r={r} />
+          <TerminationSchematic r={r} text={text.schematic} />
 
           <Segmented
             value={type}
             onChange={setType}
-            options={TERM_TYPES.map((x) => ({ value: x, label: TYPE_LABEL[x] }))}
+            options={TERM_TYPES.map((x) => ({ value: x, label: text.typeLabel[x] }))}
           />
 
           <NumberField
-            label="Hat empedansı (Z₀)"
+            label={text.fields.Z0.label}
             value={f.Z0} onChange={set('Z0')}
             units={['Ω']} unit="Ω" onUnit={() => {}}
-            hint="Kontrollü empedans hattının karakteristik empedansı"
+            hint={text.fields.Z0.hint}
           />
 
           {type === TERM_SERIES && (
             <NumberField
-              label="Sürücü çıkış direnci (R_driver)"
+              label={text.fields.Rdriver.label}
               value={f.Rdriver} onChange={set('Rdriver')}
               units={['Ω']} unit="Ω" onUnit={() => {}}
-              hint="Sürücünün veri sayfasındaki çıkış empedansı; 0 girilebilir"
+              hint={text.fields.Rdriver.hint}
             />
           )}
 
           {type === TERM_PARALLEL && (
             <>
               <NumberField
-                label="Terminasyon gerilimi (V)"
+                label={text.fields.V.label}
                 value={f.V} onChange={set('V')}
                 units={VOLT_UNITS} unit={f.Vu} onUnit={set('Vu')}
-                hint="Terminasyon direnci üzerinde kalan sürekli gerilim farkı"
+                hint={text.fields.V.hint}
               />
               <NumberField
-                label="Duty cycle"
+                label={text.fields.duty.label}
                 value={f.duty} onChange={set('duty')}
                 units={['%']} unit="%" onUnit={() => {}}
-                hint="Yalnızca ortalama gücü etkiler; 0'dan büyük, en çok 100"
+                hint={text.fields.duty.hint}
               />
             </>
           )}
@@ -173,21 +133,21 @@ export default function Termination() {
           {type === TERM_THEVENIN && (
             <>
               <NumberField
-                label="Besleme gerilimi (V_cc)"
+                label={text.fields.Vcc.label}
                 value={f.Vcc} onChange={set('Vcc')}
                 units={VOLT_UNITS} unit={f.Vccu} onUnit={set('Vccu')}
               />
               <NumberField
-                label="Hedef bias gerilimi (V_bias)"
+                label={text.fields.Vbias.label}
                 value={f.Vbias} onChange={set('Vbias')}
                 units={VOLT_UNITS} unit={f.Vbiasu} onUnit={set('Vbiasu')}
-                hint="V_cc'den küçük olmalı"
+                hint={text.fields.Vbias.hint}
               />
               <SelectField
-                label="E serisi"
+                label={text.fields.eseries.label}
                 value={f.eseries} onChange={set('eseries')}
                 options={THEVENIN_ESERIES_OPTIONS.map((x) => ({ value: x, label: x }))}
-                hint="Standart direnç çifti bu diziden seçilir"
+                hint={text.fields.eseries.hint}
               />
             </>
           )}
@@ -195,31 +155,29 @@ export default function Termination() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             <>
               {r.ambiguous ? (
-                <p className="empty-note warn">
-                  {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-                </p>
+                <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
               ) : (
                 <p className="empty-note">
-                  {reasonText(r.reason)}
-                  {r.invalid && r.invalid.length > 0 && ` Etkilenen alan: ${r.invalid.join(', ')}.`}
+                  {text.reasonText(r.reason)}
+                  {r.invalid && r.invalid.length > 0 && text.invalidFields(r.invalid)}
                 </p>
               )}
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
-              <Commentary notes={notes} />
+              <Commentary heading={ui.commentary} notes={notes} />
             </>
           ) : (
             <>
               <div className="big-result">
                 <div className="label">
-                  {r.type === TERM_SERIES && 'Gereken seri direnç'}
-                  {r.type === TERM_PARALLEL && 'Terminasyon direnci'}
-                  {r.type === TERM_THEVENIN && `Standart çift (${r.series})`}
+                  {r.type === TERM_SERIES && text.bigLabel[TERM_SERIES]}
+                  {r.type === TERM_PARALLEL && text.bigLabel[TERM_PARALLEL]}
+                  {r.type === TERM_THEVENIN && text.bigLabel[TERM_THEVENIN](r.series)}
                 </div>
                 <div className="value">
                   {r.type === TERM_SERIES && fmtRes(r.Rs, 4)}
@@ -229,56 +187,68 @@ export default function Termination() {
                 </div>
                 <div className="alt">
                   {r.type === TERM_SERIES && (r.std
-                    ? <>en yakın {r.eseries} {fmtRes(r.std.value, 4)} &nbsp;·&nbsp; kaynak empedansı {fmtRes(r.withStandard, 4)}</>
-                    : <>sürücü zaten eşlemeli — ek seri direnç gerekmiyor</>)}
-                  {r.type === TERM_PARALLEL
-                    && <>sürekli {fmtWatt(r.Pdc)} DC güç &nbsp;·&nbsp; ortalama {fmtWatt(r.Pavg)}</>}
-                  {r.type === TERM_THEVENIN
-                    && <>R∥ = {fmtRes(r.standard.Rpar, 4)} ({fmtPct(r.standard.zErr)}) &nbsp;·&nbsp; bias {fmtVolt(r.standard.bias)} ({fmtPct(r.standard.vErr)})</>}
+                    ? (
+                      <>
+                        {text.bigAlt.seriesNearest(r.eseries, fmtRes(r.std.value, 4))}
+                        &nbsp;·&nbsp; {text.bigAlt.seriesSource(fmtRes(r.withStandard, 4))}
+                      </>
+                    )
+                    : text.bigAlt.seriesMatched)}
+                  {r.type === TERM_PARALLEL && (
+                    <>
+                      {text.bigAlt.parallelDc(fmtWatt(r.Pdc))}
+                      &nbsp;·&nbsp; {text.bigAlt.parallelAvg(fmtWatt(r.Pavg))}
+                    </>
+                  )}
+                  {r.type === TERM_THEVENIN && (
+                    <>
+                      {text.bigAlt.theveninPar(fmtRes(r.standard.Rpar, 4), text.pct(fmtPct(r.standard.zErr)))}
+                      &nbsp;·&nbsp;{' '}
+                      {text.bigAlt.theveninBias(fmtVolt(r.standard.bias), text.pct(fmtPct(r.standard.vErr)))}
+                    </>
+                  )}
                 </div>
               </div>
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{METHOD_NOTE}</p>
-              {r.type === TERM_SERIES && <p className="method-note">{SERIES_ESERIES_NOTE}</p>}
-              {r.type === TERM_THEVENIN && <p className="method-note">{THEVENIN_IDC_NOTE}</p>}
+              <p className="method-note">{text.methodNote}</p>
+              {r.type === TERM_SERIES && <p className="method-note">{text.seriesEseriesNote}</p>}
+              {r.type === TERM_THEVENIN && <p className="method-note">{text.theveninIdcNote}</p>}
 
               <table className="result-table">
                 <tbody>
                   {r.type === TERM_SERIES && (
                     <>
                       <tr>
-                        <td>Seri direnç (R_s)</td>
+                        <td>{text.table.Rs}</td>
                         <td>{fmtRes(r.Rs, 5)}</td>
                       </tr>
                       {r.nearest.map((n, i) => (
                         <tr key={n.value}>
-                          <td>
-                            En yakın {r.eseries} değeri {i + 1}
-                          </td>
-                          <td>{fmtRes(n.value, 4)} <span className="sub">({fmtPct(n.errorPct)})</span></td>
+                          <td>{text.table.nearest(r.eseries, i + 1)}</td>
+                          <td>{fmtRes(n.value, 4)} <span className="sub">({text.pct(fmtPct(n.errorPct))})</span></td>
                         </tr>
                       ))}
                       <tr>
-                        <td>Standart değerle kaynak empedansı</td>
+                        <td>{text.table.withStandard}</td>
                         <td>
-                          {r.withStandard != null ? fmtRes(r.withStandard, 5) : '—'}
+                          {r.withStandard != null ? fmtRes(r.withStandard, 5) : text.none}
                           {r.stdErrPct != null && (
-                            <span className="sub"> ({fmtPct(r.stdErrPct)})</span>
+                            <span className="sub"> ({text.pct(fmtPct(r.stdErrPct))})</span>
                           )}
                         </td>
                       </tr>
                       <tr>
-                        <td>İdeal toplam kaynak empedansı</td>
+                        <td>{text.table.total}</td>
                         <td>{fmtRes(r.total, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Sürücü çıkış direnci (R_driver)</td>
+                        <td>{text.table.Rdriver}</td>
                         <td>{fmtRes(r.Rdriver, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Hat empedansı (Z₀)</td>
+                        <td>{text.table.Z0}</td>
                         <td>{fmtRes(r.Z0, 5)}</td>
                       </tr>
                     </>
@@ -287,31 +257,31 @@ export default function Termination() {
                   {r.type === TERM_PARALLEL && (
                     <>
                       <tr>
-                        <td>Terminasyon direnci (R_T)</td>
+                        <td>{text.table.RT}</td>
                         <td>{fmtRes(r.RT, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Sürekli DC akım (I_dc)</td>
+                        <td>{text.table.IdcParallel}</td>
                         <td>{fmtAmp(r.Idc, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Sürekli DC güç (P_dc)</td>
+                        <td>{text.table.PdcParallel}</td>
                         <td>{fmtWatt(r.Pdc)}</td>
                       </tr>
                       <tr>
-                        <td>Duty cycle ile ortalama güç (P_ort)</td>
+                        <td>{text.table.Pavg}</td>
                         <td>{fmtWatt(r.Pavg)}</td>
                       </tr>
                       <tr>
-                        <td>Duty cycle</td>
-                        <td>{fmt(r.duty * 100, 4)} %</td>
+                        <td>{text.table.duty}</td>
+                        <td>{text.pct(fmt(r.duty * 100, 4))}</td>
                       </tr>
                       <tr>
-                        <td>Terminasyon gerilimi (V)</td>
+                        <td>{text.table.V}</td>
                         <td>{fmtVolt(r.V)}</td>
                       </tr>
                       <tr>
-                        <td>Hat empedansı (Z₀)</td>
+                        <td>{text.table.Z0}</td>
                         <td>{fmtRes(r.Z0, 5)}</td>
                       </tr>
                     </>
@@ -320,51 +290,51 @@ export default function Termination() {
                   {r.type === TERM_THEVENIN && (
                     <>
                       <tr>
-                        <td>İdeal R_top</td>
+                        <td>{text.table.idealRtop}</td>
                         <td>{fmtRes(r.ideal.Rtop, 5)}</td>
                       </tr>
                       <tr>
-                        <td>İdeal R_bottom</td>
+                        <td>{text.table.idealRbottom}</td>
                         <td>{fmtRes(r.ideal.Rbottom, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Bias oranı (a = V_bias / V_cc)</td>
+                        <td>{text.table.biasRatio}</td>
                         <td>{fmt(r.ideal.a, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Seçilen standart çift</td>
+                        <td>{text.table.standardPair}</td>
                         <td>{fmtRes(r.standard.Rtop, 4)} / {fmtRes(r.standard.Rbottom, 4)}</td>
                       </tr>
                       <tr>
-                        <td>Gerçekleşen paralel direnç (R∥)</td>
+                        <td>{text.table.Rpar}</td>
                         <td>{fmtRes(r.standard.Rpar, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Z₀'dan sapma (zErr)</td>
-                        <td>{fmtPct(r.standard.zErr)}</td>
+                        <td>{text.table.zErr}</td>
+                        <td>{text.pct(fmtPct(r.standard.zErr))}</td>
                       </tr>
                       <tr>
-                        <td>Gerçekleşen bias</td>
+                        <td>{text.table.bias}</td>
                         <td>{fmtVolt(r.standard.bias)}</td>
                       </tr>
                       <tr>
-                        <td>Hedef bias'tan sapma (vErr)</td>
-                        <td>{fmtPct(r.standard.vErr)}</td>
+                        <td>{text.table.vErr}</td>
+                        <td>{text.pct(fmtPct(r.standard.vErr))}</td>
                       </tr>
                       <tr>
-                        <td>Sürekli akım (I_dc)</td>
+                        <td>{text.table.Idc}</td>
                         <td>{fmtAmp(r.Idc, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Sürekli güç (P_dc)</td>
+                        <td>{text.table.Pdc}</td>
                         <td>{fmtWatt(r.Pdc)}</td>
                       </tr>
                       <tr>
-                        <td>E serisi</td>
+                        <td>{text.table.eseries}</td>
                         <td>{r.series}</td>
                       </tr>
                       <tr>
-                        <td>Hat empedansı (Z₀)</td>
+                        <td>{text.table.Z0}</td>
                         <td>{fmtRes(r.Z0, 5)}</td>
                       </tr>
                     </>
@@ -372,107 +342,64 @@ export default function Termination() {
                 </tbody>
               </table>
 
-              <Commentary notes={notes} />
+              <Commentary heading={ui.commentary} notes={notes} />
             </>
           )}
         </section>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           <ul className="detail-list">
-            <li>{TYPE_NOTE[type]}</li>
+            <li>{text.typeNote[type]}</li>
 
             {r.ok && r.type === TERM_SERIES && (
               <>
+                <li>{text.detail.seriesEngine(r.eseries)}</li>
                 <li>
-                  Motor R_s'yi Z₀ − R_driver olarak veriyor; standart adaylar en yakın üç
-                  {' '}{r.eseries} değeri olarak dönüyor ve kaynak empedansı bunların en
-                  yakınıyla yeniden hesaplanıyor.
-                </li>
-                <li>
-                  İdeal toplam kaynak empedansı {fmtRes(r.total, 5)}; standart değerle
-                  {' '}{r.withStandard != null ? fmtRes(r.withStandard, 5) : '—'}.
+                  {text.detail.seriesTotals(
+                    fmtRes(r.total, 5),
+                    r.withStandard != null ? fmtRes(r.withStandard, 5) : text.none,
+                  )}
                 </li>
               </>
             )}
 
             {r.ok && r.type === TERM_PARALLEL && (
               <>
-                <li>
-                  R_T = Z₀ olduğu için tasarım serbestliği yalnızca gerilim ve duty
-                  cycle'dadır; direnç değeri hattın kendisi tarafından belirlenir.
-                </li>
-                <li>
-                  Duty cycle motorda 0–1 aralığında tutulur; ekranda yüzde olarak girilir ve
-                  yalnızca ortalama gücü ölçekler, sürekli gücü değiştirmez.
-                </li>
+                <li>{text.detail.parallelFreedom}</li>
+                <li>{text.detail.parallelDuty}</li>
               </>
             )}
 
             {r.ok && r.type === TERM_THEVENIN && (
               <>
-                <li>
-                  Motor her iki direnç için en yakın üç {r.series} değerini alıp dokuz
-                  kombinasyonu deniyor ve |zErr| + |vErr| toplamını en küçükleyen çifti
-                  seçiyor. Bu seçim iki sapmayı eşit ağırlıklı sayar; tasarımınızda biri
-                  daha kritikse çifti elle değiştirmeniz gerekir.
-                </li>
-                <li>
-                  Sürekli akım ve güç ideal çiftten hesaplanıyor, seçilen standart çiftten
-                  değil — motorun döndürdüğü alanlar bu şekilde tanımlı.
-                </li>
+                <li>{text.detail.theveninSearch(r.series)}</li>
+                <li>{text.detail.theveninIdeal}</li>
               </>
             )}
 
-            <li>
-              Sapma eşikleri {DEV_WARN_PCT} % ve {DEV_DANGER_PCT} % olarak alınmıştır; bu
-              değerler mühendislik yorumudur, kullanılan denklemlerden türemez.
-            </li>
-            <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+            <li>{text.detail.devThresholds}</li>
+            <li>{text.detail.noRounding}</li>
           </ul>
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Üç yöntem farklı işler için kullanılır ve birbirinin yerine geçmez:
-              <strong> seri</strong> kaynak ucunda eşleme yapar ve hat sonunda tek yük
-              varsayar; <strong>paralel</strong> yük ucunda eşleme yapar ve sürekli güç
-              harcar; <strong>Thevenin</strong> hem eşler hem bias verir, bedeli V_cc'den
-              sürekli çekilen akımdır.
-            </li>
-            <li>
-              Seçilen E serisi değerlerinin üretim toleransı doğrudan sonuca girer.
-              Kuantalama sapmasıyla tolerans aynı yöne düşerse gerçek sapma burada
-              gösterilenden büyük olur; tolerans motorda hesaplanmıyor.
-            </li>
-            <li>
-              Motor yalnızca DC davranışı hesaplar. Kapasitif yük, sürücü kenar hızı, sap
-              uzunluğu, yansıma ve çınlama simülasyonu yapılmaz — bunlar için zaman alanı
-              simülasyonu veya ölçüm gerekir.
-            </li>
-            <li>
-              <strong>Bilinen sınır:</strong> {SERIES_ESERIES_NOTE}
-            </li>
-            <li>
-              <strong>Bilinen sınır:</strong> Thevenin sürekli akım ve gücü ideal direnç
-              çiftinden geliyor; seçilen standart çiftin gerçek akımı bir miktar farklıdır.
-            </li>
-            <li>{DEV_THRESHOLD_NOTE}</li>
-            <li>
-              Teknik detayda gösterilen denklemler motorun uyguladığı ifadelerle birebir
-              aynıdır: belirsiz kalan bir büyüklük tahminle tamamlanmadı, kaynağı
-              doğrulanamayan bir katsayı eklenmedi. Sürekli akım ve güç Ohm yasasından
-              gelir, terminasyon denklemlerinin parçası değildir.
-            </li>
-            <li>
-              Paralel terminasyonda gerilim tek bir değer olarak alınır: direnç toprağa değil
-              ayrı bir terminasyon rayına çekiliyorsa girilen V bu farkı yansıtmalıdır.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((item, i) => (
+              <li key={i}>
+                {item.strong && <><strong>{item.strong}</strong>{' '}</>}
+                {item.text}
+                {/* Vurgu cümlenin ortasındaysa madde sıralı parçalarla gelir. */}
+                {item.parts && item.parts.map((part, j) => (
+                  part.strong
+                    ? <strong key={j}>{part.strong}</strong>
+                    : <Fragment key={j}>{part.text}</Fragment>
+                ))}
+              </li>
+            ))}
           </ul>
         </section>
       </div>
@@ -480,7 +407,7 @@ export default function Termination() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
@@ -491,7 +418,7 @@ export default function Termination() {
                   label: serie.name, tone: serie.tone, kind: 'line',
                 })),
                 ...s.refs.map((ref) => ({
-                  label: REF_LABEL[ref.key], tone: 'tone-muted', kind: 'line',
+                  label: text.chart.refLabel[ref.key], tone: 'tone-muted', kind: 'line',
                 })),
               ]}
             />
@@ -502,9 +429,9 @@ export default function Termination() {
               yLabel={meta.y}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
-                key: ref.key, y: ref.y, label: REF_LABEL[ref.key],
+                key: ref.key, y: ref.y, label: text.chart.refLabel[ref.key],
               }))}
-              marker={{ ...s.marker, label: 'çalışma noktası' }}
+              marker={{ ...s.marker, label: text.chart.operatingPoint }}
               formatX={(v) => fmt(v, 3)}
               formatY={(v) => fmt(v, 3)}
               caption={meta.caption}
@@ -519,7 +446,7 @@ export default function Termination() {
             />
           </>
         ) : (
-          <p className="empty-note">Grafik için geçerli girdi gerekli.</p>
+          <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
 

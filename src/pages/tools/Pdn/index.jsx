@@ -6,210 +6,172 @@ import Segmented from '../../../components/Segmented'
 import RowList from '../../../components/RowList'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import useToolForm from '../../../hooks/useToolForm'
-import { fmt, fmtEng, fmtRes, fmtVolt, THOUSANDS_MESSAGE } from '../../../lib/num'
+import { useLang } from '../../../hooks/useLang'
+import { commonText } from '../../../data/uiText'
+import { fmt, fmtEng, fmtRes, fmtVolt } from '../../../lib/num'
 import PdnSchematic from './schematic'
 import {
   INITIAL_FORM, SOURCES, SRC_TOLERANCE, TOGGLES, ON,
-  CAP_COLUMNS_A, CAP_COLUMNS_B, CAP_ROW_LABEL,
-  compute, buildSweep,
+  capColumnsA, capColumnsB, compute, buildSweep,
 } from './model'
-import {
-  SOURCE_LABEL, TOGGLE_LABEL, LOOP_TERM_LABEL,
-  FLAT_TARGET_NOTE, MOUNTING_NOTE, CHART, CHART_EMPTY, FOP_OUTSIDE_NOTE,
-  reasonText, commentary,
-} from './text'
+import { getText } from './text'
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
-const FORMULA = `Hedef empedans:
-  ΔV_izin = V_ray · T% / 100
-  Z_hedef = ΔV_izin / ΔI
-
-  Sabit YATAY hedef. Frekansa
-  bağlı hedef profilin
-  doğrulanmış denklemi yok
-  → UYGULANMADI.
-
-Düzlem kapasitesi — paralel plaka:
-  C_düzlem = ε₀·εr·A / d
-  kenar saçılması DENKLEMDE YOK
-
-Toplam empedans — paralel ağ:
-  Z_PDN(ω) = [ 1/Z_VRM
-             + 1/Z_kap
-             + jω·C_düzlem ]⁻¹
-
-  Z_kap(ω) = [ Σ 1/Z_i(ω) ]⁻¹
-  Z_i(ω) =
-    ESR + j(ω·ESL − 1/(ω·C))
-
-  Z_VRM = R + jωL
-    VRM için doğrulanmış
-    model YOK; değerler
-    kullanıcıdan gelir.
-
-  Düzlem yalnızca jωC — KAYIPSIZ.
-
-Loop endüktansı — yalnızca toplam:
-  L_loop = ESL_komponent + L_mount
-         + L_via + L_yayılma
-
-  Eğriye DAHİL DEĞİL, ayrı
-  eklenir. Üç terimin denklemi
-  bu araçta yok; değerler
-  kullanıcıdan gelir.`
-
 export default function Pdn() {
   const { f, set } = useToolForm(INITIAL_FORM)
+  const { lang } = useLang()
 
-  const r = useMemo(() => compute(f), [f])
+  const text = useMemo(() => getText(lang), [lang])
+  const ui = useMemo(() => commonText(lang), [lang])
+
+  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => commentary(r), [r])
+  const notes = useMemo(() => text.commentary(r), [r, text])
+
+  const colsA = useMemo(() => capColumnsA(text.capCols), [text])
+  const colsB = useMemo(() => capColumnsB(text.capCols), [text])
 
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
     const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
     const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: 'Tüm kontroller geçti' }
-    if (worst === 'warn') return { cls: 'warn', text: `Sınıra yakın — ${count} uyarı` }
-    return { cls: 'danger', text: `${count} kontrol sınırın dışında` }
-  }, [r, notes])
+    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
+    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
+    return { cls: 'danger', text: ui.statusDanger(count) }
+  }, [r, notes, ui])
 
   const chartSeries = s
     ? [
-        { key: 'pdn', name: '|Z_PDN|', tone: toneClass(0), points: s.points },
+        { key: 'pdn', name: text.chart.seriesPdn, tone: toneClass(0), points: s.points },
         ...(s.hasCaps
-          ? [{ key: 'caps', name: '|Z_kapasitörler|', tone: toneClass(1), points: s.capPoints }]
+          ? [{ key: 'caps', name: text.chart.seriesCaps, tone: toneClass(1), points: s.capPoints }]
           : []),
       ]
     : []
 
   return (
     <>
-      <Link className="backlink" to="/kategori/guc-termal">← Güç Bütünlüğü ve Termal</Link>
+      <Link className="backlink" to="/kategori/guc-termal">{text.backlink}</Link>
 
       <div className="tool-header">
-        <h1>PDN Target Impedance</h1>
-        <p>
-          Ray gerilimi, tolerans ve ani yük değişiminden hedef empedansı bulur; istenirse VRM,
-          kapasitör bankası ve düzlem kapasitesinden PDN empedans eğrisini hedef çizgisiyle aynı
-          grafikte çizer ve bağlantı loop endüktansını ayrıca toplar.
-        </p>
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
       </div>
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
         <section className="panel">
-          <h2>Girdiler</h2>
+          <h2>{ui.inputs}</h2>
 
-          <PdnSchematic r={r} />
+          <PdnSchematic r={r} text={text.schematic} />
 
           <Segmented
             value={f.source}
             onChange={set('source')}
-            options={SOURCES.map((x) => ({ value: x, label: SOURCE_LABEL[x] }))}
+            options={SOURCES.map((x) => ({ value: x, label: text.sourceLabel[x] }))}
           />
 
           {f.source === SRC_TOLERANCE ? (
             <>
               <NumberField
-                label="Ray gerilimi (V_ray)"
+                label={text.fields.Vrail.label}
                 value={f.Vrail} onChange={set('Vrail')}
                 units={['V', 'mV']} unit={f.Vrailu} onUnit={set('Vrailu')}
               />
               <NumberField
-                label="Gerilim toleransı"
+                label={text.fields.tolerancePct.label}
                 value={f.tolerancePct} onChange={set('tolerancePct')}
                 units={['%']} unit="%" onUnit={() => {}}
-                hint="İzin verilen ΔV bu yüzdeden türetilir"
+                hint={text.fields.tolerancePct.hint}
               />
             </>
           ) : (
             <NumberField
-              label="İzin verilen gerilim değişimi (ΔV)"
+              label={text.fields.deltaV.label}
               value={f.deltaV} onChange={set('deltaV')}
               units={['mV', 'V']} unit={f.deltaVu} onUnit={set('deltaVu')}
-              hint="Ray gerilimi ve tolerans yüzdesi bu modda kullanılmaz"
+              hint={text.fields.deltaV.hint}
             />
           )}
 
           <NumberField
-            label="Ani yük değişimi (ΔI)"
+            label={text.fields.deltaI.label}
             value={f.deltaI} onChange={set('deltaI')}
             units={['A', 'mA']} unit={f.deltaIu} onUnit={set('deltaIu')}
-            hint="Yükün en kötü akım sıçraması"
+            hint={text.fields.deltaI.hint}
           />
 
           <SelectField
-            label="PDN eğrisini de çiz"
+            label={text.fields.curve.label}
             value={f.curve} onChange={set('curve')}
-            options={TOGGLES.map((x) => ({ value: x, label: TOGGLE_LABEL[x] }))}
-            hint="Kapalıyken ekran yalnızca hedef empedansı verir"
+            options={TOGGLES.map((x) => ({ value: x, label: text.toggleLabel[x] }))}
+            hint={text.fields.curve.hint}
           />
 
           {f.curve === ON && (
             <>
               <NumberField
-                label="Çalışma frekansı"
+                label={text.fields.fOp.label}
                 value={f.fOp} onChange={set('fOp')}
                 units={['MHz', 'kHz', 'GHz', 'Hz']} unit={f.fOpu} onUnit={set('fOpu')}
-                hint="Grafikteki işaretli nokta"
+                hint={text.fields.fOp.hint}
               />
 
               <NumberField
-                label="VRM çıkış direnci (R)"
+                label={text.fields.vrmR.label}
                 value={f.vrmR} onChange={set('vrmR')}
                 units={['mΩ', 'Ω']} unit={f.vrmRu} onUnit={set('vrmRu')}
-                hint="Boş bırakılabilir"
+                hint={text.fields.vrmR.hint}
               />
               <NumberField
-                label="VRM endüktansı (L)"
+                label={text.fields.vrmL.label}
                 value={f.vrmL} onChange={set('vrmL')}
                 units={['nH', 'pH']} unit={f.vrmLu} onUnit={set('vrmLu')}
-                hint="VRM modeli R + jωL olarak alınır"
+                hint={text.fields.vrmL.hint}
               />
 
               <RowList
-                label="Kapasitör bankası — kapasite ve ESR"
+                label={text.rowList.bankA}
                 rows={f.caps}
-                columns={CAP_COLUMNS_A}
+                columns={colsA}
                 onChange={set('caps')}
-                rowLabel={CAP_ROW_LABEL}
-                addLabel="Kapasitör ekle"
-                hint="Her satır bir kapasitör tipidir; ESR sıfır olamaz"
+                rowLabel={text.rowList.rowLabel}
+                addLabel={text.rowList.addLabel}
+                hint={text.rowList.hintA}
               />
 
               <RowList
-                label="Aynı satırlar — ESL ve adet"
+                label={text.rowList.bankB}
                 rows={f.caps}
-                columns={CAP_COLUMNS_B}
+                columns={colsB}
                 onChange={set('caps')}
-                rowLabel={CAP_ROW_LABEL}
-                addLabel="Kapasitör ekle"
-                hint="Satır numaraları üstteki listeyle birebir aynıdır"
+                rowLabel={text.rowList.rowLabel}
+                addLabel={text.rowList.addLabel}
+                hint={text.rowList.hintB}
               />
 
               <SelectField
-                label="Düzlem kapasitesini de ekle"
+                label={text.fields.plane.label}
                 value={f.plane} onChange={set('plane')}
-                options={TOGGLES.map((x) => ({ value: x, label: TOGGLE_LABEL[x] }))}
+                options={TOGGLES.map((x) => ({ value: x, label: text.toggleLabel[x] }))}
               />
 
               {f.plane === ON && (
                 <>
                   <NumberField
-                    label="Örtüşen düzlem alanı (A)"
+                    label={text.fields.area.label}
                     value={f.area} onChange={set('area')}
                     units={['cm²', 'mm²', 'm²']} unit={f.areau} onUnit={set('areau')}
                   />
                   <NumberField
-                    label="Dielektrik kalınlığı (d)"
+                    label={text.fields.d.label}
                     value={f.d} onChange={set('d')}
                     units={['mm', 'µm']} unit={f.du} onUnit={set('du')}
                   />
                   <NumberField
-                    label="Dielektrik sabiti (εr)"
+                    label={text.fields.epsR.label}
                     value={f.epsR} onChange={set('epsR')}
                     units={['']} unit="" onUnit={() => {}}
                   />
@@ -219,31 +181,31 @@ export default function Pdn() {
           )}
 
           <SelectField
-            label="Bağlı loop endüktansını da hesapla"
+            label={text.fields.loop.label}
             value={f.loop} onChange={set('loop')}
-            options={TOGGLES.map((x) => ({ value: x, label: TOGGLE_LABEL[x] }))}
-            hint="Eğriye girmez, ayrı değerlendirilir"
+            options={TOGGLES.map((x) => ({ value: x, label: text.toggleLabel[x] }))}
+            hint={text.fields.loop.hint}
           />
 
           {f.loop === ON && (
             <>
               <NumberField
-                label="Komponent ESL"
+                label={text.fields.eslComp.label}
                 value={f.eslComp} onChange={set('eslComp')}
                 units={['nH', 'pH']} unit={f.eslCompu} onUnit={set('eslCompu')}
               />
               <NumberField
-                label="Montaj endüktansı (L_mount)"
+                label={text.fields.Lmount.label}
                 value={f.Lmount} onChange={set('Lmount')}
                 units={['nH', 'pH']} unit={f.Lmountu} onUnit={set('Lmountu')}
               />
               <NumberField
-                label="Via endüktansı (L_via)"
+                label={text.fields.Lvia.label}
                 value={f.Lvia} onChange={set('Lvia')}
                 units={['nH', 'pH']} unit={f.Lviau} onUnit={set('Lviau')}
               />
               <NumberField
-                label="Düzlem yayılma endüktansı (L_yayılma)"
+                label={text.fields.Lspread.label}
                 value={f.Lspread} onChange={set('Lspread')}
                 units={['nH', 'pH']} unit={f.Lspreadu} onUnit={set('Lspreadu')}
               />
@@ -253,23 +215,18 @@ export default function Pdn() {
 
         {/* ---------- Orta: Ana sonuç ---------- */}
         <section className="panel">
-          <h2>Sonuç</h2>
+          <h2>{ui.result}</h2>
 
           {!r.ok ? (
             r.ambiguous ? (
-              <p className="empty-note warn">
-                {THOUSANDS_MESSAGE} Etkilenen alan: {r.ambiguous.join(', ')}.
-              </p>
+              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
             ) : (
-              <p className="empty-note">
-                {reasonText(r.reason)}
-                {r.invalid && r.invalid.length > 0 && ` Etkilenen alan: ${r.invalid.join(', ')}.`}
-              </p>
+              <p className="empty-note">{text.reasonText(r.reason)}</p>
             )
           ) : (
             <>
               <div className="big-result">
-                <div className="label">Hedef empedans (Z_hedef)</div>
+                <div className="label">{text.bigResultLabel}</div>
                 <div className="value">{fmtRes(r.Ztarget, 4)}</div>
                 <div className="alt">
                   ΔV = {fmtVolt(r.deltaV)} &nbsp;·&nbsp; ΔI = {fmtEng(r.deltaI, 'A', 4)}
@@ -278,66 +235,66 @@ export default function Pdn() {
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{FLAT_TARGET_NOTE}</p>
-              {r.curve && <p className="method-note">{MOUNTING_NOTE}</p>}
+              <p className="method-note">{text.flatTargetNote}</p>
+              {r.curve && <p className="method-note">{text.mountingNote}</p>}
 
               <table className="result-table">
                 <tbody>
                   <tr>
-                    <td>Hedef empedans (Z_hedef)</td>
+                    <td>{text.table.Ztarget}</td>
                     <td>{fmtRes(r.Ztarget, 5)}</td>
                   </tr>
                   <tr>
-                    <td>İzin verilen gerilim değişimi (ΔV)</td>
+                    <td>{text.table.deltaV}</td>
                     <td>{fmtVolt(r.deltaV)}</td>
                   </tr>
                   <tr>
-                    <td>ΔV nereden geldi</td>
-                    <td>{r.fromTolerance ? 'ray × tolerans' : 'doğrudan girildi'}</td>
+                    <td>{text.table.deltaVSource}</td>
+                    <td>{r.fromTolerance ? text.table.deltaVFromTol : text.table.deltaVDirect}</td>
                   </tr>
                   <tr>
-                    <td>Ani yük değişimi (ΔI)</td>
+                    <td>{text.table.deltaI}</td>
                     <td>{fmtEng(r.deltaI, 'A', 5)}</td>
                   </tr>
                   <tr>
-                    <td>Ray gerilimi (V_ray)</td>
+                    <td>{text.table.Vrail}</td>
                     <td>{r.Vrail != null ? fmtVolt(r.Vrail) : '—'}</td>
                   </tr>
                   <tr>
-                    <td>Gerilim toleransı</td>
-                    <td>{r.tolerancePct != null ? `%${fmt(r.tolerancePct, 4)}` : '—'}</td>
+                    <td>{text.table.tolerance}</td>
+                    <td>{r.tolerancePct != null ? text.pct(fmt(r.tolerancePct, 4)) : '—'}</td>
                   </tr>
                   <tr>
-                    <td>Frekansa bağlı hedef profil</td>
-                    <td>{r.flatTarget ? 'yok — sabit yatay hedef' : '—'}</td>
+                    <td>{text.table.profile}</td>
+                    <td>{r.flatTarget ? text.table.profileNone : '—'}</td>
                   </tr>
                 </tbody>
               </table>
 
               {r.plane && (
                 <>
-                  <h2 className="section">Düzlem kapasitesi</h2>
+                  <h2 className="section">{text.sections.plane}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr>
-                        <td>Düzlem kapasitesi (C_düzlem)</td>
+                        <td>{text.table.planeC}</td>
                         <td>{fmtEng(r.plane.C, 'F', 5)}</td>
                       </tr>
                       <tr>
-                        <td>Örtüşen alan (A)</td>
+                        <td>{text.table.planeArea}</td>
                         <td>{fmt(r.plane.area * 1e4, 4)} cm²</td>
                       </tr>
                       <tr>
-                        <td>Dielektrik kalınlığı (d)</td>
+                        <td>{text.table.planeD}</td>
                         <td>{fmtEng(r.plane.d, 'm', 4)}</td>
                       </tr>
                       <tr>
-                        <td>Dielektrik sabiti (εr)</td>
+                        <td>{text.table.planeEps}</td>
                         <td>{fmt(r.plane.epsR, 4)}</td>
                       </tr>
                       <tr>
-                        <td>Kenar saçılması dahil mi</td>
-                        <td>{r.plane.fringingIncluded ? 'evet' : 'hayır'}</td>
+                        <td>{text.table.fringing}</td>
+                        <td>{r.plane.fringingIncluded ? text.yes : text.no}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -346,44 +303,44 @@ export default function Pdn() {
 
               {r.loop && (
                 <>
-                  <h2 className="section">Bağlı loop endüktansı</h2>
+                  <h2 className="section">{text.sections.loop}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr>
-                        <td>Toplam (L_loop)</td>
+                        <td>{text.table.loopTotal}</td>
                         <td>{fmtEng(r.loop.total, 'H', 5)}</td>
                       </tr>
                       <tr>
-                        <td>Komponent ESL</td>
+                        <td>{text.table.loopComponent}</td>
                         <td>
                           {fmtEng(r.loop.eslComponent, 'H', 4)}{' '}
-                          <span className="sub">(%{fmt(r.loop.shares.component * 100, 3)})</span>
+                          <span className="sub">({text.pct(fmt(r.loop.shares.component * 100, 3))})</span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Montaj (L_mount)</td>
+                        <td>{text.table.loopMount}</td>
                         <td>
                           {fmtEng(r.loop.Lmount, 'H', 4)}{' '}
-                          <span className="sub">(%{fmt(r.loop.shares.mount * 100, 3)})</span>
+                          <span className="sub">({text.pct(fmt(r.loop.shares.mount * 100, 3))})</span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Via (L_via)</td>
+                        <td>{text.table.loopVia}</td>
                         <td>
                           {fmtEng(r.loop.Lvia, 'H', 4)}{' '}
-                          <span className="sub">(%{fmt(r.loop.shares.via * 100, 3)})</span>
+                          <span className="sub">({text.pct(fmt(r.loop.shares.via * 100, 3))})</span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Düzlem yayılması (L_yayılma)</td>
+                        <td>{text.table.loopSpread}</td>
                         <td>
                           {fmtEng(r.loop.Lspread, 'H', 4)}{' '}
-                          <span className="sub">(%{fmt(r.loop.shares.spread * 100, 3)})</span>
+                          <span className="sub">({text.pct(fmt(r.loop.shares.spread * 100, 3))})</span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Baskın terim</td>
-                        <td>{LOOP_TERM_LABEL[r.dominant]}</td>
+                        <td>{text.table.loopDominant}</td>
+                        <td>{text.loopTermLabel[r.dominant]}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -392,31 +349,31 @@ export default function Pdn() {
 
               {r.curve && (
                 <>
-                  <h2 className="section">PDN eğrisi</h2>
+                  <h2 className="section">{text.sections.curve}</h2>
                   <table className="result-table">
                     <tbody>
                       <tr>
-                        <td>Çalışma frekansı</td>
+                        <td>{text.table.fOp}</td>
                         <td>{fmtEng(r.curve.fOp, 'Hz', 5)}</td>
                       </tr>
                       <tr>
-                        <td>|Z_PDN| (çalışma frekansında)</td>
+                        <td>{text.table.zAtFop}</td>
                         <td>{fmtRes(r.curve.z.mag, 5)}</td>
                       </tr>
                       <tr>
-                        <td>Hedefin altında mı</td>
-                        <td>{r.belowTarget ? 'evet' : 'hayır'}</td>
+                        <td>{text.table.belowTarget}</td>
+                        <td>{r.belowTarget ? text.yes : text.no}</td>
                       </tr>
                       <tr>
-                        <td>Yalnız kapasitör ağı |Z_kap|</td>
+                        <td>{text.table.capsOnly}</td>
                         <td>{r.curve.z.capsMag != null ? fmtRes(r.curve.z.capsMag, 5) : '—'}</td>
                       </tr>
                       <tr>
-                        <td>Bu frekansta ağ endüktif mi</td>
-                        <td>{r.curve.z.inductive ? 'evet' : 'hayır'}</td>
+                        <td>{text.table.inductiveAtFop}</td>
+                        <td>{r.curve.z.inductive ? text.yes : text.no}</td>
                       </tr>
                       <tr>
-                        <td>En kötü nokta (1 kHz – 1 GHz)</td>
+                        <td>{text.table.worstPoint}</td>
                         <td>
                           {r.curve.sweep.worst ? (
                             <>
@@ -427,38 +384,39 @@ export default function Pdn() {
                           {!r.curve.fOpInSweep && (
                             <>
                               {' '}
-                              <span className="sub">({FOP_OUTSIDE_NOTE})</span>
+                              <span className="sub">({text.fopOutsideNote})</span>
                             </>
                           )}
                         </td>
                       </tr>
                       <tr>
-                        <td>Hedefin aşıldığı bant sayısı</td>
+                        <td>{text.table.exceedBands}</td>
                         <td>
                           {fmt(r.curve.sweep.bands.length, 2)}{' '}
                           <span className="sub">
-                            ({fmt(r.curve.sweep.exceedCount, 3)} / {fmt(r.curve.sweep.total, 3)} nokta)
+                            ({fmt(r.curve.sweep.exceedCount, 3)} / {fmt(r.curve.sweep.total, 3)}{' '}
+                            {text.table.pointsWord})
                           </span>
                         </td>
                       </tr>
                       <tr>
-                        <td>Bağlı loop endüktansı dahil mi</td>
-                        <td>{r.curve.z.mountingIncluded ? 'evet' : 'hayır'}</td>
+                        <td>{text.table.loopIncluded}</td>
+                        <td>{r.curve.z.mountingIncluded ? text.yes : text.no}</td>
                       </tr>
                       <tr>
-                        <td>Düzlem kayıpsız mı modellendi</td>
-                        <td>{r.curve.z.losslessPlane ? 'evet' : 'düzlem yok'}</td>
+                        <td>{text.table.losslessPlane}</td>
+                        <td>{r.curve.z.losslessPlane ? text.yes : text.table.noPlane}</td>
                       </tr>
                       <tr>
-                        <td>Bankadaki toplam kapasitör</td>
-                        <td>{fmt(r.curve.capCount, 4)} adet</td>
+                        <td>{text.table.capCount}</td>
+                        <td>{fmt(r.curve.capCount, 4)} {text.table.pcsWord}</td>
                       </tr>
                     </tbody>
                   </table>
                 </>
               )}
 
-              <h2 className="section">Mühendislik yorumu</h2>
+              <h2 className="section">{ui.commentary}</h2>
               <ul className="commentary">
                 {notes.map((n) => (
                   <li key={n.text} className={n.level}>
@@ -473,84 +431,27 @@ export default function Pdn() {
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
-          <h2>Teknik detay</h2>
+          <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{FORMULA}</pre>
+          <pre className="formula">{text.formula}</pre>
 
           {r.ok && (
             <ul className="detail-list">
-              <li>
-                Hedef empedans sabit yatay yaklaşımdan geliyor; hesap bunu açıkça bir yaklaşım
-                olarak işaretler ve arayüz frekansa bağlı bir profil varmış gibi göstermez.
-              </li>
-              <li>
-                ΔV kaynağı: {r.fromTolerance
-                  ? 'ray gerilimi × tolerans yüzdesi'
-                  : 'doğrudan girilen değer'}.
-              </li>
-              {r.plane && (
-                <li>
-                  Düzlem kapasitesi ε₀·εr·A/d ile hesaplandı; kenar saçılması denklemde yok ve
-                  sonuç bunu açıkça bildiriyor.
-                </li>
-              )}
-              {r.curve && (
-                <li>
-                  Eğri {r.curve.sweep.total} noktada, 1 kHz – 1 GHz arasında logaritmik olarak
-                  örneklendi. Kapasitör ağı KOMPLEKS admitans toplamıyla birleştirildi; büyüklükler
-                  toplansaydı anti-rezonans tepeleri kaybolurdu.
-                </li>
-              )}
-              {r.curve && (
-                <li>
-                  VRM {r.curve.vrm ? 'R + jωL olarak modellendi' : 'girilmedi'}; bu modelin
-                  doğrulanmış bir tanımı yoktur ve değerleri kullanıcıdan gelir.
-                </li>
-              )}
-              {r.loop && (
-                <li>
-                  Loop endüktansı yalnızca toplanır; L_mount, L_via ve L_yayılma için bu araçta
-                  denklem yok, değerler kullanıcıdan ya da alan çözücüden gelir.
-                </li>
-              )}
-              <li>Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.</li>
+              <li>{text.detail.flat}</li>
+              <li>{text.detail.deltaVSource(r.fromTolerance)}</li>
+              {r.plane && <li>{text.detail.plane}</li>}
+              {r.curve && <li>{text.detail.sweep(r.curve.sweep.total)}</li>}
+              {r.curve && <li>{text.detail.vrm(Boolean(r.curve.vrm))}</li>}
+              {r.loop && <li>{text.detail.loop}</li>}
+              <li>{text.detail.noRounding}</li>
             </ul>
           )}
 
-          <h2 className="section">Geçerlilik ve varsayımlar</h2>
+          <h2 className="section">{ui.validity}</h2>
           <ul className="detail-list">
-            <li>
-              Hedef empedans yalnızca bir yaklaşımdır: sabit ve yatay kabul edilir. Gerçek
-              tasarımda yük akımının spektrumu düz değildir; frekansa bağlı bir hedef profil daha
-              doğrudur ama doğrulanmış bir denklemi olmadığı için bu araçta yoktur.
-            </li>
-            <li>
-              Düzlem kapasitesi denkleminde kenar saçılması bulunmaz; gerçek kapasite hesaplanandan
-              biraz büyüktür.
-            </li>
-            <li>
-              Aynı satırdaki N kapasitör için ESL'in 1/N azaldığı varsayılır. Ortak via ya da ortak
-              dar bir bağlantı varsa bu azalma gerçekleşmez ve gerçek empedans daha yüksek olur.
-            </li>
-            <li>
-              VRM modelinin doğrulanmış bir tanımı yoktur. Burada kullanıcının girdiği değerlerle
-              R + jωL alınmıştır; kontrol döngüsü bant genişliği, yük geçiş yanıtı ve anahtarlama
-              frekansı modelde yoktur.
-            </li>
-            <li>
-              Düzlem kayıpsız (yalnızca jωC) modellenmiştir. Bu yüzden ürettiği anti-rezonans
-              tepesi sönümsüzdür ve gerçek tepeden yüksektir; tepe yüksekliği üst sınır olarak
-              okunmalıdır.
-            </li>
-            <li>
-              Bağlantı loop endüktansı PDN eğrisine dahil edilmez; sonuç bunu açıkça bildirir.
-              Yüksek frekans davranışı için ayrıca değerlendirilmelidir.
-            </li>
-            <li>
-              Kapasitörlerin yerleşimi, düzlem yayılma direnci ve dielektrik kaybı modelde yoktur;
-              hepsi gerçek eğriyi değiştirir.
-            </li>
-            <li>Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.</li>
+            {text.validity.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
           </ul>
         </section>
       </div>
@@ -558,39 +459,39 @@ export default function Pdn() {
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
         <div className="chart-head">
-          <h2>Parametrik grafik</h2>
+          <h2>{ui.chart}</h2>
         </div>
 
         {s ? (
           <>
             <ChartLegend
               items={[
-                { label: '|Z_PDN|', tone: toneClass(0), kind: 'line' },
+                { label: text.chart.seriesPdn, tone: toneClass(0), kind: 'line' },
                 ...(s.hasCaps
-                  ? [{ label: '|Z_kapasitörler|', tone: toneClass(1), kind: 'line' }]
+                  ? [{ label: text.chart.seriesCaps, tone: toneClass(1), kind: 'line' }]
                   : []),
-                { label: 'hedef empedans', tone: 'tone-muted', kind: 'line' },
+                { label: text.chart.legendTarget, tone: 'tone-muted', kind: 'line' },
               ]}
             />
 
             <LineChart
               xScale="log"
-              xLabel={CHART.x}
-              yLabel={CHART.y}
+              xLabel={text.chart.x}
+              yLabel={text.chart.y}
               series={chartSeries}
               refLines={s.refs.map((ref) => ({
                 key: ref.key,
                 y: ref.y,
-                label: `hedef ${fmtRes(ref.real, 3)}`,
+                label: text.chart.refTarget(ref.real),
               }))}
-              marker={s.marker ? { ...s.marker, label: 'çalışma frekansı' } : null}
+              marker={s.marker ? { ...s.marker, label: text.chart.marker } : null}
               formatX={(v) => fmtEng(v, 'Hz', 3)}
               formatY={(v) => fmtRes(Math.pow(10, v), 3)}
-              caption={CHART.caption}
+              caption={text.chart.caption}
             />
 
             <ChartDataTable
-              xLabel={CHART.x}
+              xLabel={text.chart.x}
               series={chartSeries}
               every={8}
               formatX={(v) => fmtEng(v, 'Hz', 3)}
@@ -598,7 +499,7 @@ export default function Pdn() {
             />
           </>
         ) : (
-          <p className="empty-note">{CHART_EMPTY}</p>
+          <p className="empty-note">{text.chartEmpty}</p>
         )}
       </section>
 

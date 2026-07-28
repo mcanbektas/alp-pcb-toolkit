@@ -9,7 +9,7 @@ export function ohmsLaw({ V, I, R, P }) {
   const given = { V, I, R, P }
   const keys = Object.keys(given).filter((k) => isNum(given[k]))
   if (keys.length < 2) {
-    return { error: 'insufficient', message: 'En az iki değer gerekli.' }
+    return { error: 'insufficient' }
   }
 
   let { V: v, I: i, R: r, P: p } = given
@@ -21,7 +21,7 @@ export function ohmsLaw({ V, I, R, P }) {
   else if (isNum(v) && isNum(p)) { i = v === 0 ? NaN : p / v; r = p === 0 ? NaN : (v * v) / p }
   else if (isNum(i) && isNum(p)) { v = i === 0 ? NaN : p / i; r = i === 0 ? NaN : p / (i * i) }
   else if (isNum(r) && isNum(p)) {
-    if (r < 0 || p < 0) return { error: 'invalid', message: 'R ve P negatif olamaz.' }
+    if (r < 0 || p < 0) return { error: 'invalid' }
     v = Math.sqrt(p * r); i = r === 0 ? NaN : Math.sqrt(p / r)
   }
 

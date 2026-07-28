@@ -57,7 +57,7 @@ function CapBranch({ x, ideal, label, showTags }) {
   )
 }
 
-export default function DecouplingSchematic({ r, mode }) {
+export default function DecouplingSchematic({ r, mode, text }) {
   const isMin = mode === MODE_MIN
 
   // Ağ modunda en çok üç kol çizilir; sayısal sonuç tabloda tamdır.
@@ -70,21 +70,19 @@ export default function DecouplingSchematic({ r, mode }) {
   return (
     <Schematic
       viewBox="0 0 260 170"
-      title={isMin ? 'İdeal decoupling kapasitörü' : 'Paralel decoupling ağı'}
-      caption={isMin
-        ? 'Minimum kapasite modeli ideal kapasitördür — ESL ve ESR kesikli, çünkü hesaba girmez'
-        : 'Her kapasitör seri ESL ve ESR ile modellenir; montaj ve via endüktansı bu modelde yoktur'}
+      title={isMin ? text.titleMin : text.titleNet}
+      caption={isMin ? text.captionMin : text.captionNet}
     >
       {/* Güç ve toprak düzlemleri */}
       <rect className="sch-copper" x={20} y={26} width={220} height={6} />
       <rect className="sch-copper" x={20} y={140} width={220} height={6} />
       {/* Yazı kutusu [10.4, 21.4]; düzlemin çizili üst kenarına 3.6 px kalır */}
-      <text className="sch-label dim" x={20} y={19}>güç düzlemi</text>
-      <text className="sch-label dim" x={20} y={162}>toprak düzlemi</text>
+      <text className="sch-label dim" x={20} y={19}>{text.powerPlane}</text>
+      <text className="sch-label dim" x={20} y={162}>{text.groundPlane}</text>
 
       {/* Yük — anlık akımı çeken komponent */}
       <rect className="sch-part" x={196} y={58} width={44} height={54} rx={3} />
-      <text className="sch-label" x={218} y={90} textAnchor="middle">yük</text>
+      <text className="sch-label" x={218} y={90} textAnchor="middle">{text.load}</text>
       <g className="sch-wire">
         <line x1={218} x2={218} y1={32} y2={58} />
         <line x1={218} x2={218} y1={112} y2={140} />

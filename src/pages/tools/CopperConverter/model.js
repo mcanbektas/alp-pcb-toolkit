@@ -71,12 +71,16 @@ const WIDTH = { mm: LENGTH.mm, mil: LENGTH.mil }
 // edilmeye devam eder. units.js'te ikisinin de çarpanı 1e-6, hesap etkilenmez.
 const THICK = { 'µm': LENGTH['µm'], um: LENGTH.um, mm: LENGTH.mm, mil: LENGTH.mil, inch: LENGTH.inch }
 
-export function formFields(f) {
+// Alan etiketleri dışarıdan gelir; model dili bilmez. Etiket verilmezse alan
+// anahtarı görünür — sessiz boşluk yerine teşhis edilebilir bir ad.
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
+
   return fieldsFor([
     // Serbest ağırlık alanı yalnızca "özel değer" seçildiğinde okunur;
     // tablo basamağı seçiliyken sayı seçimden gelir, ayrıştırılacak metin yok.
     when(f.source === SOURCE_WEIGHT && f.ozPick === OZ_CUSTOM, [
-      { key: 'oz', label: 'Bakır ağırlığı', unit: 'oz', table: { oz: 1 }, min: 0 },
+      { key: 'oz', label: L('oz'), unit: 'oz', table: { oz: 1 }, min: 0 },
     ]),
     // Başlangıç (folyo) kalınlığı iki yolda okunur: doğrudan kalınlık yolunda
     // sonucun kendisidir, ölçülen bitmiş yolunda ise kaplamayı geriye çözmek
@@ -84,32 +88,32 @@ export function formFields(f) {
     // folyonun kendisidir; orada bu alan hiç istenmez.
     when(f.source === SOURCE_THICKNESS
       || (f.source === SOURCE_FINISHED && f.layer === 'external'), [
-      { key: 'thickness', label: 'Başlangıç (folyo) kalınlığı', unitKey: 'thicknessu', table: THICK, min: 0 },
+      { key: 'thickness', label: L('thickness'), unitKey: 'thicknessu', table: THICK, min: 0 },
     ]),
     when(f.source === SOURCE_FINISHED, [
-      { key: 'finished', label: 'Ölçülen bitmiş kalınlık', unitKey: 'finishedu', table: THICK, min: 0 },
+      { key: 'finished', label: L('finished'), unitKey: 'finishedu', table: THICK, min: 0 },
     ]),
     // Kaplama yalnızca girdi olduğu yollarda okunur; ölçülen bitmiş kalınlık
     // yolunda kaplama bir sonuçtur, girdi değil.
     when(f.source !== SOURCE_FINISHED, [
-      { key: 'plating', label: 'Kaplama kalınlığı', unit: 'µm', table: LENGTH, min: 0, allowZero: true },
+      { key: 'plating', label: L('plating'), unit: 'µm', table: LENGTH, min: 0, allowZero: true },
     ]),
     [
-      { key: 'W', label: 'Yol genişliği', unitKey: 'Wu', table: WIDTH, min: 0 },
-      { key: 'etch', label: 'Aşındırma oranı', unit: '%', table: PCT, min: 0, allowZero: true },
-      { key: 'T', label: 'Sıcaklık', unit: '°C', table: TEMP, allowZero: true },
+      { key: 'W', label: L('W'), unitKey: 'Wu', table: WIDTH, min: 0 },
+      { key: 'etch', label: L('etch'), unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'T', label: L('T'), unit: '°C', table: TEMP, allowZero: true },
       // Toleransların üst sınırı burada değil, toleranceCorners() içinde
       // denetlenir — sınırı tek yerde tutmak için. Burada yalnızca negatif
       // tolerans elenir.
-      { key: 'tolStart', label: 'Folyo kalınlığı toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
-      { key: 'tolPlate', label: 'Kaplama kalınlığı toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
-      { key: 'tolEtch', label: 'Aşındırma oranı toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
+      { key: 'tolStart', label: L('tolStart'), unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
+      { key: 'tolPlate', label: L('tolPlate'), unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
+      { key: 'tolEtch', label: L('tolEtch'), unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
     ],
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

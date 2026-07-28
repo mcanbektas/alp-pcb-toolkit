@@ -102,8 +102,8 @@ export function weightFromThickness(t_m) {
  * Elektriksel kesit hesabında bitmiş kalınlık kullanılır.
  */
 export function finishedThickness({ starting, plating = 0, layer = 'external' }) {
-  if (!(starting > 0)) return { error: COPPER_ERR_INVALID, message: 'Başlangıç kalınlığı pozitif olmalı.' }
-  if (plating < 0) return { error: COPPER_ERR_INVALID, message: 'Kaplama kalınlığı negatif olamaz.' }
+  if (!(starting > 0)) return { error: COPPER_ERR_INVALID }
+  if (plating < 0) return { error: COPPER_ERR_INVALID }
 
   const added = layer === 'external' ? plating : 0
   return {
@@ -141,9 +141,9 @@ export function crossSection({ t, W }) {
 //   A = t · (W_top + W_bottom) / 2
 //   W_top = W_bottom · (1 − E)
 export function trapezoidArea({ t, Wbottom, etchFactor = 0 }) {
-  if (!(t > 0) || !(Wbottom > 0)) return { error: COPPER_ERR_INVALID, message: 't ve alt genişlik pozitif olmalı.' }
+  if (!(t > 0) || !(Wbottom > 0)) return { error: COPPER_ERR_INVALID }
   if (etchFactor < 0 || etchFactor >= 1) {
-    return { error: COPPER_ERR_INVALID, message: 'Aşındırma oranı 0 ile 1 arasında olmalı.' }
+    return { error: COPPER_ERR_INVALID }
   }
 
   const Wtop = Wbottom * (1 - etchFactor)
@@ -218,11 +218,11 @@ export function toleranceCorners({
   starting, plating = 0, layer = 'external', W, etchFactor = 0, T = 20, tol = {},
 }) {
   if (!(starting > 0) || !(W > 0)) {
-    return { error: COPPER_ERR_INVALID, message: 'Başlangıç kalınlığı ve yol genişliği pozitif olmalı.' }
+    return { error: COPPER_ERR_INVALID }
   }
-  if (plating < 0) return { error: COPPER_ERR_INVALID, message: 'Kaplama kalınlığı negatif olamaz.' }
+  if (plating < 0) return { error: COPPER_ERR_INVALID }
   if (etchFactor < 0 || etchFactor >= 1) {
-    return { error: COPPER_ERR_INVALID, message: 'Aşındırma oranı 0 ile 1 arasında olmalı.' }
+    return { error: COPPER_ERR_INVALID }
   }
 
   const ts = tol.starting ?? 0
@@ -232,12 +232,12 @@ export function toleranceCorners({
   // Bu yüzden üst uç dahil değildir.
   for (const t of [ts, tp, te]) {
     if (!(t >= 0) || t >= 1) {
-      return { error: COPPER_ERR_TOLERANCE, message: 'Her tolerans 0 ile %100 arasında olmalı (100 hariç).' }
+      return { error: COPPER_ERR_TOLERANCE }
     }
   }
   // Aşındırma oranının üst ucu %100'e ulaşırsa üst genişlik sıfırlanır.
   if (etchFactor * (1 + te) >= 1) {
-    return { error: COPPER_ERR_TOLERANCE, message: 'Toleransın üst ucu aşındırma oranını %100 yapıyor.' }
+    return { error: COPPER_ERR_TOLERANCE }
   }
 
   // İç katmanda kaplama bitmiş kalınlığa hiç girmez; toleransı da girmez.
@@ -261,7 +261,7 @@ export function toleranceCorners({
   // sonlu olmayan bir uç çıkarsa eksik üçlü döndürmek yerine hata döner —
   // çağıran taraf "hesaplanamadı" der, yarım bir aralık göstermez.
   if (!finishedSpan || !areaSpan || !RsheetSpan) {
-    return { error: COPPER_ERR_TOLERANCE, message: 'Tolerans köşelerinden geçerli sonuç çıkmadı.' }
+    return { error: COPPER_ERR_TOLERANCE }
   }
 
   return {

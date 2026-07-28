@@ -8,7 +8,7 @@ import { fmtEng } from '../../../lib/num'
 // Yazılar üç ayrı bölgede durur — üstte pad/antipad etiket şeridi, sağda kart
 // kalınlığı sütunu, altta değer satırları. Kesit bu yüzden sola alındı
 // (cx = 100): kart kalınlığı değeri eskiden sağda viewBox'ı aşıyordu.
-export default function ViaSchematic({ r }) {
+export default function ViaSchematic({ r, text }) {
   const live = r.ok
   const cx = 100
   const top = 36
@@ -41,8 +41,8 @@ export default function ViaSchematic({ r }) {
   return (
     <Schematic
       viewBox={`0 0 280 ${vbH}`}
-      title="Via kesiti"
-      caption="Kaplanmış delik kesiti — akım yalnızca duvar bakırından geçer"
+      title={text.title}
+      caption={text.caption}
     >
       {/* Kart gövdesi, delik boşluğu iki parça olarak çizilir */}
       <rect
@@ -121,12 +121,12 @@ export default function ViaSchematic({ r }) {
       {/* Pad ve antipad etiketleri kartın üstündeki şeritte: pad yazısı pad'in
           üstünde, antipad yazısı antipad çizgisinin ekseninde. Aralarında 12 px
           açıklık var — 4 px'te iki etiket tek ifade gibi ("pad antipad") okunuyordu. */}
-      <text className="sch-label dim" x={110} y={20} textAnchor="end">pad</text>
-      <text className="sch-label dim" x={cx + antiHalf} y={20} textAnchor="middle">antipad</text>
+      <text className="sch-label dim" x={110} y={20} textAnchor="end">{text.pad}</text>
+      <text className="sch-label dim" x={cx + antiHalf} y={20} textAnchor="middle">{text.antipad}</text>
 
       {live && (
         <text className="sch-value" x={140} y={174} textAnchor="middle">
-          barrel kesiti {fmtEng(r.area, 'm²', 3)}
+          {text.barrelArea} {fmtEng(r.area, 'm²', 3)}
         </text>
       )}
     </Schematic>

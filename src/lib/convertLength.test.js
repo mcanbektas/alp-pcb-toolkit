@@ -6,6 +6,7 @@ import {
   MM_PER_INCH, MM_PER_MIL, MIL_PER_INCH, MIL_PER_MM, MIL_PER_MM_ROUNDED,
   LEN_ERR_UNIT, LEN_ERR_INVALID, LEN_ERR_RANGE,
 } from './convertLength'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('tanım gereği tam sabitler (spec §11.1)', () => {
   it('1 inch = 25.4 mm', () => {
@@ -202,5 +203,17 @@ describe('hazır mil listesinde en yakın kayıt', () => {
     expect(nearestCommonMil(0.5)).toBe(-1)
     expect(nearestCommonMil(250)).toBe(-1)
     expect(nearestCommonMil(NaN)).toBe(-1)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      convertLength(1, 'mm', 'furlong'),
+      convertLength(1, 'yard', 'mm'),
+      convertLength(NaN, 'mm', 'mil'),
+      convertLength(Infinity, 'mm', 'mil'),
+      convertLength(1e306, 'm', 'mil'),
+    ])
   })
 })

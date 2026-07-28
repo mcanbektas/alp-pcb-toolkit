@@ -163,27 +163,31 @@ describe('geçerlilik uyarıları', () => {
   })
 
   it('ΔT aralığın altındaysa uyarır', () => {
-    const w = validityWarnings(1, 5)
-    expect(w).toHaveLength(1)
-    expect(w[0]).toContain('5')
-    expect(w[0]).toContain('10–100')
+    expect(validityWarnings(1, 5)).toEqual([{ code: 'dt-range', dT: 5 }])
   })
 
   it('ΔT aralığın üstündeyse uyarır', () => {
-    expect(validityWarnings(1, 101)).toHaveLength(1)
+    expect(validityWarnings(1, 101)).toEqual([{ code: 'dt-range', dT: 101 }])
   })
 
   it('akım üst sınırın üstündeyse uyarır', () => {
-    const w = validityWarnings(35.5, 45)
-    expect(w).toHaveLength(1)
-    expect(w[0]).toContain('35.5')
+    expect(validityWarnings(35.5, 45)).toEqual([{ code: 'i-range', I: 35.5 }])
   })
 
   it('iki sınır da aşılırsa iki uyarı döner — sırayla ΔT, sonra akım', () => {
-    const w = validityWarnings(40, 120)
-    expect(w).toHaveLength(2)
-    expect(w[0]).toContain('120')
-    expect(w[1]).toContain('40')
+    expect(validityWarnings(40, 120)).toEqual([
+      { code: 'dt-range', dT: 120 },
+      { code: 'i-range', I: 40 },
+    ])
+  })
+
+  // Saf katman kullanıcı metni üretmez: uyarı kod taşır, cümle taşımaz.
+  it('uyarılar cümle değil kod döndürür', () => {
+    for (const w of validityWarnings(40, 120)) {
+      expect(typeof w).toBe('object')
+      expect(typeof w.code).toBe('string')
+      expect(w.code).not.toContain(' ')
+    }
   })
 })
 
@@ -208,8 +212,15 @@ describe('bakır ağırlığı tablosu', () => {
       '2 oz (70 µm)',
       '3 oz (105 µm)',
       '4 oz (140 µm)',
-      'Özel kalınlık…',
+      'custom',
     ])
+  })
+
+  // Sayısal satırların etiketi birim sembolünden ibarettir ve dilden bağımsızdır;
+  // "özel kalınlık" satırı ise anahtarın kendisini taşır — ekran onu çevirir.
+  it('özel kalınlık satırı tek dilli metin taşımaz', () => {
+    const custom = OZ_TABLE.find((o) => o.key === 'custom')
+    expect(custom.label).toBe(custom.key)
   })
 
   it('seçim anahtarından kalınlık (m) verir', () => {

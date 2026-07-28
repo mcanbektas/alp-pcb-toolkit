@@ -3,6 +3,10 @@
 PCB tasarımı için çevrim içi mühendislik karar destek araçları. Tüm hesaplar tarayıcıda
 (client-side) çalışır; backend, veritabanı veya API çağrısı yoktur.
 
+Arayüz iki dillidir — **Türkçe / English** — ve dil başlıktaki düğmeden değiştirilir. Varsayılan
+Türkçedir: araç adlarının ve mühendislik terimlerinin karşılığı önce Türkçe yazıldı, İngilizce
+onun çevirisidir. Seçim tarayıcıda saklanır.
+
 Sonuçlar yaklaşık mühendislik tahminleridir. Her ekran kullandığı denklemi, ara değerleri,
 geçerlilik sınırını ve yöntemin nereden geldiğini birlikte gösterir — bir sonuç kapalı
 formdan mı yoksa kaynağı belirsiz bir yaklaşımdan mı geliyor, ekranda yazar.
@@ -46,15 +50,36 @@ metin bilmez. Hata durumunda `{ error: <kod> }` döner; kodu metne çeviren tara
 
 | dosya | sorumluluk |
 | --- | --- |
-| `model.js` | alan tanımları + `compute()` + `buildSweep()`. Saf, test edilebilir; gösterim bilmez. |
-| `text.js` | bulgu ve hata kodlarının Türkçe karşılıkları. İkinci dil gerekirse değişecek tek dosya. |
-| `schematic.jsx` | devre/geometri SVG'si. |
+| `model.js` | alan tanımları + `compute()` + `buildSweep()`. Saf, test edilebilir; gösterim ve dil bilmez. |
+| `text.js` | ekranın tüm kullanıcı metni, iki dilli. Tek dış yüzü `getText(lang)`. |
+| `schematic.jsx` | devre/geometri SVG'si. Yazılarını `text` prop'undan alır. |
 | `index.jsx` | düzen ve state. Hesap yapmaz, metin üretmez. |
 
 Ekran düzeni tüm araçlarda aynıdır: `.tool-header` → üç panel (*Girdiler* / *Sonuç* /
 *Teknik detay + Geçerlilik ve varsayımlar*) → parametrik grafik → kategoriye dönen bağlantı.
 Renkler ve fontlar yalnızca `src/theme.css` değişkenlerinden gelir; ekrana özel CSS ve inline
 style yazılmaz.
+
+### Dil katmanı
+
+| katman | dosya | sorumluluk |
+| --- | --- | --- |
+| saf | `src/lib/i18n.js` | `LANGS`, `DEFAULT_LANG` (`tr`), `pick(dict, lang)`, depolama portu üzerinden oku/yaz |
+| bağ | `src/hooks/useLang.jsx` | `LangProvider` + `useLang()`; `localStorage`'a yalnızca burada dokunulur |
+| ortak metin | `src/data/uiText.js` | `commonText(lang)` — panel başlıkları, durum çipi kalıpları, boş/hata notları |
+| ekran metni | `src/pages/tools/<Ad>/text.js` | `getText(lang)` — o ekrana özgü her dize |
+
+`model.js` dil bilmez: hata mesajında gösterilecek alan adlarını `compute(…, labels)` ile
+dışarıdan alır, ekran da `text.fieldLabels`'ı geçirir. Böylece hesap katmanı saf kalır.
+
+`<html lang>` seçilen dille birlikte değişir. Bu yalnızca semantik değil, görünür bir gerekliliktir:
+`text-transform: uppercase` sayfanın dilini kullanır ve `lang="tr"` altında "i" harfi "İ" olur —
+İngilizce metin Türkçe etiketle büyütülünce "VIA" yerine "VİA" çıkardı.
+
+Çevrilmeyenler: kod yorumları, değişken/dosya adları, birim sembolleri, E serisi adları ve
+kullanıcının kendi girdiği veri. Sayı biçimi de dile göre değişmez — ondalık ayırıcı gösterimde
+her zaman noktadır, çünkü çıktı kopyalanıp başka araca yapıştırılır. (Girişte hem nokta hem
+virgül kabul edilir.)
 
 Sayı akışı: form state **string** tutar, ayrıştırma yalnızca `compute()` içinde `lib/fields.js`
 üzerinden yapılır (ondalık için hem nokta hem virgül geçerlidir; belirsiz binlik ayırıcı
@@ -67,73 +92,74 @@ Ayrıntılı kurallar ve bilinen sapmalar: [`CLAUDE.md`](CLAUDE.md). Formülleri
 ## Araçlar
 
 7 kategori, 29 ekran — 25'i aktif, 4'ü planlanmış. `src/data/categories.js` tek kaynaktır:
-`path` alanı olan araç aktif, olmayan "yakında" olarak gösterilir.
+`path` alanı olan araç aktif, olmayan "yakında" olarak gösterilir. Adların iki dildeki
+karşılığı da orada durur; tablolardaki adlar o dosyayla birebir aynıdır.
 
-### PCB Akım, Güç ve Bakır
+### PCB Akım, Güç ve Bakır · PCB Current, Power and Copper
 
-| ekran | yol |
-| --- | --- |
-| Trace Width & Current Capacity | `/arac/trace-width` |
-| Power Plane & Parallel Trace | `/arac/guc-duzlemi` |
-| Copper Thickness Converter | `/arac/bakir-donusturucu` |
+| ekran | screen | yol |
+| --- | --- | --- |
+| Yol Genişliği ve Akım Kapasitesi | Trace Width & Current Capacity | `/arac/trace-width` |
+| Güç Düzlemi ve Paralel Yol | Power Plane & Parallel Trace | `/arac/guc-duzlemi` |
+| Bakır Kalınlığı Dönüştürücü | Copper Thickness Converter | `/arac/bakir-donusturucu` |
 
-### Via ve Padstack
+### Via ve Padstack · Via and Padstack
 
-| ekran | yol |
-| --- | --- |
-| Via Properties & Current Capacity | `/arac/via-ozellikleri` |
-| Thermal Via Array | `/arac/termal-via` |
+| ekran | screen | yol |
+| --- | --- | --- |
+| Via Özellikleri ve Akım Kapasitesi | Via Properties & Current Capacity | `/arac/via-ozellikleri` |
+| Termal Via Dizisi | Thermal Via Array | `/arac/termal-via` |
 
-### Kontrollü Empedans
+### Kontrollü Empedans · Controlled Impedance
 
-| ekran | yol |
-| --- | --- |
-| Single-Ended Impedance | `/arac/tek-uclu-empedans` |
-| Differential Pair Impedance | `/arac/diferansiyel-cift` |
+| ekran | screen | yol |
+| --- | --- | --- |
+| Tek Uçlu Empedans | Single-Ended Impedance | `/arac/tek-uclu-empedans` |
+| Diferansiyel Çift Empedansı | Differential Pair Impedance | `/arac/diferansiyel-cift` |
 
-### Sinyal Bütünlüğü
+### Sinyal Bütünlüğü · Signal Integrity
 
-| ekran | yol |
-| --- | --- |
-| Propagation Delay & Wavelength | `/arac/yayilma-gecikmesi` |
-| Critical Trace Length | `/arac/kritik-hat-uzunlugu` |
-| Differential Skew & Length Matching | `/arac/skew` |
-| Crosstalk Estimator | `/arac/crosstalk` |
-| Termination Calculator | `/arac/terminasyon` |
+| ekran | screen | yol |
+| --- | --- | --- |
+| Yayılma Gecikmesi ve Dalga Boyu | Propagation Delay & Wavelength | `/arac/yayilma-gecikmesi` |
+| Kritik Hat Uzunluğu | Critical Trace Length | `/arac/kritik-hat-uzunlugu` |
+| Diferansiyel Skew ve Uzunluk Eşleme | Differential Skew & Length Matching | `/arac/skew` |
+| Crosstalk Kestirimi | Crosstalk Estimator | `/arac/crosstalk` |
+| Terminasyon Hesaplayıcı | Termination Calculator | `/arac/terminasyon` |
 
-### Güç Bütünlüğü ve Termal
+### Güç Bütünlüğü ve Termal · Power Integrity and Thermal
 
-| ekran | yol |
-| --- | --- |
-| PDN Target Impedance | `/arac/pdn-hedef-empedans` |
-| Decoupling Network | `/arac/decoupling` |
-| Junction Temperature & Heatsink | `/arac/junction-sicakligi` |
+| ekran | screen | yol |
+| --- | --- | --- |
+| PDN Hedef Empedansı | PDN Target Impedance | `/arac/pdn-hedef-empedans` |
+| Decoupling Ağı | Decoupling Network | `/arac/decoupling` |
+| Jonksiyon Sıcaklığı ve Soğutucu | Junction Temperature & Heatsink | `/arac/junction-sicakligi` |
 
-### Komponent ve Devre Hesapları
+### Komponent ve Devre Hesapları · Component and Circuit Calculators
 
-| ekran | yol |
-| --- | --- |
-| Resistor & SMD Code Decoder | `/arac/direnc-kodu` |
-| Voltage Divider & E-Series Finder | `/arac/gerilim-bolucu` |
-| LED, Ohm Kanunu & RLC | `/arac/led-ohm-rlc` |
-| RC/RL Zaman Sabiti & Kristal | `/arac/rc-kristal` |
+| ekran | screen | yol |
+| --- | --- | --- |
+| Direnç ve SMD Kod Çözücü | Resistor & SMD Code Decoder | `/arac/direnc-kodu` |
+| Gerilim Bölücü ve E Serisi Bulucu | Voltage Divider & E-Series Finder | `/arac/gerilim-bolucu` |
+| LED, Ohm Kanunu ve RLC | LED, Ohm's Law & RLC | `/arac/led-ohm-rlc` |
+| RC/RL Zaman Sabiti ve Kristal | RC/RL Time Constant & Crystal | `/arac/rc-kristal` |
 
-### PCB Üretim, DFM ve Dönüşümler
+### PCB Üretim, DFM ve Dönüşümler · PCB Manufacturing, DFM and Conversions
 
-| ekran | yol |
-| --- | --- |
-| Length Converter | `/arac/uzunluk-donusturucu` |
-| AWG Wire Gauge Converter | `/arac/awg-donusturucu` |
-| Frequency & Period Converter | `/arac/frekans-periyot` |
-| Decibel, Gain & dBm Converter | `/arac/db-kazanc` |
-| Temperature Converter | `/arac/sicaklik-donusturucu` |
-| Complex Number Converter | `/arac/kompleks-sayi` |
+| ekran | screen | yol |
+| --- | --- | --- |
+| Uzunluk Dönüştürücü | Length Converter | `/arac/uzunluk-donusturucu` |
+| AWG Tel Çapı Dönüştürücü | AWG Wire Gauge Converter | `/arac/awg-donusturucu` |
+| Frekans ve Periyot Dönüştürücü | Frequency & Period Converter | `/arac/frekans-periyot` |
+| Desibel, Kazanç ve dBm Dönüştürücü | Decibel, Gain & dBm Converter | `/arac/db-kazanc` |
+| Sıcaklık Dönüştürücü | Temperature Converter | `/arac/sicaklik-donusturucu` |
+| Kompleks Sayı Dönüştürücü | Complex Number Converter | `/arac/kompleks-sayi` |
 
 Dönüştürücülerin kaynağı `docs/spec.md` §11; bakır kalınlığı dönüştürücüsü §4.3'tedir ve
 *PCB Akım, Güç ve Bakır* kategorisinde durur.
 
-Dördü planlandı, henüz yayında değil: Clearance, Creepage & Padstack · BGA Breakout ·
-Stack-Up Planner · Thermal Relief.
+Dördü planlandı, henüz yayında değil: Clearance, Creepage ve Padstack · BGA Breakout ·
+Stack-Up Planlayıcı · Thermal Relief.
 
 ## Tarayıcıda saklama
 
@@ -160,10 +186,12 @@ veri tabanlı hesapla eşdeğer olmadığı etiketle belirtilir.
 ## Yeni araç ekleme
 
 1. Hesap motorunu `src/lib/<konu>.js` olarak yaz — kod döner, metin döndürmez.
-2. `src/pages/tools/<Ad>/` klasörünü dört dosyayla kur.
+2. `src/pages/tools/<Ad>/` klasörünü dört dosyayla kur. `text.js` doğduğu anda iki dillidir;
+   tek dille yazılıp sonra çevrilmez.
 3. `src/App.jsx` içine `const Ad = lazy(() => import('./pages/tools/Ad'))` ve
    `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
-4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver.
+4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver; `name` alanı
+   `{ tr, en }` sözlüğüdür ve ekranın `h1` başlığıyla birebir aynı kalır.
 5. `docs/spec.md` §13'te karşılığı varsa testi aynı commit'te yaz.
 
 Referans ekran: `src/pages/tools/VoltageDivider/`. Formüller için önce `docs/spec.md`'nin ilgili

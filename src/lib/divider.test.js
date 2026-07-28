@@ -4,6 +4,7 @@ import {
   findDividerPair, sweepDivider, outputVoltage,
   DIVIDER_ERR_RANGE, DIVIDER_ERR_NO_PAIR,
 } from './divider'
+import { expectErrorShapes } from './errorShape.testkit'
 
 describe('spec §13 Test 6 — yüklü gerilim bölücü', () => {
   const Vin = 12
@@ -198,5 +199,16 @@ describe('grafik taraması', () => {
 
   it('geçersiz aralıkta boş döner', () => {
     expect(sweepDivider({ Vin: 12, R1: 1, R2: 1, param: 'RL', from: 100, to: 10 })).toEqual([])
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      voltageDivider({ Vin: 12, R1: 0, R2: 0 }),
+      dividerRatio(5, 5),
+      dividerRatio(NaN, 1),
+      findDividerPair({ Vin: 12, Vout: 3.3, min: 1e6, max: 1e3 }),
+    ])
   })
 })

@@ -85,55 +85,69 @@ export const IND_UNITS = ['nH', 'pH']
 // Kapasitör bankası satırları. RowList ortak bileşeni satır başına iki sütun
 // gösterecek biçimde tanımlı olduğu için banka iki listeye bölünür; ikisi de
 // aynı satır dizisini düzenler, satır numaraları birebir örtüşür.
-export const CAP_COLUMNS_A = [
-  { key: 'C', unitKey: 'Cu', label: 'Kapasite', units: CAP_UNITS },
-  { key: 'ESR', unitKey: 'ESRu', label: 'ESR', units: OHM_UNITS },
-]
+//
+// Sütun başlıkları `cols` ile çağıran taraftan gelir (geçerli dilde,
+// text.js'ten); model kullanıcı metni taşımaz. Etiket verilmezse sütun anahtarı
+// gösterilir — sessiz boşluk yerine en azından teşhis edilebilir bir ad.
+export function capColumnsA(cols = {}) {
+  const L = (key) => cols[key] ?? key
+  return [
+    { key: 'C', unitKey: 'Cu', label: L('C'), units: CAP_UNITS },
+    { key: 'ESR', unitKey: 'ESRu', label: L('ESR'), units: OHM_UNITS },
+  ]
+}
 
-export const CAP_COLUMNS_B = [
-  { key: 'ESL', unitKey: 'ESLu', label: 'ESL', units: IND_UNITS },
-  { key: 'n', label: 'Adet' },
-]
+export function capColumnsB(cols = {}) {
+  const L = (key) => cols[key] ?? key
+  return [
+    { key: 'ESL', unitKey: 'ESLu', label: L('ESL'), units: IND_UNITS },
+    { key: 'n', label: L('n') },
+  ]
+}
 
 // ESR ve ESL alan katmanında sıfıra izin verir; sıfır ESR'yi motor
 // PDN_ERR_SINGULAR ile reddeder ve ekran bunu anlaşılır bir mesaja çevirir.
-const CAP_SPECS = [
-  { key: 'C', label: 'Kapasite', unitKey: 'Cu', table: CAPACITANCE, min: 0 },
-  { key: 'ESR', label: 'ESR', unitKey: 'ESRu', table: RESISTANCE, min: 0, allowZero: true },
-  { key: 'ESL', label: 'ESL', unitKey: 'ESLu', table: INDUCTANCE, min: 0, allowZero: true },
-  { key: 'n', label: 'Adet', min: 1 },
-]
+function capSpecs(labels = {}) {
+  const L = (key) => labels[key] ?? key
+  return [
+    { key: 'C', label: L('capC'), unitKey: 'Cu', table: CAPACITANCE, min: 0 },
+    { key: 'ESR', label: L('capESR'), unitKey: 'ESRu', table: RESISTANCE, min: 0, allowZero: true },
+    { key: 'ESL', label: L('capESL'), unitKey: 'ESLu', table: INDUCTANCE, min: 0, allowZero: true },
+    { key: 'n', label: L('capN'), min: 1 },
+  ]
+}
 
-export const CAP_ROW_LABEL = 'Kapasitör'
-
-export function formFields(f) {
+// Alan tanımları. Etiketler `labels` ile çağıran taraftan gelir (geçerli
+// dilde, text.js'ten); `lib/` bunları bilmez.
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   const fromTol = f.source === SRC_TOLERANCE
   return fieldsFor([
     [
-      { key: 'deltaI', label: 'Ani yük değişimi (ΔI)', unitKey: 'deltaIu', table: CURRENT, min: 0 },
+      { key: 'deltaI', label: L('deltaI'), unitKey: 'deltaIu', table: CURRENT, min: 0 },
     ],
     when(fromTol, [
-      { key: 'Vrail', label: 'Ray gerilimi (V_ray)', unitKey: 'Vrailu', table: VOLTAGE, min: 0 },
-      { key: 'tolerancePct', label: 'Gerilim toleransı', unit: '%', table: PCT, min: 0 },
+      { key: 'Vrail', label: L('Vrail'), unitKey: 'Vrailu', table: VOLTAGE, min: 0 },
+      { key: 'tolerancePct', label: L('tolerancePct'), unit: '%', table: PCT, min: 0 },
     ]),
     when(!fromTol, [
-      { key: 'deltaV', label: 'İzin verilen gerilim değişimi (ΔV)', unitKey: 'deltaVu', table: VOLTAGE, min: 0 },
+      { key: 'deltaV', label: L('deltaV'), unitKey: 'deltaVu', table: VOLTAGE, min: 0 },
     ]),
     when(f.curve === ON, [
-      { key: 'fOp', label: 'Çalışma frekansı', unitKey: 'fOpu', table: FREQUENCY, min: 0 },
-      { key: 'vrmR', label: 'VRM çıkış direnci (R)', unitKey: 'vrmRu', table: RESISTANCE, min: 0, optional: true, allowZero: true },
-      { key: 'vrmL', label: 'VRM endüktansı (L)', unitKey: 'vrmLu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
+      { key: 'fOp', label: L('fOp'), unitKey: 'fOpu', table: FREQUENCY, min: 0 },
+      { key: 'vrmR', label: L('vrmR'), unitKey: 'vrmRu', table: RESISTANCE, min: 0, optional: true, allowZero: true },
+      { key: 'vrmL', label: L('vrmL'), unitKey: 'vrmLu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
     ]),
     when(f.curve === ON && f.plane === ON, [
-      { key: 'area', label: 'Örtüşen düzlem alanı (A)', unitKey: 'areau', table: AREA, min: 0 },
-      { key: 'd', label: 'Dielektrik kalınlığı (d)', unitKey: 'du', table: LENGTH, min: 0 },
-      { key: 'epsR', label: 'Dielektrik sabiti (εr)', unit: '', table: PLAIN, min: 1 },
+      { key: 'area', label: L('area'), unitKey: 'areau', table: AREA, min: 0 },
+      { key: 'd', label: L('d'), unitKey: 'du', table: LENGTH, min: 0 },
+      { key: 'epsR', label: L('epsR'), unit: '', table: PLAIN, min: 1 },
     ]),
     when(f.loop === ON, [
-      { key: 'eslComp', label: 'Komponent ESL', unitKey: 'eslCompu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
-      { key: 'Lmount', label: 'Montaj endüktansı (L_mount)', unitKey: 'Lmountu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
-      { key: 'Lvia', label: 'Via endüktansı (L_via)', unitKey: 'Lviau', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
-      { key: 'Lspread', label: 'Düzlem yayılma endüktansı (L_yayılma)', unitKey: 'Lspreadu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
+      { key: 'eslComp', label: L('eslComp'), unitKey: 'eslCompu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
+      { key: 'Lmount', label: L('Lmount'), unitKey: 'Lmountu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
+      { key: 'Lvia', label: L('Lvia'), unitKey: 'Lviau', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
+      { key: 'Lspread', label: L('Lspread'), unitKey: 'Lspreadu', table: INDUCTANCE, min: 0, optional: true, allowZero: true },
     ]),
   ])
 }
@@ -192,8 +206,8 @@ function dominantShare(shares) {
   return Object.keys(shares).reduce((a, k) => (shares[k] > shares[a] ? k : a))
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
@@ -223,7 +237,7 @@ export function compute(f) {
   // --- PDN eğrisi (spec §8.2.4) ---
   let curve = null
   if (curveOn) {
-    const rows = readRows(f.caps, CAP_SPECS, CAP_ROW_LABEL)
+    const rows = readRows(f.caps, capSpecs(labels), labels.capRow ?? 'capRow')
     if (rows.ambiguous.length) return { ok: false, ambiguous: rows.ambiguous }
     if (!rows.ok) return { ok: false, reason: REASON_ROWS, invalid: rows.invalid }
 

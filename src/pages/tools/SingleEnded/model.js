@@ -40,35 +40,38 @@ const PLAIN = { '': 1 }
 const PCT = { '%': 1 }
 const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mil }
 
-export function formFields(f, mode) {
+// Etiketler `labels` ile çağıran taraftan gelir (geçerli dilde, text.js'ten);
+// `lib/` bunları bilmez. Etiket verilmezse alan anahtarı gösterilir.
+export function formFields(f, mode, labels = {}) {
+  const L = (key) => labels[key] ?? key
   const structure = f.structure
   return fieldsFor([
     [
-      { key: 'epsR', label: 'Dielektrik sabiti (εr)', unit: '', table: PLAIN, min: 1 },
-      { key: 't', label: 'Bakır kalınlığı (t)', unitKey: 'tu', table: DIM, min: 0, allowZero: true },
+      { key: 'epsR', label: L('epsR'), unit: '', table: PLAIN, min: 1 },
+      { key: 't', label: L('t'), unitKey: 'tu', table: DIM, min: 0, allowZero: true },
     ],
     when(mode === MODE_ANALYSIS, [
-      { key: 'W', label: 'Hat genişliği (W)', unitKey: 'Wu', table: DIM, min: 0 },
+      { key: 'W', label: L('W'), unitKey: 'Wu', table: DIM, min: 0 },
     ]),
     when(mode === MODE_SYNTHESIS, [
       // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
       // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
-      { key: 'target', label: 'Hedef empedans', unit: 'Ω', table: RESISTANCE, min: 0 },
+      { key: 'target', label: L('target'), unit: 'Ω', table: RESISTANCE, min: 0 },
     ]),
     when(structure === STRUCT_MICROSTRIP || structure === STRUCT_CPW, [
-      { key: 'H', label: 'Dielektrik yüksekliği (H)', unitKey: 'Hu', table: DIM, min: 0 },
+      { key: 'H', label: L('H'), unitKey: 'Hu', table: DIM, min: 0 },
     ]),
     when(structure === STRUCT_STRIPLINE, [
-      { key: 'b', label: 'Düzlemler arası mesafe (b)', unitKey: 'bu', table: DIM, min: 0 },
+      { key: 'b', label: L('b'), unitKey: 'bu', table: DIM, min: 0 },
     ]),
     when(structure === STRUCT_CPW, [
-      { key: 'S', label: 'Coplanar boşluk (S)', unitKey: 'Su', table: DIM, min: 0 },
+      { key: 'S', label: L('S'), unitKey: 'Su', table: DIM, min: 0 },
     ]),
     when(f.tol, [
-      { key: 'tolW', label: 'Genişlik toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
-      { key: 'tolH', label: 'Dielektrik toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
-      { key: 'tolT', label: 'Bakır kalınlığı toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
-      { key: 'tolEps', label: 'εr toleransı', unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tolW', label: L('tolW'), unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tolH', label: L('tolH'), unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tolT', label: L('tolT'), unit: '%', table: PCT, min: 0, allowZero: true },
+      { key: 'tolEps', label: L('tolEps'), unit: '%', table: PCT, min: 0, allowZero: true },
     ]),
   ])
 }
@@ -79,8 +82,8 @@ function evaluate(structure, { W, H, b, S, t, epsR }) {
   return microstrip({ W, H, t, epsR })
 }
 
-export function compute(mode, f) {
-  const read = readForm(f, formFields(f, mode))
+export function compute(mode, f, labels = {}) {
+  const read = readForm(f, formFields(f, mode, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

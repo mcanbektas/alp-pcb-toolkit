@@ -4,6 +4,7 @@ import {
   PLANE_ERR_INVALID,
 } from './plane'
 import { RHO_CU_20 } from './units'
+import { expectErrorShapes } from './errorShape.testkit'
 
 const OZ1 = 35e-6 // 1 oz bakır, metre
 
@@ -144,5 +145,16 @@ describe('eşdeğer tek yol genişliği', () => {
     const r = parallelTraces({ traces, I: 2 })
     const W = equivalentSingleWidth({ Req: r.Req, L: 0.1, t: OZ1 })
     expect(W).toBeCloseTo(2e-3, 9)
+  })
+})
+
+describe('hata sözleşmesi', () => {
+  it('hata yükü kod taşır, cümle taşımaz', () => {
+    expectErrorShapes([
+      stripResistance({ L: 0, W: 0.01, t: OZ1 }),
+      powerPlane({ L: 0.05, Wavg: 0.02, Wneck: 0.05, t: OZ1, I: 10 }),
+      parallelTraces({ traces: [], I: 1 }),
+      parallelTraces({ traces: [{ L: 0.05, W: 0.01, t: OZ1 }], I: 0 }),
+    ])
   })
 })

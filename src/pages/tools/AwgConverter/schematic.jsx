@@ -5,7 +5,7 @@ import { AWG_MIN, AWG_MAX } from './model'
 // Telin kesiti: içteki dolu daire çıplak iletken, dıştaki halka izolasyondur.
 // Daire yarıçapı numaraya göre ölçeklenir — oran değil, hangi ölçünün ne
 // olduğunu ve izolasyonun hesaba girmediğini gösterir.
-export default function AwgSchematic({ r }) {
+export default function AwgSchematic({ r, text }) {
   const live = r.ok
   const clamped = live ? Math.min(AWG_MAX, Math.max(AWG_MIN, r.awgExact)) : 20
   // İnce telde küçük, kalın telde büyük daire
@@ -23,8 +23,8 @@ export default function AwgSchematic({ r }) {
   return (
     <Schematic
       viewBox="0 0 260 150"
-      title="Tel kesiti"
-      caption="Kesit — hesap yalnızca çıplak iletken çapını (d) kapsar; izolasyon dış çapı üretici verisidir."
+      title={text.title}
+      caption={text.caption}
     >
       {/* İzolasyon kılıfı */}
       <circle className="sch-dielectric" cx={cx} cy={cy} r={insul} />
@@ -45,7 +45,7 @@ export default function AwgSchematic({ r }) {
       {cy - insul > 30 && (
         <line className="sch-wire sch-dash" x1={cx} y1={cy - insul} x2={cx} y2={21} />
       )}
-      <text className="sch-label dim" x={cx} y={14} textAnchor="middle">izolasyon — dahil değil</text>
+      <text className="sch-label dim" x={cx} y={14} textAnchor="middle">{text.insulation}</text>
 
       {live && (
         <>

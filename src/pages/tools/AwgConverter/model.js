@@ -52,26 +52,29 @@ export const DIAMETER_UNITS = ['mm', 'µm', 'mil', 'inch']
 // Tolerans yüzdesi birimsizdir; çarpan uygulanmaz, yüzdeye bölme compute içinde.
 const PCT = { '%': 1 }
 
-export function formFields(f) {
+// Etiketler `labels` ile çağıran taraftan gelir (geçerli dilde, text.js'ten);
+// etiket verilmezse alan anahtarı gösterilir.
+export function formFields(f, labels = {}) {
+  const L = (key) => labels[key] ?? key
   return fieldsFor([
     when(f.dir !== DIR_DIAMETER, [
       // Aralık denetimi compute içinde yapılır ki hata nedeni ayrı kod olsun.
       // 4/0 için -3, 0 için 0 girilebilmesi gerektiğinden sıfır ve negatif serbest.
-      { key: 'awg', label: 'AWG numarası', allowZero: true },
+      { key: 'awg', label: L('awg'), allowZero: true },
     ]),
     when(f.dir === DIR_DIAMETER, [
-      { key: 'd', label: 'İletken çapı', unitKey: 'du', table: DIAM, min: 0 },
+      { key: 'd', label: L('d'), unitKey: 'du', table: DIAM, min: 0 },
     ]),
     [
       // Üst sınır burada değil, diameterTolerance() içinde denetlenir — sınır
       // tek yerde dursun. Burada yalnızca negatif tolerans elenir.
-      { key: 'tolD', label: 'Çap toleransı', unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
+      { key: 'tolD', label: L('tolD'), unit: '%', table: PCT, min: 0, allowZero: true, optional: true },
     ],
   ])
 }
 
-export function compute(f) {
-  const read = readForm(f, formFields(f))
+export function compute(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 

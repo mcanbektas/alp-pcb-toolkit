@@ -7,9 +7,6 @@ export const NUM_ERR_EMPTY = 'empty'
 export const NUM_ERR_THOUSANDS = 'thousands'
 export const NUM_ERR_INVALID = 'invalid'
 
-export const THOUSANDS_MESSAGE =
-  'Binlik ayırıcı belirsiz; ondalık için nokta veya virgül kullanın.'
-
 // Belirsiz kalıp: tek ayırıcı, ardından tam üç basamak, tam kısım 1–3 basamaklı
 // ve sıfırla başlamıyor. "1.000" ve "250,000" girer; "0.250" ve "1000.000" girmez.
 const THOUSANDS_SHAPE = /^-?[1-9]\d{0,2}[.,]\d{3}$/
@@ -68,11 +65,15 @@ export const fmtRes = (x, sig) => fmtEng(x, 'Ω', sig)
 export const fmtAmp = (x, sig) => fmtEng(x, 'A', sig)
 export const fmtPow = (x, sig) => fmtEng(x, 'W', sig)
 
-// Yüzde gösterimi — işaret her zaman yazılır, sapmanın yönü okunabilsin
+// Yüzde değerinin SAYI kısmı — işaret her zaman yazılır, sapmanın yönü okunabilsin.
+// Yüzde işaretini burası yazmaz: işaretin yeri dile göre değişir (tr: %5, en: 5%)
+// ve tek yetkili yer `commonText(lang).pct`. Burası saf katman, dil bilmez; işaret
+// burada da yazılsaydı aynı sayfada "%12.3" ile "12.3 %" yan yana görünürdü.
+// Çağıran daima `pct(fmtPct(x))` yazar.
 export function fmtPct(x, sig = 3) {
   if (!Number.isFinite(x)) return '—'
   const s = fmt(Math.abs(x), sig)
-  return `${x < 0 ? '−' : '+'}${s} %`
+  return `${x < 0 ? '−' : '+'}${s}`
 }
 
 // Ölçekli birim gösterimleri

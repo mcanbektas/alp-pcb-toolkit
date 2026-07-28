@@ -1,6 +1,6 @@
 import Schematic, { ResistorV, Node, Ground, Terminal, CurrentArrow } from '../../../components/Schematic'
 import { fmt, fmtEng, fmtRes, fmtVolt } from '../../../lib/num'
-import { TOOL_RC, TOOL_RL, TOOL_CRYSTAL } from './model'
+import { TOOL_RC, TOOL_CRYSTAL } from './model'
 
 // Yerleşim kuralı: her yazı kutusu ile çizim elemanı arasında en az 3 px, iki
 // yazı kutusu arasında en az 2 px açıklık kalır. Kutu ölçüleri theme.css'ten
@@ -126,21 +126,15 @@ function CrystalCircuit({ r }) {
   )
 }
 
-const CAPTION = {
-  [TOOL_RC]: 'RC kolu — çıkış kondansatör üzerinden alınır',
-  [TOOL_RL]: 'RL kolu — akım bobin üzerinden yükselir',
-  [TOOL_CRYSTAL]: 'Pierce osilatörü — yük kapasitesi iki kapasitörün seri eşdeğeridir',
-}
-
-export default function TimingSchematic({ r, form }) {
+export default function TimingSchematic({ r, form, text }) {
   const tool = r.ok ? r.tool : form.tool
   const isCrystal = tool === TOOL_CRYSTAL
 
   return (
     <Schematic
       viewBox={`0 0 260 ${isCrystal ? 162 : 132}`}
-      title="Devre şeması"
-      caption={CAPTION[tool]}
+      title={text.title}
+      caption={text.caption[tool]}
     >
       {isCrystal ? <CrystalCircuit r={r} /> : <TimingCircuit r={r} isRc={tool === TOOL_RC} />}
     </Schematic>

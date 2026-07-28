@@ -11,7 +11,7 @@ import { fmt, fmtOhm } from '../../../lib/num'
 // yazı kutusu ile en az 2 px açıklık kalacak biçimde konumlanır. Kutu ölçüleri
 // theme.css'ten gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda
 // karakter genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs].
-export default function ComplexSchematic({ r }) {
+export default function ComplexSchematic({ r, text }) {
   const live = r.ok
 
   const ox = 128 // orijin
@@ -102,18 +102,19 @@ export default function ComplexSchematic({ r }) {
   const jx = ox + (cos >= 0 ? -8 : 8)
   const jy = oy - jOff * side + mid
 
+  // Mantık tek kopya kalır; yalnızca dizeler text prop'undan gelir.
   const caption = live
     ? r.X > 0
-      ? 'Vektör gerçel eksenin üstünde — endüktif bölge'
+      ? text.captionInductive
       : r.X < 0
-        ? 'Vektör gerçel eksenin altında — kapasitif bölge'
-        : 'Vektör gerçel eksen üzerinde — saf direnç'
-    : 'Kompleks düzlemde Z = R + jX'
+        ? text.captionCapacitive
+        : text.captionResistive
+    : text.captionIdle
 
   return (
     <Schematic
       viewBox="0 0 260 156"
-      title="Kompleks düzlemde Z vektörü"
+      title={text.title}
       caption={caption}
     >
       {/* Eksenler */}

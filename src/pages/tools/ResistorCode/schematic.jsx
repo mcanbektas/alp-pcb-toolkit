@@ -73,21 +73,21 @@ function CapBody({ code }) {
   )
 }
 
-export default function CodeSchematic({ r, form }) {
+export default function CodeSchematic({ r, form, text }) {
   const kind = r.ok ? r.kind : form.kind
 
   const caption = kind === KIND_COLOR
-    ? 'Tolerans bandı gövdenin sağ ucunda, diğerlerinden aralıklı durur'
+    ? text.captionColor
     : kind === KIND_SMD
-      ? 'SMD direnç — kod gövdenin üstüne basılır'
-      : 'Seramik kondansatör'
+      ? text.captionSmd
+      : text.captionCap
 
   return (
-    <Schematic viewBox="0 0 260 130" title="Komponent işareti" caption={caption}>
+    <Schematic viewBox="0 0 260 130" title={text.title} caption={caption}>
       {kind === KIND_COLOR && r.ok && <ColorBody bands={r.bands} />}
       {kind === KIND_COLOR && !r.ok && <rect className="sch-body" x={58} y={44} width={144} height={52} rx={12} />}
-      {kind === KIND_SMD && <SmdBody code={form.smd || '—'} />}
-      {kind !== KIND_COLOR && kind !== KIND_SMD && <CapBody code={form.cap || '—'} />}
+      {kind === KIND_SMD && <SmdBody code={form.smd || text.noCode} />}
+      {kind !== KIND_COLOR && kind !== KIND_SMD && <CapBody code={form.cap || text.noCode} />}
     </Schematic>
   )
 }
