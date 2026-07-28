@@ -46,7 +46,7 @@ export default function ThermalViaSchematic({ r }) {
         </g>
       ))}
 
-      <text className="sch-label dim" x={padX} y={20}>termal ped</text>
+      <text className="sch-label dim" x={padX} y={19}>termal ped</text>
 
       {live && (
         <>

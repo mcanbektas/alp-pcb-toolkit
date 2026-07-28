@@ -16,9 +16,24 @@ export default function DiffPairSchematic({ r, form }) {
   const leftX = cx - gap / 2 - half * 2
   const rightX = cx + gap / 2
 
+  // Yazı yerleşimi. Stripline'da hat ile üst düzlem arasında 31 px kalıyor;
+  // W değeri oraya sığmadığı için üst düzlemin üstüne, W etiketiyle aynı
+  // eksende yazılıyor. S değeri de stripline'da düzlemlerin altına düşüyor.
+  const wLabelY = traceY - 18
+  const wValueY = isStripline ? 26 : traceY - 32
+  const sLabelY = traceY + traceH + 24
+  const sValueY = isStripline ? 131 : traceY + traceH + 38
+  // H ölçüsü sağda: etiket ve değer ölçü çizgisinin solunda kalıyor, aksi
+  // hâlde dielektrik sağ kenarını ve viewBox'ı aşıyorlar.
+  const dimX = 228
+  const hTextX = 218
+  const hLabelY = isStripline ? 92 : 76
+  const hValueY = isStripline ? 107 : 92
+  const refBottom = isStripline ? 113 : 108
+
   return (
     <Schematic
-      viewBox="0 0 260 148"
+      viewBox="0 0 260 160"
       title="Diferansiyel çift kesiti"
       caption={isStripline
         ? 'Edge-coupled stripline — çift iki düzlem arasında'
@@ -51,27 +66,29 @@ export default function DiffPairSchematic({ r, form }) {
         <line x1={leftX + half * 2} x2={leftX + half * 2} y1={traceY + traceH + 7} y2={traceY + traceH + 17} />
         <line x1={rightX} x2={rightX} y1={traceY + traceH + 7} y2={rightX ? traceY + traceH + 17 : 0} />
       </g>
-      <text className="sch-label" x={leftX + half} y={traceY - 15} textAnchor="middle">W</text>
-      <text className="sch-label" x={cx} y={traceY + traceH + 26} textAnchor="middle">S</text>
+      <text className="sch-label" x={leftX + half} y={wLabelY} textAnchor="middle">W</text>
+      <text className="sch-label" x={cx} y={sLabelY} textAnchor="middle">S</text>
 
       {/* Referans mesafesi */}
       <g className="sch-dim">
-        <line x1={214} x2={214} y1={traceY} y2={isStripline ? 113 : 108} />
-        <line x1={208} x2={220} y1={traceY} y2={traceY} />
-        <line x1={208} x2={220} y1={isStripline ? 113 : 108} y2={isStripline ? 113 : 108} />
+        <line x1={dimX} x2={dimX} y1={traceY} y2={refBottom} />
+        <line x1={dimX - 6} x2={dimX + 6} y1={traceY} y2={traceY} />
+        <line x1={dimX - 6} x2={dimX + 6} y1={refBottom} y2={refBottom} />
       </g>
-      <text className="sch-label" x={224} y={traceY + 18}>H</text>
+      <text className="sch-label" x={hTextX} y={hLabelY} textAnchor="end">H</text>
 
       {r.ok && (
         <>
-          <text className="sch-value" x={leftX + half} y={traceY - 24} textAnchor="middle">
+          <text className="sch-value" x={leftX + half} y={wValueY} textAnchor="middle">
             {fmtEng(r.W, 'm', 3)}
           </text>
-          <text className="sch-value" x={cx} y={traceY + traceH + 38} textAnchor="middle">
+          <text className="sch-value" x={cx} y={sValueY} textAnchor="middle">
             {fmtEng(r.S, 'm', 3)}
           </text>
-          <text className="sch-value" x={224} y={traceY + 32}>{fmtEng(r.H, 'm', 3)}</text>
-          <text className="sch-value" x={24} y={140}>
+          <text className="sch-value" x={hTextX} y={hValueY} textAnchor="end">
+            {fmtEng(r.H, 'm', 3)}
+          </text>
+          <text className="sch-value" x={24} y={152}>
             Z_diff = {fmtEng(r.Zdiff, 'Ω', 4)}
           </text>
         </>

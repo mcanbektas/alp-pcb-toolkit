@@ -2,25 +2,38 @@ import Schematic, { ResistorV, Node, Ground, Terminal, CurrentArrow } from '../.
 import { fmtRes, fmtVolt, fmtAmp, fmtEng } from '../../../lib/num'
 import { TOOL_OHM, TOOL_LED, TOOL_RLC, COMBO_SERIES } from './model'
 
+// Yerleşim kuralı: her yazı kutusu ile çizim elemanı arasında en az 3 px, iki
+// yazı kutusu arasında en az 2 px açıklık kalır. Kutu ölçüleri theme.css'ten
+// gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda karakter
+// genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]. Yerleşim, biçimlenen
+// değerlerin en uzun hâline (fmtRes/fmtVolt/fmtAmp ≈ 8, fmtEng(…,4) ≈ 9
+// karakter) göre ölçüldü.
+
 // Tek dirençli çevrim — Ohm kanunu
+// Sağ kol 186'ya alındı: gerilim değeri en uzun hâlinde (ör. "1.000e+6 V")
+// eski yerinde viewBox'ın dışına taşıyordu. Akım oku üst iletkenin 6 px
+// üstünde durur, etiketi ok başının soluna yazılır.
 function OhmCircuit({ r }) {
   return (
     <>
       <g className="sch-wire">
         <line x1={40} x2={40} y1={40} y2={54} />
         <line x1={40} x2={40} y1={98} y2={120} />
-        <line x1={40} x2={200} y1={120} y2={120} />
-        <line x1={200} x2={200} y1={40} y2={120} />
-        <line x1={40} x2={200} y1={40} y2={40} />
+        <line x1={40} x2={186} y1={120} y2={120} />
+        <line x1={186} x2={186} y1={40} y2={120} />
+        <line x1={40} x2={186} y1={40} y2={40} />
       </g>
       <ResistorV x={29} y={54} w={22} h={44} />
-      <Terminal x={200} y={40} />
-      <Ground x={120} y={120} />
-      <CurrentArrow x={120} y={40} dir="right" len={20} label={r.ok ? fmtAmp(r.I, 3) : 'I'} />
+      <Terminal x={186} y={40} />
+      <Ground x={113} y={120} />
+      <CurrentArrow
+        x={113} y={34} dir="right" len={20} labelSide="left"
+        label={r.ok ? fmtAmp(r.I, 3) : 'I'}
+      />
       <text className="sch-label" x={58} y={72}>R</text>
       {r.ok && <text className="sch-value" x={58} y={86}>{fmtRes(r.R, 3)}</text>}
-      <text className="sch-label" x={210} y={44}>V</text>
-      {r.ok && <text className="sch-value" x={210} y={58}>{fmtVolt(r.V)}</text>}
+      <text className="sch-label" x={196} y={44}>V</text>
+      {r.ok && <text className="sch-value" x={196} y={58}>{fmtVolt(r.V)}</text>}
     </>
   )
 }
@@ -58,7 +71,12 @@ function LedCircuit({ r }) {
       <Ground x={130} y={128} />
       <text className="sch-label" x={150} y={50}>{r.ok && r.n > 3 ? `${r.n} × LED` : 'LED'}</text>
       {r.ok && <text className="sch-value" x={150} y={104}>{fmtVolt(r.Vled)}</text>}
-      <CurrentArrow x={92} y={40} dir="right" len={18} label={r.ok ? fmtAmp(r.targetI, 3) : 'I'} />
+      {/* Ok üst iletkenin 6 px üstünde; etiketi sağ kola ve ok başına binmesin
+          diye ok başının soluna yazılır */}
+      <CurrentArrow
+        x={92} y={34} dir="right" len={18} labelSide="left"
+        label={r.ok ? fmtAmp(r.targetI, 3) : 'I'}
+      />
     </>
   )
 }
@@ -133,32 +151,36 @@ function ComboCircuit({ r, form }) {
     )
   }
 
+  // Paralel ağ sola toplandı: değerler eskiden kolun sağ iletkeninin tam
+  // üstünde duruyordu. Ağ 12–188 aralığına sığdırılıp değerler sağ raydan
+  // 34 px sağa, kendi kollarının hizasına alındı; en uzun değer (~8 karakter)
+  // x = 245.6'da biter, çıkış terminalinden yatayda 4 px uzaktadır.
   return (
     <>
       <g className="sch-wire">
-        <line x1={14} x2={40} y1={70} y2={70} />
-        <line x1={40} x2={40} y1={30} y2={110} />
-        <line x1={220} x2={220} y1={30} y2={110} />
-        <line x1={220} x2={246} y1={70} y2={70} />
+        <line x1={12} x2={38} y1={70} y2={70} />
+        <line x1={38} x2={38} y1={30} y2={110} />
+        <line x1={162} x2={162} y1={30} y2={110} />
+        <line x1={162} x2={188} y1={70} y2={70} />
         {Array.from({ length: n }).map((_, i) => (
           <g key={i}>
-            <line x1={40} x2={100} y1={30 + i * 27} y2={30 + i * 27} />
-            <line x1={160} x2={220} y1={30 + i * 27} y2={30 + i * 27} />
+            <line x1={38} x2={70} y1={30 + i * 27} y2={30 + i * 27} />
+            <line x1={130} x2={162} y1={30 + i * 27} y2={30 + i * 27} />
           </g>
         ))}
       </g>
       {Array.from({ length: n }).map((_, i) => (
         <g key={i}>
-          <rect className="sch-part" x={100} y={30 + i * 27 - 8} width={60} height={16} rx={2} />
+          <rect className="sch-part" x={70} y={30 + i * 27 - 8} width={60} height={16} rx={2} />
           {values[i] != null && (
-            <text className="sch-value" x={166} y={34 + i * 27}>{fmtRes(values[i], 3)}</text>
+            <text className="sch-value" x={196} y={34 + i * 27}>{fmtRes(values[i], 3)}</text>
           )}
         </g>
       ))}
-      <Node x={40} y={70} />
-      <Node x={220} y={70} />
-      <Terminal x={14} y={70} />
-      <Terminal x={246} y={70} />
+      <Node x={38} y={70} />
+      <Node x={162} y={70} />
+      <Terminal x={12} y={70} />
+      <Terminal x={188} y={70} />
     </>
   )
 }

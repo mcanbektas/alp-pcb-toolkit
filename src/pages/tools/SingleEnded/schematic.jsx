@@ -12,19 +12,21 @@ function Microstrip({ r }) {
       <rect className="sch-copper" x={cx - 34} y={54} width={68} height={10} />
 
       <text className="sch-label" x={cx} y={48} textAnchor="middle">W</text>
-      <text className="sch-label dim" x={24} y={122}>referans düzlem</text>
+      <text className="sch-label dim" x={24} y={125}>referans düzlem</text>
 
       <g className="sch-dim">
         <line x1={206} x2={206} y1={64} y2={104} />
         <line x1={200} x2={212} y1={64} y2={64} />
         <line x1={200} x2={212} y1={104} y2={104} />
       </g>
-      <text className="sch-label" x={216} y={86}>H</text>
+      {/* H etiketi ve değeri ölçü çizgisinin solunda: sağda kalan 34 px
+          şeridi değeri almıyor, yazı hem dielektrik kenarını hem viewBox'ı aşıyordu. */}
+      <text className="sch-label" x={200} y={82} textAnchor="end">H</text>
 
       {r.ok && (
         <>
-          <text className="sch-value" x={cx} y={38} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
-          <text className="sch-value" x={216} y={100}>{fmtEng(r.height, 'm', 3)}</text>
+          <text className="sch-value" x={cx} y={34} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
+          <text className="sch-value" x={200} y={96} textAnchor="end">{fmtEng(r.height, 'm', 3)}</text>
         </>
       )}
     </>
@@ -39,21 +41,22 @@ function Stripline({ r }) {
       <rect className="sch-copper" x={20} y={113} width={220} height={7} />
       <rect className="sch-copper" x={cx - 34} y={73} width={68} height={8} />
 
-      <text className="sch-label" x={cx} y={68} textAnchor="middle">W</text>
-      <text className="sch-label dim" x={24} y={30}>üst düzlem</text>
-      <text className="sch-label dim" x={24} y={132}>alt düzlem</text>
+      <text className="sch-label" x={cx} y={66} textAnchor="middle">W</text>
+      <text className="sch-label dim" x={24} y={27}>üst düzlem</text>
+      <text className="sch-label dim" x={24} y={133}>alt düzlem</text>
 
       <g className="sch-dim">
         <line x1={206} x2={206} y1={41} y2={113} />
         <line x1={200} x2={212} y1={41} y2={41} />
         <line x1={200} x2={212} y1={113} y2={113} />
       </g>
-      <text className="sch-label" x={216} y={78}>b</text>
+      {/* b etiketi ve değeri ölçü çizgisinin solunda; hat şeridinin altına düşüyor. */}
+      <text className="sch-label" x={200} y={82} textAnchor="end">b</text>
 
       {r.ok && (
         <>
-          <text className="sch-value" x={cx} y={98} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
-          <text className="sch-value" x={216} y={92}>{fmtEng(r.height, 'm', 3)}</text>
+          <text className="sch-value" x={cx} y={52} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
+          <text className="sch-value" x={200} y={96} textAnchor="end">{fmtEng(r.height, 'm', 3)}</text>
         </>
       )}
     </>
@@ -74,12 +77,13 @@ function Cpw({ r }) {
       <text className="sch-label" x={cx} y={54} textAnchor="middle">W</text>
       <text className="sch-label" x={cx - half - gap / 2} y={90} textAnchor="middle">S</text>
       <text className="sch-label" x={cx + half + gap / 2} y={90} textAnchor="middle">S</text>
-      <text className="sch-label dim" x={24} y={48}>coplanar toprak</text>
+      {/* Etiket 20'den başlıyor: 24'te W etiketinin kutusuna 0.3 px kalıyordu. */}
+      <text className="sch-label dim" x={20} y={48}>coplanar toprak</text>
       <text className="sch-label dim" x={24} y={128}>alt düzlem yok</text>
 
       {r.ok && (
         <>
-          <text className="sch-value" x={cx} y={38} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
+          <text className="sch-value" x={cx} y={34} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
           <text className="sch-value" x={cx} y={106} textAnchor="middle">S = {fmtEng(r.S, 'm', 3)}</text>
         </>
       )}

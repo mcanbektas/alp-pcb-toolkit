@@ -37,7 +37,7 @@ export default function SkewSchematic({ r }) {
 
   return (
     <Schematic
-      viewBox="0 0 260 146"
+      viewBox="0 0 260 158"
       title="Diferansiyel çift — uzunluk eşitleme"
       caption={r.ok && r.addTo === null
         ? 'İki hattın gecikmesi eşit; eşitleme gerekmiyor'
@@ -60,11 +60,12 @@ export default function SkewSchematic({ r }) {
       {/* Referans düzlem şeridi — hatların altında */}
       <rect className="sch-dielectric" x={X0} y={104} width={X1 - X0} height={6} />
 
-      {/* Uzunluk ölçüsü */}
+      {/* Uzunluk ölçüsü — εeff,N satırının altına iner, uç çizgileri o yazıya
+          binmesin */}
       <g className="sch-dim">
-        <line x1={X0} x2={X1} y1={124} y2={124} />
-        <line x1={X0} x2={X0} y1={120} y2={128} />
-        <line x1={X1} x2={X1} y1={120} y2={128} />
+        <line x1={X0} x2={X1} y1={134} y2={134} />
+        <line x1={X0} x2={X0} y1={130} y2={138} />
+        <line x1={X1} x2={X1} y1={130} y2={138} />
       </g>
 
       {r.ok && (
@@ -75,12 +76,13 @@ export default function SkewSchematic({ r }) {
           <text className="sch-value" x={X1} y={20} textAnchor="end">
             skew = {fmtEng(r.skew, 's', 3)}
           </text>
-          <text className="sch-value" x={X0} y={Y_N + 26}>
+          {/* Referans şeridin (y 104–110) altında, ölçü çizgisinin üstünde */}
+          <text className="sch-value" x={X0} y={Y_N + 30}>
             {r.differentLayer
               ? `εeff,N = ${fmt(r.epsEffN, 4)}`
               : 'εeff,N = εeff,P (aynı katman)'}
           </text>
-          <text className="sch-value" x={130} y={140} textAnchor="middle">
+          <text className="sch-value" x={130} y={150} textAnchor="middle">
             ΔL = {fmtEng(r.deltaL, 'm', 3)}
             {r.addTo ? ` · ${r.addTo} hattına +${fmtEng(r.addLength, 'm', 3)}` : ''}
           </text>

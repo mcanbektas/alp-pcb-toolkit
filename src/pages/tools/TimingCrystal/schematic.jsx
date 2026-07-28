@@ -2,6 +2,13 @@ import Schematic, { ResistorV, Node, Ground, Terminal, CurrentArrow } from '../.
 import { fmt, fmtEng, fmtRes, fmtVolt } from '../../../lib/num'
 import { TOOL_RC, TOOL_RL, TOOL_CRYSTAL } from './model'
 
+// Yerleşim kuralı: her yazı kutusu ile çizim elemanı arasında en az 3 px, iki
+// yazı kutusu arasında en az 2 px açıklık kalır. Kutu ölçüleri theme.css'ten
+// gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda karakter
+// genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]. Yerleşim, biçimlenen
+// değerlerin en uzun hâline (fmtRes/fmtVolt/fmtEng ≈ 8, fmtEng(…,4) ≈ 9
+// karakter) göre ölçüldü.
+
 // Seri direnç + kondansatör/bobin, toprağa dönen kol
 function TimingCircuit({ r, isRc }) {
   return (
@@ -19,7 +26,7 @@ function TimingCircuit({ r, isRc }) {
 
       {/* Direnç yatay */}
       <rect className="sch-part" x={70} y={26} width={22} height={20} rx={2} />
-      <text className="sch-label" x={72} y={20}>R</text>
+      <text className="sch-label" x={72} y={18}>R</text>
       {r.ok && <text className="sch-value" x={64} y={62}>{fmtRes(r.R, 3)}</text>}
 
       {/* Kondansatör veya bobin */}
@@ -31,9 +38,9 @@ function TimingCircuit({ r, isRc }) {
       ) : (
         <path className="sch-part" fill="none" d="M140 58 q-14 8 0 16 q-14 8 0 16" />
       )}
-      <text className="sch-label" x={158} y={56}>{isRc ? 'C' : 'L'}</text>
+      <text className="sch-label" x={160} y={56}>{isRc ? 'C' : 'L'}</text>
       {r.ok && (
-        <text className="sch-value" x={158} y={92}>
+        <text className="sch-value" x={160} y={92}>
           {isRc ? fmtEng(r.C, 'F', 3) : fmtEng(r.L, 'H', 3)}
         </text>
       )}
@@ -43,9 +50,12 @@ function TimingCircuit({ r, isRc }) {
       <Terminal x={214} y={70} />
       <Ground x={85} y={116} />
 
-      <text className="sch-label" x={14} y={30}>V_s</text>
+      {/* V_s etiketi terminalin üstüne değil, üst soluna yazılır */}
+      <text className="sch-label" x={20} y={24}>V_s</text>
       {r.ok && <text className="sch-value" x={14} y={100}>{fmtVolt(r.Vs)}</text>}
-      <CurrentArrow x={112} y={36} dir="right" len={16} label={r.ok ? `τ = ${fmtEng(r.tau, 's', 3)}` : 'τ'} />
+      {/* Ok, üstündeki iletkenden 6 px ayrı durur; kısaltıldı ki etiketi ok
+          başının sağına düşsün */}
+      <CurrentArrow x={112} y={30} dir="right" len={12} label={r.ok ? `τ = ${fmtEng(r.tau, 's', 3)}` : 'τ'} />
     </>
   )
 }
@@ -72,9 +82,9 @@ function CrystalCircuit({ r }) {
       </g>
       <line className="sch-wire" x1={92} x2={104} y1={40} y2={40} />
       <line className="sch-wire" x1={156} x2={168} y1={40} y2={40} />
-      <text className="sch-label" x={122} y={20}>XTAL</text>
+      <text className="sch-label" x={130} y={18} textAnchor="middle">XTAL</text>
       {r.ok && r.f && (
-        <text className="sch-value" x={112} y={68}>{fmtEng(r.f, 'Hz', 4)}</text>
+        <text className="sch-value" x={130} y={68} textAnchor="middle">{fmtEng(r.f, 'Hz', 4)}</text>
       )}
 
       {/* C1 ve C2 */}
@@ -87,14 +97,16 @@ function CrystalCircuit({ r }) {
       <line className="sch-wire" x1={40} x2={40} y1={106} y2={124} />
       <line className="sch-wire" x1={220} x2={220} y1={106} y2={124} />
 
-      <text className="sch-label" x={10} y={100}>C1</text>
-      <text className="sch-label" x={238} y={100}>C2</text>
+      <text className="sch-label" x={6} y={100}>C1</text>
+      <text className="sch-label" x={240} y={100}>C2</text>
+      {/* Değerler kapasitörlerin iç yanına alındı: dış yanda plakadan toprağa
+          giden iletkenin tam üstüne düşüyorlardı */}
       {r.ok && (
         <>
-          <text className="sch-value" x={10} y={118}>
+          <text className="sch-value" x={60} y={114}>
             {fmt(r.mode === 'syn' ? r.C : r.C1, 3)} pF
           </text>
-          <text className="sch-value" x={238} y={118} textAnchor="end">
+          <text className="sch-value" x={200} y={114} textAnchor="end">
             {fmt(r.mode === 'syn' ? r.C : r.C2, 3)} pF
           </text>
         </>

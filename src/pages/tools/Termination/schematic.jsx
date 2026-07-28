@@ -6,6 +6,14 @@ import { TERM_SERIES, TERM_PARALLEL, TERM_THEVENIN } from './model'
 //   seri     — sürücü → R_s → hat → alıcı
 //   paralel  — hat → R_T → toprak
 //   Thevenin — hat → R_top (V_cc) + R_bottom (toprak)
+//
+// Yerleşim kuralı: her etiket kutusu ile çizim elemanı arasında en az 3 px,
+// iki yazı kutusu arasında en az 2 px açıklık bırakılır. Kutu ölçüleri
+// theme.css'ten gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda
+// karakter genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs].
+// "sürücü" yazısı 42 px'lik kutuya kenarına değecek kadar sığıyordu; kutu
+// merkezi sabit kalacak biçimde genişletildi. Thevenin'de bias satırı R_bot
+// etiketinin altına indirildi, ikisi üst üste geliyordu.
 const CAPTION = {
   [TERM_SERIES]: 'Seri terminasyon — direnç sürücünün hemen çıkışında',
   [TERM_PARALLEL]: 'Paralel terminasyon — direnç hattın uç yükünde',
@@ -25,7 +33,7 @@ export default function TerminationSchematic({ r }) {
   return (
     <Schematic viewBox="0 0 260 160" title={TITLE[type]} caption={CAPTION[type]}>
       {/* Sürücü ve dönüş yolu — üç tipte de ortak */}
-      <rect className="sch-part" x={12} y={60} width={42} height={34} rx={2} />
+      <rect className="sch-part" x={9} y={60} width={48} height={34} rx={2} />
       <text className="sch-value" x={33} y={81} textAnchor="middle">sürücü</text>
 
       <g className="sch-wire">
@@ -37,7 +45,7 @@ export default function TerminationSchematic({ r }) {
       {type === TERM_SERIES && (
         <>
           <g className="sch-wire">
-            <line x1={54} x2={80} y1={77} y2={77} />
+            <line x1={57} x2={80} y1={77} y2={77} />
             <line x1={116} x2={142} y1={77} y2={77} />
           </g>
 
@@ -46,7 +54,7 @@ export default function TerminationSchematic({ r }) {
 
           {/* Hat */}
           <rect className="sch-copper" x={142} y={74} width={84} height={6} />
-          <text className="sch-label" x={184} y={68} textAnchor="middle">Z₀</text>
+          <text className="sch-label" x={184} y={67} textAnchor="middle">Z₀</text>
           <Terminal x={232} y={77} />
 
           {show && (
@@ -54,7 +62,7 @@ export default function TerminationSchematic({ r }) {
               <text className="sch-value" x={98} y={104} textAnchor="middle">
                 {fmtRes(r.Rs, 3)}
               </text>
-              <text className="sch-value" x={184} y={96} textAnchor="middle">
+              <text className="sch-value" x={184} y={94} textAnchor="middle">
                 {fmtRes(r.Z0, 3)}
               </text>
             </>
@@ -65,14 +73,14 @@ export default function TerminationSchematic({ r }) {
       {type === TERM_PARALLEL && (
         <>
           <g className="sch-wire">
-            <line x1={54} x2={96} y1={77} y2={77} />
+            <line x1={57} x2={96} y1={77} y2={77} />
             <line x1={172} x2={232} y1={77} y2={77} />
             <line x1={196} x2={196} y1={77} y2={90} />
             <line x1={196} x2={196} y1={124} y2={140} />
           </g>
 
           <rect className="sch-copper" x={96} y={74} width={76} height={6} />
-          <text className="sch-label" x={134} y={68} textAnchor="middle">Z₀</text>
+          <text className="sch-label" x={134} y={67} textAnchor="middle">Z₀</text>
 
           <Node x={196} y={77} />
           <ResistorV x={185} y={90} w={22} h={34} />
@@ -82,7 +90,7 @@ export default function TerminationSchematic({ r }) {
           {show && (
             <>
               <text className="sch-value" x={212} y={118}>{fmtRes(r.RT, 3)}</text>
-              <text className="sch-value" x={134} y={96} textAnchor="middle">
+              <text className="sch-value" x={134} y={94} textAnchor="middle">
                 {fmtRes(r.Z0, 3)}
               </text>
             </>
@@ -98,13 +106,13 @@ export default function TerminationSchematic({ r }) {
             <line x1={196} x2={196} y1={26} y2={40} />
             <line x1={196} x2={196} y1={72} y2={88} />
             <line x1={196} x2={196} y1={120} y2={140} />
-            <line x1={54} x2={96} y1={77} y2={77} />
+            <line x1={57} x2={96} y1={77} y2={77} />
             <line x1={172} x2={232} y1={77} y2={77} />
           </g>
-          <text className="sch-label" x={236} y={20} textAnchor="end">V_cc</text>
+          <text className="sch-label" x={236} y={19} textAnchor="end">V_cc</text>
 
           <rect className="sch-copper" x={96} y={74} width={76} height={6} />
-          <text className="sch-label" x={134} y={68} textAnchor="middle">Z₀</text>
+          <text className="sch-label" x={134} y={67} textAnchor="middle">Z₀</text>
 
           <ResistorV x={185} y={40} w={22} h={32} />
           <ResistorV x={185} y={88} w={22} h={32} />
@@ -118,10 +126,10 @@ export default function TerminationSchematic({ r }) {
             <>
               <text className="sch-value" x={212} y={58}>{fmtRes(r.standard.Rtop, 3)}</text>
               <text className="sch-value" x={212} y={108}>{fmtRes(r.standard.Rbottom, 3)}</text>
-              <text className="sch-value" x={134} y={96} textAnchor="middle">
+              <text className="sch-value" x={134} y={94} textAnchor="middle">
                 {fmtRes(r.Z0, 3)}
               </text>
-              <text className="sch-value" x={134} y={110} textAnchor="middle">
+              <text className="sch-value" x={134} y={126} textAnchor="middle">
                 bias {fmtVolt(r.standard.bias)}
               </text>
             </>

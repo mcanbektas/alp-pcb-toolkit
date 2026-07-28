@@ -1,6 +1,13 @@
 import Schematic from '../../../components/Schematic'
 import { KIND_COLOR, KIND_SMD } from './model'
 
+// Yerleşim kuralı: her yazı kutusu çizim elemanlarından en az 3 px, başka bir
+// yazı kutusundan en az 2 px uzakta durur ve viewBox içinde kalır. Kutu ölçüleri
+// theme.css'ten gelir: .sch-label 11 px, tek aralıklı yazıda karakter genişliği
+// ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]. Bu şemadaki tek yazı komponent
+// kodudur; altı karakterlik en kötü kodda bile en yakın elemana 11 px'ten fazla
+// açıklık kalır (SMD gövdesinde 17.6 px, kondansatör plakasında 11.4 px).
+
 // Renk bantlı direnç gövdesi. Bant renkleri theme.css'teki --band-<key>
 // değişkenlerinden gelir; SVG içine renk yazılmaz.
 function ColorBody({ bands }) {

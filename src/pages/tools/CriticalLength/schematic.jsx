@@ -27,37 +27,39 @@ export default function CriticalLengthSchematic({ r }) {
 
   return (
     <Schematic
-      viewBox="0 0 260 140"
+      viewBox="0 0 260 152"
       title="Sürücü, hat ve kritik uzunluk karşılaştırması"
       caption={caption}
     >
-      {/* Sürücü ve alıcı */}
-      <rect className="sch-part" x={10} y={18} width={34} height={26} rx={2} />
-      <rect className="sch-part" x={216} y={18} width={34} height={26} rx={2} />
-      <text className="sch-label dim" x={27} y={35} textAnchor="middle">SÜR</text>
-      <text className="sch-label dim" x={233} y={35} textAnchor="middle">ALC</text>
+      {/* Sürücü ve alıcı — kutu genişliği 40, etiket ile uç terminali arasında
+          3 px'ten fazla açıklık kalsın diye */}
+      <rect className="sch-part" x={6} y={20} width={40} height={22} rx={2} />
+      <rect className="sch-part" x={214} y={20} width={40} height={22} rx={2} />
+      <text className="sch-label dim" x={26} y={34} textAnchor="middle">SÜR</text>
+      <text className="sch-label dim" x={234} y={34} textAnchor="middle">ALC</text>
 
-      {/* Hat ve dönüş yolu */}
+      {/* Hat ve dönüş yolu — şerit, kutuların altına iner: SÜR/ALC etiketleri
+          dielektrik şeridin üstüne binmesin */}
       <g className="sch-wire">
-        <line x1={44} x2={216} y1={31} y2={31} />
+        <line x1={46} x2={214} y1={31} y2={31} />
       </g>
-      <rect className="sch-dielectric" x={x0} y={38} width={span} height={9} />
-      <rect className="sch-copper" x={x0} y={47} width={span} height={4} />
+      <rect className="sch-dielectric" x={x0} y={46} width={span} height={9} />
+      <rect className="sch-copper" x={x0} y={55} width={span} height={4} />
 
-      <Terminal x={44} y={31} r={3} />
-      <Terminal x={216} y={31} r={3} />
+      <Terminal x={46} y={31} r={3} />
+      <Terminal x={214} y={31} r={3} />
 
       {r.ok && (
         <>
-          <text className="sch-value" x={130} y={16} textAnchor="middle">
+          <text className="sch-value" x={130} y={14} textAnchor="middle">
             {r.hasLength
               ? `t_d = ${fmtEng(r.delay, 's', 3)} · t_r = ${fmtEng(r.tr, 's', 3)}`
               : `t_r = ${fmtEng(r.tr, 's', 3)}`}
           </text>
 
-          {/* Eşik çubuğu */}
+          {/* Eşik çubuğu — etiket satırı çubuğun 8 px üstünde durur */}
           <text className="sch-value" x={x0} y={70}>L_crit</text>
-          <rect className="sch-copper-fill" x={x0} y={74} width={critW} height={10} />
+          <rect className="sch-copper-fill" x={x0} y={78} width={critW} height={10} />
           <text className="sch-value" x={x1} y={70} textAnchor="end">
             {fmtEng(r.critical, 'm', 3)}
           </text>
@@ -65,15 +67,21 @@ export default function CriticalLengthSchematic({ r }) {
           {/* Hat uzunluğu çubuğu */}
           {length > 0 && (
             <>
-              <text className="sch-value" x={x0} y={102}>L</text>
-              <rect className="sch-copper" x={x0} y={106} width={lenW} height={10} />
-              <text className="sch-value" x={x1} y={102} textAnchor="end">
+              <text className="sch-value" x={x0} y={101}>L</text>
+              <rect className="sch-copper" x={x0} y={108} width={lenW} height={10} />
+              <text className="sch-value" x={x1} y={101} textAnchor="end">
                 {fmtEng(length, 'm', 3)}
               </text>
-              {/* Eşiğin bittiği yeri gösteren kesikli dikey çizgi */}
+              {/* Eşiğin bittiği yeri gösteren kesikli dikey çizgi. İki parça:
+                  arada duran L etiketi ve değerinin üstünden geçmemesi için
+                  yalnızca çubukların bulunduğu satırlarda çizilir */}
               <line
                 className="sch-wire sch-dash"
-                x1={x0 + critW} x2={x0 + critW} y1={74} y2={118}
+                x1={x0 + critW} x2={x0 + critW} y1={78} y2={88}
+              />
+              <line
+                className="sch-wire sch-dash"
+                x1={x0 + critW} x2={x0 + critW} y1={108} y2={118}
               />
             </>
           )}
@@ -84,7 +92,9 @@ export default function CriticalLengthSchematic({ r }) {
             <line x1={x0} x2={x0} y1={126} y2={134} />
             <line x1={x1} x2={x1} y1={126} y2={134} />
           </g>
-          <text className="sch-value" x={130} y={126} textAnchor="middle">
+          {/* Ölçü çizgisinin altına yazılır; üstüne yazıldığında çizgiyle ve
+              uzunluk çubuğuyla çakışıyordu */}
+          <text className="sch-value" x={130} y={144} textAnchor="middle">
             ölçek: {fmtEng(scale, 'm', 3)}
           </text>
         </>

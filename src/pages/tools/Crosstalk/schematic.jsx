@@ -5,6 +5,15 @@ import { fmtEng } from '../../../lib/num'
 // Sinyal aggressor üzerinde soldan sağa ilerler: near-end (NE) solda,
 // far-end (FE) sağdadır. NEXT victim'in near-end ucunda, FEXT far-end
 // ucunda görünür. W ve S ölçüleri 3W geometrik kontrolünün girdileridir.
+//
+// Yerleşim kuralı: her etiket kutusu ile çizim elemanı arasında en az 3 px,
+// iki yazı kutusu arasında en az 2 px açıklık bırakılır. Kutu ölçüleri
+// theme.css'ten gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda
+// karakter genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs].
+// Yayılma oku uç adlarının arasına alındı, "paralel uzunluk L" başlığı ölçü
+// çizgisinin üstüne oturduğu için çizgi etiketin geçtiği yerde iki parça
+// çizilir ve sonuç satırları alt alta bölündü — en uzun değer (9 karakter)
+// tek satıra sığmıyordu.
 export default function CrosstalkSchematic({ r }) {
   const x0 = 52
   const x1 = 218
@@ -20,23 +29,23 @@ export default function CrosstalkSchematic({ r }) {
 
   return (
     <Schematic
-      viewBox="0 0 260 160"
+      viewBox="0 0 260 172"
       title="Aggressor ve victim hatları — üstten görünüm"
       caption="Sinyal aggressor üzerinde near-end'den far-end'e ilerler; NEXT victim'in near-end, FEXT far-end ucunda görünür"
     >
       {/* Uç adları */}
-      <text className="sch-label dim" x={x0} y={18} textAnchor="middle">near-end</text>
-      <text className="sch-label dim" x={x1} y={18} textAnchor="middle">far-end</text>
+      <text className="sch-label dim" x={x0} y={16} textAnchor="middle">near-end</text>
+      <text className="sch-label dim" x={x1} y={16} textAnchor="middle">far-end</text>
 
-      {/* Yayılma yönü */}
+      {/* Yayılma yönü — uç adlarının arasındaki boşlukta */}
       <g>
-        <line className="sch-arrow" x1={112} y1={26} x2={162} y2={26} />
-        <polygon className="sch-arrow-head" points="168,26 159,22.5 159,29.5" />
+        <line className="sch-arrow" x1={112} y1={15} x2={162} y2={15} />
+        <polygon className="sch-arrow-head" points="168,15 159,11.5 159,18.5" />
       </g>
 
       {/* Aggressor hattı */}
       <rect className="sch-copper" x={x0} y={aggY} width={span} height={traceH} />
-      <text className="sch-label" x={135} y={37} textAnchor="middle">aggressor</text>
+      <text className="sch-label" x={135} y={33} textAnchor="middle">aggressor</text>
       <Terminal x={x0} y={aggMid} r={3} />
       <Terminal x={x1} y={aggMid} r={3} />
 
@@ -55,7 +64,7 @@ export default function CrosstalkSchematic({ r }) {
         <line x1={35} x2={45} y1={aggY} y2={aggY} />
         <line x1={35} x2={45} y1={aggY + traceH} y2={aggY + traceH} />
       </g>
-      <text className="sch-label" x={32} y={aggY + traceH} textAnchor="end">W</text>
+      <text className="sch-label" x={30} y={aggY + traceH} textAnchor="end">W</text>
 
       {/* S ölçüsü — hatlar arası boşluk */}
       <g className="sch-dim">
@@ -65,21 +74,28 @@ export default function CrosstalkSchematic({ r }) {
       </g>
       <text className="sch-label" x={87} y={aggY + traceH + gap / 2 + 4}>S</text>
 
-      {/* Paralel uzunluk ölçüsü */}
+      {/* Paralel uzunluk ölçüsü — çizgi başlığın geçtiği yerde iki parça */}
       <g className="sch-dim">
-        <line x1={x0} x2={x1} y1={122} y2={122} />
+        <line x1={x0} x2={72} y1={122} y2={122} />
+        <line x1={198} x2={x1} y1={122} y2={122} />
         <line x1={x0} x2={x0} y1={117} y2={127} />
         <line x1={x1} x2={x1} y1={117} y2={127} />
       </g>
-      <text className="sch-label" x={135} y={118} textAnchor="middle">paralel uzunluk L</text>
+      <text className="sch-label" x={135} y={126} textAnchor="middle">paralel uzunluk L</text>
 
       {r.ok && (
         <>
           <text className="sch-value" x={16} y={140}>
-            W = {fmtEng(r.W, 'm', 3)} · S = {fmtEng(r.S, 'm', 3)} · L = {fmtEng(r.coupledLength, 'm', 3)}
+            W = {fmtEng(r.W, 'm', 3)} · S = {fmtEng(r.S, 'm', 3)}
           </text>
-          <text className="sch-value" x={16} y={154}>
-            V_NEXT = {fmtEng(r.Vnext, 'V', 3)} · V_FEXT = {r.fext.available ? fmtEng(r.fext.Vfext, 'V', 3) : 'hesaplanmadı'}
+          <text className="sch-value" x={16} y={153}>
+            L = {fmtEng(r.coupledLength, 'm', 3)}
+          </text>
+          <text className="sch-value" x={244} y={153} textAnchor="end">
+            V_NEXT = {fmtEng(r.Vnext, 'V', 3)}
+          </text>
+          <text className="sch-value" x={16} y={166}>
+            V_FEXT = {r.fext.available ? fmtEng(r.fext.Vfext, 'V', 3) : 'hesaplanmadı'}
           </text>
         </>
       )}

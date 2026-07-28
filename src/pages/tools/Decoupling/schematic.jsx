@@ -5,6 +5,14 @@ import { MODE_MIN } from './model'
 // Bir kapasitör kolu: düzlemden aşağı seri ESL, seri ESR ve kapasitör.
 // `ideal` kolda ESL/ESR kutuları sönük ve kesikli çizilir — minimum kapasite
 // modelinin bu iki terimi içermediğini şemada da gösterir.
+//
+// Yerleşim kuralı: her etiket kutusu, çizim elemanlarından en az 3 px ve başka
+// bir yazı kutusundan en az 2 px uzakta durur. Kutu ölçüleri theme.css'ten
+// gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda karakter
+// genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs]. Kapasite değeri
+// kolun telini kestiği için tel o hizada iki parça çizilir; kol aralığı
+// (52 px) en uzun değer yazısını (≈ 50 px) yan yana taşıyamadığından kollar
+// düzleme 58 px arayla oturur.
 function CapBranch({ x, ideal, label, showTags }) {
   const railTop = 32
   const railBottom = 140
@@ -15,9 +23,9 @@ function CapBranch({ x, ideal, label, showTags }) {
         <line x1={x} x2={x} y1={railTop} y2={44} />
         <line x1={x} x2={x} y1={58} y2={66} />
         <line x1={x} x2={x} y1={80} y2={92} />
-        {/* Değer yazısı için tel iki parçaya ayrılır */}
-        <line x1={x} x2={x} y1={98} y2={label ? 104 : railBottom} />
-        {label && <line x1={x} x2={x} y1={118} y2={railBottom} />}
+        {/* Değer yazısı için tel iki parçaya ayrılır: yazı kutusu [106.2, 116.2] */}
+        <line x1={x} x2={x} y1={98} y2={label ? 102 : railBottom} />
+        {label && <line x1={x} x2={x} y1={120} y2={railBottom} />}
       </g>
 
       <rect className={`sch-part${ideal ? ' off sch-dash' : ''}`} x={x - 11} y={44} width={22} height={14} rx={2} />
@@ -52,7 +60,9 @@ export default function DecouplingSchematic({ r, mode }) {
   // Ağ modunda en çok üç kol çizilir; sayısal sonuç tabloda tamdır.
   const items = r.ok && !isMin ? r.items.slice(0, 3) : []
   const shown = isMin ? 1 : (items.length || 2)
-  const xs = (isMin ? [104] : [58, 110, 162]).slice(0, shown)
+  // Kol aralığı 58 px: değer yazıları yan yana en az 2 px açıklıkla sığar ve
+  // en sağdaki yazı yük kutusuna 3 px'ten fazla mesafede kalır.
+  const xs = (isMin ? [104] : [46, 104, 162]).slice(0, shown)
 
   return (
     <Schematic
@@ -92,8 +102,10 @@ export default function DecouplingSchematic({ r, mode }) {
         />
       ))}
 
+      {/* Çizilmeyen kollar: son kolun telinden ve yük kutusundan uzakta,
+          değer yazılarının bir satır altında durur */}
       {r.ok && !isMin && r.items.length > 3 && (
-        <text className="sch-value" x={22} y={114}>+{r.items.length - 3}</text>
+        <text className="sch-value" x={190} y={132} textAnchor="middle">+{r.items.length - 3}</text>
       )}
     </Schematic>
   )

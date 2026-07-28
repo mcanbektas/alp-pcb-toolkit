@@ -3,6 +3,15 @@ import { fmtEng, fmtRes } from '../../../lib/num'
 
 // Güç dağıtım ağının blok görünümü: VRM → düzlem çifti → kapasitör bankası →
 // yük. Hedef empedans yükün besleme düğümünde tanımlıdır, o düğüm işaretlidir.
+//
+// Yerleşim kuralı: her etiket kutusu ile çizim elemanı arasında en az 3 px,
+// iki yazı kutusu arasında en az 2 px açıklık bırakılır. Kutu ölçüleri
+// theme.css'ten gelir: .sch-label 11 px, .sch-value 10 px, tek aralıklı yazıda
+// karakter genişliği ≈ 0.62·fs, kutu = [y − 0.78·fs , y + 0.22·fs].
+// "C_düzlem" kapasitör bacağının, "kapasitörler" ise iki bankanın bacakları ile
+// yük kutusunun üstüne biniyordu; ikisi de kendi kolonlarının altına, denklem
+// satırının üstüne alındı. Sıraların yeri: etiketler y = 139, denklemler
+// y = 152, sonuç satırları y = 166 ve 179.
 export default function PdnSchematic({ r }) {
   const top = 48
   const bot = 122
@@ -10,7 +19,7 @@ export default function PdnSchematic({ r }) {
 
   return (
     <Schematic
-      viewBox="0 0 260 176"
+      viewBox="0 0 260 186"
       title="Güç dağıtım ağı blok şeması"
       caption="VRM → düzlem çifti → kapasitör bankası → yük; hedef empedans yükün besleme düğümünde"
     >
@@ -41,7 +50,7 @@ export default function PdnSchematic({ r }) {
         <line x1={89} x2={113} y1={80} y2={80} />
         <line x1={89} x2={113} y1={88} y2={88} />
       </g>
-      <text className="sch-label" x={101} y={104} textAnchor="middle">C_düzlem</text>
+      <text className="sch-label" x={101} y={139} textAnchor="middle">C_düzlem</text>
 
       {/* Kapasitör bankası */}
       {capXs.map((x) => (
@@ -56,26 +65,26 @@ export default function PdnSchematic({ r }) {
           <Node x={x} y={bot} r={2.5} />
         </g>
       ))}
-      <text className="sch-label" x={176} y={106} textAnchor="middle">kapasitörler</text>
+      <text className="sch-label" x={176} y={139} textAnchor="middle">kapasitörler</text>
 
       {/* Hedef empedansın tanımlı olduğu düğüm */}
       <Node x={226} y={top} />
       <text className="sch-label" x={226} y={38} textAnchor="middle">Z_hedef</text>
 
       {/* Blok açıklamaları */}
-      <text className="sch-value" x={34} y={42}>V_ray</text>
-      <text className="sch-value" x={32} y={140} textAnchor="middle">R + jωL</text>
-      <text className="sch-value" x={101} y={140} textAnchor="middle">ε₀·εr·A/d</text>
-      <text className="sch-value" x={176} y={140} textAnchor="middle">ESR, ESL</text>
-      <text className="sch-value" x={226} y={140} textAnchor="middle">ΔI</text>
+      <text className="sch-value" x={34} y={40}>V_ray</text>
+      <text className="sch-value" x={32} y={152} textAnchor="middle">R + jωL</text>
+      <text className="sch-value" x={101} y={152} textAnchor="middle">ε₀·εr·A/d</text>
+      <text className="sch-value" x={176} y={152} textAnchor="middle">ESR, ESL</text>
+      <text className="sch-value" x={226} y={152} textAnchor="middle">ΔI</text>
 
       {r.ok && (
         <>
-          <text className="sch-value" x={12} y={158}>
+          <text className="sch-value" x={12} y={166}>
             Z_hedef = {fmtRes(r.Ztarget, 4)}
           </text>
           {r.curve && (
-            <text className="sch-value" x={12} y={170}>
+            <text className="sch-value" x={12} y={179}>
               |Z_PDN| @ {fmtEng(r.curve.fOp, 'Hz', 3)} = {fmtRes(r.curve.z.mag, 4)}
             </text>
           )}

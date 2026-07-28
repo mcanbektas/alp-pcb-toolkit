@@ -24,7 +24,7 @@ export default function WaveSchematic({ r }) {
 
   return (
     <Schematic
-      viewBox="0 0 260 132"
+      viewBox="0 0 260 148"
       title="Hat üzerinde dalga"
       caption={r.ok && r.fraction > 4
         ? 'Hat dört dalga boyundan uzun — çizimde ilk dört periyot gösteriliyor'
@@ -56,7 +56,9 @@ export default function WaveSchematic({ r }) {
           <text className="sch-value" x={x1} y={20} textAnchor="end">
             {fmt(r.degrees, 4)}°
           </text>
-          <text className="sch-value" x={130} y={126} textAnchor="middle">
+          {/* Ölçü çizgisinin altına yazılır; çizgiyle ve alt bakır şeritle
+              kesişmemesi için en uzun metinde de 3 px'ten fazla açıklık kalır */}
+          <text className="sch-value" x={130} y={140} textAnchor="middle">
             L = {fmtEng(r.length, 'm', 3)} · {fmtEng(r.delay, 's', 3)}
           </text>
         </>
