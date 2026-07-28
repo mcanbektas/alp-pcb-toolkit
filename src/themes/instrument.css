@@ -291,10 +291,6 @@ a:hover { text-decoration: underline; }
   font-size: 0.9rem;
   padding: 9px 11px;
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
-  /* Girdi panelindeki tüm form alanları aynı ağırlıkta okunur: yazılan
-     değer de seçilen değer de veridir. IBM Plex Mono 400/500/600
-     yükleniyor — 600 bu yazının gerçek en kalın kesimi. */
-  font-weight: 600;
 }
 .field-row input { flex: 1; min-width: 0; }
 .field-row input:focus, .field-row select:focus, .select-only:focus {
@@ -344,10 +340,7 @@ a:hover { text-decoration: underline; }
   border-radius: 5px; color: var(--text); font-family: var(--font-mono);
   padding: 6px 8px;
 }
-.row-list-item .cell input {
-  flex: 1; min-width: 0; font-size: 0.84rem;
-  font-weight: 600;
-}
+.row-list-item .cell input { flex: 1; min-width: 0; font-size: 0.84rem; }
 .row-list-item .cell select { flex: 0 0 auto; font-size: 0.78rem; padding: 6px 4px; }
 .row-list-item .cell input:focus, .row-list-item .cell select:focus {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft);
@@ -514,7 +507,7 @@ a:hover { text-decoration: underline; }
 .schematic figcaption {
   font-family: var(--font-mono);
   font-size: 0.67rem;
-  color: var(--muted);
+  color: var(--text);
   text-align: center;
   margin-top: 8px;
   /* Şemanın altyazısı da şemanın yazısıdır: içerideki .sch-label ve
@@ -552,8 +545,8 @@ a:hover { text-decoration: underline; }
 .sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
 .sch-arrow-head { fill: var(--accent); }
 .sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
-.sch-label.dim { fill: var(--muted); }
-.sch-value { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
+.sch-label.dim { fill: var(--text); }
+.sch-value { fill: var(--text); font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
 
 /* ---------- Mühendislik yorumu ---------- */
 

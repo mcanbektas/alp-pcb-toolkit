@@ -240,10 +240,6 @@ a:hover { text-decoration: underline; }
   font-family: var(--font-mono);
   font-size: 0.9rem;
   padding: 8px 10px;
-  /* Girdi panelindeki tüm form alanları aynı ağırlıkta okunur: yazılan
-     değer de seçilen değer de veridir. IBM Plex Mono 400/500/600
-     yükleniyor — 600 bu yazının gerçek en kalın kesimi. */
-  font-weight: 600;
 }
 .field-row input { flex: 1; min-width: 0; }
 .field-row input:focus, .field-row select:focus, .select-only:focus {
@@ -288,7 +284,6 @@ a:hover { text-decoration: underline; }
   background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
   color: var(--text); font-family: var(--font-mono); font-size: 0.84rem;
   padding: 6px 8px;
-  font-weight: 600;
 }
 .row-list-item .cell select {
   flex: 0 0 auto;
@@ -443,7 +438,7 @@ a:hover { text-decoration: underline; }
 .schematic figcaption {
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  color: var(--muted);
+  color: var(--text);
   text-align: center;
   margin-top: 6px;
   /* Şemanın altyazısı da şemanın yazısıdır: içerideki .sch-label ve
@@ -451,7 +446,11 @@ a:hover { text-decoration: underline; }
      içinde iki ağırlığa bölünüyordu. Rengi yine soluk kalır. */
   font-weight: 600;
 }
-/* Şema çizgileri ve etiketleri — renk literal yazılmaz, hepsi değişkenden */
+/* Şema çizgileri ve etiketleri — renk literal yazılmaz, hepsi değişkenden.
+   Şemanın BÜTÜN yazısı aynı güçte okunur: ağırlık 600, renk var(--text).
+   Değer ve altyazı eskiden var(--muted) idi; 600 ağırlıkta bile soluk
+   kaldığı için grafik kendi içinde iki güce bölünmüş görünüyordu.
+   Etiket ile değer artık yalnızca punto ile ayrılır (11px / 10px). */
 .sch-wire { stroke: var(--accent-dim); stroke-width: 2; fill: none; stroke-linecap: round; }
 .sch-part { stroke: var(--accent); stroke-width: 2; fill: var(--surface); }
 .sch-part.off { stroke: var(--line); }
@@ -483,8 +482,8 @@ a:hover { text-decoration: underline; }
 .sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
 .sch-arrow-head { fill: var(--accent); }
 .sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
-.sch-label.dim { fill: var(--muted); }
-.sch-value { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
+.sch-label.dim { fill: var(--text); }
+.sch-value { fill: var(--text); font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
 
 /* ---------- Mühendislik yorumu ---------- */
 
