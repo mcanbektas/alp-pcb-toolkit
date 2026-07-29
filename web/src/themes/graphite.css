@@ -721,3 +721,24 @@ a:hover { text-decoration: underline; }
 .formula.summary-box {
   max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word;
 }
+
+/* Satır listesi ızgarası sütun sayısına göre. Satır içi stil kullanılmadığı
+   için genişlik sınıf adıyla seçilir; RowList `cols-N` sınıfını basar. */
+.row-list.cols-2 .row-list-head,
+.row-list.cols-2 .row-list-item { grid-template-columns: 18px repeat(2, minmax(0, 1fr)) 22px; }
+.row-list.cols-3 .row-list-head,
+.row-list.cols-3 .row-list-item { grid-template-columns: 18px repeat(3, minmax(0, 1fr)) 22px; }
+.row-list.cols-4 .row-list-head,
+.row-list.cols-4 .row-list-item { grid-template-columns: 18px repeat(4, minmax(0, 1fr)) 22px; }
+.row-list.cols-5 .row-list-head,
+.row-list.cols-5 .row-list-item { grid-template-columns: 18px repeat(5, minmax(0, 1fr)) 22px; }
+.row-list.cols-6 .row-list-head,
+.row-list.cols-6 .row-list-item { grid-template-columns: 18px repeat(6, minmax(0, 1fr)) 22px; }
+.row-list.cols-7 .row-list-head,
+.row-list.cols-7 .row-list-item { grid-template-columns: 18px repeat(7, minmax(0, 1fr)) 22px; }
+.row-list.cols-8 .row-list-head,
+.row-list.cols-8 .row-list-item { grid-template-columns: 18px repeat(8, minmax(0, 1fr)) 22px; }
+.row-list.cols-9 .row-list-head,
+.row-list.cols-9 .row-list-item { grid-template-columns: 18px repeat(9, minmax(0, 1fr)) 22px; }
+.row-list.cols-10 .row-list-head,
+.row-list.cols-10 .row-list-item { grid-template-columns: 18px repeat(10, minmax(0, 1fr)) 22px; }

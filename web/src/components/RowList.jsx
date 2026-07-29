@@ -39,8 +39,11 @@ export default function RowList({
     onChange(rows.filter((_, j) => j !== i))
   }
 
+  // Sütun sayısı ızgarayı belirler. Sınıf adıyla verilir çünkü satır içi
+  // stil kullanılmaz (CLAUDE.md §Kurallar); tema dosyaları cols-2…cols-10
+  // arasını tanımlar.
   return (
-    <div className="row-list">
+    <div className={`row-list cols-${columns.length}`}>
       <span className="field-label">{label}</span>
 
       <div className="row-list-head">
@@ -54,13 +57,28 @@ export default function RowList({
           <span className="idx">{i + 1}</span>
           {columns.map((c) => (
             <span className="cell" key={c.key}>
-              <input
-                inputMode="decimal"
-                aria-label={`${rowName} ${i + 1} — ${c.label}`}
-                value={row[c.key] ?? ''}
-                placeholder={c.placeholder ?? ''}
-                onChange={(e) => setCell(i, c.key)(e.target.value)}
-              />
+              {/* Sütun bir seçenek listesi taşıyorsa (katman türü, rol) sayı
+                  girişi yerine seçici çizilir. `options` verilmeyen sütunlar
+                  eskisi gibi davranır — mevcut üç ekran etkilenmez. */}
+              {c.options ? (
+                <select
+                  aria-label={`${rowName} ${i + 1} — ${c.label}`}
+                  value={row[c.key] ?? c.options[0]?.value ?? ''}
+                  onChange={(e) => setCell(i, c.key)(e.target.value)}
+                >
+                  {c.options.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  inputMode={c.text ? 'text' : 'decimal'}
+                  aria-label={`${rowName} ${i + 1} — ${c.label}`}
+                  value={row[c.key] ?? ''}
+                  placeholder={c.placeholder ?? ''}
+                  onChange={(e) => setCell(i, c.key)(e.target.value)}
+                />
+              )}
               {c.units && (
                 <select
                   aria-label={ui.rowUnitAria(rowName, i + 1, c.label)}

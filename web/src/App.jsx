@@ -44,6 +44,7 @@ const TemperatureConverter = lazy(() => import('./pages/tools/TemperatureConvert
 const ComplexConverter = lazy(() => import('./pages/tools/ComplexConverter'))
 const ClearanceCreepagePadstack = lazy(() => import('./pages/tools/ClearanceCreepagePadstack'))
 const BgaBreakout = lazy(() => import('./pages/tools/BgaBreakout'))
+const StackupPlanner = lazy(() => import('./pages/tools/StackupPlanner'))
 
 // Hesap sayfaları (Projelerim listesi + proje detayı) da tembel yüklenir —
 // araç ekranlarıyla aynı gerekçe: ilk boyamada yalnızca girişte gereken kod.
@@ -208,6 +209,7 @@ export default function App() {
                 <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
                 <Route path="/arac/clearance-creepage-padstack" element={<ClearanceCreepagePadstack />} />
                 <Route path="/arac/bga-breakout" element={<BgaBreakout />} />
+                <Route path="/arac/stack-up-planlayici" element={<StackupPlanner />} />
               </Routes>
             </Suspense>
           </Layout>
