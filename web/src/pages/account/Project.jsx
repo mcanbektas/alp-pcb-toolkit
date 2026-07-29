@@ -11,36 +11,31 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
+import { useNotice } from '../../hooks/useNotice'
 import { reportText, reportErrorText, reportDateStamp } from '../../data/reportText'
 import { buildReportPayload, REPORT_ERR_MISSING_PREPARED_BY } from '../../lib/reportPayload'
 import { downloadBlob } from '../../lib/api'
-import { fmt } from '../../lib/num'
 import { pick } from '../../lib/i18n'
-import { CATEGORIES } from '../../data/categories'
+import { ENGINE_VERSION } from '../../lib/engineVersion'
+import {
+  CALC_PARAM, ENGINE_STALE, engineStatus, previewMode, previewRows,
+} from '../../lib/savedCalculation'
+import { findTool } from '../../data/categories'
 import { getText } from './text'
 
 function toolDisplayName(toolKey, lang) {
-  for (const cat of CATEGORIES) {
-    const tool = cat.tools.find((t) => t.id === toolKey)
-    if (tool) return pick(tool.name, lang)
-  }
-  return toolKey // tanımsız anahtar sessizce boş kalmaz, ham hâliyle görünür
+  const tool = findTool(toolKey)
+  // Tanımsız anahtar sessizce boş kalmaz, ham hâliyle görünür.
+  return tool ? pick(tool.name, lang) : toolKey
 }
 
-// `resultJson`'dan yalnızca birkaç sayısal alanı düz metin olarak çıkarır —
-// önizleme içindir, hiçbir SVG ya da biçimlendirilmiş cümle taşımaz.
-function resultPreview(resultJson) {
-  if (!resultJson) return []
-  try {
-    const parsed = JSON.parse(resultJson)
-    if (!parsed || typeof parsed !== 'object') return []
-    return Object.entries(parsed)
-      .filter(([, v]) => typeof v === 'number' && Number.isFinite(v))
-      .slice(0, 2)
-      .map(([k, v]) => `${k} ${fmt(v, 4)}`)
-  } catch {
-    return []
-  }
+// Kaydı kendi araç ekranında açan yol. Anahtar `categories.js`'te yoksa
+// (araç kaldırılmış ya da anahtar ayrışmış) `null` döner ve "Aç" gösterilmez —
+// var olmayan bir yola götüren düğme koymaktansa hiç koymamak doğru.
+function toolLinkFor(calc) {
+  const tool = findTool(calc.toolKey)
+  if (!tool?.path) return null
+  return `${tool.path}?${CALC_PARAM}=${encodeURIComponent(calc.id)}`
 }
 
 export default function Project() {
@@ -49,6 +44,7 @@ export default function Project() {
   const pt = getText(lang).project
   const rt = reportText(lang)
   const { isLoading, isAuthenticated, user, api } = useAuth()
+  const { showNotice } = useNotice()
 
   const [project, setProject] = useState(null)
   const [calcs, setCalcs] = useState([])
@@ -183,6 +179,9 @@ export default function Project() {
 
     if (res.ok) {
       downloadBlob(res.blob, res.fileName)
+      // ReportDialog ile aynı geri bildirim: proje raporu da ayrı bir indirme
+      // yüzeyi, sessiz kalmamalı.
+      showNotice(rt.downloaded(res.fileName))
     } else {
       setReportError(reportErrorText(res, lang))
     }
@@ -270,16 +269,39 @@ export default function Project() {
           <div className="tool-list">
             {calcs.map((calc, i) => {
               const label = toolDisplayName(calc.toolKey, lang)
-              const preview = resultPreview(calc.resultJson)
+              // Önizleme rapor bölümünden gelir: satırlar orada zaten
+              // etiketlenmiş ve birimlenmiştir. `resultJson`'ın ham anahtarları
+              // (`wMm 0.3605`) kullanıcıya bir şey anlatmıyordu.
+              const preview = previewRows(calc.reportJson, 2)
+              const mode = previewMode(calc.reportJson)
+              const stale = engineStatus(calc.engineVersion, ENGINE_VERSION) === ENGINE_STALE
+              const openHref = toolLinkFor(calc)
               return (
                 <div key={calc.id} className="tool-row">
                   <span className="name">
                     {label}
+                    {mode && <span className="sub"> · {mode}</span>}
                     <span className="sub"> — {reportDateStamp(new Date(calc.updatedAt))}</span>
-                    {preview.length > 0 && <span className="sub"> · {preview.join(' · ')}</span>}
+                    {preview.map((row, ri) => (
+                      // Etiket benzersiz olmak zorunda değil — anahtar sırayla kurulur.
+                      // eslint-disable-next-line react/no-array-index-key
+                      <span key={`${ri}-${row.label}`} className="sub">
+                        {' · '}{row.label} {row.value}{row.unit ? ` ${row.unit}` : ''}
+                      </span>
+                    ))}
                     {!calc.reportJson && <span className="chip"> {pt.noReportTag}</span>}
+                    {stale && <span className="chip"> {pt.staleTag}</span>}
                   </span>
                   <span className="report-actions">
+                    {openHref && (
+                      <Link
+                        className="row-add"
+                        to={openHref}
+                        aria-label={pt.openAria(label)}
+                      >
+                        {pt.openLabel}
+                      </Link>
+                    )}
                     <button
                       type="button"
                       className="row-add"

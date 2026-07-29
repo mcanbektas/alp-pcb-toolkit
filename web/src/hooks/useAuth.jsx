@@ -54,7 +54,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const res = await api.post('/api/auth/refresh', undefined, { auth: false })
+      // `api.post(...)` DEĞİL: sekme yarışında ilk yenileme 401 alabiliyor
+      // (öteki sekme çerezi az önce döndürmüştür) ve tek denemede pes etmek
+      // kullanıcıyı gereksiz yere oturumdan atıyordu. `refreshSession`
+      // kısa bir bekleyişten sonra güncel çerezle bir kez daha dener.
+      const res = await api.refreshSession()
       if (cancelled) return
       if (res.ok) {
         tokenRef.current = res.data.accessToken
@@ -70,8 +74,12 @@ export function AuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const login = useCallback(async (email, password) => {
-    const res = await api.post('/api/auth/login', { email, password }, { auth: false })
+  // rememberMe: sunucu yenileme çerezini son kullanma tarihiyle mi (kalıcı)
+  // yoksa oturum çerezi olarak mı (tarayıcı kapanınca silinir) yazacağını
+  // buna bakarak seçer. Erişim token'ı her iki durumda da yalnızca bellekte
+  // kalır — "beni kaydet" hiçbir şeyi localStorage'a yazmaz.
+  const login = useCallback(async (email, password, rememberMe = false) => {
+    const res = await api.post('/api/auth/login', { email, password, rememberMe }, { auth: false })
     if (res.ok) {
       tokenRef.current = res.data.accessToken
       await loadMe()

@@ -167,9 +167,9 @@ export const CATEGORIES = [
       en: 'Clearance, creepage, BGA breakout, stack-up and thermal relief',
     },
     tools: [
-      { id: 'clearance', name: { tr: 'Clearance, Creepage ve Padstack', en: 'Clearance, Creepage & Padstack' }, path: '/arac/clearance-creepage-padstack' },
-      { id: 'bga', name: { tr: 'BGA Breakout', en: 'BGA Breakout' }, path: '/arac/bga-breakout' },
-      { id: 'stackup', name: { tr: 'Stack-Up Planlayıcı', en: 'Stack-Up Planner' }, path: '/arac/stack-up-planlayici' },
+      { id: 'clearance-creepage-padstack', name: { tr: 'Clearance, Creepage ve Padstack', en: 'Clearance, Creepage & Padstack' }, path: '/arac/clearance-creepage-padstack' },
+      { id: 'bga-breakout', name: { tr: 'BGA Breakout', en: 'BGA Breakout' }, path: '/arac/bga-breakout' },
+      { id: 'stackup-planner', name: { tr: 'Stack-Up Planlayıcı', en: 'Stack-Up Planner' }, path: '/arac/stack-up-planlayici' },
       { id: 'thermal-relief', name: { tr: 'Thermal Relief', en: 'Thermal Relief' }, path: '/arac/thermal-relief' },
     ],
   },
@@ -225,4 +225,17 @@ export const CATEGORIES = [
 
 export function findCategory(slug) {
   return CATEGORIES.find((c) => c.slug === slug)
+}
+
+// Bir aracın kaydı `toolKey` alanıyla saklanır ve o anahtar buradaki `id` ile
+// AYNI olmak zorundadır: kaydedilmiş hesabın adını ve ekran yolunu bulmanın
+// tek yolu bu eşleşmedir. Üç DFM aracında ikisi ayrışmıştı (`bga` ↔
+// `bga-breakout`) ve proje listesinde araç adı yerine ham anahtar görünüyordu;
+// `id` alanı kaydedilen anahtara hizalandı — kalıcı olan taraf odur.
+export function findTool(toolKey) {
+  for (const cat of CATEGORIES) {
+    const tool = cat.tools.find((t) => t.id === toolKey)
+    if (tool) return tool
+  }
+  return null
 }

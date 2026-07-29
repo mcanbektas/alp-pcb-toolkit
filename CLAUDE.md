@@ -33,6 +33,11 @@ Saf sayılan ve bu yüzden test edilen üç yer: `src/lib/`, ekranların `report
 ve ekranların `text.js` sözlükleri. Sonuncusu `dfmTextPaths.test.js`'te kaynak dosyaları
 metin olarak okuyup metin yollarını yürüterek denetlenir — bileşen render edilmez.
 
+Aynı teknikle yazılmış ikinci bir bekçi `pages/tools/toolKeys.test.js`: her araç ekranının
+`toolKey`'i `data/categories.js`'te var mı, her aktif katalog kaydının ekranı var mı ve her
+ekran kayıt bağını `SaveToProject`'e geçiriyor mu. Bu üç kural build'den ve tip denetiminden
+kaçar; ayrıştıklarında kullanıcı ham anahtar görür ya da kaydını geri açamaz.
+
 **Yeni bir hesap motoru eklendiğinde `docs/spec.md` §13'te karşılığı varsa, testi de aynı
 commit'te yazılır.** §13'ün altı referans testi (microstrip, via direnci, PDN hedef empedansı,
 junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor eklendiğinde teste dönüşür;
@@ -44,11 +49,38 @@ kullanılır. `main.jsx` eski `#/arac/...` bağlantılarını yeni yollara çevi
 taşır — kullanıcıların kayıtlı bağlantıları kırılmasın diye duruyor, silinmemeli.
 
 `BrowserRouter` derin bağlantıda sunucudan SPA geri dönüşü ister: `/arac/...` isteğine
-`index.html` dönmeyen bir yapılandırmada sayfa yenilendiğinde 404 alınır. Dağıtım
-yapılandırması yazılırken ilk doğrulanacak şey budur.
+`index.html` dönmeyen bir yapılandırmada sayfa yenilendiğinde 404 alınır. Karşılığı
+`deploy/nginx.conf` içindeki `try_files $uri $uri/ /index.html` satırıdır; düşerse site
+ilk açılışta çalışır, **sayfa yenilendiğinde 404 verir**. Her dağıtımda ilk kontrol budur.
 
-`.github/workflows/deploy.yml` hâlâ GitHub Pages'e bakan eski akıştır ve bu yapıyla
-uyumlu değildir; dağıtım fazında (Faz 8) ele alınacak.
+### Dağıtım (Faz 8)
+
+Yığın `deploy/` altındadır: `nginx` (statik `web/dist` + `/api` ters vekili) + `api` +
+`postgres`, Docker Compose ile. Ayrıntı ve sunucu runbook'u: **`deploy/README.md`**.
+
+- `deploy/docker-compose.yml` imajları yerelde derler; `deploy/docker-compose.prod.yml`
+  onun üstüne binip `ghcr.io`'daki hazır imajları kullanır, TLS ve certbot ekler.
+  Üretimde `--no-build` verilir — temel dosyadaki `build:` anahtarı örtüde silinemez.
+- Sırlar `deploy/.env`'dedir ve depoya girmez (`.gitignore`). Şablon `.env.example`.
+- `.github/workflows/ci.yml` her dalda test/derleme koşar; `deploy.yml` yalnızca `main`'de
+  imaj derleyip `ghcr.io`'ya iter. **Sunucuya bağlanan adım bilerek yoktur** — sunucu
+  henüz yok, kullanılmayan SSH sırrı depoda durmaz.
+- API `/api` önekli çalışır ve sağlık uçları da oradadır (`/api/health`,
+  `/api/health/ready`). nginx yalnızca `/api/` konumunu vekile geçirdiği için önek dışına
+  yazılan bir uç dışarıdan istendiğinde `index.html` döner.
+- Konteynerde TLS sonlandırma nginx'tedir: `App__HttpsRedirection=false`,
+  `App__KnownProxyNetworks` compose ağının alt ağını taşır. İkincisi verilmezse
+  `X-Forwarded-For` yok sayılır, bütün istekler nginx'in tek IP'sine düşer ve hız sınırı
+  tek kova olur.
+- Şema açılışta uygulanır (`Database__MigrateOnStartup`). Konteynerde `dotnet ef` yoktur;
+  ayar tek kopyalı dağıtım içindir, kopya sayısı artarsa kapatılıp ayrı adıma taşınır.
+- `IEmailSender`'ın gerçek uygulaması `SmtpEmailSender` (MailKit). `Smtp:Host` ve
+  `Smtp:FromAddress` boşken `ConsoleEmailSender`'a düşülür — geliştirmede SMTP hesabı
+  gerekmesin diye. **Üretimde bu düşüş bir arızadır:** e-posta doğrulaması zorunludur,
+  doğrulama postası gitmezse hiçbir kullanıcı giriş yapamaz. Uygulama açılışta uyarı basar.
+- nginx'te `add_header` **miras alınmaz**: kendi `add_header`'ını yazan her `location`,
+  sunucu seviyesindeki güvenlik başlıklarının hepsini o konumda düşürür. Bu yüzden
+  başlıklar `/assets/` ve `= /index.html` içinde tekrar yazılır — silinmemeli.
 
 ## Mimari
 
@@ -96,6 +128,11 @@ soyut portu bilir.
      `memoryStorage`, `nullStorage` uygulamaları burada.
    - `thicknessRecords.js` — bakır kalınlığı kayıtları: şema adı, `schemaVersion`, doğrulama,
      liste/kaydet/sil. `localStorage`'ı tanımaz, portu parametre olarak alır.
+   - `savedCalculation.js` — projeye kaydedilmiş bir hesabın geri yüklenmesi. `restoreForm`
+     kaydı aracın **mevcut** `INITIAL_FORM` şemasına süzer: tanınmayan alan atılır, eksik
+     alan başlangıç değerinde kalır. Bir aracın alanları zamanla değiştiği için kayıt ham
+     hâliyle `patch()`'e verilmez. `previewRows` yalnızca `reportJson`'ın `results` dizisini
+     okur — satır içi SVG alanlarına (`schematicSvg`, `chart.svg`) hiç dokunmaz.
    - Hesap motorları: `traceCalc.js`, `ohm.js`, `divider.js`, `led.js`, `reactance.js`,
      `timing.js`, `crystal.js`, `codes.js`, `eseries.js`.
    - Üretim/DFM motorları: `dfmProfile.js`, `dfmCheck.js`, `dfmSummary.js`, `padstack.js`,
@@ -108,7 +145,13 @@ soyut portu bilir.
      ihtiyaç duymazlar ve uç girdide `Infinity` döndürmek yerine aralık hata kodu verirler.
 2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`,
    `TextField`, `RowList`, `Schematic`, `LineChart`, `Formula`, `ProfilePanel`, `DfmChecks`,
-   `DfmSummaryBox`). State tutmaz, hesap yapmaz.
+   `DfmSummaryBox`, `AuthField`, `Toast`). State tutmaz, hesap yapmaz.
+   - `Toast` — kısa süreli bildirim ("Çıkış yapıldı"). Modal değildir (bkz. §11 kararı) ve
+     hiçbir şeyin önünü kapatmaz. Metni **prop olarak** alır, `useLang()`'e bakmaz: gösterdiği
+     cümle çerçeve metni değil, çağıranın metnidir — bu yüzden dili doğrudan okuyan bileşenler
+     istisnasına katılmaz. Bildirim `navigate(…, { state: { notice } })` ile taşınır ve
+     durumda **çeviri değil kod** durur; `Layout` kodu metne çevirir, gösterdikten sonra
+     `replace` ile geçmişten siler (yoksa geri/ileri aynı bildirimi tekrar basar).
    - `RowList` sütunları isteğe bağlı `options` (satır içi seçici) ve `text` (serbest metin)
      alabilir; verilmeyen sütun eskisi gibi sayı girişi olur. Izgara genişliği `cols-N`
      sınıfıyla seçilir çünkü satır içi stil kullanılmaz.
@@ -131,6 +174,8 @@ soyut portu bilir.
    Somut depolama portunu bağlayan hook'lar: `useSavedThickness`, `useDfmProfiles`,
    `useClearanceProfiles`, `useSavedStackups`. Pano erişimi `useClipboard`'dadır.
    Tarayıcı API'si yalnızca bu beşinde görünür.
+   `useSavedCalculation` ağ ve URL erişimini bağlar (doğrulama saf katmanda,
+   `lib/savedCalculation.js`) — bkz. aşağıdaki "Kaydedilmiş hesap bağı".
 4. **`src/pages/tools/<Ad>/`** — araç ekranı, altı dosya:
    - `index.jsx` — düzen ve state. Hesap yapmaz, metin üretmez; metni `getText(lang)`'ten alır.
    - `model.js` — alan tanımları + `compute()` + `buildSweep()`. Saf, test edilebilir.
@@ -273,6 +318,25 @@ sınır yokken kontrolü `warn` göstermek "sınıra yakın" demek olurdu ve ver
 "Dil" bölümünde tarif edilen elle kontrolün otomatik hâlidir. Yeni bir üretim/DFM ekranı
 eklendiğinde listesine yazılır.
 
+### Kaydedilmiş hesap bağı
+
+Bir araç ekranı, projeye kaydedilmiş bir hesaba **bağlı** olabilir. Bağ URL'de durur:
+`/arac/<slug>?hesap=<calculationId>`. Yol durumunda (`navigate` state) değil URL'de tutulur
+ki kayıt bağlantısı paylaşılabilsin ve sayfa yenilendiğinde kaybolmasın.
+
+- Bağsızken "Kaydet" **yeni** satır açar ve hemen ardından ekranı o kayda bağlar.
+- Bağlıyken "Kaydet" yerine **"Kaydı güncelle"** çıkar ve mevcut satırın üzerine yazar.
+  Kopya kayıt böylece oluşmaz. Kopya isteyen "Yeni kayıt olarak ekle" ile bağı koparır.
+
+Ekran bunu tek satırla alır: `useSavedCalculation({ toolKey, initialForm, patch, setMode })`
+ve dönen nesne `<SaveToProject saved={saved} />` ile geçirilir. `setMode` yalnızca modu
+**ayrı state'te** tutan ekranlarda verilir; modu form alanında tutanlarda (`f.mode`,
+`f.tool`, `f.spokeMode`) mod zaten formla birlikte geri yüklenir.
+
+**`toolKey` ile `categories.js`'teki `id` aynı olmak zorundadır.** Kaydın kalıcı kimliği
+`toolKey`'dir; proje listesindeki araç adı ve "Aç" yolu bu eşleşmeyle bulunur. Üç DFM
+aracında bir kez ayrışmıştı ve listede araç adı yerine ham anahtar görünüyordu.
+
 ### Yeni araç ekleme
 
 Formüller ve gereksinimler için kaynak: **`docs/spec.md`**. Yeni bir araç yazmadan önce o
@@ -292,6 +356,9 @@ tamamlama; eksik olduğunu söyle ve sor.
 4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver; `name` alanı
    `{ tr, en }` sözlüğüdür ve ekranın `h1` başlığıyla birebir aynı kalır.
 5. `docs/spec.md` §13'te karşılığı varsa testi aynı commit'te yaz.
+6. `report.js` + `report.test.js` yaz, ekrana `<ReportDialog>` ve `<SaveToProject>` ekle.
+   `SaveToProject`'in `toolKey`'i 4. adımdaki `id` ile **birebir aynı** olmalı; kaydı geri
+   yükleyebilmek için `useSavedCalculation` de bağlanır (bkz. "Kaydedilmiş hesap bağı").
 
 Referans ekran: `src/pages/tools/VoltageDivider/`. Yeni ekran yazarken panel düzenini,
 terminolojiyi, tablo yoğunluğunu ve `getText(lang)` desenini oradan birebir kopyala.

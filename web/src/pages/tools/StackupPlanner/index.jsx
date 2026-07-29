@@ -11,6 +11,7 @@ import ProfilePanel from '../../../components/ProfilePanel'
 import DfmChecks from '../../../components/DfmChecks'
 import DfmSummaryBox from '../../../components/DfmSummaryBox'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import useDfmProfiles from '../../../hooks/useDfmProfiles'
 import useSavedStackups from '../../../hooks/useSavedStackups'
 import useClipboard, { COPY_DONE, COPY_FAILED } from '../../../hooks/useClipboard'
@@ -54,6 +55,13 @@ export default function StackupPlanner() {
   const [exported, setExported] = useState('')
 
   const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  const saved = useSavedCalculation({
+    toolKey: 'stackup-planner', initialForm: INITIAL_FORM, patch,
+  })
+
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
@@ -494,8 +502,6 @@ export default function StackupPlanner() {
         <section className="panel panel-detail">
           <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{text.formula.body}</pre>
-
           <ul className="detail-list">
             <li>{text.detail.twoTotals}</li>
             <li>{text.detail.hNotTotal}</li>
@@ -540,6 +546,14 @@ export default function StackupPlanner() {
                         : dfm.profile.copyButton}
                     </button>
                   </div>
+
+      {/* ---------- Alt: Denklemler ---------- */}
+      {/* Dar sağ sütunda uzun formüller kırpılıyordu; tam genişlikte
+          hiçbiri taşmıyor. Desen ViaProperties ile aynı. */}
+      <section className="formula-wide">
+        <h2>{ui.equations}</h2>
+        <pre className="formula">{text.formula.body}</pre>
+      </section>
                   {transferClipboard.state === COPY_FAILED && (
                     <p className="empty-note warn">{dfm.profile.copyFailed}</p>
                   )}
@@ -621,6 +635,7 @@ export default function StackupPlanner() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={saved}
       />
     </>
   )

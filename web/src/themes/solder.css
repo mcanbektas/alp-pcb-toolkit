@@ -8,6 +8,10 @@
   --green-deep: #17482e;  /* koyu yeşil */
   --accent: #4ade80;      /* açık yeşil */
   --accent-dim: #2f9e5f;
+  /* Dolu vurgu düğmesi (.btn-primary). Vurgu açık olduğu için üstündeki yazı
+     KOYU olur — beyaz yazı bu zeminde okunmaz. */
+  --on-accent: #06130c;     /* #4ade80 üzerinde 12.9:1 */
+  --accent-strong: #6ee79b; /* üzerine gelince açılır, koyu yazı daha da rahat okunur */
   --text: #eef5ef;        /* beyaz */
   --muted: #8fa898;
   --warn: #e5b45a;
@@ -208,6 +212,9 @@ a:hover { text-decoration: underline; }
 }
 .tool-row.soon { color: var(--muted); }
 .tool-row .name { font-weight: 500; }
+/* Kayıt satırındaki ikincil bilgi (tarih, önizleme değeri) — .result-table
+   içindeki .sub ile aynı ton, kural orada araç tablosuna bağlıydı. */
+.tool-row .sub { color: var(--muted); font-size: 0.76rem; }
 .backlink { font-size: 0.85rem; color: var(--muted); display: inline-block; margin-top: 28px; margin-bottom: 16px; }
 
 /* ---------- Tool layout ---------- */
@@ -247,10 +254,98 @@ a:hover { text-decoration: underline; }
 
 /* Tek sütunlu, ortalanmış dar panel — giriş/kayıt gibi tek form ekranları.
    Modal yok: bu, o ekranların tek görsel deseni. */
-.auth-panel { max-width: 420px; margin: 32px auto; }
+.auth-panel { max-width: 400px; margin: 44px auto; padding: 24px; }
+/* Panel başlığı kimliği (mono, aralıklı, büyük harf) korunur, yalnızca ağırlık
+   kazanır: burada başlık bir bölüm etiketi değil, sayfanın kendisi. */
+.auth-panel h2 { font-size: 0.82rem; color: var(--text); margin-bottom: 20px; }
 .auth-panel .field { margin-bottom: 16px; }
-.auth-panel-foot { margin-top: 16px; font-size: 0.86rem; color: var(--muted); }
+.auth-panel .field-row input { font-size: 0.95rem; padding: 10px 12px; }
+
+/* "Beni kaydet" ile "Parolamı unuttum" aynı satırda — alt alta dizildiklerinde
+   form gereksiz uzuyordu. */
+.auth-panel-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 14px 0 6px;
+}
+.auth-panel-row .check-row { margin: 0; }
+.auth-panel-row a { font-size: 0.8rem; color: var(--accent); white-space: nowrap; }
+
+.auth-panel-foot {
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 0.86rem; color: var(--muted); text-align: center;
+}
 .auth-panel-foot a { color: var(--accent); }
+
+/* Birincil eylem düğmesi — ekranın tek ana eylemi. `.row-add` ikincil bir
+   düğmedir; gönder düğmesi olarak kullanıldığında formun en önemli parçası en
+   sönük parçası oluyordu. */
+.btn-primary {
+  width: 100%; margin-top: 12px;
+  background: var(--accent); border: 1px solid var(--accent); border-radius: 4px;
+  color: var(--on-accent); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+  padding: 11px 14px;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-strong); border-color: var(--accent-strong);
+}
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- Bildirim ---------- */
+
+/* Kısa süreli bildirim kartı (Toast.jsx) — ekranın ortasında durur.
+   MODAL DEĞİL: arkayı karartmaz, odağı hapsetmez, tıklamayı yutmaz. Dış alan
+   `pointer-events: none` taşır, yalnızca kartın kendisi tıklanabilir; arkadaki
+   sayfa okunmaya ve kullanılmaya devam eder. */
+.toast-area {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: none;
+  z-index: 50;
+}
+.toast {
+  position: relative;
+  max-width: min(92vw, 380px);
+  background: var(--surface);
+  border: 1px solid var(--accent-dim);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  padding: 22px 26px 18px;
+  text-align: center;
+  pointer-events: auto;
+  animation: toast-in 0.18s ease-out;
+}
+.toast-message {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  font-size: 0.95rem; font-weight: 700; margin: 0;
+}
+.toast-mark { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+.toast-note { color: var(--muted); font-size: 0.75rem; font-weight: 600; margin: 8px 0 0; }
+/* Kapatma düğmesi kartın sağ üstünde; dokunma hedefi metinden büyük tutulur. */
+.toast-close {
+  position: absolute; top: 4px; right: 6px;
+  background: none; border: none; border-radius: 6px;
+  color: var(--muted); cursor: pointer;
+  font-family: var(--font-body); font-size: 1.15rem; line-height: 1;
+  padding: 6px 9px;
+}
+.toast-close:hover { color: var(--text); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+/* Hareket azaltma tercihi: kart yine görünür, yalnızca büyümez. */
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
 
 /* Rapor indirme düğmeleri — ReportDialog.jsx */
 .report-actions { display: flex; gap: 8px; margin-top: 4px; }
@@ -339,6 +434,9 @@ a:hover { text-decoration: underline; }
 }
 .row-add:hover:not(:disabled) { border-color: var(--accent-dim); color: var(--accent); }
 .row-add:disabled { opacity: 0.4; cursor: default; }
+/* Düğmelerle aynı görünen bağlantı: "Aç" gerçek bir yol açtığı için
+   <a> kalmalı (yeni sekme, ekran okuyucu), görünümü düğmeden ayrılmamalı. */
+a.row-add { display: inline-block; text-decoration: none; }
 
 .check-row {
   display: flex; align-items: center; gap: 8px;
@@ -475,7 +573,12 @@ a:hover { text-decoration: underline; }
   border-radius: 4px;
   padding: 12px 10px 8px;
 }
-.schematic svg { display: block; width: 100%; height: auto; }
+/* Çizim panele sığacak şekilde ölçeklenir, ama sonsuza kadar küçülmez:
+   min-width altında küçülmek yerine yana kaydırılır. Küçük telefonlarda ölçü
+   etiketleri okunmaz hâle geliyordu. Kaydırma yalnızca gerçekten sığmadığında
+   görünür (overflow-x: auto). */
+.schematic { overflow-x: auto; }
+.schematic svg { display: block; width: 100%; min-width: 300px; height: auto; }
 .schematic figcaption {
   font-family: var(--font-mono);
   font-size: 0.68rem;
@@ -634,6 +737,26 @@ a:hover { text-decoration: underline; }
 .formula.summary-box {
   max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word;
 }
+
+/* Panoya kopyalama düğmesi kutunun sağ üst köşesinde durur — kod bloğu deseni.
+   Konum sarmalayıcıya bağlıdır, <pre>'ye değil: <pre> kendi içinde kaydığı için
+   düğme onun içinde olsaydı metinle birlikte yukarı kayıp kaybolurdu. */
+.copy-box { position: relative; }
+/* Metnin ilk satırı simgenin altına girmesin diye sağdan yer ayrılır. */
+.copy-box .summary-box { padding-right: 46px; }
+.copy-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--muted); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.72rem;
+  padding: 5px 7px;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.copy-btn svg { display: block; width: 14px; height: 14px; }
+.copy-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+/* Kopyalandı: simge onaya döner, düğme metinle birlikte kısa süre genişler. */
+.copy-btn.done { border-color: var(--accent-dim); color: var(--accent); }
 
 /* Satır listesi ızgarası sütun sayısına göre. Satır içi stil kullanılmadığı
    için genişlik sınıf adıyla seçilir; RowList `cols-N` sınıfını basar. */

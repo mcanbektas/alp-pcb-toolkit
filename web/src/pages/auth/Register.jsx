@@ -68,7 +68,7 @@ export default function Register() {
           hint={text.field.passwordHint}
         />
         {error && <p className="field-hint danger">{error}</p>}
-        <button type="submit" className="row-add" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? text.register.submitting : text.register.submit}
         </button>
       </form>

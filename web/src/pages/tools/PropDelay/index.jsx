@@ -6,6 +6,7 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
 import { fmt, fmtEng } from '../../../lib/num'
@@ -18,7 +19,13 @@ const MARK = { ok: '✓', warn: '!', danger: '×' }
 const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
 export default function PropDelay() {
-  const { f, set } = useToolForm(INITIAL_FORM)
+  const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  const saved = useSavedCalculation({
+    toolKey: 'prop-delay', initialForm: INITIAL_FORM, patch,
+  })
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
@@ -246,6 +253,7 @@ export default function PropDelay() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={saved}
       />
     </>
   )

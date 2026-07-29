@@ -9,6 +9,7 @@ import ProfilePanel from '../../../components/ProfilePanel'
 import DfmChecks from '../../../components/DfmChecks'
 import DfmSummaryBox from '../../../components/DfmSummaryBox'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import useDfmProfiles from '../../../hooks/useDfmProfiles'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
@@ -36,7 +37,13 @@ const asMm = (v) => (v === null || v === undefined || !Number.isFinite(v) ? '—
 
 export default function BgaBreakout() {
   const [sweep, setSweep] = useState(SWEEP_PITCH)
-  const { f, set } = useToolForm(INITIAL_FORM)
+  const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  const saved = useSavedCalculation({
+    toolKey: 'bga-breakout', initialForm: INITIAL_FORM, patch,
+  })
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
@@ -348,8 +355,6 @@ export default function BgaBreakout() {
         <section className="panel panel-detail">
           <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{text.formula.body}</pre>
-
           <ul className="detail-list">
             <li>{text.detail.channelRule}</li>
             <li>{text.detail.floorNote}</li>
@@ -368,6 +373,14 @@ export default function BgaBreakout() {
           </ul>
         </section>
       </div>
+
+      {/* ---------- Alt: Denklemler ---------- */}
+      {/* Dar sağ sütunda uzun formüller kırpılıyordu; tam genişlikte
+          hiçbiri taşmıyor. Desen ViaProperties ile aynı. */}
+      <section className="formula-wide">
+        <h2>{ui.equations}</h2>
+        <pre className="formula">{text.formula.body}</pre>
+      </section>
 
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
@@ -431,6 +444,7 @@ export default function BgaBreakout() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={saved}
       />
     </>
   )

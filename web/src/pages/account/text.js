@@ -82,6 +82,14 @@ export function getText(lang) {
         en: 'This project has no saved calculations yet.',
       }),
       deleteLabel: t({ tr: 'Sil', en: 'Delete' }),
+      openLabel: t({ tr: 'Aç', en: 'Open' }),
+      openAria: (name) => t({
+        tr: `${name} hesabını araç ekranında aç`,
+        en: `Open the ${name} calculation in its tool screen`,
+      }),
+      // Kaydın motor sürümü uygulamanınkinden geriyse: sonuç eski bir
+      // denklem/sabit kümesiyle üretilmiştir, açıp yeniden kaydetmek gerekir.
+      staleTag: t({ tr: 'eski sürüm', en: 'older version' }),
       moveUpAria: (name) => t({ tr: `${name} yukarı taşı`, en: `Move ${name} up` }),
       moveDownAria: (name) => t({ tr: `${name} aşağı taşı`, en: `Move ${name} down` }),
       deleteAria: (name) => t({ tr: `${name} hesabını sil`, en: `Delete calculation ${name}` }),

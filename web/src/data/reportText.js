@@ -14,6 +14,13 @@ export function reportText(lang) {
     pdfButton: t({ tr: 'PDF indir', en: 'Download PDF' }),
     xlsxButton: t({ tr: 'Excel indir', en: 'Download Excel' }),
     working: t({ tr: 'Hazırlanıyor…', en: 'Preparing…' }),
+    // İndirme sessizce olup bitiyordu: düğme eski hâline dönüyor, başka hiçbir
+    // şey olmuyordu. Dosya adı da bildirime yazılır — tarayıcı indirmeyi nereye
+    // koyduğunu göstermiyorsa aranacak ad burada görünür.
+    downloaded: (fileName) => t({
+      tr: `Rapor indirildi — ${fileName}`,
+      en: `Report downloaded — ${fileName}`,
+    }),
     loginRequired: t({
       tr: 'Rapor almak için giriş yapmalısın.',
       en: 'Sign in to get a report.',

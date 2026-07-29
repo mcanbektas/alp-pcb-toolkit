@@ -8,6 +8,7 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import useSavedThickness from '../../../hooks/useSavedThickness'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
@@ -26,6 +27,14 @@ const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
 export default function CopperConverter() {
   const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  // `saved` adı bu ekranda bakır kalınlığı kayıtlarına ait — proje kaydının
+  // bağı ayrı adla durur.
+  const savedCalc = useSavedCalculation({
+    toolKey: 'cu-converter', initialForm: INITIAL_FORM, patch,
+  })
   const saved = useSavedThickness()
   const { lang } = useLang()
 
@@ -705,6 +714,7 @@ export default function CopperConverter() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={savedCalc}
       />
     </>
   )

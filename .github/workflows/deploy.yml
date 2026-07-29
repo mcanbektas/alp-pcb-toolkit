@@ -1,4 +1,13 @@
-name: Deploy to GitHub Pages
+name: İmaj derle ve yayınla
+
+# GitHub Pages akışının yerini alır: uygulama artık kendi sunucumuza dağıtılır
+# (CLAUDE.md → dağıtım bölümü, docs/uyelik-ve-rapor-plani.md §7).
+#
+# Bu iş akışı yalnızca imajları derleyip ghcr.io'ya iter. SUNUCUYA BAĞLANAN
+# ADIM BİLEREK YOK: sunucu henüz yok, dolayısıyla depoda SSH sırrı da yok.
+# Sunucu hazır olduğunda buraya bir `deploy` işi eklenir (adımlar
+# deploy/README.md'de yazılı) ya da sunucuda `git pull` + compose kullanılır —
+# iki yol da aynı compose dosyalarıyla çalışır.
 
 on:
   push:
@@ -7,41 +16,81 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  packages: write
 
 concurrency:
-  group: pages
+  group: images-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY: ghcr.io
+  # ghcr.io/<sahip>/<depo> — deploy/.env içindeki IMAGE_PREFIX ile aynı olmalı.
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
 jobs:
-  build:
+  # İmaj derlemeden önce ayrı bir kapı: web imajı testleri kendi içinde de
+  # koşar (web/Dockerfile), ama api tarafının derlenip derlenmediği yalnızca
+  # burada görülür ve hatalı imaj hiç üretilmez.
+  test:
+    name: Testler
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Pages sitesi henüz açılmadıysa iş akışı kendi açar; aksi hâlde deploy
-      # adımı "Get Pages site failed" ile düşer.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
+          cache-dependency-path: web/package-lock.json
       - run: npm ci
-      # Hesap motorları testten geçmeden yayına çıkmaz
+        working-directory: web
       - run: npm test
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+        working-directory: web
+      - uses: actions/setup-dotnet@v4
         with:
-          path: dist
+          dotnet-version: 9.0.x
+      - run: dotnet build api/Alp.Api.sln -c Release
 
-  deploy:
-    needs: build
+  images:
+    name: ${{ matrix.name }} imajı
+    needs: test
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    strategy:
+      matrix:
+        include:
+          - name: api
+            dockerfile: api/Dockerfile
+          - name: web
+            dockerfile: web/Dockerfile
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
+          # Hem `latest` hem commit sha'sı basılır. Geri alma sha etiketiyle
+          # yapılır: deploy/.env içinde IMAGE_TAG değiştirilip yığın yeniden
+          # ayağa kaldırılır — yeniden derleme gerekmez.
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=long
+
+      - uses: docker/build-push-action@v6
+        with:
+          # Derleme bağlamı depo kökü: her iki Dockerfile da kökten yol verir
+          # (web imajı deploy/nginx.conf'u da kopyalar).
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max

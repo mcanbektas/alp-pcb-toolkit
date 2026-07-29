@@ -129,6 +129,30 @@ function attrsForClasses(classList, themeVars) {
   return out
 }
 
+/**
+ * Öznitelik değerine XML kaçışı.
+ *
+ * ZORUNLU. Tarayıcı `--font-mono` değerini ÇİFT tırnakla döndürür —
+ * `"IBM Plex Mono", ui-monospace, monospace` — CSS kaynağında tek tırnak
+ * yazılmış olsa bile `getComputedStyle` böyle normalleştirir. Kaçışsız
+ * yazıldığında ortaya
+ *
+ *     font-family=""IBM Plex Mono", ui-monospace, monospace"
+ *
+ * çıkıyor: öznitelik ilk tırnakta kapanıyor ve SVG bozuluyor. QuestPDF bunu
+ * "Cannot decode the provided SVG image." ile reddediyor ve RAPORUN TAMAMI
+ * düşüyor — tek bir yazı tipi adı yüzünden PDF hiç üretilemiyordu.
+ *
+ * `&` de kaçırılır: ham `&` öznitelikte geçersizdir.
+ */
+export function escapeAttr(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
 // Dize üzerinde yürür — çağıran taraf `svgEl.outerHTML`'i verir.
 export function inlineSvg(svg, themeVars) {
   let out = svg.replace(/<([a-zA-Z]+)([^>]*?)\sclass="([^"]*)"([^>]*?)(\/?)>/g,
@@ -140,14 +164,25 @@ export function inlineSvg(svg, themeVars) {
       }
       const add = Object.entries(attrs)
         .filter(([k]) => !own.has(k))
-        .map(([k, v]) => `${k}="${v}"`)
+        .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
         .join(' ')
       return `<${tag}${pre}${post}${add ? ' ' + add : ''}${selfClose}>`
     })
 
   // Öznitelik içine doğrudan yazılmış var(--x) çağrıları (ör. Schematic.jsx
   // → Terminal bileşeni: fill="var(--bg)").
-  out = out.replace(/="([^"]*var\(--[\w-]+\)[^"]*)"/g, (m, v) => `="${resolveVars(v, themeVars)}"`)
+  //
+  // Burada `&` KAÇIRILMAZ: değer zaten var olan bir özniteliğin içinden
+  // geliyor, içindeki `&amp;` gibi varlıklar ikinci kez kaçırılıp
+  // `&amp;amp;`e dönerdi. Çözümün getirebileceği tehlikeli karakterler
+  // tırnak ve açılı parantezdir; onlar kapatılır.
+  out = out.replace(/="([^"]*var\(--[\w-]+\)[^"]*)"/g, (m, v) => {
+    const resolved = resolveVars(v, themeVars)
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+    return `="${resolved}"`
+  })
 
   return out
 }

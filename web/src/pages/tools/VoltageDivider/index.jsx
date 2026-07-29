@@ -7,6 +7,7 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
 import { fmt, fmtEng, fmtRes, fmtAmp, fmtPow, fmtPct, fmtVolt } from '../../../lib/num'
@@ -37,7 +38,13 @@ export default function VoltageDivider() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
   const [sweep, setSweep] = useState('RL')
   const [pickIndex, setPickIndex] = useState(0)
-  const { f, set } = useToolForm(INITIAL_FORM)
+  const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  const saved = useSavedCalculation({
+    toolKey: 'divider', initialForm: INITIAL_FORM, patch, setMode,
+  })
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
@@ -415,6 +422,7 @@ export default function VoltageDivider() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={saved}
       />
     </>
   )

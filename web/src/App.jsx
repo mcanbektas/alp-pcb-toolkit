@@ -1,5 +1,7 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
+import Toast from './components/Toast'
+import { NoticeProvider, useNotice } from './hooks/useNotice'
 import { LangProvider, useLang } from './hooks/useLang'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { commonText } from './data/uiText'
@@ -120,6 +122,19 @@ function AccountArea() {
   const { lang } = useLang()
   const text = authText(lang)
   const { isLoading, isAuthenticated, user, logout } = useAuth()
+  const navigate = useNavigate()
+  const { showNotice } = useNotice()
+
+  // Çıkışta ana sayfaya dönülür. Yönlendirme olmadan kullanıcı, oturum
+  // gerektiren bir sayfada (örn. /projelerim) kalır ve o sayfa boşalır ya da
+  // giriş ekranına düşer — ikisi de "çıktım" geri bildirimi vermez.
+  // Bildirim yönlendirmeden ÖNCE kurulur; sağlayıcı yönlendirmenin üstünde
+  // durduğu için sayfa değişse de kart yaşar.
+  async function onLogout() {
+    await logout()
+    showNotice(text.header.signedOut)
+    navigate('/')
+  }
 
   if (isLoading) return null
 
@@ -128,7 +143,7 @@ function AccountArea() {
       <div className="lang-switch" role="group">
         <Link to="/projelerim">{text.header.projects}</Link>
         <span className="header-user">{user.displayName}</span>
-        <button type="button" onClick={logout}>{text.header.logout}</button>
+        <button type="button" onClick={onLogout}>{text.header.logout}</button>
       </div>
     )
   }
@@ -140,10 +155,23 @@ function AccountArea() {
   )
 }
 
+// Kartın kendiliğinden kapanma süresi. Tek yerde durur: hem zamanlayıcıya hem
+// kartın üstündeki "N saniye içinde…" notuna buradan gider, ikisi ayrışamaz.
+const NOTICE_TIMEOUT_MS = 3000
+
 function Layout({ children }) {
   const { lang } = useLang()
+  const { notice, dismissNotice } = useNotice()
+
   return (
     <>
+      <Toast
+        message={notice}
+        onDismiss={dismissNotice}
+        closeLabel={commonText(lang).toastClose}
+        autoCloseNote={commonText(lang).toastAutoClose(NOTICE_TIMEOUT_MS / 1000)}
+        timeoutMs={NOTICE_TIMEOUT_MS}
+      />
       <header className="site-header">
         <div className="container">
           <Link to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>
@@ -169,54 +197,59 @@ function Layout({ children }) {
 export default function App() {
   return (
     <LangProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Layout>
-            <Suspense fallback={<LoadingNote />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/kategori/:slug" element={<CategoryPage />} />
-                <Route path="/giris" element={<Login />} />
-                <Route path="/kayit" element={<Register />} />
-                <Route path="/parola-unuttum" element={<ForgotPassword />} />
-                <Route path="/parola-sifirla" element={<ResetPassword />} />
-                <Route path="/e-posta-dogrula" element={<ConfirmEmail />} />
-                <Route path="/projelerim" element={<Projects />} />
-                <Route path="/proje/:id" element={<Project />} />
-                <Route path="/arac/trace-width" element={<TraceWidth />} />
-                <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
-                <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
-                <Route path="/arac/led-ohm-rlc" element={<LedOhmRlc />} />
-                <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
-                <Route path="/arac/guc-duzlemi" element={<PowerPlane />} />
-                <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
-                <Route path="/arac/via-ozellikleri" element={<ViaProperties />} />
-                <Route path="/arac/termal-via" element={<ThermalVia />} />
-                <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
-                <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
-                <Route path="/arac/yayilma-gecikmesi" element={<PropDelay />} />
-                <Route path="/arac/kritik-hat-uzunlugu" element={<CriticalLength />} />
-                <Route path="/arac/skew" element={<Skew />} />
-                <Route path="/arac/crosstalk" element={<Crosstalk />} />
-                <Route path="/arac/terminasyon" element={<Termination />} />
-                <Route path="/arac/pdn-hedef-empedans" element={<Pdn />} />
-                <Route path="/arac/decoupling" element={<Decoupling />} />
-                <Route path="/arac/junction-sicakligi" element={<Junction />} />
-                <Route path="/arac/uzunluk-donusturucu" element={<LengthConverter />} />
-                <Route path="/arac/awg-donusturucu" element={<AwgConverter />} />
-                <Route path="/arac/frekans-periyot" element={<FrequencyConverter />} />
-                <Route path="/arac/db-kazanc" element={<DecibelConverter />} />
-                <Route path="/arac/sicaklik-donusturucu" element={<TemperatureConverter />} />
-                <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
-                <Route path="/arac/clearance-creepage-padstack" element={<ClearanceCreepagePadstack />} />
-                <Route path="/arac/bga-breakout" element={<BgaBreakout />} />
-                <Route path="/arac/stack-up-planlayici" element={<StackupPlanner />} />
-                <Route path="/arac/thermal-relief" element={<ThermalRelief />} />
-              </Routes>
-            </Suspense>
-          </Layout>
-        </AuthProvider>
-      </BrowserRouter>
+      {/* NoticeProvider yönlendiricinin ÜSTÜNDE: çıkışta önce bildirim kurulup
+          sonra sayfa değiştiriliyor, sağlayıcı içeride olsaydı yönlendirme onu
+          söker ve kart hiç görünmezdi. */}
+      <NoticeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Layout>
+              <Suspense fallback={<LoadingNote />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/kategori/:slug" element={<CategoryPage />} />
+                  <Route path="/giris" element={<Login />} />
+                  <Route path="/kayit" element={<Register />} />
+                  <Route path="/parola-unuttum" element={<ForgotPassword />} />
+                  <Route path="/parola-sifirla" element={<ResetPassword />} />
+                  <Route path="/e-posta-dogrula" element={<ConfirmEmail />} />
+                  <Route path="/projelerim" element={<Projects />} />
+                  <Route path="/proje/:id" element={<Project />} />
+                  <Route path="/arac/trace-width" element={<TraceWidth />} />
+                  <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
+                  <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
+                  <Route path="/arac/led-ohm-rlc" element={<LedOhmRlc />} />
+                  <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
+                  <Route path="/arac/guc-duzlemi" element={<PowerPlane />} />
+                  <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
+                  <Route path="/arac/via-ozellikleri" element={<ViaProperties />} />
+                  <Route path="/arac/termal-via" element={<ThermalVia />} />
+                  <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
+                  <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
+                  <Route path="/arac/yayilma-gecikmesi" element={<PropDelay />} />
+                  <Route path="/arac/kritik-hat-uzunlugu" element={<CriticalLength />} />
+                  <Route path="/arac/skew" element={<Skew />} />
+                  <Route path="/arac/crosstalk" element={<Crosstalk />} />
+                  <Route path="/arac/terminasyon" element={<Termination />} />
+                  <Route path="/arac/pdn-hedef-empedans" element={<Pdn />} />
+                  <Route path="/arac/decoupling" element={<Decoupling />} />
+                  <Route path="/arac/junction-sicakligi" element={<Junction />} />
+                  <Route path="/arac/uzunluk-donusturucu" element={<LengthConverter />} />
+                  <Route path="/arac/awg-donusturucu" element={<AwgConverter />} />
+                  <Route path="/arac/frekans-periyot" element={<FrequencyConverter />} />
+                  <Route path="/arac/db-kazanc" element={<DecibelConverter />} />
+                  <Route path="/arac/sicaklik-donusturucu" element={<TemperatureConverter />} />
+                  <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
+                  <Route path="/arac/clearance-creepage-padstack" element={<ClearanceCreepagePadstack />} />
+                  <Route path="/arac/bga-breakout" element={<BgaBreakout />} />
+                  <Route path="/arac/stack-up-planlayici" element={<StackupPlanner />} />
+                  <Route path="/arac/thermal-relief" element={<ThermalRelief />} />
+                </Routes>
+              </Suspense>
+            </Layout>
+          </AuthProvider>
+        </BrowserRouter>
+      </NoticeProvider>
     </LangProvider>
   )
 }

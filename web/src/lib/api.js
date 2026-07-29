@@ -87,9 +87,27 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
     return { ok: false, status: res.status, error: parsed?.error ?? 'unknown', detail: parsed?.detail }
   }
 
+  // Yenileme token'ı her kullanımda DÖNDÜRÜLÜR. İki sekme aynı anda
+  // yenilemeye kalkarsa biri kaçınılmaz olarak artık geçersiz olan token'ı
+  // sunar ve 401 alır — ama o sırada öteki sekme çerezi çoktan tazelemiştir.
+  // Tek denemede pes etmek, kullanıcıyı hiç gerekmediği hâlde oturumdan
+  // atıyordu. Kısa bir bekleyişten sonra ikinci deneme GÜNCEL çerezle gider.
+  //
+  // `refreshing` tek-uçuş koruması yalnızca BU sekme içindir; sekmeler arası
+  // yarışı kapatan şey bu yeniden deneme ve sunucudaki tolerans penceresidir
+  // (AuthEndpoints.RotationGrace).
+  const REFRESH_RETRY_MS = 350
+
+  async function callRefresh() {
+    const first = await rawRequest('POST', '/api/auth/refresh', undefined, null)
+    if (first.ok) return first
+    await new Promise((resolve) => setTimeout(resolve, REFRESH_RETRY_MS))
+    return rawRequest('POST', '/api/auth/refresh', undefined, null)
+  }
+
   async function refreshOnce() {
     if (!refreshing) {
-      refreshing = rawRequest('POST', '/api/auth/refresh', undefined, null)
+      refreshing = callRefresh()
         .then((res) => {
           if (res.ok) setAccessToken(res.data.accessToken)
           return res
@@ -131,6 +149,9 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
     patch: (path, body, opts) => request('PATCH', path, body, opts),
     del: (path, opts) => request('DELETE', path, undefined, opts),
     postBlob: (path, body, fallbackFileName, opts) => requestBlob('POST', path, body, fallbackFileName, opts),
+    // Açılıştaki sessiz oturum kurtarma. `post('/api/auth/refresh')` ile
+    // ELLE çağrılmamalı: sekme yarışındaki yeniden deneme yalnızca burada var.
+    refreshSession: () => refreshOnce(),
   }
 }
 

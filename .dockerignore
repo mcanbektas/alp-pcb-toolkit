@@ -1,0 +1,23 @@
+# Derleme bağlamı depo köküdür (web/ ve deploy/ aynı imajda buluşuyor), bu
+# yüzden kökteki ağır dizinler burada elenir — yoksa her derlemede node_modules
+# ve bin/obj daemon'a gönderilir.
+node_modules
+**/node_modules
+**/dist
+**/bin
+**/obj
+.git
+.github
+docs
+.claude
+**/.DS_Store
+**/*.user
+
+# Sırlar imaja hiç girmez
+deploy/.env
+deploy/*.env
+**/appsettings.Development.json
+**/appsettings.Production.json
+
+# Üretilmiş raporlar
+api/Alp.Api/App_Data

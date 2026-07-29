@@ -1,0 +1,42 @@
+name: CI
+
+# Her dalda ve her PR'da koşar. Dağıtım iş akışı (deploy.yml) yalnızca
+# main'e push'ta çalışır ve imaj derler — testler burada.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: web — test + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # package.json depo kökünde DEĞİL, web/ altındadır (Faz 0 taşıması).
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      # Hesap motorları testten geçmeden ileri gidilmez.
+      - run: npm test
+      - run: npm run build
+
+  api:
+    name: api — build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - run: dotnet restore api/Alp.Api.sln
+      - run: dotnet build api/Alp.Api.sln -c Release --no-restore

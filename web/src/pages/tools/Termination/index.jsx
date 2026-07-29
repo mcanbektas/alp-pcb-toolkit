@@ -7,6 +7,7 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
 import { fmt, fmtRes, fmtPct, fmtVolt, fmtAmp, fmtWatt } from '../../../lib/num'
@@ -45,7 +46,13 @@ function Commentary({ heading, notes }) {
 
 export default function Termination() {
   const [type, setType] = useState(TERM_SERIES)
-  const { f, set } = useToolForm(INITIAL_FORM)
+  const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  const saved = useSavedCalculation({
+    toolKey: 'termination', initialForm: INITIAL_FORM, patch, setMode: setType,
+  })
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
@@ -474,6 +481,7 @@ export default function Termination() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={saved}
       />
     </>
   )

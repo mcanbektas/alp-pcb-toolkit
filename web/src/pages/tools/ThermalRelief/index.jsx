@@ -11,6 +11,7 @@ import ProfilePanel from '../../../components/ProfilePanel'
 import DfmChecks from '../../../components/DfmChecks'
 import DfmSummaryBox from '../../../components/DfmSummaryBox'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import useDfmProfiles from '../../../hooks/useDfmProfiles'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
@@ -68,7 +69,13 @@ const METRIC_FORMAT = {
 export default function ThermalRelief() {
   const [sweep, setSweep] = useState(SWEEP_WIDTH)
   const [metric, setMetric] = useState(METRIC_RESISTANCE)
-  const { f, set } = useToolForm(INITIAL_FORM)
+  const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  const saved = useSavedCalculation({
+    toolKey: 'thermal-relief', initialForm: INITIAL_FORM, patch,
+  })
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
@@ -470,8 +477,6 @@ export default function ThermalRelief() {
         <section className="panel panel-detail">
           <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">{text.formula.body}</pre>
-
           <ul className="detail-list">
             <li>{text.detail.constantsFromUnits}</li>
             <li>{text.detail.taperLimit}</li>
@@ -492,6 +497,14 @@ export default function ThermalRelief() {
           </ul>
         </section>
       </div>
+
+      {/* ---------- Alt: Denklemler ---------- */}
+      {/* Dar sağ sütunda uzun formüller kırpılıyordu; tam genişlikte
+          hiçbiri taşmıyor. Desen ViaProperties ile aynı. */}
+      <section className="formula-wide">
+        <h2>{ui.equations}</h2>
+        <pre className="formula">{text.formula.body}</pre>
+      </section>
 
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
@@ -560,6 +573,7 @@ export default function ThermalRelief() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={saved}
       />
     </>
   )

@@ -933,3 +933,80 @@ Faz 3b (fontlar), Faz 7 (`useSavedThickness`→hesaba taşıma), Faz 8/9. Ayrıc
 araçtaki grafik-son-satır hatası (yukarıda) düzeltilmedi — küçük, izole bir temizlik
 fazı olarak ele alınabilir, henüz atanmadı. `PATCH /api/me`, logo yükleme,
 `/api/thickness-records/*` de hâlâ açık (Faz 5'ten devreden, bkz. §16).
+
+## 18. Kayıt döngüsü tamamlandı — kaydet / gör / aç / güncelle
+
+**Tarih:** 2026-07-29 · **Sonuç:** kaydetme tek yönlü bir yazma olmaktan çıktı; kaydedilen
+hesap geri açılabiliyor, üzerine yazılabiliyor ve proje listesinde okunabilir hâlde
+görünüyor. Gerçek tarayıcıda ve canlı yığında doğrulandı.
+
+### Kapatılan dört açık
+
+1. **`InputsJson` yazılıyordu, hiç okunmuyordu.** Alan doluyor ama kaydı araca geri
+   yükleyecek bir yol yoktu. Artık `?hesap=<id>` sorgu parametresi kaydı ekrana geri kurar.
+2. **Aynı hesap iki kez kaydedilince kopya satır oluşuyordu.** `PATCH
+   /api/calculations/{id}` backend'de yazılıydı ama arayüz onu hiç çağırmıyordu. Ekran artık
+   ilk kayıttan sonra o kayda **bağlanır** ve ikinci kaydetme üzerine yazar.
+3. **`EngineVersion` saklanıyor, hiç kullanılmıyordu.** Kayıt uygulamanın güncel motor
+   sürümünden geriyse proje listesinde "eski sürüm" çipi, araç ekranında da bir not çıkar.
+4. **Önizleme ham JSON anahtarı gösteriyordu** (`wMm 0.3605`). Önizleme artık `ReportJson`
+   içindeki **etiketlenmiş ve birimlenmiş** sonuç satırlarından kurulur; vurgulanan satır
+   başa alınır.
+
+### Yol boyunca çıkan bir hata
+
+`categories.js`'teki üç DFM aracının `id` alanı, ekranın kaydettiği `toolKey` ile
+ayrışmıştı (`bga` ↔ `bga-breakout`, `stackup` ↔ `stackup-planner`, `clearance` ↔
+`clearance-creepage-padstack`). Proje listesinde bu üç aracın adı yerine ham anahtar
+görünüyordu ve "Aç" yolu da bulunamazdı. `id` alanları **kaydedilen anahtara** hizalandı —
+kalıcı olan taraf odur.
+
+### Backend
+
+- `GET /api/calculations/{id}` eklendi (`CalculationDetailResponse`: hesap + üst projenin
+  kimliği ve adı). Araç ekranı yalnızca kaydın kimliğini bilir, üst projeyi bilmez; proje
+  detayı üzerinden okuma bu yüzden yetmiyordu. Sahiplik yine `Calculation.Project.UserId`
+  üzerinden doğrulanır, yok/başkasının kaydı **aynı 404** şeklini döner.
+
+### Frontend
+
+- **`src/lib/savedCalculation.js`** (saf, 21 test): `restoreForm` kaydı aracın **mevcut**
+  form şemasına süzer — tanınmayan alan atılır, eksik alan başlangıç değerinde kalır, satır
+  listelerinde fazlalık anahtar temizlenir, tek bozuk satır bütün alanı düşürür (yarısı
+  yüklenmez). `engineStatus` sürüm sayısal değilse `stale` demez, `unknown` der.
+  `previewRows` **yalnızca** `results` dizisini okur; `reportJson` içindeki satır içi SVG
+  alanlarına hiç dokunmaz, dolayısıyla ekrana geri yazılabilecek bir işaretleme üretmez.
+- **`src/hooks/useSavedCalculation.js`**: URL parametresini okur, kaydı çeker, `toolKey`
+  eşleşmesini denetler, formu geri yükler ve ekranın hangi kayda bağlı olduğunu tutar.
+  `bind()` yeni kaydı bağlar (URL'yi `replace` ile günceller), `unbind()` bağı koparır.
+  Aynı kimlik iki kez yüklenmez: kullanıcı formu düzenledikten sonra bir yeniden render
+  geri yüklemeyi TEKRARLAMAZ, yoksa düzenleme sessizce geri alınırdı.
+- **`SaveToProject`** iki hâlli oldu (bağsız → yeni kayıt, bağlı → üzerine yaz + "Yeni kayıt
+  olarak ekle"). Kayıt gövdesi tek yerde kurulur; bölüm kurulamadıysa `reportJson` alanı
+  **gönderilmez** (PATCH'te atlanan alan "değişmedi" demektir, eski bölüm korunur).
+- **`Project.jsx`**: her satıra "Aç" bağlantısı, etiketli önizleme, mod etiketi ve eski
+  sürüm çipi. Ham `reportJson`'ın DOM'a geri yazılmaması kuralı korunuyor.
+- 29 araç ekranının tamamı hook'a bağlandı (`patch` + `saved` prop'u; modu ayrı state'te
+  tutan 13 ekranda setter de geçirilir, modu form alanında tutanlarda gerek yok).
+- Tema dosyalarının dördüne iki ortak kural eklendi: `.tool-row .sub` (kayıt satırındaki
+  ikincil bilgi) ve `a.row-add` (düğme görünümlü gerçek bağlantı). Ekrana özel CSS yok.
+
+### Doğrulama
+
+- `npm test` 1887/1887 yeşil (111 yeni: 21 saf katman + 90 bekçi), `npm run build`
+  temiz, `dotnet build` 0 uyarı.
+- `pages/tools/toolKeys.test.js`: `toolKey` ↔ `categories.js` eşleşmesi, her aktif
+  katalog kaydının ekranı ve her ekranın kayıt bağını geçirmesi kaynak dosyalar
+  metin olarak okunarak denetlenir (`dfmTextPaths.test.js` ile aynı teknik).
+- Canlı yığında curl ile: oluştur → oku → PATCH → proje detayında **tek satır**; yok olan
+  kayıt 404, tokensiz istek 401.
+- Gerçek tarayıcıda (Playwright, `scratchpad/pw/verify-kayit.mjs`) 17 kontrol: kaydetme,
+  URL'ye bağlanma, üzerine yazma, kopya olmaması, proje satırındaki ad/mod/önizleme, "Aç"
+  ile geri yükleme (girdi **ve** mod), bağ koparma, bulunamayan kayıt, başka aracın kaydı,
+  oturumsuz kullanıcı, sıfır sayfa hatası.
+
+### Kalan
+
+Ekranın bağlı olduğu kayıt silinirse ekran bunu ancak bir sonraki yüklemede fark eder
+(güncelleme 404 döner ve genel hata mesajı görünür) — özel bir mesaj yazılmadı.
+Faz 3b (fontlar), Faz 7, Faz 8'in sunucu adımı ve Faz 9 hâlâ açık.

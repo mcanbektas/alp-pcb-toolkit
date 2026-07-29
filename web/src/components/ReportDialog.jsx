@@ -3,10 +3,11 @@
 // yalnızca giriş bağlantısı gösterilir; hesap araçlarının kendisi girişsiz
 // çalışmaya devam eder (§6.5).
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
+import { useNotice } from '../hooks/useNotice'
 import { reportText, reportErrorText, reportDateStamp } from '../data/reportText'
 import { buildReportPayload } from '../lib/reportPayload'
 import { serializeSvgElement } from '../lib/svgInline'
@@ -19,8 +20,24 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
   const { lang } = useLang()
   const text = reportText(lang)
   const { isAuthenticated, user, api } = useAuth()
+  const { showNotice } = useNotice()
 
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
+
+  // `user` ilk render'da HENÜZ YOK: oturum sessiz yenilemeyle çözülüyor ve
+  // yanıt sonradan geliyor. Başlangıç değeri o yüzden boş kalıyordu —
+  // doğrudan bir araç sayfası açıp (ya da F5'leyip) PDF'e basınca
+  // "Hazırlayan adı boş olamaz" hatası çıkıyordu; SPA içinde gezinerek
+  // gelindiğinde ad zaten yüklü olduğu için sorun görünmüyordu.
+  //
+  // Ad geldiğinde alan BİR KEZ doldurulur ve kullanıcının yazdığı değer
+  // ezilmez: koşul hem tek seferlik bayrağa hem alanın hâlâ boş olmasına bakar.
+  const filledFromUser = useRef(false)
+  useEffect(() => {
+    if (filledFromUser.current || !user?.displayName) return
+    filledFromUser.current = true
+    setPreparedBy((current) => (current === '' ? user.displayName : current))
+  }, [user?.displayName])
   const [busy, setBusy] = useState(null) // null | 'pdf' | 'xlsx'
   const [error, setError] = useState(null)
 
@@ -70,6 +87,9 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
 
     if (res.ok) {
       downloadBlob(res.blob, res.fileName)
+      // Dosya adı sunucudan (Content-Disposition) gelir; bildirime de o yazılır,
+      // ekranın kendi tahmini değil — ikisi ayrışamaz.
+      showNotice(text.downloaded(res.fileName))
     } else {
       setError(reportErrorText(res, lang))
     }

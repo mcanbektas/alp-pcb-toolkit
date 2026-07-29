@@ -45,7 +45,7 @@ const BgaSchematic = forwardRef(function BgaSchematic({ r, text, fmtLen }, ref) 
   }
 
   return (
-    <Schematic ref={ref} viewBox="0 0 300 224" title={text.title} caption={text.caption}>
+    <Schematic ref={ref} viewBox="0 0 330 224" title={text.title} caption={text.caption}>
       {/* Mask açıklıkları — landin altında, daha geniş halka olarak */}
       {centres.map(([x, y]) => (
         <circle key={`m${x}-${y}`} className="sch-dielectric sch-dash" cx={x} cy={y} r={rMask} />

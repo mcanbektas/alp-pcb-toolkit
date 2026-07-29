@@ -198,6 +198,9 @@ namespace Alp.Data.Migrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("Persistent")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ReplacedByHash")
                         .HasColumnType("text");
 

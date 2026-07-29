@@ -13,7 +13,7 @@ import { LAYER_COPPER, DIELECTRIC_TYPES } from '../../../lib/stackup'
 const MIN_BAND_PX = 5
 const MAX_TOTAL_PX = 250
 const LABEL_X = 172
-const VALUE_X = 246
+const VALUE_X = 368
 
 const bandClass = (layer) => {
   if (layer.type === LAYER_COPPER) return 'sch-copper'
@@ -67,7 +67,7 @@ const StackupSchematic = forwardRef(function StackupSchematic(
   const vbH = Math.max(bottom + 34, 120)
 
   return (
-    <Schematic ref={ref} viewBox={`0 0 300 ${vbH}`} title={text.title} caption={text.caption}>
+    <Schematic ref={ref} viewBox={`0 0 380 ${vbH}`} title={text.title} caption={text.caption}>
       {layers.map((l, i) => (
         <g key={`${l.type}-${i}`}>
           <rect
@@ -85,7 +85,7 @@ const StackupSchematic = forwardRef(function StackupSchematic(
               <text className="sch-label" x={LABEL_X} y={tops[i] + scaled[i] / 2 + 3}>
                 {l.name !== '' ? l.name : text.typeLabel(l.type)}
               </text>
-              <text className="sch-value" x={VALUE_X} y={tops[i] + scaled[i] / 2 + 3}>
+              <text className="sch-value" x={VALUE_X} textAnchor="end" y={tops[i] + scaled[i] / 2 + 3}>
                 {fmtLen(l.thickness)}
               </text>
             </>
@@ -116,7 +116,7 @@ const StackupSchematic = forwardRef(function StackupSchematic(
         <>
           <line className="sch-dim" x1={left + width + 6} y1={top} x2={left + width + 6} y2={bottom} />
           <text className="sch-label" x={LABEL_X} y={bottom + 18}>{text.total}</text>
-          <text className="sch-value" x={VALUE_X} y={bottom + 18}>
+          <text className="sch-value" x={VALUE_X} textAnchor="end" y={bottom + 18}>
             {fmtLen(r.results.finishedTotal)}
           </text>
         </>

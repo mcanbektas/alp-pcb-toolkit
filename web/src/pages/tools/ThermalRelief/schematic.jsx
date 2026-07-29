@@ -49,7 +49,7 @@ const ThermalReliefSchematic = forwardRef(function ThermalReliefSchematic(
   })
 
   return (
-    <Schematic ref={ref} viewBox="0 0 300 226" title={text.title} caption={text.caption}>
+    <Schematic ref={ref} viewBox="0 0 340 226" title={text.title} caption={text.caption}>
       {/* Plane bakırı — açıklığın dışında kalan alan */}
       <rect className="sch-copper-fill" x={8} y={8} width={200} height={200} />
       <text className="sch-label" x={14} y={22}>{text.plane}</text>

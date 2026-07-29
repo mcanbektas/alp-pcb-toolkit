@@ -115,6 +115,7 @@ export function authText(lang) {
     header: {
       loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
       logout: t({ tr: 'Çıkış yap', en: 'Sign out' }),
+      signedOut: t({ tr: 'Çıkış yapıldı.', en: 'Signed out.' }),
       projects: t({ tr: 'Projelerim', en: 'My projects' }),
     },
 
@@ -133,6 +134,11 @@ export function authText(lang) {
       title: t({ tr: 'Giriş yap', en: 'Sign in' }),
       submit: t({ tr: 'Giriş yap', en: 'Sign in' }),
       submitting: t({ tr: 'Giriş yapılıyor…', en: 'Signing in…' }),
+      remember: t({ tr: 'Beni kaydet', en: 'Remember me' }),
+      rememberHint: t({
+        tr: 'Oturum açık kalır, e-postan hatırlanır — parola kaydedilmez.',
+        en: 'Keeps you signed in and remembers your email — the password is not stored.',
+      }),
       forgotLink: t({ tr: 'Parolamı unuttum', en: 'Forgot password' }),
       registerPrompt: t({ tr: 'Hesabın yok mu?', en: "Don't have an account?" }),
       registerLink: t({ tr: 'Kayıt ol', en: 'Register' }),

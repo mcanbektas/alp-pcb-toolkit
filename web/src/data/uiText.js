@@ -60,6 +60,15 @@ export function commonText(lang) {
       en: `Ambiguous thousands separator; use a point or comma for decimals. Affected field${fields.length === 1 ? '' : 's'}: ${fields.join(', ')}.`,
     }),
 
+    // Bildirim kartı (Toast.jsx) — çerçeve metni her bildirimde aynı, yalnızca
+    // gösterilen cümle çağırandan gelir. Süre metne GÖMÜLMEZ, parametre olarak
+    // geçer: sayı kodda değişip metinde kalırsa kart yalan söyler.
+    toastClose: t({ tr: 'Bildirimi kapat', en: 'Dismiss notification' }),
+    toastAutoClose: (seconds) => t({
+      tr: `${seconds} saniye içinde kendiliğinden kapanacaktır.`,
+      en: `This will close automatically in ${seconds} second${seconds === 1 ? '' : 's'}.`,
+    }),
+
     // Satır listesi — ekran başına değişmeyen varsayılanlar ve ekran okuyucu
     // etiketleri. Kalıp tek yerdedir; RowList kullanan üç ekran aynı sözlüğü
     // kopyalamaz.

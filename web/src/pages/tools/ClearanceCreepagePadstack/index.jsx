@@ -10,6 +10,7 @@ import ProfilePanel, { PROFILE_KIND_DECISION } from '../../../components/Profile
 import DfmChecks from '../../../components/DfmChecks'
 import DfmSummaryBox from '../../../components/DfmSummaryBox'
 import useToolForm from '../../../hooks/useToolForm'
+import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import useDfmProfiles from '../../../hooks/useDfmProfiles'
 import useClearanceProfiles from '../../../hooks/useClearanceProfiles'
 import { useLang } from '../../../hooks/useLang'
@@ -39,7 +40,13 @@ export default function ClearanceCreepagePadstack() {
   const [tab, setTab] = useState(TAB_CLEARANCE)
   const [mode, setMode] = useState(MODE_SYNTHESIS)
   const [sweep, setSweep] = useState(SWEEP_ALTITUDE)
-  const { f, set } = useToolForm(INITIAL_FORM)
+  const { f, set, patch } = useToolForm(INITIAL_FORM)
+
+  // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
+  // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
+  const saved = useSavedCalculation({
+    toolKey: 'clearance-creepage-padstack', initialForm: INITIAL_FORM, patch, setMode: setTab,
+  })
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
@@ -627,12 +634,6 @@ export default function ClearanceCreepagePadstack() {
         <section className="panel panel-detail">
           <h2>{ui.technicalDetail}</h2>
 
-          <pre className="formula">
-            {(r.tab === TAB_PADSTACK ? text.formulas.padstack
-              : r.tab === TAB_CREEPAGE ? text.formulas.creepage
-                : text.formulas.clearance).body}
-          </pre>
-
           <ul className="detail-list">
             <li>{text.detail.toleranceOneSided}</li>
             <li>{text.detail.worstCaseUses}</li>
@@ -652,6 +653,18 @@ export default function ClearanceCreepagePadstack() {
           </ul>
         </section>
       </div>
+
+      {/* ---------- Alt: Denklemler ---------- */}
+      {/* Dar sağ sütunda uzun formüller kırpılıyordu; tam genişlikte
+          hiçbiri taşmıyor. Desen ViaProperties ile aynı. */}
+      <section className="formula-wide">
+        <h2>{ui.equations}</h2>
+        <pre className="formula">
+          {(r.tab === TAB_PADSTACK ? text.formulas.padstack
+            : r.tab === TAB_CREEPAGE ? text.formulas.creepage
+              : text.formulas.clearance).body}
+        </pre>
+      </section>
 
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
@@ -716,6 +729,7 @@ export default function ClearanceCreepagePadstack() {
         section={reportSection}
         schematicRef={schematicRef}
         chartRef={chartRef}
+        saved={saved}
       />
     </>
   )

@@ -45,7 +45,7 @@ const PadstackView = forwardRef(function PadstackView({ r, text, fmtLen }, ref) 
   const rAnti = live ? ring(rMask, r.results.Dantipad / 2, scale) : 52
 
   return (
-    <Schematic ref={ref} viewBox="0 0 300 216" title={text.padstackTitle} caption={text.caption}>
+    <Schematic ref={ref} viewBox="0 0 340 216" title={text.padstackTitle} caption={text.caption}>
       {/* Antipad — plane içindeki boşluk */}
       <circle className="sch-dielectric" cx={cx} cy={cy} r={rAnti} />
       {/* Mask açıklığı */}
@@ -70,14 +70,27 @@ const PadstackView = forwardRef(function PadstackView({ r, text, fmtLen }, ref) 
 
       {live && (
         <>
-          <text className="sch-value" x={cx + rAnti + 76} y={cy - 34}>{fmtLen(r.results.Dantipad)}</text>
-          <text className="sch-value" x={cx + rAnti + 76} y={cy - 16}>{fmtLen(r.results.Dmask)}</text>
-          <text className="sch-value" x={cx + rAnti + 76} y={cy + 2}>{fmtLen(r.results.Dpad)}</text>
-          <text className="sch-value" x={cx + rAnti + 76} y={cy + 20}>{fmtLen(r.results.tPlating)}</text>
-          <text className="sch-value" x={cx + rAnti + 76} y={cy + 38}>{fmtLen(r.results.Ddrill)}</text>
+          {/* Değer sütunu SAĞA yaslı. Etikete sabit bir boşluk eklenerek
+              (eskiden +76) konumlandırılırsa uzun etiket değerin üstüne biner —
+              "mask açıklığı" 86 birim, boşluk 70'ti. Sağa yaslamak çakışmayı
+              geometriyle imkânsız kılar ve çeviri uzadığında yeniden
+              ölçmek gerekmez. */}
+          <text className="sch-value" x={328} textAnchor="end" y={cy - 34}>{fmtLen(r.results.Dantipad)}</text>
+          <text className="sch-value" x={328} textAnchor="end" y={cy - 16}>{fmtLen(r.results.Dmask)}</text>
+          <text className="sch-value" x={328} textAnchor="end" y={cy + 2}>{fmtLen(r.results.Dpad)}</text>
+          <text className="sch-value" x={328} textAnchor="end" y={cy + 20}>{fmtLen(r.results.tPlating)}</text>
+          <text className="sch-value" x={328} textAnchor="end" y={cy + 38}>{fmtLen(r.results.Ddrill)}</text>
 
+          {/* Alt ölçü satırı: etiket solda, değer SAĞA yaslı. Değer sabit bir
+              x'e konursa ("annular ring" 60 birimden geniş) etiketin üstüne
+              biner — yukarıdaki sütunun aksine burada etiket için ayrılmış dar
+              bir sütun yok, satır çizimin tüm genişliğini kullanıyor. Sağa
+              yaslamak çakışmayı geometriyle imkânsız kılar, metin uzunluğunu
+              tahmin etmeye dayanmaz. */}
           <text className="sch-label" x={12} y={200}>{text.ring}</text>
-          <text className="sch-value" x={72} y={200}>{fmtLen(r.results.ringWorst)}</text>
+          <text className="sch-value" x={328} y={200} textAnchor="end">
+            {fmtLen(r.results.ringWorst)}
+          </text>
         </>
       )}
     </Schematic>
