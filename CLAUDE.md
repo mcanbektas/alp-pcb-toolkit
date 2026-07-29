@@ -21,10 +21,13 @@ npm test         # vitest run — yalnızca src/lib/ altındaki saf hesap fonksi
 npm run test:watch
 ```
 
-Linter kurulu değil. Test kapsamı bilinçli olarak dar: **yalnızca `src/lib/` altındaki saf
-hesap fonksiyonları test edilir. React bileşeni testi yazılmaz** — arayüz doğrulaması
-`npm run build` + tarayıcıda elle kontrol ile yapılır. Yeni bir test/lint aracı eklemek
-istersen önce sor.
+Linter kurulu değil. Test kapsamı bilinçli olarak dar: **saf fonksiyonlar test edilir,
+React bileşeni testi yazılmaz** — arayüz doğrulaması `npm run build` + tarayıcıda elle
+kontrol ile yapılır. Yeni bir test/lint aracı eklemek istersen önce sor.
+
+Saf sayılan ve bu yüzden test edilen üç yer: `src/lib/`, ekranların `report.js` dosyaları
+ve ekranların `text.js` sözlükleri. Sonuncusu `dfmTextPaths.test.js`'te kaynak dosyaları
+metin olarak okuyup metin yollarını yürüterek denetlenir — bileşen render edilmez.
 
 **Yeni bir hesap motoru eklendiğinde `docs/spec.md` §13'te karşılığı varsa, testi de aynı
 commit'te yazılır.** §13'ün altı referans testi (microstrip, via direnci, PDN hedef empedansı,
@@ -61,7 +64,8 @@ soyut portu bilir.
      bağlı olduğu için `commonText(lang).pct` ile konur (`pct(fmtPct(x))`).
      Araç ekranları tembel yüklenir (`src/App.jsx` içinde `lazy`), bu yüzden her ekran yalnızca
      kendi motorunu paketine çeker.
-   - `units.js` — fiziksel sabitler (`C0`, `EPS0`, `MU0`, `ETA0`, `RHO_CU_20`, `K_CU`) ve
+   - `units.js` — fiziksel sabitler (`C0`, `EPS0`, `MU0`, `ETA0`, `RHO_CU_20`, `K_CU`,
+     `K_CU_HIGH`) ve
      birim → SI çarpan tabloları (`LENGTH`, `CAPACITANCE`, `FREQUENCY`, …) + `toSI`/`fromSI`.
      Yeni sabit buraya eklenir, araç dosyasına gömülmez.
    - `fields.js` — form alanı okuma: birim çevirme, belirsiz binlik ayırıcı yakalama,
@@ -81,19 +85,27 @@ soyut portu bilir.
      liste/kaydet/sil. `localStorage`'ı tanımaz, portu parametre olarak alır.
    - Hesap motorları: `traceCalc.js`, `ohm.js`, `divider.js`, `led.js`, `reactance.js`,
      `timing.js`, `crystal.js`, `codes.js`, `eseries.js`.
+   - Üretim/DFM motorları: `dfmProfile.js`, `dfmCheck.js`, `dfmSummary.js`, `padstack.js`,
+     `clearanceProfile.js`, `clearanceCreepage.js`, `bgaBreakout.js`, `stackup.js`,
+     `stackupProfiles.js`, `thermalRelief.js` — ayrıntı: "Üretim/DFM ekranlarının ortak
+     yapısı".
    - Dönüşüm motorları (`docs/spec.md` §11): `convertLength.js`, `convertAwg.js`,
      `convertFrequency.js`, `convertDecibel.js`, `convertTemperature.js`, `convertComplex.js`.
      Bunlar tanım gereği tam bağıntılardır; ampirik yaklaşım içermezler, kök çözücüye
      ihtiyaç duymazlar ve uç girdide `Infinity` döndürmek yerine aralık hata kodu verirler.
 2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`,
-   `TextField`, `RowList`, `Schematic`, `LineChart`, `Formula`). State tutmaz, hesap yapmaz.
+   `TextField`, `RowList`, `Schematic`, `LineChart`, `Formula`, `ProfilePanel`, `DfmChecks`,
+   `DfmSummaryBox`). State tutmaz, hesap yapmaz.
+   - `RowList` sütunları isteğe bağlı `options` (satır içi seçici) ve `text` (serbest metin)
+     alabilir; verilmeyen sütun eskisi gibi sayı girişi olur. Izgara genişliği `cols-N`
+     sınıfıyla seçilir çünkü satır içi stil kullanılmaz.
    - `Formula` — formül bloğunu `<sup>`/`<sub>` ile dizer (`A^2`, `D_o`, `10^(G/10)`,
      `N_{I,V}`; `\^` ve `\_` kaçış). KaTeX gibi bir kütüphane yerine bu seçildi: bağımlılık
      ve paket boyutu eklemiyor, mono font korunuyor. Ayrıştırıcı saf ve testli
      (`parseFormulaLine`) — bileşen testi değil, saf fonksiyon testidir, o yüzden kural dışı
      sayılmaz.
-   - **Dili doğrudan `useLang()`'den okuyan dört istisna** — `EpsEffFields`, `RowList`,
-     `LineChart`, `NumberField`. Ortak kural: bileşenin **kendi çerçeve metni** her ekranda
+   - **Dili doğrudan `useLang()`'den okuyan istisnalar** — `EpsEffFields`, `RowList`,
+     `LineChart`, `NumberField`, `ProfilePanel`, `DfmChecks`, `DfmSummaryBox`. Ortak kural: bileşenin **kendi çerçeve metni** her ekranda
      birebir aynıysa (εeff blok etiketleri, "… birimi" / "… sil" ekran okuyucu adları,
      "Veri tablosu", boş grafik notu) o metin `commonText(lang)`'ten okunur; prop olarak
      geçirmek aynı iki dilli sözlüğü yirmi beş ekrana kopyalamak olurdu. **Ekrana özgü olan**
@@ -103,14 +115,19 @@ soyut portu bilir.
      Sonuç satırlarını üreten `epsEffRows(eps, fmt, lang)` saf kalır ve dili parametre alır;
      varsayılanı **yoktur** — atlanan argüman sessizce Türkçeye düşmesin diye zorunludur.
 3. **`src/hooks/`** — `useToolForm` yalnızca React state'ini yönetir; hesap bilgisi taşımaz.
-   `useSavedThickness` somut depolama portunu bağlar — tarayıcı API'si yalnızca burada görünür.
-4. **`src/pages/tools/<Ad>/`** — araç ekranı, dört dosya:
+   Somut depolama portunu bağlayan hook'lar: `useSavedThickness`, `useDfmProfiles`,
+   `useClearanceProfiles`, `useSavedStackups`. Pano erişimi `useClipboard`'dadır.
+   Tarayıcı API'si yalnızca bu beşinde görünür.
+4. **`src/pages/tools/<Ad>/`** — araç ekranı, altı dosya:
    - `index.jsx` — düzen ve state. Hesap yapmaz, metin üretmez; metni `getText(lang)`'ten alır.
    - `model.js` — alan tanımları + `compute()` + `buildSweep()`. Saf, test edilebilir.
      Kullanıcı metni içermez; alan etiketlerini `labels` parametresiyle dışarıdan alır.
    - `schematic.jsx` — devre/geometri SVG'si. Yazılarını `text` prop'undan alır.
    - `text.js` — ekranın tüm kullanıcı metni, iki dilli. Tek dış yüzü
      `export function getText(lang)`.
+   - `report.js` + `report.test.js` — rapor bölümü. Ekranla **aynı** `r`/`s`/`text`
+     kaynağından aynı satırları üretir; ekranla rapor arasındaki kayma riski böylece en
+     aza iner. Saf: React, DOM ve ağ bilmez.
 
 `src/data/categories.js` tek kaynak: 8 kategori ve araç listesi. Bir aracın `path` alanı varsa
 aktif, yoksa "yakında" olarak gösterilir — `Home.jsx` ve `CategoryPage.jsx` bu alana bakar.
@@ -195,8 +212,53 @@ taşır. İkisi aynı kartta dururken bu ayrım görünmüyordu.
 `cu-converter` (*Bakır Kalınlığı Dönüştürücü*) adına rağmen bu kategoride **değildir** ve
 taşınmamalı: yalnızca oz ↔ µm çevirmez, kaplama payı ve aşındırma faktörü gibi üretim
 parametrelerini hesaplar; yeri *PCB Akım, Güç ve Bakır* kategorisidir.
-*PCB Üretim ve DFM* kategorisinin dört aracının hiçbiri henüz yazılmadı; kart bu yüzden
-"yakında" olarak görünür — eksik değil, olması gereken durum.
+
+*PCB Üretim ve DFM* kategorisinin dört aracı yazıldı ve kategoride "yakında" kalan
+kayıt yok: `clearance-creepage-padstack`, `bga-breakout`, `stack-up-planlayici`,
+`thermal-relief`.
+
+### Üretim/DFM ekranlarının ortak yapısı
+
+Dört ekran birbirinden bağımsız üretici limitleri sormaz; ortak bir profil ve ortak bir
+kontrol sözleşmesi paylaşır:
+
+- **`src/lib/dfmProfile.js`** — üretici yetenek profili zarfı (şema adı, `schemaVersion`,
+  doğrulama, mm → SI dönüşümü, içe/dışa aktarma, depolama portu). Girilmeyen sınır `null`
+  kalır ve ona bağlı kontrol `unknown` döner; **sessiz varsayılan üretici değeri yoktur**.
+  Zarfa gerçek bir üreticinin verisi konmaz.
+- **`src/lib/dfmCheck.js`** — ortak marj ve durum sözleşmesi. Marj yönlüdür (`min`/`max`)
+  ve **her iki yönde de artı marj iyi** demektir. `required` sıfırsa yüzdesel marj
+  hesaplanmaz. Hem sınır hem uyarı bandı karşılaştırması bağıl paylıdır: kayan nokta
+  gürültüsü tam sınırdaki bir tasarımı uyarıya düşürmemeli.
+- **`src/lib/dfmSummary.js`** — kopyalanabilir düz metin DFM özeti. Saf: dil bilmez,
+  bütün başlıkları çağırandan alır, tarihi bile dışarıdan ister. Eksik etiket sessizce
+  `undefined` basmaz; `SUMMARY_LABEL_KEYS` eksikse hata döner (bir kez basmıştı).
+- Karar profilleri: **`clearanceProfile.js`** (clearance/creepage tabloları),
+  **`stackupProfiles.js`** (kaydedilmiş stack-up'lar). İkisi de `thicknessRecords.js`
+  desenini izler.
+- Hesap motorları: `padstack.js`, `clearanceCreepage.js`, `bgaBreakout.js`, `stackup.js`,
+  `thermalRelief.js`.
+- Somut bağlar: `useDfmProfiles`, `useClearanceProfiles`, `useSavedStackups`,
+  `useClipboard`. Tarayıcı API'si yalnızca bu dördünde görünür.
+- Ortak sunum: `ProfilePanel`, `DfmChecks`, `DfmSummaryBox` bileşenleri ve
+  `src/data/dfmText.js` sözlüğü. Üçü de dili doğrudan `useLang()`'den okuyan istisna
+  kümesine katıldı — gerekçe aynı: panelin kendi çerçeve metni dört ekranda birebir aynı,
+  prop olarak geçirmek aynı sözlüğü dört kez kopyalamak olurdu.
+
+**Padstack annular ring ve aspect ratio `via.js`'ten gelir**, `padstack.js` kendi kopyasını
+yazmaz. Aynı bağıntının ikinci kopyası, biri düzeltilip diğeri unutulduğunda ViaProperties
+ile Padstack'in farklı sonuç vermesi demektir.
+
+**Dördüncü durum çipi.** `uiText.js` artık `statusUnknown(n)` de taşıyor. Karar verecek
+sınır yokken kontrolü `warn` göstermek "sınıra yakın" demek olurdu ve veri yokluğunu
+ölçülmüş bir yakınlık gibi sunardı. Tema dosyalarında karşılığı `.status.unknown` ve
+`.commentary li.unknown` — dördüne de eklendi.
+
+**`src/pages/tools/dfmTextPaths.test.js`** dört ekranın `index.jsx` / `schematic.jsx` /
+`report.js` dosyalarını metin olarak okur, içindeki `text.…` / `ui.…` / `dfm.…` yollarını
+çıkarır ve iki dilde gerçekten yürür — arity dahil. Bu bir bileşen testi değildir; aşağıda
+"Dil" bölümünde tarif edilen elle kontrolün otomatik hâlidir. Yeni bir üretim/DFM ekranı
+eklendiğinde listesine yazılır.
 
 ### Yeni araç ekleme
 
