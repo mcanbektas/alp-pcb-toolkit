@@ -1,0 +1,70 @@
+import { forwardRef } from 'react'
+import Schematic from '../../../components/Schematic'
+import { fmt, fmtEng } from '../../../lib/num'
+
+// Termal ped altında via dizisi — üstten görünüş.
+// Izgara düzeni gerçek yerleşimi değil, via sayısını temsil eder.
+//
+// `ref` yalnızca rapor üretimi için Schematic'e iletilir — bkz. report.js.
+const ThermalViaSchematic = forwardRef(function ThermalViaSchematic({ r, text }, ref) {
+  const live = r.ok
+  const n = live ? Math.min(r.N, 36) : 9
+  const cols = Math.ceil(Math.sqrt(n))
+  const rows = Math.ceil(n / cols)
+
+  const padX = 70
+  const padY = 26
+  const padW = 120
+  const padH = 84
+  const stepX = padW / (cols + 1)
+  const stepY = padH / (rows + 1)
+  const radius = Math.max(2.5, Math.min(6, stepX / 3))
+
+  const holes = []
+  for (let i = 0; i < n; i++) {
+    const c = i % cols
+    const rw = Math.floor(i / cols)
+    holes.push({
+      cx: padX + stepX * (c + 1),
+      cy: padY + stepY * (rw + 1),
+    })
+  }
+
+  return (
+    // Alt satır en uzun hâlinde (küçük R_θ + uzun H) 254 px'e çıkıyor; 260
+    // genişlikte kenara değiyordu. Çizim ortada kalsın diye viewBox iki
+    // yandan 5 px genişletildi; eleman koordinatları değişmedi.
+    <Schematic
+      ref={ref}
+      viewBox="-5 0 270 150"
+      title={text.title}
+      caption={live && r.N > 36 ? text.captionTruncated(r.N) : text.caption}
+    >
+      {/* Bakır ped */}
+      <rect className="sch-copper-fill" x={padX} y={padY} width={padW} height={padH} rx={3} />
+
+      {/* Vialar */}
+      {holes.map((h, i) => (
+        <g key={i}>
+          <circle className="sch-copper" cx={h.cx} cy={h.cy} r={radius} />
+          <circle className="sch-hole" cx={h.cx} cy={h.cy} r={radius * 0.5} />
+        </g>
+      ))}
+
+      <text className="sch-label dim" x={padX} y={19}>{text.pad}</text>
+
+      {live && (
+        <>
+          <text className="sch-value" x={130} y={126} textAnchor="middle">
+            {r.N} via · {r.filled ? text.filled : text.unfilled}
+          </text>
+          <text className="sch-value" x={130} y={142} textAnchor="middle">
+            {text.arrayR} = {fmt(r.Rarray, 4)} °C/W · H = {fmtEng(r.H, 'm', 3)}
+          </text>
+        </>
+      )}
+    </Schematic>
+  )
+})
+
+export default ThermalViaSchematic

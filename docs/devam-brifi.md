@@ -1,0 +1,14 @@
+Proje: /Users/canbektas/Projects/alp-pcb-toolkit — ALP PCB Toolkit'e üyelik+rapor sistemi ekliyoruz.
+Plan/durum tek kaynak: docs/uyelik-ve-rapor-plani.md (§9 faz tablosu, §12/14/15/16/17 tamamlanan fazların durumu, §13 kalan noktalar).
+
+BİTEN: Faz 0 (repo → web/ + api/), Faz 1 (SVG→QuestPDF risk denemesi, doğrulandı), Faz 2 (.NET backend: Identity+JWT+EF Core, güvenlik reviewu 18 bulgu düzeltildi), Faz 3 (frontend auth: giriş/kayıt/parola ekranları, BrowserRouter), Faz 4 (PDF/Excel rapor üretimi: Alp.Reports, 3 pilot araç — TraceWidth/ResistorCode/LengthConverter — report.js+ReportDialog), Faz 5 (Projects/Calculations CRUD uçları + SaveToProject + /projelerim + /proje/:id — detay §16, 6 bulgunun 6'sı düzeltildi, dotnet build + npm run build/test yeşil), Faz 6 (kalan 22 aracın report.js+test+SaveToProject kablolaması — detay §17, 25/25 araç raporlanabilir, workflow bir kez oturum sınırına takılıp resume edildi, bulunan sistemik/gerçek hatalar — schematicCaption eksik, ekran/rapor etiket kayması, Decoupling'de kritik formFields argüman hatası, çevrilmeyen "adet" birimi — hepsi düzeltildi; npm run build temiz, npm test 1241/1241 yeşil).
+
+KALAN: Faz 3b (fontlar sunucuya taşınacak — bu ortamda ağ erişimi yok, engellendi), Faz 7 (useSavedThickness→hesaba taşıma), Faz 8 (docker-compose/nginx/dağıtım), Faz 9 (CLAUDE.md/README güncelleme). Ayrıca hâlâ açık: PATCH /api/me, logo yükleme, /api/thickness-records/* (§4.3'te listeli, hiçbir faza atanmadı); 3 pilot araçta (TraceWidth/ResistorCode/LengthConverter) Faz 6'da keşfedilen ama kapsam dışı bırakılan "grafik veri tablosunda son satır düşüyor" hatası — küçük, izole bir temizlik fazı olarak ele alınabilir, henüz atanmadı, sırası gelince sor.
+
+ORTAM KISITI (önemli): bu sandbox'ta docker/Postgres/headless tarayıcı YOK. OrbStack sembolik bağlantıları var ama uygulama silinmiş (~/.orbstack/bin altındaki linkler kırık). Homebrew var, psql/postgres hiç kurulu değil. Backend tüm doğrulamalar build+migration-gen+standalone smoke test (scratchpad/faz4smoke) ile yapıldı, gerçek DB'ye karşı hiç çalıştırılmadı.
+
+AÇIK SORU — kısmen çözüldü: kullanıcı 2026-07-29'da devam isteğini "Faz 5'e devam" diye netleştirdi (proje = alp-pcb-toolkit teyitli, Faz 5 bitti). "Bi projeyi ayağa kaldır" (gerçek Postgres'e karşı çalıştırma) isteği hâlâ askıda — kullanıcı sorulduğunda Postgres için "Homebrew ile kalıcı kurulum" (brew install postgresql@16) tercihini işaretledi, ama bu iş fiilen başlamadı. Sıradaki oturumda bu konuya dönülürse direkt Homebrew kurulumuyla başlanabilir, tekrar sormaya gerek yok.
+
+Model/effort: Sonnet 5, bu oturumda ultracode+xhigh açıktı — devam ederken kullanıcıya sor/kontrol et, sabit varsayma.
+
+Diğer: git'e hiçbir commit atılmadı, her şey working tree'de duruyor (git status'ta api/ deploy/ ve web/ altındaki yeni dosyalar untracked/renamed).

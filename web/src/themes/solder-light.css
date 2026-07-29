@@ -1,0 +1,628 @@
+/* ALP PCB Toolkit — "Solder Light"
+   Yeşil kimlik korunur, zemin beyaza çevrilir.
+
+   solder.css'in yerleşimi, aralıkları ve yapısı birebir aynı. Değişen yalnızca
+   açıklık rampası: tonlar korundu (yeşil 152°, uyarı 81°, tehlike 25°),
+   açıklıklar beyaz yüzeye göre ters çevrildi.
+
+   BİLİNEN SAPMA — grafik serileri. Koyu temanın seri yapısı (yeşil / nötr /
+   koyu yeşil / amber) beyaz zeminde ÇÖZÜMSÜZ: aynı tondaki iki yeşil, beyaz
+   üstünde hem >=3:1 kontrastı hem CVD ayrımını aynı anda tutamıyor. Açıklık
+   ızgarası tarandı, tüm çiftler kontrol edildiğinde fizibil kombinasyon
+   bulunamadı. Bu yüzden seriler ton çeşitliliği aldı; yeşil kimlik seri 1'de
+   ve arayüz vurgusunda korunuyor. */
+
+:root {
+  /* --- Yüzeyler: yeşil tonu korunur, açıklık ters çevrilir --- */
+  --bg: #f0f8f1;
+  --surface: #ffffff;
+  --raised: #f6fcf7;
+  --line: #d2e1d5;
+  --green-deep: #def6e3;  /* seçili segment ve bakır alan dolgusu */
+
+  /* --- Vurgu: aynı yeşil tonu (152°), beyaza göre koyultuldu --- */
+  --accent: #007937;      /* beyaz üzerinde 5.54:1 */
+  --accent-dim: #2f9052;  /* 4.01:1 */
+
+  /* --- Metin --- */
+  --text: #1c261e;        /* 15.61:1 */
+  --muted: #5d6e60;       /* 5.43:1 */
+
+  /* --- Durum: özgün tonlar (81° ve 25°), beyaza göre koyultuldu --- */
+  --warn: #8c5f00;        /* 5.60:1 */
+  --danger: #b02a2c;      /* 6.53:1 */
+
+  /* Grafik serileri — yeşil kimlik seri 1'de, kalan üçü ton çeşitliliği.
+     Beyaz yüzeye karşı doğrulandı ve KOMŞU çiftlerle yetinilmedi, TÜM
+     çiftler kontrol edildi:
+       CVD ayrımı     en kötü çift ΔE 8.6
+       normal görüş   en kötü çift ΔE 17.1
+       kontrast       dördü de >= 4.02:1
+     Kimlik yalnız renge bırakılmıyor: LineChart her seriye ayrı desen veriyor
+     ve seri adını eğrinin ucuna yazıyor. */
+  --series-1: #22914e;
+  --series-2: #855a00;
+  --series-3: #80369e;
+  --series-4: #0081c8;
+
+  /* Direnç bant renkleri — fiziksel komponent renkleri, tema kararı değil.
+     lib/codes.js yalnızca bant anahtarını bilir, rengi buradan gelir. */
+  --band-black: #111111;
+  --band-brown: #6b3f1d;
+  --band-red: #c0392b;
+  --band-orange: #d35400;
+  --band-yellow: #d4ac0d;
+  --band-green: #1e8449;
+  --band-blue: #1f618d;
+  --band-violet: #6c3483;
+  --band-grey: #7f8c8d;
+  --band-white: #ecf0f1;
+  --band-gold: #b8860b;
+  --band-silver: #aab7b8;
+
+  --font-display: 'Chakra Petch', sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.container { max-width: 1360px; margin: 0 auto; padding: 0 20px; }
+
+/* ---------- Header ---------- */
+
+.site-header { border-bottom: 1px solid var(--line); background: var(--surface); }
+.site-header .container {
+  display: flex; align-items: baseline; gap: 14px;
+  padding-top: 18px; padding-bottom: 0;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 1.25rem; letter-spacing: 0.06em;
+  color: var(--text); text-transform: uppercase;
+}
+.wordmark:hover { text-decoration: none; color: var(--accent); }
+/* Logo başlıkta yazı yerine görsel olarak durur; yüksekliği sabit,
+   genişliği oranla gider. */
+.wordmark img { display: block; height: 34px; width: auto; }
+.tagline { color: var(--muted); font-size: 0.85rem; }
+
+.lang-switch { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
+/* Başlıkta hesap alanı (.lang-switch) hemen ardından gerçek dil düğmesi
+   (.lang-switch) gelir — ikisi de aynı sınıfı taşıdığı için margin-left:auto
+   ikisine birden uygulanırdı ve serbest alanı ikiye bölerdi, iki grup arasında
+   istenmeyen bir boşluk açardı. İkincisinin kendi auto margin'i burada
+   sıfırlanır ki grup tek parça hâlinde sağa yaslı dursun. */
+.lang-switch + .lang-switch { margin-left: 0; }
+/* `.trace-motif` SVG'si `.site-header`in tam genişliğinde çizilir, bu satır
+   ise `.container`in max-width kutusuna hapsolur — bu yüzden çizginin ucu
+   (viewBox x=1092/1200, yaklaşık %91) ile bu grup aynı hizada durmuyordu.
+   SVG'ye ya da kutunun boyutuna dokunmadan, yalnızca kenar boşluğuyla grup
+   çizginin ucuna denk gelecek noktaya kaydırılır. */
+.site-header .lang-switch:last-child {
+  margin-right: calc(9vw - max(20px, (100vw - 1360px) / 2 + 20px) + 8px);
+}
+.lang-switch button, .lang-switch a, .lang-switch .header-user {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em;
+  padding: 3px 9px; border-radius: 999px; cursor: pointer;
+  /* Seçili olmayan dil de tam kontrastta yazılır; aktif olanı arka plan ve
+     kenarlık ayırır. Soluk yazı, okunurluğu durumu göstermek için harcardı. */
+  background: transparent; border: 1px solid transparent; color: var(--text);
+  text-decoration: none;
+}
+/* Kullanıcı adı tıklanamaz — düğme/bağlantı kardeşleriyle aynı yazı tipini
+   ve boyutunu taşır ama imleç/kenarlık davranışını almaz. */
+.lang-switch .header-user { cursor: default; }
+.lang-switch button:hover, .lang-switch a:hover { border-color: var(--line); }
+.lang-switch button[aria-pressed="true"] {
+  background: var(--raised); border-color: var(--line);
+}
+
+.trace-motif { display: block; width: 100%; height: 26px; }
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  margin-top: 56px; padding: 20px 0 32px;
+  color: var(--muted); font-size: 0.82rem;
+}
+
+/* ---------- Home ---------- */
+
+.hero { padding: 44px 0 10px; }
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-weight: 700; letter-spacing: 0.04em; line-height: 1.15;
+  margin: 0 0 10px; text-transform: uppercase;
+}
+.hero h1 .accent { color: var(--accent); }
+.hero p { color: var(--muted); max-width: 640px; margin: 0; }
+
+.card-grid {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  padding: 30px 0 0;
+}
+
+.cat-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--green-deep);
+  border-radius: 6px;
+  padding: 18px 18px 14px;
+  color: var(--text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cat-card:hover {
+  text-decoration: none;
+  border-color: var(--accent-dim);
+  border-left-color: var(--accent);
+  background: var(--raised);
+}
+.cat-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.02rem; font-weight: 600; letter-spacing: 0.02em;
+  margin: 0 0 6px;
+}
+.cat-card .desc { color: var(--muted); font-size: 0.85rem; margin: 0 0 12px; }
+.cat-card .meta {
+  display: flex; gap: 8px; align-items: center;
+  font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+}
+.chip {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--line); font-family: var(--font-mono);
+  font-size: 0.7rem; color: var(--muted); white-space: nowrap;
+}
+.chip.on { border-color: var(--accent-dim); color: var(--accent); }
+
+/* ---------- Category page ---------- */
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem; font-weight: 700; letter-spacing: 0.03em;
+  margin: 36px 0 4px; text-transform: uppercase;
+}
+.page-sub { color: var(--muted); margin: 0 0 24px; }
+
+.tool-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
+.tool-row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 14px 16px; color: var(--text);
+}
+.tool-row.active:hover {
+  text-decoration: none; border-color: var(--accent-dim); background: var(--raised);
+}
+.tool-row.soon { color: var(--muted); }
+.tool-row .name { font-weight: 500; }
+.backlink { font-size: 0.85rem; color: var(--muted); display: inline-block; margin-top: 28px; margin-bottom: 16px; }
+
+/* ---------- Tool layout ---------- */
+
+.tool-header { margin: 32px 0 20px; }
+.tool-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.35rem; font-weight: 700; letter-spacing: 0.03em;
+  margin: 0 0 4px; text-transform: uppercase;
+}
+.tool-header p { color: var(--muted); margin: 0; font-size: 0.9rem; }
+
+.tool-grid { display: grid; gap: 18px; grid-template-columns: 1fr; padding-bottom: 30px; }
+@media (min-width: 980px) {
+  .tool-grid { grid-template-columns: 340px 1fr; align-items: start; }
+  .panel-detail { grid-column: 1 / -1; }
+}
+@media (min-width: 1320px) {
+  .tool-grid { grid-template-columns: 330px 1fr 360px; }
+  .panel-detail { grid-column: auto; }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px;
+}
+.panel h2 {
+  font-family: var(--font-mono);
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  margin: 0 0 14px;
+}
+/* Aynı panel içindeki ikinci ve sonraki başlıklar — inline style yerine */
+.panel h2.section { margin-top: 22px; }
+
+/* Tek sütunlu, ortalanmış dar panel — giriş/kayıt gibi tek form ekranları.
+   Modal yok: bu, o ekranların tek görsel deseni. */
+.auth-panel { max-width: 420px; margin: 32px auto; }
+.auth-panel .field { margin-bottom: 16px; }
+.auth-panel-foot { margin-top: 16px; font-size: 0.86rem; color: var(--muted); }
+.auth-panel-foot a { color: var(--accent); }
+
+/* Rapor indirme düğmeleri — ReportDialog.jsx */
+.report-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+/* ---------- Fields ---------- */
+
+.field { display: block; margin-bottom: 14px; }
+.field-label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 5px; }
+.field-row { display: flex; gap: 8px; }
+.field-row input, .field-row select, .select-only {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 8px 10px;
+}
+.field-row input { flex: 1; min-width: 0; }
+.field-row input:focus, .field-row select:focus, .select-only:focus {
+  outline: none; border-color: var(--accent-dim);
+}
+.field-row select { flex: 0 0 auto; }
+.select-only { width: 100%; }
+.field-hint { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+.field-hint.danger { color: var(--danger); }
+
+.seg {
+  display: flex; border: 1px solid var(--line); border-radius: 5px;
+  overflow: hidden; margin-bottom: 18px;
+}
+.seg button {
+  flex: 1; background: var(--bg); color: var(--muted);
+  border: none; padding: 9px 6px; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.82rem; font-weight: 500;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--green-deep); color: var(--text); }
+
+/* ---------- Satır listesi ---------- */
+
+.row-list { display: block; margin-bottom: 16px; }
+.row-list-head, .row-list-item {
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr 22px;
+  gap: 6px; align-items: center;
+}
+.row-list-head {
+  font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 4px;
+}
+.row-list-item { margin-bottom: 6px; }
+.row-list-item .idx {
+  font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); text-align: right;
+}
+.row-list-item .cell { display: flex; gap: 4px; min-width: 0; }
+.row-list-item .cell input {
+  flex: 1; min-width: 0;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--text); font-family: var(--font-mono); font-size: 0.84rem;
+  padding: 6px 8px;
+}
+.row-list-item .cell select {
+  flex: 0 0 auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--text); font-family: var(--font-mono); font-size: 0.78rem;
+  padding: 6px 4px;
+}
+.row-list-item .cell input:focus, .row-list-item .cell select:focus {
+  outline: none; border-color: var(--accent-dim);
+}
+.row-list-item button.act {
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--muted); font-size: 1rem; line-height: 1;
+}
+.row-list-item button.act:hover:not(:disabled) { color: var(--danger); }
+.row-list-item button.act:disabled { opacity: 0.3; cursor: default; }
+
+.row-add {
+  margin-top: 4px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--muted); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.78rem;
+  padding: 6px 10px;
+}
+.row-add:hover:not(:disabled) { border-color: var(--accent-dim); color: var(--accent); }
+.row-add:disabled { opacity: 0.4; cursor: default; }
+
+.check-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; color: var(--muted);
+  margin: 16px 0 10px; cursor: pointer;
+}
+.check-row input { accent-color: var(--accent); }
+
+/* ---------- Results ---------- */
+
+.big-result { margin-bottom: 6px; }
+.big-result .label { font-size: 0.8rem; color: var(--muted); }
+.big-result .value {
+  font-family: var(--font-mono); font-weight: 600;
+  font-size: 2.2rem; color: var(--accent); line-height: 1.2;
+}
+.big-result .alt { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); }
+
+.status {
+  display: inline-block; margin: 8px 0 14px; padding: 3px 10px;
+  border-radius: 999px; font-family: var(--font-mono); font-size: 0.74rem;
+  border: 1px solid var(--line);
+}
+.status.ok { color: var(--accent); border-color: var(--accent-dim); }
+.status.warn { color: var(--warn); border-color: var(--warn); }
+.status.danger { color: var(--danger); border-color: var(--danger); }
+
+.result-table { width: 100%; border-collapse: collapse; }
+.result-table td {
+  padding: 7px 0; border-top: 1px solid var(--line);
+  font-size: 0.86rem; vertical-align: top;
+}
+.result-table td:first-child { color: var(--muted); padding-right: 12px; }
+.result-table td:last-child {
+  text-align: right; font-family: var(--font-mono); white-space: nowrap;
+}
+.result-table td .sub { color: var(--muted); font-size: 0.76rem; }
+
+.mini-head td {
+  font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--muted);
+}
+
+.empty-note { color: var(--muted); font-size: 0.86rem; }
+.empty-note.warn { color: var(--warn); }
+
+.method-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+/* ---------- Detail panel ---------- */
+
+.formula {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0 0 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Denklem bloğunun zemini konuma bağlıdır: teknik detay paneli sağ sütundayken
+   blok sayfa zemininde durur, panel alta düştüğünde ya da denklemler tam
+   genişlik .formula-wide bloğunda verildiğinde panel yüzeyinde durur.
+   Kural .formula'dan SONRA gelmek zorunda — düzen media query'leri dosyanın
+   üstünde, orada yazılsa taban .formula kuralı bunu ezerdi. */
+.panel-detail .formula,
+.formula-wide .formula { background: var(--surface); }
+@media (min-width: 1320px) {
+  .panel-detail .formula { background: var(--bg); }
+}
+
+/* --- Formül bloğu: tam genişlik, gerçek üst/alt simge --- */
+.formula-wide { margin: 26px 0 0; }
+.formula-wide > h2 {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted); margin: 0 0 12px;
+}
+.formula-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.formula-block { min-width: 0; }
+.formula-title {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em;
+  color: var(--muted); margin: 0 0 6px; font-weight: 600;
+}
+/* Satırlar tek tek kutu: üst/alt simge satır yüksekliğini oynatmasın */
+.formula-line { line-height: 1.75; white-space: pre; }
+.formula sup, .formula sub {
+  font-size: 0.72em; line-height: 0;
+}
+.formula sub { vertical-align: -0.28em; }
+/* Çarpma işareti: karakter aynı, yalnızca görünürlüğü artırılıyor.
+   Tek aralıklı yazıda hücre genişliği sabit olduğu için yatay boşluk
+   margin ile veriliyor; hizalama bozulmasın diye simetrik. */
+.formula .mul {
+  font-size: 1.4em; line-height: 0; vertical-align: -0.04em;
+  margin: 0 0.06em; opacity: 0.85;
+}
+.formula sup { vertical-align: 0.42em; }
+.detail-list { margin: 0 0 14px; padding-left: 18px; font-size: 0.82rem; color: var(--muted); }
+.detail-list li { margin-bottom: 5px; }
+.detail-list.warn-list li { color: var(--warn); }
+.detail-list .w { color: var(--warn); }
+
+/* ---------- Devre şeması ---------- */
+
+.schematic {
+  margin: 0 0 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 10px 8px;
+}
+.schematic svg { display: block; width: 100%; height: auto; }
+.schematic figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text);
+  text-align: center;
+  margin-top: 6px;
+  /* Şemanın altyazısı da şemanın yazısıdır: içerideki .sch-label ve
+     .sch-value ile aynı ağırlıkta okunur, yoksa grafik bloğu kendi
+     içinde iki ağırlığa bölünüyordu. Rengi yine soluk kalır. */
+  font-weight: 600;
+}
+/* Şema çizgileri ve etiketleri — renk literal yazılmaz, hepsi değişkenden.
+   Şemanın BÜTÜN yazısı aynı güçte okunur: ağırlık 600, renk var(--text).
+   Değer ve altyazı eskiden var(--muted) idi; 600 ağırlıkta bile soluk
+   kaldığı için grafik kendi içinde iki güce bölünmüş görünüyordu.
+   Etiket ile değer artık yalnızca punto ile ayrılır (11px / 10px). */
+.sch-wire { stroke: var(--accent-dim); stroke-width: 2; fill: none; stroke-linecap: round; }
+.sch-part { stroke: var(--accent); stroke-width: 2; fill: var(--surface); }
+.sch-part.off { stroke: var(--line); }
+.sch-dash { stroke-dasharray: 4 3; }
+.sch-node { fill: var(--accent); }
+/* Direnç gövdesi ve bantları */
+.sch-body { fill: var(--bg); stroke: var(--muted); stroke-width: 1; }
+/* Açık zeminde beyaz ve gümüş bant beyaz gövdede kayboluyor */
+.sch-band { stroke: var(--muted); stroke-width: 0.5; }
+.band-black { fill: var(--band-black); }
+.band-brown { fill: var(--band-brown); }
+.band-red { fill: var(--band-red); }
+.band-orange { fill: var(--band-orange); }
+.band-yellow { fill: var(--band-yellow); }
+.band-green { fill: var(--band-green); }
+.band-blue { fill: var(--band-blue); }
+.band-violet { fill: var(--band-violet); }
+.band-grey { fill: var(--band-grey); }
+.band-white { fill: var(--band-white); }
+.band-gold { fill: var(--band-gold); }
+.band-silver { fill: var(--band-silver); }
+
+.sch-dielectric { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
+.sch-copper { fill: var(--accent); stroke: var(--accent); stroke-width: 1; }
+/* Geniş bakır alanı — dolgu, kenarı belirgin */
+.sch-copper-fill { fill: var(--green-deep); stroke: var(--accent-dim); stroke-width: 1; }
+.sch-dim { stroke: var(--muted); stroke-width: 1; }
+/* Delik boşluğu — bakırın olmadığı alan */
+.sch-hole { fill: var(--bg); }
+.sch-arrow { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
+.sch-arrow-head { fill: var(--accent); }
+.sch-label { fill: var(--text); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.sch-label.dim { fill: var(--text); }
+.sch-value { fill: var(--text); font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
+
+/* ---------- Mühendislik yorumu ---------- */
+
+.commentary { list-style: none; margin: 16px 0 0; padding: 0; }
+.commentary li {
+  display: flex; gap: 9px; align-items: baseline;
+  font-size: 0.84rem; line-height: 1.5;
+  padding: 7px 0; border-top: 1px solid var(--line);
+  color: var(--text);
+}
+.commentary .mark {
+  flex: 0 0 auto; width: 1.1em;
+  font-family: var(--font-mono); font-size: 0.8rem;
+}
+.commentary li.ok .mark { color: var(--accent); }
+.commentary li.warn .mark { color: var(--warn); }
+.commentary li.danger .mark { color: var(--danger); }
+
+/* ---------- Grafik ---------- */
+
+.panel-chart { margin-bottom: 30px; }
+.chart-head {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.chart-head .seg { margin-bottom: 0; flex: 0 1 auto; }
+.chart-head h2 { margin: 0; }
+.chart-figure { margin: 0; }
+.chart-figure svg { display: block; width: 100%; height: auto; touch-action: none; }
+.chart-figure figcaption {
+  font-size: 0.78rem; color: var(--muted); margin-top: 10px;
+}
+
+/* Seri tonu tek bir değişken üzerinden dağıtılır: eleman `tone-N` sınıfını
+   alır, çizim kuralları var(--tone) kullanır. Böylece JSX içine renk yazılmaz. */
+.tone-1 { --tone: var(--series-1); }
+.tone-2 { --tone: var(--series-2); }
+.tone-3 { --tone: var(--series-3); }
+.tone-4 { --tone: var(--series-4); }
+.tone-muted { --tone: var(--muted); }
+.tone-accent { --tone: var(--accent); }
+
+.chart-grid { stroke: var(--line); stroke-width: 1; }
+.chart-axis { stroke: var(--line); stroke-width: 1; }
+.chart-tick { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-axis-label { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-line { fill: none; stroke: var(--tone); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-band { stroke: none; fill: var(--tone); opacity: 0.16; }
+.chart-dot { fill: var(--tone); }
+.chart-ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 4; fill: none; }
+.chart-ref-label { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.chart-marker-ring { fill: none; stroke: var(--surface); stroke-width: 2; }
+.chart-crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-tip-box { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
+.chart-tip-text { fill: var(--text); font-family: var(--font-mono); font-size: 11px; }
+.chart-tip-text.dim { fill: var(--muted); }
+.chart-empty { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+
+.chart-legend {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  font-size: 0.78rem; color: var(--text);
+}
+.chart-legend .item { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend .swatch {
+  width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto;
+  background: var(--tone);
+}
+.chart-legend .swatch.line { height: 3px; border-radius: 1px; }
+.chart-legend .swatch.faded { opacity: 0.3; }
+.chart-marker { fill: var(--accent); }
+
+.chart-data { margin-top: 14px; }
+.chart-data summary {
+  cursor: pointer; font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.chart-data .scroll { overflow-x: auto; margin-top: 10px; }
+
+/* ---------- Aday çift tablosu ---------- */
+
+.pick-table { width: 100%; border-collapse: collapse; }
+.pick-table th {
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  text-align: right; padding: 0 0 6px; border-bottom: 1px solid var(--line);
+}
+.pick-table th:first-child, .pick-table td:first-child { text-align: left; }
+.pick-table td {
+  padding: 6px 0; border-top: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 0.8rem; text-align: right;
+}
+.pick-table tr.pick { cursor: pointer; }
+.pick-table tr.pick:hover td { background: var(--raised); }
+.pick-table tr.on td { color: var(--accent); }
+.pick-table td .flag { color: var(--warn); }
+.pick-table th + th, .pick-table td + td { padding-left: 10px; }
+.pick-table + .method-note { margin-top: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
