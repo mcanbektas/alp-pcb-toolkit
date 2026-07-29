@@ -167,7 +167,7 @@ export const CATEGORIES = [
       en: 'Clearance, creepage, BGA breakout, stack-up and thermal relief',
     },
     tools: [
-      { id: 'clearance', name: { tr: 'Clearance, Creepage ve Padstack', en: 'Clearance, Creepage & Padstack' } },
+      { id: 'clearance', name: { tr: 'Clearance, Creepage ve Padstack', en: 'Clearance, Creepage & Padstack' }, path: '/arac/clearance-creepage-padstack' },
       { id: 'bga', name: { tr: 'BGA Breakout', en: 'BGA Breakout' } },
       { id: 'stackup', name: { tr: 'Stack-Up Planlayıcı', en: 'Stack-Up Planner' } },
       { id: 'thermal-relief', name: { tr: 'Thermal Relief', en: 'Thermal Relief' } },

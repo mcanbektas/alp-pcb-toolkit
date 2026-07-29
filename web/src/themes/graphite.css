@@ -452,6 +452,7 @@ a:hover { text-decoration: underline; }
 .status.ok { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-soft); }
 .status.warn { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
 .status.danger { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+.status.unknown { color: var(--muted); border-color: var(--muted); }
 
 .result-table { width: 100%; border-collapse: collapse; }
 .result-table td {
@@ -464,6 +465,17 @@ a:hover { text-decoration: underline; }
   text-align: right; font-family: var(--font-mono); white-space: nowrap;
 }
 .result-table td .sub { color: var(--muted); font-size: 0.75rem; }
+
+/* DFM kontrol tablosu: ikinci satır (sınır, marj, kaynak, neden) ve durum
+   imi. Renkler durum sınıfından gelir, satır içine yazılmaz. */
+.result-table .sub-line {
+  display: block; color: var(--muted); font-size: 0.76rem; white-space: normal;
+}
+.result-table .mark { font-family: var(--font-mono); }
+.result-table .mark.ok { color: var(--accent); }
+.result-table .mark.warning { color: var(--warn); }
+.result-table .mark.danger { color: var(--danger); }
+.result-table .mark.unknown { color: var(--muted); }
 
 .mini-head td {
   font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase;
@@ -613,6 +625,7 @@ a:hover { text-decoration: underline; }
 .commentary li.ok .mark { color: var(--accent); }
 .commentary li.warn .mark { color: var(--warn); }
 .commentary li.danger .mark { color: var(--danger); }
+.commentary li.unknown .mark { color: var(--muted); }
 
 /* ---------- Grafik ---------- */
 
@@ -701,4 +714,10 @@ a:hover { text-decoration: underline; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+}
+
+/* DFM özeti — düz metin, uzun satırlar sarılır ve kutu kaydırılabilir
+   kalır; geniş tablo gibi sayfayı yatayda taşırmaz. */
+.formula.summary-box {
+  max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word;
 }

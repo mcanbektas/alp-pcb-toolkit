@@ -40,6 +40,14 @@ export function commonText(lang) {
       tr: `${n} kontrol sınırın dışında`,
       en: `${n} check${n === 1 ? '' : 's'} outside the limit`,
     }),
+    // Dördüncü seviye yalnızca üretim/DFM ekranlarında doğar: karar verecek
+    // sınır (üretici profili, karar profili, kullanıcı kuralı) yoksa kontrol
+    // ne geçmiş ne kalmıştır. Bunu `warn` göstermek "sınıra yakın" demek olur
+    // ve veri yokluğunu ölçülmüş bir yakınlık gibi sunardı.
+    statusUnknown: (n) => t({
+      tr: `${n} kontrol değerlendirilemedi`,
+      en: `${n} check${n === 1 ? '' : 's'} could not be evaluated`,
+    }),
 
     // Boş/hata durumları
     chartNeedsInput: t({

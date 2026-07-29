@@ -42,6 +42,7 @@ const FrequencyConverter = lazy(() => import('./pages/tools/FrequencyConverter')
 const DecibelConverter = lazy(() => import('./pages/tools/DecibelConverter'))
 const TemperatureConverter = lazy(() => import('./pages/tools/TemperatureConverter'))
 const ComplexConverter = lazy(() => import('./pages/tools/ComplexConverter'))
+const ClearanceCreepagePadstack = lazy(() => import('./pages/tools/ClearanceCreepagePadstack'))
 
 // Hesap sayfaları (Projelerim listesi + proje detayı) da tembel yüklenir —
 // araç ekranlarıyla aynı gerekçe: ilk boyamada yalnızca girişte gereken kod.
@@ -204,6 +205,7 @@ export default function App() {
                 <Route path="/arac/db-kazanc" element={<DecibelConverter />} />
                 <Route path="/arac/sicaklik-donusturucu" element={<TemperatureConverter />} />
                 <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
+                <Route path="/arac/clearance-creepage-padstack" element={<ClearanceCreepagePadstack />} />
               </Routes>
             </Suspense>
           </Layout>
