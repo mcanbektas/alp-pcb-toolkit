@@ -4,8 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Proje
 
-ALP PCB Toolkit — PCB tasarımı için çevrim içi donanım mühendisliği hesap araçları. Vite + React 18 +
-react-router-dom. Tamamen client-side; backend, veritabanı, API çağrısı yok.
+ALP PCB Toolkit — PCB tasarımı için çevrim içi donanım mühendisliği hesap araçları.
+
+İki parça: **`web/`** (Vite + React 18 + react-router-dom) ve **`api/`** (ASP.NET Core,
+Identity + JWT, EF Core, PDF/Excel rapor üretimi). Hesap motorlarının tamamı hâlâ
+tarayıcıda çalışır — hiçbir hesap sunucuya gitmez. Backend yalnızca üyelik, proje/hesap
+kaydı ve rapor indirme için vardır; oturum açılmamışken bütün araçlar tam çalışır.
 
 **Arayüz iki dillidir (tr / en), varsayılan Türkçe. Kod yorumları Türkçedir ve çevrilmez.**
 Ayrıntı: aşağıdaki "Dil (tr / en)" bölümü.
@@ -34,8 +38,17 @@ commit'te yazılır.** §13'ün altı referans testi (microstrip, via direnci, P
 junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor eklendiğinde teste dönüşür;
 motor testsiz merge edilmez.
 
-`main`'e her push → `.github/workflows/deploy.yml` → GitHub Pages. `base: './'` + `HashRouter`
-kombinasyonu repo adından bağımsız çalışmayı sağlar; ikisini de değiştirme.
+**Dağıtım kendi sunucumuza yapılacak, GitHub Pages'e değil.** Uygulama kökten (`/`)
+servis edilir: `vite.config.js` içinde `base: '/'` ve `App.jsx` içinde `BrowserRouter`
+kullanılır. `main.jsx` eski `#/arac/...` bağlantılarını yeni yollara çeviren bir yönlendirme
+taşır — kullanıcıların kayıtlı bağlantıları kırılmasın diye duruyor, silinmemeli.
+
+`BrowserRouter` derin bağlantıda sunucudan SPA geri dönüşü ister: `/arac/...` isteğine
+`index.html` dönmeyen bir yapılandırmada sayfa yenilendiğinde 404 alınır. Dağıtım
+yapılandırması yazılırken ilk doğrulanacak şey budur.
+
+`.github/workflows/deploy.yml` hâlâ GitHub Pages'e bakan eski akıştır ve bu yapıyla
+uyumlu değildir; dağıtım fazında (Faz 8) ele alınacak.
 
 ## Mimari
 

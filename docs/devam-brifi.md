@@ -1,14 +1,96 @@
-Proje: /Users/canbektas/Projects/alp-pcb-toolkit — ALP PCB Toolkit'e üyelik+rapor sistemi ekliyoruz.
-Plan/durum tek kaynak: docs/uyelik-ve-rapor-plani.md (§9 faz tablosu, §12/14/15/16/17 tamamlanan fazların durumu, §13 kalan noktalar).
+# Devam brifi
 
-BİTEN: Faz 0 (repo → web/ + api/), Faz 1 (SVG→QuestPDF risk denemesi, doğrulandı), Faz 2 (.NET backend: Identity+JWT+EF Core, güvenlik reviewu 18 bulgu düzeltildi), Faz 3 (frontend auth: giriş/kayıt/parola ekranları, BrowserRouter), Faz 4 (PDF/Excel rapor üretimi: Alp.Reports, 3 pilot araç — TraceWidth/ResistorCode/LengthConverter — report.js+ReportDialog), Faz 5 (Projects/Calculations CRUD uçları + SaveToProject + /projelerim + /proje/:id — detay §16, 6 bulgunun 6'sı düzeltildi, dotnet build + npm run build/test yeşil), Faz 6 (kalan 22 aracın report.js+test+SaveToProject kablolaması — detay §17, 25/25 araç raporlanabilir, workflow bir kez oturum sınırına takılıp resume edildi, bulunan sistemik/gerçek hatalar — schematicCaption eksik, ekran/rapor etiket kayması, Decoupling'de kritik formFields argüman hatası, çevrilmeyen "adet" birimi — hepsi düzeltildi; npm run build temiz, npm test 1241/1241 yeşil).
+Proje: `/Users/canbektas/Projects/alp-pcb-toolkit` — ALP PCB Toolkit.
+Plan/durum tek kaynak: `docs/uyelik-ve-rapor-plani.md` (§9 faz tablosu, §12/14/15/16/17
+tamamlanan fazların durumu, §13 kalan noktalar). Mimari kurallar: `CLAUDE.md`.
 
-KALAN: Faz 3b (fontlar sunucuya taşınacak — bu ortamda ağ erişimi yok, engellendi), Faz 7 (useSavedThickness→hesaba taşıma), Faz 8 (docker-compose/nginx/dağıtım), Faz 9 (CLAUDE.md/README güncelleme). Ayrıca hâlâ açık: PATCH /api/me, logo yükleme, /api/thickness-records/* (§4.3'te listeli, hiçbir faza atanmadı); 3 pilot araçta (TraceWidth/ResistorCode/LengthConverter) Faz 6'da keşfedilen ama kapsam dışı bırakılan "grafik veri tablosunda son satır düşüyor" hatası — küçük, izole bir temizlik fazı olarak ele alınabilir, henüz atanmadı, sırası gelince sor.
+## Şu anki durum
 
-ORTAM KISITI (önemli): bu sandbox'ta docker/Postgres/headless tarayıcı YOK. OrbStack sembolik bağlantıları var ama uygulama silinmiş (~/.orbstack/bin altındaki linkler kırık). Homebrew var, psql/postgres hiç kurulu değil. Backend tüm doğrulamalar build+migration-gen+standalone smoke test (scratchpad/faz4smoke) ile yapıldı, gerçek DB'ye karşı hiç çalıştırılmadı.
+Dal: **`feat/uretim-dfm-araclari`** — `main`'in 7 commit önünde, hepsi commit'li,
+working tree temiz. `main` üzerindeki son commit `d511487` (Faz 0–6'nın tamamı).
 
-AÇIK SORU — kısmen çözüldü: kullanıcı 2026-07-29'da devam isteğini "Faz 5'e devam" diye netleştirdi (proje = alp-pcb-toolkit teyitli, Faz 5 bitti). "Bi projeyi ayağa kaldır" (gerçek Postgres'e karşı çalıştırma) isteği hâlâ askıda — kullanıcı sorulduğunda Postgres için "Homebrew ile kalıcı kurulum" (brew install postgresql@16) tercihini işaretledi, ama bu iş fiilen başlamadı. Sıradaki oturumda bu konuya dönülürse direkt Homebrew kurulumuyla başlanabilir, tekrar sormaya gerek yok.
+```
+cd web && npm test   → 1762/1762 yeşil
+cd web && npm run build → temiz
+```
 
-Model/effort: Sonnet 5, bu oturumda ultracode+xhigh açıktı — devam ederken kullanıcıya sor/kontrol et, sabit varsayma.
+## Biten fazlar
 
-Diğer: git'e hiçbir commit atılmadı, her şey working tree'de duruyor (git status'ta api/ deploy/ ve web/ altındaki yeni dosyalar untracked/renamed).
+**Faz 0–6** (`d511487`): repo `web/` + `api/` olarak bölündü; .NET backend (Identity+JWT,
+EF Core, Projects/Calculations CRUD); frontend auth ekranları; PDF/Excel rapor üretimi;
+25 aracın tamamına `report.js` + `report.test.js` + `SaveToProject` kablolaması.
+Routing `HashRouter` → `BrowserRouter`'a geçti, `vite.config.js` `base: '/'`.
+
+**PCB Üretim ve DFM kategorisi** (bu dalda, `290c54b`…`7315d2e`): kategorinin dört aracı
+yazıldı, kategoride "yakında" kalan kayıt yok.
+
+- Yeni motorlar (`web/src/lib/`, hepsi saf + testli): `dfmProfile`, `dfmCheck`,
+  `dfmSummary`, `padstack`, `clearanceProfile`, `clearanceCreepage`, `bgaBreakout`,
+  `stackup`, `stackupProfiles`, `thermalRelief`.
+- Yeni ekranlar (`web/src/pages/tools/`): `ClearanceCreepagePadstack`, `BgaBreakout`,
+  `StackupPlanner`, `ThermalRelief` — dördü de altı dosyalı desende (report.js dâhil).
+- Yeni hook'lar: `useDfmProfiles`, `useClearanceProfiles`, `useSavedStackups`,
+  `useClipboard`.
+- Yeni bileşenler: `ProfilePanel`, `DfmChecks`, `DfmSummaryBox`; ortak sözlük
+  `src/data/dfmText.js`.
+- `uiText.js`'e dördüncü durum çipi (`statusUnknown`); dört tema dosyasına
+  `.status.unknown`, `.commentary li.unknown`, `.result-table .sub-line`,
+  `.row-list.cols-N`, `.formula.summary-box` kuralları.
+- `units.js`'e `K_CU_HIGH = 400` (ekranda 385/400 seçilebilir, varsayılan konservatif 385).
+- `RowList` sütunları `options` (satır içi seçici) ve `text` alabiliyor; `TextField`
+  `autoCapitalize` opt-out aldı. İki varsayılan da değişmedi, mevcut ekranlar etkilenmedi.
+
+Ayrıntı ve kural gerekçeleri: `CLAUDE.md` → "Üretim/DFM ekranlarının ortak yapısı".
+
+## Kalan işler
+
+### Faz 8 — dağıtım (kullanıcının istediği sıradaki iş)
+
+Uygulama kendi sunucumuza taşınacak. Bilinmesi gerekenler:
+
+- `BrowserRouter` + `base: '/'` kullanılıyor. Sunucu `/arac/...` gibi derin bağlantılara
+  `index.html` döndürmezse sayfa yenilendiğinde 404 alınır. **İlk doğrulanacak şey budur.**
+- `.github/workflows/deploy.yml` hâlâ eski GitHub Pages akışı; bu yapıyla uyumlu değil.
+- `deploy/` klasöründe şu an yalnızca `README.md` var. `.gitignore` `deploy/.env` ve
+  `deploy/*.env` dosyalarını dışarıda tutuyor — gizli değerler depoya girmemeli.
+- `web/vite.config.js` geliştirme sunucusunda `/api` isteklerini `http://localhost:5289`
+  adresine proxy'liyor; üretimde bu yol sunucu yapılandırmasından gelmeli.
+- Backend `api/Alp.Api`; `appsettings.Development.json` gitignore'da, `.example` depoda.
+
+### Diğer fazlar
+
+- **Faz 3b** — fontlar sunucuya taşınacak (bu ortamda ağ erişimi yok, engellenmişti).
+- **Faz 7** — `useSavedThickness` → hesaba taşıma.
+- **Faz 9** — README güncelleme. `CLAUDE.md` bu oturumda güncellendi (backend'in varlığı,
+  dağıtım hedefi, üretim/DFM bölümü, dosya/test sayıları); README'ye bakılmadı.
+
+### Atanmamış, açık
+
+- `PATCH /api/me`, logo yükleme, `/api/thickness-records/*` (§4.3'te listeli, hiçbir faza
+  atanmadı).
+- Üç pilot araçta (TraceWidth / ResistorCode / LengthConverter) Faz 6'da keşfedilen
+  "grafik veri tablosunda son satır düşüyor" hatası — küçük, izole temizlik.
+- Üretim/DFM ekranları **gerçek tarayıcıda gözle kontrol edilmedi** (sandbox'ta headless
+  tarayıcı yok). Üretim derlemesi servis edilip yedi route'un 200 döndüğü ve dört ekranın
+  sunucu tarafında hatasız render olduğu doğrulandı; görsel yerleşim denetim bekliyor —
+  özellikle `StackupPlanner`'ın dokuz sütunlu katman tablosu ve mobil kırılım.
+
+## Ortam kısıtı (önemli)
+
+Bu sandbox'ta docker / Postgres / headless tarayıcı **yok**. OrbStack sembolik bağlantıları
+var ama uygulama silinmiş (`~/.orbstack/bin` altındaki linkler kırık). Homebrew var,
+psql/postgres kurulu değil. Backend'in bütün doğrulaması build + migration üretimi +
+bağımsız smoke testiyle yapıldı; **gerçek bir veritabanına karşı hiç çalıştırılmadı.**
+
+Kullanıcı Postgres için "Homebrew ile kalıcı kurulum" (`brew install postgresql@16`)
+tercihini işaretlemişti; iş fiilen başlamadı. Konuya dönülürse doğrudan kurulumla
+başlanabilir, tekrar sormaya gerek yok.
+
+## Çalışma tercihleri
+
+- Model **Opus**, effort **xhigh**, ultracode **kapalı** — kullanıcı bu oturumda böyle seçti.
+- Kullanıcının kalıcı talimatı: workflow / deep-research yalnızca açıkça istenirse.
+- Kararlar varsayılmıyor, soruluyor. Bu oturumda beş karar açıkça soruldu ve öyle uygulandı:
+  k_Cu'nun seçilebilir olması, yeni araçların mevcut rapor altyapısına bağlanması,
+  `padstack.js`'in `via.js`'i sarmalaması (kopyalamaması), hata kodu adlandırmasının proje
+  desenini izlemesi, dördüncü (`unknown`) durum çipinin eklenmesi.
