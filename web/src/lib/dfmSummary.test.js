@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  buildDfmSummary, SUMMARY_ERR_MISSING_LABELS, SUMMARY_ERR_MISSING_TOOL,
+  buildDfmSummary, SUMMARY_LABEL_KEYS,
+  SUMMARY_ERR_MISSING_LABELS, SUMMARY_ERR_MISSING_TOOL,
 } from './dfmSummary'
 import { STATUS_OK, STATUS_WARNING, STATUS_DANGER, STATUS_UNKNOWN } from './dfmCheck'
 import { expectErrorShape } from './errorShape.testkit'
@@ -134,6 +135,23 @@ describe('buildDfmSummary — geçersiz girdi', () => {
     const r = buildDfmSummary({ tool: 'X' })
     expect(r.error).toBe(SUMMARY_ERR_MISSING_LABELS)
     expectErrorShape(r, 'labels')
+  })
+
+  // Eksik etiket sessizce `undefined` basardı ve kullanıcıya gidecek düz metin
+  // özette "undefined 0.35 mm" gibi bir satır oluşurdu. Motor bunu reddeder.
+  it('eksik etiket sessizce basılmaz, hangi anahtarın eksik olduğu bildirilir', () => {
+    const { actual, required, ...partial } = labels
+    const r = buildDfmSummary({ ...base, labels: partial })
+    expect(r.error).toBe(SUMMARY_ERR_MISSING_LABELS)
+    expect(r.fields).toEqual(['actual', 'required'])
+    expect(r.text).toBeUndefined()
+    expectErrorShape(r, 'missing-keys')
+  })
+
+  it('gerekli anahtar listesi eksiksiz bir etiket kümesiyle geçer', () => {
+    for (const key of SUMMARY_LABEL_KEYS) {
+      expect(typeof labels[key], key).toBe('string')
+    }
   })
 
   it('araç adı yoksa hata döner', () => {

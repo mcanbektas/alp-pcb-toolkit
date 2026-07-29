@@ -325,6 +325,14 @@ export function dfmText(lang) {
       unevaluated: t({ tr: 'Değerlendirilemeyen kontroller', en: 'Checks not evaluated' }),
       assumptions: t({ tr: 'Varsayımlar', en: 'Assumptions' }),
       method: t({ tr: 'Yöntem', en: 'Method' }),
+      // Kontrol satırı içinde geçen küçük harfli biçimler. Tablo başlıkları
+      // (`checks.actual` vb.) ayrı durur: biri sütun başlığı, bu ise cümle
+      // içinde okunan bir etiket. İkisini paylaştırmak, tabloda "Tasarım"
+      // yazan başlığı düz metinde cümle ortasına düşürürdü.
+      actual: t({ tr: 'tasarım', en: 'design' }),
+      required: t({ tr: 'sınır', en: 'limit' }),
+      margin: t({ tr: 'marj', en: 'margin' }),
+      source: t({ tr: 'kaynak', en: 'source' }),
       none: t({ tr: 'yok', en: 'none' }),
       notSelected: t({ tr: 'seçilmedi', en: 'not selected' }),
       disclaimer: t({

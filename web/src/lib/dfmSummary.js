@@ -16,6 +16,21 @@ import { STATUS_OK, STATUS_WARNING, STATUS_DANGER, STATUS_UNKNOWN } from './dfmC
 export const SUMMARY_ERR_MISSING_LABELS = 'missing-labels'
 export const SUMMARY_ERR_MISSING_TOOL = 'missing-tool'
 
+/**
+ * Özetin basabilmesi için gereken etiket anahtarları.
+ *
+ * Eksik bir anahtar sessizce `undefined` basardı ve düz metin özette
+ * "undefined 0.35 mm" gibi bir satır oluşurdu — kullanıcıya gidecek bir
+ * belgede en kötü hata türü. Bu yüzden eksik etiket bir hata koduyla
+ * reddedilir; hangi anahtarın eksik olduğu yükte döner.
+ */
+export const SUMMARY_LABEL_KEYS = [
+  'tool', 'profile', 'decisionProfile', 'date', 'method',
+  'inputs', 'results', 'passed', 'warnings', 'failed', 'unevaluated', 'assumptions',
+  'actual', 'required', 'margin', 'source',
+  'none', 'notSelected', 'disclaimer',
+]
+
 const BULLET = '- '
 
 function isText(x) {
@@ -78,6 +93,8 @@ export function buildDfmSummary({
   method = null,
 }) {
   if (!labels || typeof labels !== 'object') return { error: SUMMARY_ERR_MISSING_LABELS }
+  const missing = SUMMARY_LABEL_KEYS.filter((key) => !isText(labels[key]))
+  if (missing.length > 0) return { error: SUMMARY_ERR_MISSING_LABELS, fields: missing }
   if (!isText(tool)) return { error: SUMMARY_ERR_MISSING_TOOL }
 
   const none = labels.none ?? ''

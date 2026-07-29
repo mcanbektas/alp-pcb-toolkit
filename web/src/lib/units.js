@@ -16,6 +16,12 @@ export const ETA0 = 376.730313668 // serbest uzay dalga empedansı, Ω
 export const RHO_CU_20 = 1.724e-8 // Ω·m @ 20 °C
 export const ALPHA_CU = 0.00393 // 1/°C
 export const K_CU = 385 // W/(m·K) — spec §5.2: 385–400 aralığının alt ucu
+// Aynı aralığın üst ucu. Literatür bakır için 385–400 W/(m·K) veriyor ve iki
+// uç arasındaki fark termal dirençte doğrudan görünür (%3.9). Varsayılan alt
+// uç (konservatif) kalır; ekran hangi ucun kullanıldığını seçtirir ve sonuçta
+// yazar. Sabit araç dosyasına gömülmez, tek kaynak burasıdır.
+export const K_CU_HIGH = 400 // W/(m·K)
+export const K_CU_RANGE = [K_CU, K_CU_HIGH]
 export const DENSITY_CU = 8960 // kg/m³
 
 // FR-4 (tipik; üreticiye göre değişir)

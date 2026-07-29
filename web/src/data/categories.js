@@ -170,7 +170,7 @@ export const CATEGORIES = [
       { id: 'clearance', name: { tr: 'Clearance, Creepage ve Padstack', en: 'Clearance, Creepage & Padstack' }, path: '/arac/clearance-creepage-padstack' },
       { id: 'bga', name: { tr: 'BGA Breakout', en: 'BGA Breakout' }, path: '/arac/bga-breakout' },
       { id: 'stackup', name: { tr: 'Stack-Up Planlayıcı', en: 'Stack-Up Planner' }, path: '/arac/stack-up-planlayici' },
-      { id: 'thermal-relief', name: { tr: 'Thermal Relief', en: 'Thermal Relief' } },
+      { id: 'thermal-relief', name: { tr: 'Thermal Relief', en: 'Thermal Relief' }, path: '/arac/thermal-relief' },
     ],
   },
   {
