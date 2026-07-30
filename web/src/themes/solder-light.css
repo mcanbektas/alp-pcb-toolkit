@@ -520,6 +520,20 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.55); }
 }
 .field-row select { flex: 0 0 auto; }
 .select-only { width: 100%; }
+
+/* Parola görünürlük düğmesi (AuthField). Girdinin kardeşi ve onunla aynı
+   yükseklikte durur — girdinin İÇİNE bindirilmedi, çünkü kutunun içine
+   yerleştirmek uzun parolada metnin simgenin altına girmesi demek olurdu. */
+.pw-toggle {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; padding: 0;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  color: var(--muted); cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.pw-toggle:hover { color: var(--accent); border-color: var(--accent-dim); }
+.pw-toggle svg { width: 17px; height: 17px; display: block; }
 .field-hint { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
 .field-hint.danger { color: var(--danger); }
 

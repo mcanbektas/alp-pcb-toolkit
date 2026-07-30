@@ -175,8 +175,13 @@ soyut portu bilir.
      ve paket boyutu eklemiyor, mono font korunuyor. Ayrıştırıcı saf ve testli
      (`parseFormulaLine`) — bileşen testi değil, saf fonksiyon testidir, o yüzden kural dışı
      sayılmaz.
+   - `AuthField` — giriş/kayıt/sıfırlama ve Hesabım'daki parola alanı. `type="password"`
+     verildiğinde görünürlük düğmesi çizer ve bunun için **state tutar**: alanın
+     görünürlüğü ekranın verisi değil, alanın kendi sunum durumudur; yukarı taşınsa
+     aynı `useState` beş ekrana kopyalanırdı.
    - **Dili doğrudan `useLang()`'den okuyan istisnalar** — `EpsEffFields`, `RowList`,
-     `LineChart`, `NumberField`, `ProfilePanel`, `DfmChecks`, `DfmSummaryBox`. Ortak kural: bileşenin **kendi çerçeve metni** her ekranda
+     `LineChart`, `NumberField`, `ProfilePanel`, `DfmChecks`, `DfmSummaryBox`,
+     `AuthField`. Ortak kural: bileşenin **kendi çerçeve metni** her ekranda
      birebir aynıysa (εeff blok etiketleri, "… birimi" / "… sil" ekran okuyucu adları,
      "Veri tablosu", boş grafik notu) o metin `commonText(lang)`'ten okunur; prop olarak
      geçirmek aynı iki dilli sözlüğü yirmi beş ekrana kopyalamak olurdu. **Ekrana özgü olan**

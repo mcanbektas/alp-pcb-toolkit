@@ -92,6 +92,12 @@ export function commonText(lang) {
       en: `Remove ${row} ${i}`,
     }),
 
+    // Parola görünürlük düğmesinin ekran okuyucu adı (AuthField). Giriş, kayıt,
+    // sıfırlama ve hesap ekranlarında birebir aynı cümle — bileşen başına ya da
+    // ekran başına yazılmaz.
+    passwordShow: t({ tr: 'Parolayı göster', en: 'Show password' }),
+    passwordHide: t({ tr: 'Parolayı gizle', en: 'Hide password' }),
+
     // Gezinme ve kategori sayfaları
     backHome: t({ tr: '← Ana sayfaya dön', en: '← Back to home' }),
     allCategories: t({ tr: '← Tüm kategoriler', en: '← All categories' }),

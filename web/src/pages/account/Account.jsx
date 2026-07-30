@@ -11,6 +11,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
 import useSavedThickness from '../../hooks/useSavedThickness'
+import AuthField from '../../components/AuthField'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { commonText } from '../../data/uiText'
 // Parola politikası cümlesi ve Identity hata kodlarının çevirisi giriş/kayıt
@@ -204,45 +205,36 @@ export default function Account() {
         <p className="field-hint">{at.passwordIntro}</p>
 
         <form onSubmit={onChangePassword}>
-          {/* `autoComplete` değerleri parola yöneticileri için: alanlar aynı
+          {/* Giriş/kayıt ekranlarıyla AYNI alan bileşeni: parola görünürlük
+              düğmesi ve alan yerleşimi orada zaten çözülmüş, burada ikinci bir
+              kopya yazmak ikisini zamanla ayrıştırırdı.
+              `autoComplete` değerleri parola yöneticileri için: alanlar aynı
               formda olduğu için ipucu verilmezse yeni parola mevcut parola
               olarak kaydediliyor. */}
-          <label className="field">
-            <span className="field-label">{at.currentPasswordLabel}</span>
-            <span className="field-row">
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
-            </span>
-          </label>
+          <AuthField
+            label={at.currentPasswordLabel}
+            type="password"
+            autoComplete="current-password"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+          />
 
-          <label className="field">
-            <span className="field-label">{at.newPasswordLabel}</span>
-            <span className="field-row">
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </span>
-            <span className="field-hint">{aut.field.passwordHint}</span>
-          </label>
+          <AuthField
+            label={at.newPasswordLabel}
+            type="password"
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={setNewPassword}
+            hint={aut.field.passwordHint}
+          />
 
-          <label className="field">
-            <span className="field-label">{at.newPasswordRepeatLabel}</span>
-            <span className="field-row">
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={newPassword2}
-                onChange={(e) => setNewPassword2(e.target.value)}
-              />
-            </span>
-          </label>
+          <AuthField
+            label={at.newPasswordRepeatLabel}
+            type="password"
+            autoComplete="new-password"
+            value={newPassword2}
+            onChange={setNewPassword2}
+          />
 
           {passwordError && <p className="field-hint danger">{passwordError}</p>}
 
