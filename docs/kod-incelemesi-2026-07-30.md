@@ -142,3 +142,14 @@ ayrı `CountAsync`'e indirildi.
    liste boş yerine yerel içerikle doluyor. Ölçülmedi, kozmetik.
 5. **IBM Plex Mono'nun greek alt kümesi yok** — mono metindeki Ω sistem yazı tipinden çizilir
    (fontlar Google'dan gelirken de öyleydi).
+
+**Sonradan kapananlar (aynı gün akşam, ayrıntı `docs/uyelik-ve-rapor-plani.md` §23):**
+
+- **2 kapandı** — üreteç `web/scripts/build-fonts.mjs`, `npm run fonts`. `--fetch` var olan 33
+  dosyayı bayt bayt aynı indiriyor, yani üreteç mevcut durumu birebir üretiyor.
+- **3 kapandı** — `ttf`ler `assets/report-fonts/` altına alındı; `dist/fonts` 1,4 MB → 424 KB.
+- **4 kapandı** — ölçüldü, gerçekti (yerel liste 46 ms görünüyordu). `useSavedThickness` artık
+  oturum görülmüş bir tarayıcıda ilk boyamada yerel listeyi basmıyor; girişsiz yol aynı hızda.
+- **1 hâlâ açık** (backend testleri, kullanıcı kararı bekliyor), **5 kayıt olarak duruyor** —
+  §23'te ayrıca ölçüldü: alt kümelerin dışında kalan karakter sayısı 38 ve `→`, `≈`, `√`, `✓`
+  gibi semboller de bu sınıfta.

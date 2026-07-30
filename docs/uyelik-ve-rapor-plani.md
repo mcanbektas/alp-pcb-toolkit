@@ -1229,6 +1229,7 @@ sunucumuzdan geliyor.
   `latin-ext` şart — Türkçe'nin ğ, ı, ş harfleri orada; `greek` Ω ve Δ için.
 - **PDF:** 5 `ttf`. `api/Dockerfile` bunları `web/public/fonts`ten `/app/fonts`e kopyalar
   (`Reports__FontsPath` zaten oraya bakıyordu) — tek kaynak, ekran ile belge aynı aile.
+  *(Kaynak dizin aynı gün `assets/report-fonts/` oldu — bkz. §23.)*
   IBM Plex Sans yalnız değişken (variable) `ttf` olarak yayınlandığı için o biçimde duruyor.
 - `src/fonts.css` üretilmiş bir dosyadır ve `main.jsx`'te temadan ÖNCE yüklenir; yazı tipleri
   temaya bağlı değildir, dört tema da aynı üç aileyi kullanır.
@@ -1241,3 +1242,91 @@ sunucumuzdan geliyor.
 `IBMPlexMono`, `IBMPlexSans` ve `ChakraPetch` adları gömülü (DejaVu düşüşü yok). Gerçek
 tarayıcı 6/6: dosyalar siteden indi, Türkçe harfler ve sayı tablosu doğru aileden çiziliyor,
 başlık Chakra Petch, **dış kaynağa tek istek yok**, site `ttf` indirmiyor.
+
+## 23. Yazı tipi üreteci, `ttf` yerleşimi ve listenin ilk boyaması
+
+**Tarih:** 2026-07-30 (akşam) · **Sonuç:** §22'nin bıraktığı iki açık iş kapandı, üçüncüsü
+ölçülüp düzeltildi. Üç ayrı commit: `94353cd`, `1b507f2`, `550d180`.
+
+### 23.1 `src/fonts.css` artık üretiliyor
+
+Dosya §22'de de üretilmişti ama üreteci depoya girmemişti: yeni bir ağırlık ya da alt küme
+yirmi satır elle kopyalamak ve her bloğun `unicode-range` satırının hâlâ doğru olduğuna
+güvenmek demekti. Tek kaynak `web/scripts/build-fonts.mjs` içindeki `FAMILIES` tablosu;
+dosyalar da CSS de oradan türetiliyor.
+
+- `npm run fonts` CSS'i yazar · `--fetch` fontları da indirir · `--check` üretilmiş dosyanın
+  güncel olup olmadığını çıkış koduyla söyler · `--coverage` sitedeki karakterlerin alt
+  kümelerde olup olmadığını sayar.
+- Kaynaklar **sabit**: `woff2` dosyaları ve `unicode-range` değerleri `@fontsource 5.3.0`,
+  PDF'e gömülen `ttf`ler ile lisans metinleri `google/fonts` deposunun
+  `7ff85c87f93ea6cca5f41c69f2e4edcb90240f26` commit'i. `--fetch`, §22'de elle konmuş 33
+  dosyanın hepsini **bayt bayt aynı** indirdi — yani üreteç var olan durumu birebir üretiyor,
+  yeni bir font sürümü getirmiyor.
+- CSS yazılmadan önce çağrılacak her dosya diskte aranır. Eksik dosyayı çağıran bir
+  `@font-face` tarayıcıyı sentetik kalınlaştırmaya düşürür; elle bakımın açık kapısı buydu.
+- `--fetch` alt küme adlarını ve aralıkları paketin kendi `metadata.json` / `unicode.json`
+  verisiyle karşılaştırır ve ayrışırsa durur. IBM Plex Mono'nun `greek` alt kümesinin
+  yayınlanmadığı böylece folklor değil, denetlenen bir olgu.
+
+**İki aralık değişti**, ikisi de yukarı akışın bugünkü değeri yönünde: `latin` artık `U+2074`
+iddia etmiyor (alt küme dosyasında o glif yok — eski aralık olmayan bir kapsamı duyuruyordu)
+ve `greek` `U+03A3-03E1` + `U+03F0-03FF` yerine `U+03A3-03FF`.
+
+**Ölçülen sınır (iş değil, kayıt):** sitede kullanılan 38 karakter üç alt kümenin de dışında
+— `→`, `≈`, `≤`, `≥`, `√`, `✓`, `□`, alt ve üst simgeler. Bunlar sistem yazı tipinden çizilir
+ve fontlar Google'dan gelirken de öyleydi. Aralığı genişletmek çözmez: glifler alt küme
+dosyalarında yok, kendi alt kümemizi üretmek gerekir. PDF tam `ttf` kullandığı için etkilenmez.
+`--coverage` bu listeyi sayar.
+
+### 23.2 `ttf`ler `public/` dışına alındı
+
+Beş tam kapsamlı `ttf`nin tek tüketicisi QuestPDF. Tarayıcı onları hiç istemiyor (`fonts.css`
+yalnız `woff2` çağırıyor) ama `web/public/` altında durdukları için Vite `dist/`e, oradan da
+web imajına kopyalıyordu: hiç kimsenin indirmediği 970 KB. Yeni yerleri
+`assets/report-fonts/`.
+
+- `api/Dockerfile` `assets/report-fonts/*.ttf`yi `/app/fonts` altına alır —
+  `Reports__FontsPath` zaten oraya bakıyor, bağ bozulmadı. Lisans metni de imaja girer:
+  yeniden dağıtılan bayt lisansıyla birlikte taşınır.
+- `Program.cs` `Reports:FontsPath` verilmediğinde `assets/report-fonts`e düşer (yerel
+  `dotnet run` durumu).
+- Lisans metni her iki font dizininde durur, çünkü iki küme artık farklı imajlara giriyor.
+- **CRLF tuzağı:** yukarı akıştaki `OFL.txt` CRLF taşıyor, depo ise LF tutuyor
+  (`core.autocrlf=input`). Üreteç metni LF'e çevirmeden yazsaydı `--fetch` her koşuda dosyayı
+  "değişti" diye bildirir ve "yalnız değişeni söyler" çıktısı güvenilmez olurdu. Çevriliyor;
+  iki ardışık `--fetch` 35 dosyanın hepsini "aynı" diyor.
+- `dist/fonts` 1,4 MB → **424 KB**, içinde `ttf` yok.
+
+### 23.3 Kalınlık listesinin ilk boyaması — ölçüldü ve düzeltildi
+
+İnceleme notundaki "ölçülmedi, kozmetik" madde **gerçek çıktı**. Tarayıcıda ölçüm: yerel
+kaydı olan girişli kullanıcıda liste önce yerel kaydı basıyor, **46 ms** sonra hesabın
+kaydıyla değişiyor. O aralık kullanıcıya hesabının olmayan bir listesini gösteriyor ve
+gecikmeyle büyüyor (aradaki iş: `refresh` + `/api/me` + kayıt listesi).
+
+Hook oturumun varlığını ilk boyamada **soramıyor**: erişim token'ı yalnız bellekte, yenileme
+çerezi HttpOnly, `useAuth` bir tur ağ gidip gelene kadar `isLoading`. Çözüm, hook'un zaten
+sahip olduğu depoda bir ipucu: `alp-pcb.thickness.serverbacked.v1`.
+
+- Oturum bir kez görüldüğünde bayrak yazılır; sonraki açılışlarda liste **boş** ve `loading`
+  açık başlar, basılan tek içerik hesabın listesi olur.
+- Hiç oturum açılmamış tarayıcıda bayrak yoktur ve yerel liste eskisi gibi anında görünür —
+  girişsiz kullanım (her aracın varsayılanı) yavaşlamaz.
+- Oturum yok diye çözülürse bayrak silinir. Bayat bayrağın bedeli tek yüklemede bir
+  "Kayıtlar yükleniyor…" notu, sonra kendini düzeltir.
+- Efekt artık oturum durumu belirsizken beklemiyor sayılmıyor: "henüz bilinmiyor" ile
+  "oturum yok" ayrı ele alınıyor.
+- `CopperConverter` o notu iki dilli basıyor; `Account` zaten basıyordu.
+
+**Doğrulama (üç madde birlikte):** `npm test` 1957 yeşil, `npm run build` temiz,
+`dotnet build` 0 uyarı, `ipc` taraması temiz. Docker yığını yeniden kuruldu; api
+konteynerinde `/app/fonts` beş `ttf` + iki lisans metni taşıyor, günlükte yazı tipi uyarısı
+yok, canlı yığından alınan PDF üç aileyi gömüyor (DejaVu 0). Gerçek tarayıcı: fontlar 9/9
+(26 `@font-face`, Türkçe harfler `latin-ext`ten, Ω/Δ `greek`ten, dış kaynağa istek yok, site
+`ttf` indirmiyor, nginx'te 404 yok), ilk boyama 10/10 (girişli: yerel liste hiç görünmüyor ·
+girişsiz: 30 ms'de yerel liste, yükleniyor notu yok, bayrak yazılmıyor · bayat bayrak: 385 ms
+not, sonra yerel liste ve bayrak silindi), §21'in hesap akışı 8/8 (ilk giriş taşıması dahil).
+
+**Açık kalan:** backend testleri — kullanıcı kararı bekliyor, bu turda başlanmadı. Faz 8
+sunucu adımı hâlâ bloke (sunucu, alan adı, SMTP yok).
