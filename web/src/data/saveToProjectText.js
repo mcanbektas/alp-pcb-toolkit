@@ -15,10 +15,19 @@ export function saveToProjectText(lang) {
     }),
     loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
     loadingProjects: t({ tr: 'Projeler yükleniyor…', en: 'Loading projects…' }),
-    existingLabel: t({ tr: 'Mevcut proje', en: 'Existing project' }),
-    existingPlaceholder: t({ tr: '— proje seç —', en: '— choose a project —' }),
-    newLabel: t({ tr: 'ya da yeni proje adı', en: 'or new project name' }),
-    newPlaceholder: t({ tr: 'örn. Güç kartı Rev B', en: 'e.g. Power board Rev B' }),
+    // Tek alan: var olanı ara ya da yeni ad yaz (bkz. ProjectPicker).
+    // Eskiden ayrı bir `<select>` ve ayrı bir "yeni proje adı" kutusu vardı;
+    // ikisi aynı kararı soruyordu.
+    pickerLabel: t({ tr: 'Proje', en: 'Project' }),
+    pickerPlaceholder: t({
+      tr: 'Proje ara ya da yeni ad yaz',
+      en: 'Search a project or type a new name',
+    }),
+    pickerCreate: (name) => t({
+      tr: `+ Yeni proje: “${name}”`,
+      en: `+ New project: “${name}”`,
+    }),
+    pickerNoMatch: t({ tr: 'Eşleşen proje yok', en: 'No matching project' }),
     saveLabel: t({ tr: 'Kaydet', en: 'Save' }),
     saving: t({ tr: 'Kaydediliyor…', en: 'Saving…' }),
     savedNote: t({ tr: 'Hesap projeye kaydedildi.', en: 'The calculation was saved to the project.' }),

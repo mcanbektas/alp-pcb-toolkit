@@ -554,6 +554,34 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
 .field-row select { flex: 0 0 auto; }
 .select-only { width: 100%; }
 
+/* Proje seçici (ProjectPicker) — tek alan, altında süzülmüş liste.
+   Liste alanın ÜSTÜNE binerek açılır (`absolute`): akışta yer kaplasaydı
+   her tuş vuruşunda panelin altındaki düğmeler aşağı kayardı. */
+.combo { position: relative; }
+.combo-list {
+  position: absolute; z-index: 20; left: 0; right: 0;
+  margin: 4px 0 0; padding: 4px; list-style: none;
+  max-height: 240px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-hover);
+}
+.combo-option {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; border-radius: var(--radius-sm);
+  color: var(--text); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.88rem;
+  padding: 7px 9px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+/* Klavye ve fare AYNI satırı vurgular: gezinme sırası tek olmalı. */
+.combo-option.on { background: var(--raised); }
+.combo-option[aria-selected="true"] { color: var(--accent); }
+/* "Yeni proje" satırı listenin başındadır ve var olanlardan ayrılır. */
+.combo-option.create { color: var(--accent); font-weight: 600; }
+.combo-empty {
+  padding: 7px 9px; color: var(--muted); font-size: 0.85rem;
+}
+
 /* Parola görünürlük düğmesi (AuthField). Girdinin İÇİNDE, sağ kenarında ve
    SAYDAM durur: kendi kutusu olsaydı alan iki parçaya bölünmüş görünürdü.
    Bindirmenin tek riski uzun parolanın simgenin altına girmesi — girdiye

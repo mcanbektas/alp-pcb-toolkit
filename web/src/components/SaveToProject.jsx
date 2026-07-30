@@ -24,6 +24,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
 import useProjectSaver from '../hooks/useProjectSaver'
 import useLangCapture from '../hooks/useLangCapture'
+import ProjectPicker from './ProjectPicker'
 import { LANGS } from '../lib/i18n'
 import {
   LINK_ANONYMOUS, LINK_BROKEN, LINK_ERROR, LINK_LOADING, LINK_MISMATCH, LINK_NOT_FOUND, LINK_READY,
@@ -77,8 +78,11 @@ export default function SaveToProject({
   const capture = useLangCapture()
   const sectionRef = useRef(section)
 
+  // Tek alanın iki çıktısı: seçili proje kimliği ya da (seçim yokken) alanda
+  // yazılı yeni ad. İkisi aynı anda dolu olmaz — `onSelect(null)` seçimi
+  // boşaltır, bir projeyi seçmek alanı o projenin adıyla doldurur.
   const [projectId, setProjectId] = useState('')
-  const [newName, setNewName] = useState('')
+  const [query, setQuery] = useState('')
   const [feedback, setFeedback] = useState(null) // { level: 'ok' | 'warn', text }
 
   // Liste çekilemediyse geri bildirimi göster — dile bağlı metin bileşende.
@@ -151,7 +155,9 @@ export default function SaveToProject({
   async function handleCreate() {
     setFeedback(null)
 
-    const trimmedName = newName.trim()
+    // Seçili proje varsa hedef odur; yoksa alanda yazılı ad YENİ projedir.
+    // İkisi de boşsa gidilecek yer yok.
+    const trimmedName = projectId ? '' : query.trim()
     if (!trimmedName && !projectId) {
       setFeedback({ level: 'warn', text: st.needTarget })
       return
@@ -169,7 +175,8 @@ export default function SaveToProject({
     }
 
     setFeedback({ level: 'ok', text: st.savedNote })
-    setNewName('')
+    // Alan hedefin adıyla kalır: kaydettikten sonra nereye gittiği görünsün.
+    setQuery(res.projectName ?? query)
     setProjectId(res.projectId)
     // Ekran artık bu kayda bağlı: ikinci "Kaydet" kopya satır açmaz.
     saved?.bind({
@@ -228,30 +235,21 @@ export default function SaveToProject({
           {loadingList ? (
             <p className="empty-note">{st.loadingProjects}</p>
           ) : (
-            <label className="field">
-              <span className="field-label">{st.existingLabel}</span>
-              <select
-                className="select-only"
-                value={projectId}
-                onChange={(e) => { setProjectId(e.target.value); setNewName('') }}
-              >
-                <option value="">{st.existingPlaceholder}</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </label>
+            <ProjectPicker
+              projects={projects}
+              query={query}
+              onQueryChange={setQuery}
+              selectedId={projectId}
+              onSelect={(project) => setProjectId(project?.id ?? '')}
+              disabled={busy}
+              text={{
+                label: st.pickerLabel,
+                placeholder: st.pickerPlaceholder,
+                createOption: st.pickerCreate,
+                noMatch: st.pickerNoMatch,
+              }}
+            />
           )}
-
-          <label className="field">
-            <span className="field-label">{st.newLabel}</span>
-            <span className="field-row">
-              <input
-                type="text"
-                value={newName}
-                placeholder={st.newPlaceholder}
-                onChange={(e) => { setNewName(e.target.value); setProjectId('') }}
-              />
-            </span>
-          </label>
 
           {feedback && (
             <p className={feedback.level === 'ok' ? 'field-hint' : 'field-hint danger'}>{feedback.text}</p>
