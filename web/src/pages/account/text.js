@@ -97,6 +97,9 @@ export function getText(lang) {
       moveUpAria: (name) => t({ tr: `${name} yukarı taşı`, en: `Move ${name} up` }),
       moveDownAria: (name) => t({ tr: `${name} aşağı taşı`, en: `Move ${name} down` }),
       deleteAria: (name) => t({ tr: `${name} hesabını sil`, en: `Delete calculation ${name}` }),
+      // Onay kartının başlığı; gövdesi `confirmDeleteCalc(name)` cümlesidir ve
+      // iptal düğmesinin yazısı çerçeve metni olduğu için `uiText.js`'ten gelir.
+      deleteCalcTitle: t({ tr: 'Hesabı sil', en: 'Delete calculation' }),
       confirmDeleteCalc: (name) => t({
         tr: `"${name}" hesabı silinecek. Emin misin?`,
         en: `The calculation "${name}" will be deleted. Are you sure?`,
@@ -163,6 +166,9 @@ export function getText(lang) {
       recordRemove: t({ tr: 'Sil', en: 'Delete' }),
       recordRemoveAria: (name) => t({ tr: `${name} kaydını sil`, en: `Delete record ${name}` }),
       recordRemoved: t({ tr: 'Kayıt silindi.', en: 'The record was deleted.' }),
+      // Onay kartının başlığı; gövdesi `confirmRecordRemove(name)` cümlesidir ve
+      // iptal düğmesinin yazısı çerçeve metni olduğu için `uiText.js`'ten gelir.
+      recordRemoveTitle: t({ tr: 'Kaydı sil', en: 'Delete record' }),
       confirmRecordRemove: (name) => t({
         tr: `"${name}" kaydı silinecek. Emin misin?`,
         en: `The record "${name}" will be deleted. Are you sure?`,

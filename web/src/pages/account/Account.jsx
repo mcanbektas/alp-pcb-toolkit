@@ -11,11 +11,14 @@ import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
 import useSavedThickness from '../../hooks/useSavedThickness'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import { commonText } from '../../data/uiText'
 import { getText } from './text'
 
 export default function Account() {
   const { lang } = useLang()
   const at = getText(lang).account
+  const ui = commonText(lang)
   const { isLoading, isAuthenticated, user, api, refreshUser } = useAuth()
   const { showNotice } = useNotice()
   const saved = useSavedThickness()
@@ -26,6 +29,12 @@ export default function Account() {
   const [profileError, setProfileError] = useState(null)
 
   const [recordError, setRecordError] = useState(null)
+
+  // Silinmek üzere seçilen kayıt ve isteğin sürüp sürmediği. Onay artık
+  // `window.confirm` değil, ortak `ConfirmDialog` — bkz. Projects.jsx'teki
+  // aynı desen ve docs/uyelik-ve-rapor-plani.md §6.4'teki İSTİSNA notu.
+  const [pendingRecord, setPendingRecord] = useState(null)
+  const [removingRecord, setRemovingRecord] = useState(false)
 
   // Alanlar kullanıcı yüklendiğinde BİR KEZ doldurulur; sonraki tazelemeler
   // (`refreshUser`) kullanıcının yazdığını ezmemeli.
@@ -55,12 +64,16 @@ export default function Account() {
     showNotice(at.profileSaved)
   }
 
-  async function onRemoveRecord(rec) {
-    // eslint-disable-next-line no-alert
-    if (!window.confirm(at.confirmRecordRemove(rec.name))) return
+  async function confirmRemoveRecord() {
+    const rec = pendingRecord
+    if (!rec) return
 
     setRecordError(null)
+    setRemovingRecord(true)
     const res = await saved.remove(rec.id)
+    setRemovingRecord(false)
+    setPendingRecord(null)
+
     if (res.error) {
       setRecordError(at.errorText({ error: res.cause ?? res.error, detail: res }))
       return
@@ -162,7 +175,7 @@ export default function Account() {
                   <button
                     type="button"
                     className="row-add"
-                    onClick={() => onRemoveRecord(rec)}
+                    onClick={() => setPendingRecord(rec)}
                     aria-label={at.recordRemoveAria(rec.name)}
                   >
                     {at.recordRemove}
@@ -173,6 +186,19 @@ export default function Account() {
           </div>
         )}
       </section>
+
+      {/* Liste kaç kayıt taşırsa taşısın kart BİR KEZ render edilir; hangi
+          kaydın sorulduğu `pendingRecord` state'inde durur. */}
+      <ConfirmDialog
+        open={pendingRecord !== null}
+        title={at.recordRemoveTitle}
+        message={pendingRecord ? at.confirmRecordRemove(pendingRecord.name) : ''}
+        confirmLabel={at.recordRemove}
+        cancelLabel={ui.cancel}
+        busy={removingRecord}
+        onConfirm={confirmRemoveRecord}
+        onCancel={() => setPendingRecord(null)}
+      />
     </>
   )
 }

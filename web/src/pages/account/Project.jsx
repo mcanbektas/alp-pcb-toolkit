@@ -11,6 +11,8 @@ import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import { commonText } from '../../data/uiText'
 import {
   reportText, reportErrorText, reportDateStamp, REPORT_ERR_NOT_REPRODUCIBLE,
 } from '../../data/reportText'
@@ -41,6 +43,7 @@ export default function Project() {
   const { id } = useParams()
   const { lang } = useLang()
   const pt = getText(lang).project
+  const ui = commonText(lang)
   const rt = reportText(lang)
   const { isLoading, isAuthenticated, user, api } = useAuth()
   const { showNotice } = useNotice()
@@ -57,6 +60,12 @@ export default function Project() {
   const [metaStatus, setMetaStatus] = useState(null)
 
   const [calcStatus, setCalcStatus] = useState(null)
+
+  // Silinmek üzere seçilen hesap ve isteğin sürüp sürmediği. Onay artık
+  // `window.confirm` değil, ortak `ConfirmDialog` — bkz. Projects.jsx'teki
+  // aynı desen ve docs/uyelik-ve-rapor-plani.md §6.4'teki İSTİSNA notu.
+  const [pendingCalc, setPendingCalc] = useState(null)
+  const [deletingCalc, setDeletingCalc] = useState(false)
 
   // Satır türevleri artık ayrıştırma içermiyor: önizleme ve mod etiketi
   // sunucudan hazır geliyor (`calc.preview` / `calc.previewMode`), geriye
@@ -137,11 +146,15 @@ export default function Project() {
     }
   }
 
-  async function deleteCalc(calc) {
-    const label = toolDisplayName(calc.toolKey, lang)
-    if (!window.confirm(pt.confirmDeleteCalc(label))) return
+  async function confirmDeleteCalc() {
+    const calc = pendingCalc
+    if (!calc) return
 
+    setDeletingCalc(true)
     const res = await api.del(`/api/calculations/${calc.id}`)
+    setDeletingCalc(false)
+    setPendingCalc(null)
+
     if (res.ok) {
       setCalcs((prev) => prev.filter((c) => c.id !== calc.id))
     } else {
@@ -281,7 +294,7 @@ export default function Project() {
         pt={pt}
         calcStatus={calcStatus}
         onMove={move}
-        onDelete={deleteCalc}
+        onDelete={setPendingCalc}
       />
 
       <section className="panel">
@@ -315,6 +328,19 @@ export default function Project() {
           </button>
         </div>
       </section>
+
+      {/* Liste kaç satır taşırsa taşısın kart BİR KEZ render edilir; hangi
+          hesabın sorulduğu `pendingCalc` state'inde durur. */}
+      <ConfirmDialog
+        open={pendingCalc !== null}
+        title={pt.deleteCalcTitle}
+        message={pendingCalc ? pt.confirmDeleteCalc(toolDisplayName(pendingCalc.toolKey, lang)) : ''}
+        confirmLabel={pt.deleteLabel}
+        cancelLabel={ui.cancel}
+        busy={deletingCalc}
+        onConfirm={confirmDeleteCalc}
+        onCancel={() => setPendingCalc(null)}
+      />
     </>
   )
 }
