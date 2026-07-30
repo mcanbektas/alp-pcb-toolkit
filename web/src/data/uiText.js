@@ -69,6 +69,11 @@ export function commonText(lang) {
       en: `This will close automatically in ${seconds} second${seconds === 1 ? '' : 's'}.`,
     }),
 
+    // Onay kartı (ConfirmDialog.jsx) — vazgeçme düğmesinin yazısı her ekranda
+    // birebir aynı çerçeve metnidir, o yüzden ekran sözlüğüne kopyalanmaz.
+    // Onaylanan eylemin adı (Sil, Kaldır…) ekrana özgüdür ve prop olarak gelir.
+    cancel: t({ tr: 'Vazgeç', en: 'Cancel' }),
+
     // Satır listesi — ekran başına değişmeyen varsayılanlar ve ekran okuyucu
     // etiketleri. Kalıp tek yerdedir; RowList kullanan üç ekran aynı sözlüğü
     // kopyalamaz.

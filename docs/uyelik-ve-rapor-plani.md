@@ -426,6 +426,10 @@ deyimleri yeniden kullanmaktır.
 ve erişilebilirlik işi demek — hem yeni görsel dil hem fazladan yüzey. Rapor seçenekleri
 sonuçların altında açılan panel olarak durur.
 
+> **İSTİSNA — yıkıcı eylem onayı (`components/ConfirmDialog.jsx`):** native `<dialog>` +
+> `showModal()` kullanılır; örtü, odak hapsi, Escape ve inert arka plan tarayıcıdan geldiği
+> için yukarıdaki "elle kurma" gerekçesi bu tek yerde geçerli değildir.
+
 `report.js` ayrı dosya olarak eklendiği için **25 `index.jsx`'in düzeni değişmez** — sadece
 sonuç panelinin altına eylem satırı iner. Sonuç satırlarını veri güdümlü hâle getirip tek
 kaynağa indirmek daha temiz olurdu ama 25 ekranı derinden değiştirirdi; araçların satır

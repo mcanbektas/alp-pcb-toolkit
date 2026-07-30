@@ -16,6 +16,17 @@
   --muted: #8fa898;
   --warn: #e5b45a;
   --danger: #e0605a;
+  /* Dolu tehlike düğmesi (.btn-danger). Tehlike rengi koyu temada AÇIK olduğu
+     için üstündeki yazı KOYU olur — beyaz yazı bu zeminde okunmaz. */
+  --on-danger: #06130c;     /* #e0605a üzerinde 5.42:1 */
+  --danger-strong: #e8837e; /* üzerine gelince açılır, koyu yazı 7.21:1 */
+
+  /* --- Yükseklik gölgeleri --- */
+  /* Kart ızgarasının derinliği. Renk literali yalnızca burada durur, kurallar
+     var() ile okur. Koyu zeminde açık temanın değeri görünmez kaldığı için
+     siyah daha sert basılır. */
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.55);
 
   /* Grafik serisi renkleri — sabit sırayla atanır, asla döngüye alınmaz.
      Varsayılan grafik yeşil + nötr; koyu yeşil üçüncü seri, sıcak vurgu
@@ -163,23 +174,29 @@ a:hover { text-decoration: underline; }
   display: block;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--green-deep);
+  border-left: 4px solid var(--green-deep);
   border-radius: 6px;
-  padding: 18px 18px 14px;
+  padding: 20px 20px 16px;
   color: var(--text);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s ease, background 0.15s ease,
+              box-shadow 0.15s ease, transform 0.15s ease;
 }
 .cat-card:hover {
   text-decoration: none;
   border-color: var(--accent-dim);
   border-left-color: var(--accent);
   background: var(--raised);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
 .cat-card h2 {
   font-family: var(--font-display);
   font-size: 1.02rem; font-weight: 600; letter-spacing: 0.02em;
   margin: 0 0 6px;
+  transition: color 0.15s ease;
 }
+.cat-card:hover h2 { color: var(--accent); }
 .cat-card .desc { color: var(--muted); font-size: 0.85rem; margin: 0 0 12px; }
 .cat-card .meta {
   display: flex; gap: 8px; align-items: center;
@@ -190,7 +207,34 @@ a:hover { text-decoration: underline; }
   border: 1px solid var(--line); font-family: var(--font-mono);
   font-size: 0.7rem; color: var(--muted); white-space: nowrap;
 }
-.chip.on { border-color: var(--accent-dim); color: var(--accent); }
+/* Etkin çip dolu durur: çerçeveli hâli meta satırında kayboluyordu. Zemin
+   temanın kendi koyu yeşili, yazı --accent. */
+.chip.on { background: var(--green-deep); border-color: transparent; color: var(--accent); }
+
+/* Kart + kartın DIŞINDAKİ eylem düğmesi. <a> içine interaktif eleman konamaz
+   (HTML5 içerik modeli), bu yüzden Projelerim'de silme düğmesi kartın kardeşi
+   ve kartın üstüne konumlanır. Hücre kartı esnetir: ızgaradaki kartlar açıklama
+   uzunluğundan bağımsız aynı yükseklikte durur. */
+.card-cell { display: flex; flex-direction: column; position: relative; }
+.card-cell > .cat-card { flex: 1; }
+/* Kalkma hücrenin tamamına uygulanır — kart ile üstündeki düğme tek parça
+   hareket etsin diye kartın kendi dönüşümü burada iptal edilir. */
+.card-cell { transition: transform 0.15s ease; }
+.card-cell:hover { transform: translateY(-2px); }
+.card-cell > .cat-card:hover { transform: none; }
+/* Başlık simgenin altına girmesin. */
+.card-cell > .cat-card h2 { padding-right: 26px; }
+
+.card-del {
+  position: absolute; top: 10px; right: 10px; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0;
+  background: none; border: 1px solid transparent; border-radius: 4px;
+  color: var(--muted); cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.card-del:hover { color: var(--danger); border-color: var(--danger); background: var(--bg); }
+.card-del svg { width: 15px; height: 15px; display: block; }
 
 /* ---------- Category page ---------- */
 
@@ -243,7 +287,10 @@ a:hover { text-decoration: underline; }
   border-radius: 6px;
   padding: 18px;
 }
-.panel h2 {
+/* Onay kartının başlığı da panel başlığı kimliğini taşır (mono, aralıklı,
+   büyük harf) — kural kopyalanmaz, seçiciye eklenir. */
+.panel h2,
+.confirm-dialog h2 {
   font-family: var(--font-mono);
   font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--muted);
@@ -291,6 +338,78 @@ a:hover { text-decoration: underline; }
   background: var(--accent-strong); border-color: var(--accent-strong);
 }
 .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+/* Hayalet düğme — `.btn-primary` ile aynı yerleşim (tam genişlik, üstten
+   boşluk), farkı zemininin saydam olması. Dolu vurgu zemini formun kendi metin
+   girdilerini bastırdığı yerlerde bu kullanılır (Projelerim → "Proje oluştur").
+   Kenarlık, köşe ve dikey iç boşluk aşağıdaki `.field-row input` ile aynıdır;
+   vurgu yalnızca yazıda, üzerine gelince kenarlıkta ve zeminde görünür. */
+.btn-ghost {
+  width: 100%; margin-top: 12px;
+  background: transparent; border: 1px solid var(--line); border-radius: 4px;
+  color: var(--accent); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+  padding: 8px 14px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--accent-dim); background: var(--raised);
+}
+.btn-ghost:disabled { opacity: 0.5; cursor: default; }
+
+/* Yıkıcı eylem düğmesi — dolu tehlike zemini, yalnızca onay kartında kullanılır.
+   Yerleşimi `.btn-primary` ile aynı; ayıran tek şey rengi.
+   KONTRAST: --on-danger (#06130c) / --danger (#e0605a) = 5.42:1, AA sınırı
+   4.5:1'in üstünde. Üzerine gelince zemin --danger-strong'a (#e8837e) açılır,
+   oran 7.21:1'e çıkar — okunurluk düşmez. */
+.btn-danger {
+  width: 100%; margin-top: 12px;
+  background: var(--danger); border: 1px solid var(--danger); border-radius: 4px;
+  color: var(--on-danger); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 600;
+  padding: 8px 14px;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-strong); border-color: var(--danger-strong);
+}
+.btn-danger:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- Onay kartı ---------- */
+
+/* Yıkıcı eylem onayı (ConfirmDialog.jsx) — native <dialog> + showModal().
+   Örtü, odak hapsi, Escape ve arka planın etkisizleşmesi tarayıcıdan gelir;
+   elle kurulan katman yok (bkz. docs/uyelik-ve-rapor-plani.md §6.4 istisnası).
+   Kutu `.panel` kimliğini taşır: aynı yüzey, kenarlık ve köşe yarıçapı; ayrımı
+   yalnızca yükseltilmiş gölge kuruyor. `border`, `padding` ve `color` tarayıcı
+   varsayılanlarını ezmek için yazılıyor — <dialog> kendi kalın kenarlığı,
+   1em iç boşluğu ve sistem renkleriyle gelir. */
+dialog.confirm-dialog {
+  max-width: 420px;
+  width: calc(100% - 32px);
+  margin: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow-hover);
+  color: var(--text);
+  padding: 18px;
+}
+/* ::backdrop CSS DEĞİŞKENLERİNİ MİRAS ALMAZ — burada var(--…) tanımsız kalır ve
+   kural tümüyle düşer. Literal renk yasağının tek istisnası budur. */
+dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.62); }
+
+.confirm-dialog-message {
+  color: var(--text); font-family: var(--font-body); font-size: 0.92rem;
+  line-height: 1.5; margin: 0;
+}
+/* Düğme satırı sağa yaslı. `.btn-ghost`/`.btn-danger` tam genişlik ve üstten
+   boşluk taşır (tek eylemli formlar için); satırda ikisi de içeriğine daralır. */
+.confirm-dialog-actions {
+  display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;
+}
+.confirm-dialog-actions .btn-ghost,
+.confirm-dialog-actions .btn-danger { width: auto; margin-top: 0; }
 
 /* ---------- Bildirim ---------- */
 
@@ -365,7 +484,24 @@ a:hover { text-decoration: underline; }
   padding: 8px 10px;
 }
 .field-row input { flex: 1; min-width: 0; }
-.field-row input:focus, .field-row select:focus, .select-only:focus {
+/* Çok satırlı serbest metin (örn. proje açıklaması). Zemin, kenarlık, köşe ve
+   iç boşluk yukarıdaki girdiyle aynı; farkı üç satırlık yükseklik, dikeyde
+   büyüyebilmesi ve gövde fontu — <textarea> aksi hâlde tarayıcının varsayılan
+   monospace yazısına düşer ve cümle için o yazı uygun değildir. */
+.field-row textarea {
+  flex: 1; min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 8px 10px;
+  resize: vertical;
+  min-height: 5.2rem;
+}
+.field-row input:focus, .field-row textarea:focus, .field-row select:focus, .select-only:focus {
   outline: none; border-color: var(--accent-dim);
 }
 .field-row select { flex: 0 0 auto; }
@@ -431,6 +567,7 @@ a:hover { text-decoration: underline; }
   color: var(--muted); cursor: pointer;
   font-family: var(--font-body); font-size: 0.78rem;
   padding: 6px 10px;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 .row-add:hover:not(:disabled) { border-color: var(--accent-dim); color: var(--accent); }
 .row-add:disabled { opacity: 0.4; cursor: default; }
@@ -730,6 +867,9 @@ a.row-add { display: inline-block; text-decoration: none; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+  /* Geçiş kapalıyken kaldırma efekti anlık sıçramaya döner — büsbütün kapatılır,
+     gölge farkı kartın üzerinde olduğunu göstermeye yeter. */
+  .cat-card:hover, .card-cell:hover { transform: none; }
 }
 
 /* DFM özeti — düz metin, uzun satırlar sarılır ve kutu kaydırılabilir

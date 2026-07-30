@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
+import ConfirmDialog from '../../components/ConfirmDialog'
 import { commonText } from '../../data/uiText'
 import { reportDateStamp } from '../../data/reportText'
 import { getText } from './text'
@@ -32,6 +33,12 @@ export default function Projects() {
   // üstteki createStatus'uyla karıştırılmaz, yoksa hata ilgisiz karttan uzakta
   // görünür (bkz. handleDelete).
   const [deleteError, setDeleteError] = useState(null)
+
+  // Silinmek üzere seçilen proje. Onay kartı (ConfirmDialog) bu state'e bakar:
+  // dolu olduğu sürece kart açıktır. `deleting` istek sürerken kartın iki
+  // düğmesini de kilitler, yoksa aynı silme iki kez gönderilebilir.
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) return undefined
@@ -77,19 +84,37 @@ export default function Projects() {
     }
   }
 
-  async function handleDelete(e, project) {
+  // Çöp kutusu düğmesi yalnızca projeyi seçer, silmez. Düğme <Link>'in kardeşi
+  // ve kartın üstünde durduğu için varsayılan davranış burada durdurulur —
+  // yoksa tıklama karta gider ve proje detayı açılır.
+  function askDelete(e, project) {
     e.preventDefault()
     e.stopPropagation()
-    // Bu repoda modal yok; yıkıcı eylemler için var olan tek desen budur.
-    if (!window.confirm(pt.confirmDelete(project.name))) return
-
     setDeleteError(null)
+    setPendingDelete(project)
+  }
+
+  async function confirmDelete() {
+    const project = pendingDelete
+    if (!project) return
+
+    setDeleting(true)
     const res = await api.del(`/api/projects/${project.id}`)
+    setDeleting(false)
+    // Onay kartı her iki durumda da kapanır; hata kartın içinde değil, ilgili
+    // proje kartının altında gösterilir (aşağıdaki deleteError deseni).
+    setPendingDelete(null)
+
     if (res.ok) {
       setProjects((prev) => prev.filter((p) => p.id !== project.id))
     } else {
       setDeleteError({ id: project.id, text: pt.genericError })
     }
+  }
+
+  function cancelDelete() {
+    if (deleting) return
+    setPendingDelete(null)
   }
 
   if (isLoading) return null
@@ -129,11 +154,15 @@ export default function Projects() {
           </span>
         </label>
 
+        {/* Açıklama serbest metindir ve tek satıra sığmayabilir: <textarea>
+            üç satır yüksekliğinde açılır, kullanıcı gerekirse dikeyde büyütür.
+            Sarmalayıcı desen (.field / .field-label / .field-row) aynı kalır —
+            görünüm kararı tema dosyalarındaki `.field-row textarea` kuralında. */}
         <label className="field">
           <span className="field-label">{pt.descLabel}</span>
           <span className="field-row">
-            <input
-              type="text"
+            <textarea
+              rows={3}
               value={description}
               placeholder={pt.descPlaceholder}
               onChange={(e) => setDescription(e.target.value)}
@@ -143,17 +172,26 @@ export default function Projects() {
 
         {createStatus && <p className="field-hint danger">{createStatus.text}</p>}
 
-        <button type="button" className="row-add" disabled={creating} onClick={handleCreate}>
+        {/* Panelin tek ana eylemi. `.btn-primary` (dolu vurgu zemini) burada
+            değil, giriş/kayıt ekranlarında kalır: bu panelde dolu yeşil düğme
+            hemen üstündeki metin girdilerini bastırıyordu. `.btn-ghost` aynı
+            yerleşimi taşır ama görünümü `.field-row` girdileriyle hizalıdır —
+            saydam zemin, aynı kenarlık ve köşe, yalnızca yazı vurgu renginde.
+            `.row-add` de burada kullanılmaz: o listeye satır ekleyen ikincil
+            bir düğmedir ve gönder düğmesi olarak fazla sönük kalır. */}
+        <button type="button" className="btn-ghost" disabled={creating} onClick={handleCreate}>
           {creating ? pt.creating : pt.createLabel}
         </button>
       </section>
 
       {loading ? (
-        <p className="empty-note">{pt.loading}</p>
+        // Liste yerine geçen üç durum da panel içinde durur: çıplak paragraf
+        // kart ızgarasının bıraktığı boşlukta sayfadan kopuk görünüyordu.
+        <section className="panel"><p className="empty-note">{pt.loading}</p></section>
       ) : loadError ? (
-        <p className="empty-note warn">{pt.loadError}</p>
+        <section className="panel"><p className="empty-note warn">{pt.loadError}</p></section>
       ) : projects.length === 0 ? (
-        <p className="empty-note">{pt.empty}</p>
+        <section className="panel"><p className="empty-note">{pt.empty}</p></section>
       ) : (
         <section className="card-grid">
           {projects.map((p) => (
@@ -161,7 +199,7 @@ export default function Projects() {
             // sunum içeriği taşır, hiçbir interaktif eleman içermez (HTML5
             // içerik modeli <a> içinde interaktif içeriğe izin vermez). Silme
             // düğmesi bu yüzden Link'in dışında, kendisiyle kardeş konumdadır.
-            <div key={p.id}>
+            <div key={p.id} className="card-cell">
               <Link to={`/proje/${p.id}`} className="cat-card">
                 <h2>{p.name}</h2>
                 <p className="desc">{p.description || pt.noDescription}</p>
@@ -172,17 +210,44 @@ export default function Projects() {
               </Link>
               <button
                 type="button"
-                className="row-add"
-                onClick={(e) => handleDelete(e, p)}
+                className="card-del"
+                onClick={(e) => askDelete(e, p)}
                 aria-label={pt.deleteAria(p.name)}
+                title={pt.deleteAria(p.name)}
               >
-                {pt.deleteLabel}
+                {/* Çöp kutusu simgesi. Rengini taşımaz — `currentColor` ile
+                    .card-del kuralından alır, böylece literal renk kuralı
+                    bozulmaz ve dört temada da doğru tonda çıkar. */}
+                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <path
+                    d="M2.5 4h11M6.5 4V2.6h3V4M4.1 4l.6 9.2a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L11.9 4M6.6 6.7v5M9.4 6.7v5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
               {deleteError?.id === p.id && <p className="field-hint danger">{deleteError.text}</p>}
             </div>
           ))}
         </section>
       )}
+
+      {/* Onay kartı listenin sonunda BİR KEZ durur, kart başına değil: açık
+          olan tek bir kart vardır ve hangi projeyi sorduğu `pendingDelete`
+          state'inden gelir. */}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={pt.deleteTitle}
+        message={pendingDelete ? pt.confirmDelete(pendingDelete.name) : ''}
+        confirmLabel={pt.deleteLabel}
+        cancelLabel={ui.cancel}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        busy={deleting}
+      />
     </>
   )
 }

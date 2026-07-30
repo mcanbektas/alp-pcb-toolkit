@@ -35,6 +35,14 @@
   --line: #373f3f;
   --line-strong: #4e5758;
 
+  /* Yükseklik gölgeleri BİLEREK yok. Bu temanın kart ızgarası dikişsiz:
+     kartlar arası 1px boşluk zemini gösterir, kartın kendi kenarlığı bile
+     yoktur (bkz. .card-grid). Gölge o dikişi kırardı. Değişken yine de
+     tanımlıdır — dört temada aynı sözlük durur, tema değişince kural
+     tanımsız kalmaz. */
+  --shadow: none;
+  --shadow-hover: none;
+
   /* --- Vurgu: altın bandı (ton 82°) --- */
   --accent: #dca73c;      /* panel üzerinde 7.48:1 */
   --accent-dim: #a17507;
@@ -55,6 +63,10 @@
   --danger: #e36655;      /* 4.89:1 */
   --warn-soft: #302a15;
   --danger-soft: #3c221e;
+  /* Dolu tehlike düğmesi (.btn-danger). Tehlike rengi koyu temada AÇIK olduğu
+     için üstündeki yazı KOYU olur — beyaz yazı bu zeminde okunmaz. */
+  --on-danger: #141310;     /* #e36655 üzerinde 5.57:1 */
+  --danger-strong: #ea8172; /* üzerine gelince açılır, koyu yazı 6.97:1 */
 
   /* Grafik serisi — turuncu, mavi, yeşil, mor bantlarının tonları.
      Sıralama yüzeye göre değişiyor: koyu zeminde mor ile yeşilin komşuluğu
@@ -241,6 +253,32 @@ a:hover { text-decoration: underline; }
 }
 .chip.on { border-color: var(--accent-dim); color: var(--accent); }
 
+/* Kart + kartın DIŞINDAKİ eylem düğmesi. <a> içine interaktif eleman konamaz
+   (HTML5 içerik modeli), bu yüzden Projelerim'de silme düğmesi kartın kardeşi.
+   Hücre kartı esnetir: ızgaradaki kartlar açıklama uzunluğundan bağımsız aynı
+   yükseklikte durur, düğmeler de aynı hizada.
+   Bu temada ızgara dikişsiz olduğu için hücrenin kendisi yüzey rengini taşır —
+   yoksa düğme kartın değil, ayraç renginin üstünde kalırdı. Kartın kenarlığı
+   olmadığından düğme kartın iç boşluğuyla elle hizalanır. */
+.card-cell { display: flex; flex-direction: column; position: relative; background: var(--surface); }
+.card-cell > .cat-card { flex: 1; border-left: 3px solid var(--line-strong); }
+.card-cell > .cat-card:hover { border-left-color: var(--accent-dim); }
+/* Başlık simgenin altına girmesin. */
+.card-cell > .cat-card h2 { padding-right: 26px; }
+
+/* Bu temada kalkma yok: ızgara dikişsiz ve `overflow: hidden` taşıyor,
+   yükselen kart kenarından kırpılırdı (bkz. --shadow: none gerekçesi). */
+.card-del {
+  position: absolute; top: 12px; right: 12px; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0;
+  background: none; border: 1px solid transparent; border-radius: var(--radius-sm);
+  color: var(--muted); cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.card-del:hover { color: var(--danger); border-color: var(--danger); background: var(--raised); }
+.card-del svg { width: 15px; height: 15px; display: block; }
+
 /* ---------- Category page ---------- */
 
 .page-title {
@@ -305,8 +343,11 @@ a:hover { text-decoration: underline; }
   padding: 0 18px 18px;
 }
 /* Başlık panelin üstüne oturur ve kendi şeridini taşır — gölge olmadan
-   katman hissi buradan gelir. */
-.panel h2 {
+   katman hissi buradan gelir. Onay kartının başlığı da aynı kimliği taşır;
+   kural kopyalanmaz, seçiciye eklenir (kartın yatay iç boşluğu da bu yüzden
+   panelinkiyle aynı: negatif kenar boşluğu ancak öyle şeride oturuyor). */
+.panel h2,
+.confirm-dialog h2 {
   font-family: var(--font-mono);
   font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em;
   text-transform: uppercase; color: var(--muted);
@@ -360,6 +401,81 @@ a:hover { text-decoration: underline; }
   background: var(--accent-strong); border-color: var(--accent-strong);
 }
 .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+/* Hayalet düğme — `.btn-primary` ile aynı yerleşim (tam genişlik, üstten
+   boşluk), farkı zemininin saydam olması. Dolu vurgu zemini formun kendi metin
+   girdilerini bastırdığı yerlerde bu kullanılır (Projelerim → "Proje oluştur").
+   Kenarlık, köşe ve dikey iç boşluk aşağıdaki `.field-row input` ile aynıdır;
+   üzerine gelince kenarlık `.row-add` gibi vurguya döner. */
+.btn-ghost {
+  width: 100%; margin-top: 12px;
+  background: transparent; border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--accent); cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600;
+  letter-spacing: 0.04em; padding: 9px 14px;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--accent); background: var(--raised);
+}
+.btn-ghost:disabled { opacity: 0.5; cursor: default; }
+
+/* Yıkıcı eylem düğmesi — dolu tehlike zemini, yalnızca onay kartında kullanılır.
+   Yerleşimi `.btn-primary` ile aynı; ayıran tek şey rengi.
+   KONTRAST: --on-danger (#141310) / --danger (#e36655) = 5.57:1, AA sınırı
+   4.5:1'in üstünde. Üzerine gelince zemin --danger-strong'a (#ea8172) açılır,
+   oran 6.97:1'e çıkar — okunurluk düşmez. */
+.btn-danger {
+  width: 100%; margin-top: 12px;
+  background: var(--danger); border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  color: var(--on-danger); cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600;
+  letter-spacing: 0.04em; padding: 9px 14px;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-strong); border-color: var(--danger-strong);
+}
+.btn-danger:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- Onay kartı ---------- */
+
+/* Yıkıcı eylem onayı (ConfirmDialog.jsx) — native <dialog> + showModal().
+   Örtü, odak hapsi, Escape ve arka planın etkisizleşmesi tarayıcıdan gelir;
+   elle kurulan katman yok (bkz. docs/uyelik-ve-rapor-plani.md §6.4 istisnası).
+   Kutu `.panel` kimliğini taşır: aynı yüzey, kenarlık, köşe yarıçapı ve iç
+   boşluk — başlık şeridi panelde olduğu gibi kartın üstüne oturur. GÖLGE YOK:
+   bu temada --shadow-hover bilerek `none`, katman hissi şeritten geliyor.
+   `border`, `padding` ve `color` tarayıcı varsayılanlarını ezmek için yazılıyor
+   — <dialog> kendi kalın kenarlığı, 1em iç boşluğu ve sistem renkleriyle
+   gelir. */
+dialog.confirm-dialog {
+  max-width: 420px;
+  width: calc(100% - 32px);
+  margin: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 0 18px 18px;
+}
+/* ::backdrop CSS DEĞİŞKENLERİNİ MİRAS ALMAZ — burada var(--…) tanımsız kalır ve
+   kural tümüyle düşer. Literal renk yasağının tek istisnası budur. */
+dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.62); }
+
+.confirm-dialog-message {
+  color: var(--text); font-family: var(--font-body); font-size: 0.92rem;
+  line-height: 1.55; margin: 0;
+}
+/* Düğme satırı sağa yaslı. `.btn-ghost`/`.btn-danger` tam genişlik ve üstten
+   boşluk taşır (tek eylemli formlar için); satırda ikisi de içeriğine daralır. */
+.confirm-dialog-actions {
+  display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;
+}
+.confirm-dialog-actions .btn-ghost,
+.confirm-dialog-actions .btn-danger { width: auto; margin-top: 0; }
 
 /* ---------- Bildirim ---------- */
 
@@ -437,7 +553,25 @@ a:hover { text-decoration: underline; }
   transition: border-color 0.12s ease;
 }
 .field-row input { flex: 1; min-width: 0; }
-.field-row input:focus, .field-row select:focus, .select-only:focus {
+/* Çok satırlı serbest metin (örn. proje açıklaması). Zemin, kenarlık, köşe ve
+   iç boşluk yukarıdaki girdiyle aynı; farkı üç satırlık yükseklik, dikeyde
+   büyüyebilmesi ve gövde fontu — <textarea> aksi hâlde tarayıcının varsayılan
+   monospace yazısına düşer ve cümle için o yazı uygun değildir. */
+.field-row textarea {
+  flex: 1; min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 9px 10px;
+  resize: vertical;
+  min-height: 5.3rem;
+  transition: border-color 0.12s ease;
+}
+.field-row input:focus, .field-row textarea:focus, .field-row select:focus, .select-only:focus {
   outline: none; border-color: var(--accent);
 }
 .field-row select { flex: 0 0 auto; }

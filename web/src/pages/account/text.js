@@ -48,6 +48,10 @@ export function getText(lang) {
       updatedLabel: (d) => t({ tr: `güncelleme: ${d}`, en: `updated: ${d}` }),
       deleteLabel: t({ tr: 'Sil', en: 'Delete' }),
       deleteAria: (name) => t({ tr: `${name} projesini sil`, en: `Delete project ${name}` }),
+      // Onay kartının başlığı (ConfirmDialog). Kartın gövdesi aşağıdaki
+      // `confirmDelete(name)` cümlesidir; iptal düğmesinin yazısı çerçeve
+      // metnidir ve `commonText(lang).cancel`'dan gelir.
+      deleteTitle: t({ tr: 'Projeyi sil', en: 'Delete project' }),
       confirmDelete: (name) => t({
         tr: `"${name}" projesi ve içindeki tüm hesaplar silinecek. Emin misin?`,
         en: `The project "${name}" and all its calculations will be deleted. Are you sure?`,
