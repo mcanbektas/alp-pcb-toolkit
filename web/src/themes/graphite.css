@@ -386,6 +386,13 @@ a:hover { text-decoration: underline; }
   border-radius: var(--radius);
   padding: 0 18px 18px;
 }
+/* Izgarasız sayfalarda (Hesabım, Projelerim, proje detayı) paneller doğrudan
+   alt alta durur ve hiçbir kural aralarını açmıyordu — bitişik görünüyorlardı.
+   Boşluk .tool-grid'in gap değeriyle aynıdır ki iki tür sayfa aynı ritmi
+   taşısın. Seçici .container'ın DOĞRUDAN çocuklarıyla sınırlı: .tool-grid
+   içindeki yan yana paneller bu kuralı almaz, yoksa grid'de sağdaki panel
+   aşağı kayardı. */
+.container > .panel + .panel { margin-top: 14px; }
 /* Başlık panelin üstüne oturur ve kendi şeridini taşır — gölge olmadan
    katman hissi buradan gelir. Onay kartının başlığı da aynı kimliği taşır;
    kural kopyalanmaz, seçiciye eklenir (kartın yatay iç boşluğu da bu yüzden
