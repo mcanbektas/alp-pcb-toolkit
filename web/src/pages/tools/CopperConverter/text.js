@@ -503,6 +503,9 @@ export function getText(lang) {
       removeLabel: t({ tr: 'Sil', en: 'Delete' }),
       headName: t({ tr: 'Ad', en: 'Name' }),
       headSummary: t({ tr: 'başlangıç · bitmiş', en: 'starting · finished' }),
+      // Oturum açmış tarayıcıda liste hesaptan gelir; gelene kadar yerel kopya
+      // basılmaz (bkz. hooks/useSavedThickness.js), onun yerine bu not durur.
+      loading: t({ tr: 'Kayıtlar yükleniyor…', en: 'Loading records…' }),
       empty: t({
         tr: 'Henüz kayıt yok. Hesabı istediğiniz gibi kurun, bir ad verip kaydedin; kayıt bu '
           + 'tarayıcıda kalır ve sayfa yenilenince listede durur.',

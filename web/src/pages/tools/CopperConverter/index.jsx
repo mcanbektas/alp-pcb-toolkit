@@ -271,9 +271,13 @@ export default function CopperConverter() {
             </p>
           )}
 
-          {saved.records.length === 0 ? (
+          {saved.loading && <p className="empty-note">{text.saved.loading}</p>}
+
+          {!saved.loading && saved.records.length === 0 && (
             <p className="empty-note">{text.saved.empty}</p>
-          ) : (
+          )}
+
+          {!saved.loading && saved.records.length > 0 && (
             <div className="row-list">
               <div className="row-list-head">
                 <span className="idx" />

@@ -10,6 +10,11 @@
 // korunur — o, cihazdaki kopyadan daha güncel sayılır. Yerel kopya silinmez;
 // çıkış yapıldığında kullanıcı yine kendi listesini görür.
 //
+// İlk boyamada hangi liste basılır: oturum açmış bir tarayıcıda hesabın
+// listesi beklenir ve o gelene kadar liste boş + `loading` açık kalır; hiç
+// oturum açılmamış bir tarayıcıda yerel liste anında basılır. Ayrıntı
+// aşağıdaki `SERVER_BACKED_KEY` notunda.
+//
 // Katman kuralı korunuyor: doğrulama ve zarf şeması saf katmanda
 // (`lib/thicknessRecords.js`), tarayıcı deposu ve ağ yalnızca burada.
 //
@@ -30,6 +35,18 @@ const RECORDS_PATH = '/api/thickness-records'
 // Hangi hesap için taşıma yapıldığı burada durur. Kullanıcı başına tutulur:
 // aynı tarayıcıyı iki hesap kullanıyorsa ikisine de bir kez taşınır.
 const MIGRATED_KEY = 'alp-pcb.thickness.migrated.v1'
+
+// "Bu tarayıcı en son oturum açmış hâlde gördü" ipucu. Erişim token'ı yalnız
+// bellekte, yenileme çerezi HttpOnly — yani ilk boyamada oturumun olup
+// olmadığını JS'ten SORAMIYORUZ, `useAuth` bir tur ağ gidip gelene kadar
+// `isLoading` durumunda. O tur boyunca yerel listeyi basmak, girişli kullanıcıya
+// bir an BAŞKA birinin (kendi cihaz kopyasının) listesini göstermek demekti:
+// ölçüldü, 46 ms. Bu bayrak varken liste boş ve `loading` başlar, gelen tek
+// içerik hesabın listesi olur. Bayrak yoksa hiç oturum açılmamış demektir ve
+// yerel liste eskiden olduğu gibi anında görünür — girişsiz kullanım yavaşlamaz.
+// Oturumun kapandığı anlaşıldığında bayrak silinir; bayat kalırsa bedeli tek
+// yüklemede kısa bir "yükleniyor" notudur, sonra kendini düzeltir.
+const SERVER_BACKED_KEY = 'alp-pcb.thickness.serverbacked.v1'
 
 const EMPTY = []
 
@@ -74,14 +91,18 @@ function toStoreError(res) {
 }
 
 export default function useSavedThickness(storage = defaultStorage) {
-  const { isAuthenticated, user, api } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, user, api } = useAuth()
   const store = useMemo(() => createThicknessStore(storage), [storage])
 
   const userId = user?.id ?? null
   const onServer = isAuthenticated && userId !== null
 
-  const [records, setRecords] = useState(() => store.list())
-  const [loading, setLoading] = useState(false)
+  // İlk render'ın kararı: hesabın listesi mi bekleniyor, yerel liste mi
+  // basılacak. Yalnız kurulumda okunur — sonrası efektin işi.
+  const expectServer = useRef(storage.read(SERVER_BACKED_KEY) === '1')
+
+  const [records, setRecords] = useState(() => (expectServer.current ? EMPTY : store.list()))
+  const [loading, setLoading] = useState(() => expectServer.current)
 
   // Taşıma tek sefer koşar. Efekt yeniden çalışsa bile (dil değişimi, yeniden
   // render) ikinci kez POST atılmaz.
@@ -94,12 +115,23 @@ export default function useSavedThickness(storage = defaultStorage) {
   }, [api])
 
   useEffect(() => {
+    // Oturum durumu henüz belli değil: elimizdeki gösterimi bozmadan beklenir.
+    // Bayrak varsa liste boş ve `loading` açık duruyor, yoksa yerel liste.
+    if (authLoading) return undefined
+
     if (!onServer) {
-      // Oturum kapandı: yerel listeye dönülür. Sunucudaki kayıtlar orada durur.
+      // Oturum yok ya da kapandı: yerel listeye dönülür (sunucudaki kayıtlar
+      // orada durur) ve bayrak silinir — bir sonraki açılış yereli anında bassın.
+      storage.remove(SERVER_BACKED_KEY)
+      expectServer.current = false
       migratingRef.current = false
       setRecords(store.list())
+      setLoading(false)
       return undefined
     }
+
+    // Oturum var: bir daha ilk boyamada yerel liste basılmasın.
+    storage.write(SERVER_BACKED_KEY, '1')
 
     let cancelled = false
     setLoading(true)
@@ -156,7 +188,7 @@ export default function useSavedThickness(storage = defaultStorage) {
     })()
 
     return () => { cancelled = true }
-  }, [onServer, userId, api, store, storage, fetchServer])
+  }, [authLoading, onServer, userId, api, store, storage, fetchServer])
 
   // Depolama hiç yoksa (gizli sekme, kapalı site verisi) yerel mod çalışmaz;
   // sunucu modunda böyle bir kısıt yok.
