@@ -1213,3 +1213,31 @@ rapor formundaki varsayılan da tazeleniyor, ekran kendi kopyasını tutmuyor.
 - Gerçek tarayıcı 8/8: girişsiz kayıt tarayıcıda oluştu, giriş sonrası hesaba taşındı, yerel
   depo silinince de duruyor (yani sunucudan geliyor), firma kaydı yenilemede geri geldi,
   logo yüklenip önizlendi, kayıt silindi, konsol hatası yok.
+
+## 22. Faz 3b — yazı tipleri depoda
+
+**Tarih:** 2026-07-30 · **Sonuç:** üç aile (IBM Plex Sans, IBM Plex Mono, Chakra Petch) depoya
+alındı; hem site hem PDF onları kullanıyor, dışarıya font isteği gitmiyor.
+
+**Yol boyunca çıkan asıl bulgu:** `web/public/fonts/` boştu ama site fontsuz DEĞİLDİ —
+`index.html` onları `fonts.googleapis.com`'dan çekiyordu. Yani her ziyaretçi üçüncü tarafa
+istek gönderiyordu ve site o hizmete bağımlıydı. Bağlantılar kaldırıldı; fontlar artık kendi
+sunucumuzdan geliyor.
+
+- **Web:** 26 `woff2`, `latin` / `latin-ext` / `greek` alt kümeleri × temaların kullandığı
+  ağırlıklar (400/500/600/700). `unicode-range` ile tarayıcı yalnız gerekeni indirir.
+  `latin-ext` şart — Türkçe'nin ğ, ı, ş harfleri orada; `greek` Ω ve Δ için.
+- **PDF:** 5 `ttf`. `api/Dockerfile` bunları `web/public/fonts`ten `/app/fonts`e kopyalar
+  (`Reports__FontsPath` zaten oraya bakıyordu) — tek kaynak, ekran ile belge aynı aile.
+  IBM Plex Sans yalnız değişken (variable) `ttf` olarak yayınlandığı için o biçimde duruyor.
+- `src/fonts.css` üretilmiş bir dosyadır ve `main.jsx`'te temadan ÖNCE yüklenir; yazı tipleri
+  temaya bağlı değildir, dört tema da aynı üç aileyi kullanır.
+- Lisans: SIL Open Font License 1.1, metinler `public/fonts/OFL-*.txt`.
+- **Bilinen sınır:** IBM Plex Mono'nun `greek` alt kümesi yayınlanmıyor; mono metindeki Ω
+  sistem yazı tipinden çizilir. Site fontları Google'dan çekerken de durum aynıydı.
+- Depoya giren ikili: 1,4 MB.
+
+**Doğrulama:** api günlüğündeki "rapor yazı tipi bulunamadı" uyarısı kalktı, üretilen PDF'te
+`IBMPlexMono`, `IBMPlexSans` ve `ChakraPetch` adları gömülü (DejaVu düşüşü yok). Gerçek
+tarayıcı 6/6: dosyalar siteden indi, Türkçe harfler ve sayı tablosu doğru aileden çiziliyor,
+başlık Chakra Petch, **dış kaynağa tek istek yok**, site `ttf` indirmiyor.
