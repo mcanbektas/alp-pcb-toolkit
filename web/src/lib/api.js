@@ -41,15 +41,20 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
   let refreshing = null
 
   async function fetchRaw(method, path, body, token) {
+    // `FormData` gövdesinde Content-Type ELLE KONMAZ: tarayıcı sınır dizesini
+    // (boundary) kendisi üretip başlığa ekler, biz yazarsak sınır kaybolur ve
+    // sunucu gövdeyi hiç ayrıştıramaz.
+    const isForm = typeof FormData !== 'undefined' && body instanceof FormData
+
     try {
       return await fetch(`${baseUrl}${path}`, {
         method,
         credentials: 'include',
         headers: {
-          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...(body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: body === undefined ? undefined : (isForm ? body : JSON.stringify(body)),
       })
     } catch {
       return null // ağ hatası — çağıran taraf null'ı API_ERR_NETWORK'e çevirir
@@ -149,6 +154,12 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
     patch: (path, body, opts) => request('PATCH', path, body, opts),
     del: (path, opts) => request('DELETE', path, undefined, opts),
     postBlob: (path, body, fallbackFileName, opts) => requestBlob('POST', path, body, fallbackFileName, opts),
+    // Dosya yükleme (logo). Gövde `FormData`'dır; yanıt yine JSON'dur, bu
+    // yüzden ayrı bir istek yolu değil, aynı `request` üzerinden gider.
+    postForm: (path, formData, opts) => request('POST', path, formData, opts),
+    // İkili gövdeli GET (logo önizleme). `<img src>` yetkilendirme başlığı
+    // gönderemediği için görsel de istemciye buradan, token'lı istekle gelir.
+    getBlob: (path, fallbackFileName, opts) => requestBlob('GET', path, undefined, fallbackFileName, opts),
     // Açılıştaki sessiz oturum kurtarma. `post('/api/auth/refresh')` ile
     // ELLE çağrılmamalı: sekme yarışındaki yeniden deneme yalnızca burada var.
     refreshSession: () => refreshOnce(),

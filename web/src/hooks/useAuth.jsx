@@ -111,9 +111,15 @@ export function AuthProvider({ children }) {
     return api.get(`/api/auth/confirm-email?${q}`, { auth: false })
   }, [api])
 
+  // Profil (ad/firma/logo) değiştikten sonra başlıktaki ad ve rapor formundaki
+  // "Hazırlayan" varsayılanı da tazelenmeli; ekran kendi kopyasını tutarsa
+  // ikisi ayrışır. `loadMe` zaten oturum durumunu da doğru bırakır.
+  const refreshUser = useCallback(() => loadMe(), [loadMe])
+
   const value = useMemo(() => ({
     status,
     user,
+    refreshUser,
     isAuthenticated: status === AUTH_AUTHENTICATED,
     isLoading: status === AUTH_LOADING,
     login,
@@ -125,7 +131,7 @@ export function AuthProvider({ children }) {
     // Auth dışı uçlar (rapor, proje) için: token ekleme ve 401'de sessiz
     // yenileme burada zaten çözülmüş durumda, ekran yeniden kurmaz.
     api,
-  }), [status, user, login, register, logout, forgotPassword, resetPassword, confirmEmail, api])
+  }), [status, user, refreshUser, login, register, logout, forgotPassword, resetPassword, confirmEmail, api])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

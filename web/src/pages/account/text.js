@@ -110,5 +110,113 @@ export function getText(lang) {
           + 'module yet.',
       }),
     },
+
+    account: {
+      title: t({ tr: 'Hesabım', en: 'My account' }),
+      intro: t({
+        tr: 'Raporlarda görünen ad, firma ve logo burada durur. Kaydedilmiş bakır kalınlığı '
+          + 'kayıtların da bu sayfadan yönetilir.',
+        en: 'The name, company and logo that appear on reports live here. Your saved copper '
+          + 'thickness records are managed from this page too.',
+      }),
+      loginRequired: t({ tr: 'Hesap bilgilerini görmek için giriş yapmalısın.', en: 'Sign in to see your account.' }),
+      loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
+      loading: t({ tr: 'Yükleniyor…', en: 'Loading…' }),
+
+      profileHeading: t({ tr: 'Profil', en: 'Profile' }),
+      emailLabel: t({ tr: 'E-posta', en: 'E-mail' }),
+      emailHint: t({
+        tr: 'E-posta adresi değiştirilemez.',
+        en: 'The e-mail address cannot be changed.',
+      }),
+      displayNameLabel: t({ tr: 'Ad', en: 'Name' }),
+      displayNameHint: t({
+        tr: 'Raporun "Hazırlayan" alanında bu ad öneriliyor.',
+        en: 'This name is suggested in the report\'s "Prepared by" field.',
+      }),
+      companyLabel: t({ tr: 'Firma (opsiyonel)', en: 'Company (optional)' }),
+      companyHint: t({
+        tr: 'Girilirse rapor başlığında adın altında görünür. Boş bırakılırsa alan silinir.',
+        en: 'When filled, it appears under your name in the report header. Leaving it empty clears the field.',
+      }),
+      saveLabel: t({ tr: 'Kaydet', en: 'Save' }),
+      saving: t({ tr: 'Kaydediliyor…', en: 'Saving…' }),
+      profileSaved: t({ tr: 'Profil güncellendi.', en: 'Profile updated.' }),
+
+      logoHeading: t({ tr: 'Firma logosu', en: 'Company logo' }),
+      logoHint: t({
+        tr: 'PNG ya da JPEG, en çok 512 KB. Yüklenirse rapor başlığındaki varsayılan logonun '
+          + 'yerine geçer.',
+        en: 'PNG or JPEG, at most 512 KB. Once uploaded it replaces the default logo in the '
+          + 'report header.',
+      }),
+      logoAlt: t({ tr: 'Yüklenmiş firma logosu', en: 'Uploaded company logo' }),
+      logoEmpty: t({ tr: 'Logo yüklenmemiş — raporlar varsayılan logoyla çıkar.', en: 'No logo uploaded — reports use the default logo.' }),
+      logoPick: t({ tr: 'Dosya seç', en: 'Choose a file' }),
+      logoUpload: t({ tr: 'Yükle', en: 'Upload' }),
+      logoUploading: t({ tr: 'Yükleniyor…', en: 'Uploading…' }),
+      logoRemove: t({ tr: 'Logoyu kaldır', en: 'Remove logo' }),
+      logoUploaded: t({ tr: 'Logo yüklendi.', en: 'The logo was uploaded.' }),
+      logoRemoved: t({ tr: 'Logo kaldırıldı.', en: 'The logo was removed.' }),
+      confirmLogoRemove: t({
+        tr: 'Logo kaldırılacak; raporlar yeniden varsayılan logoyla çıkacak. Emin misin?',
+        en: 'The logo will be removed and reports will use the default logo again. Are you sure?',
+      }),
+
+      recordsHeading: t({ tr: 'Kayıtlı bakır kalınlıkları', en: 'Saved copper thicknesses' }),
+      recordsIntro: t({
+        tr: 'Bakır Kalınlığı Dönüştürücü ekranında kaydettiklerin. Giriş yaptığında hesabına '
+          + 'taşınır; çıkış yaptığında tarayıcındaki kopyayla çalışmaya devam edersin.',
+        en: 'What you saved on the Copper Thickness Converter screen. They move to your account '
+          + 'when you sign in; signed out, you keep working with the copy in your browser.',
+      }),
+      recordsEmpty: t({ tr: 'Henüz kayıt yok.', en: 'No records yet.' }),
+      recordsLoading: t({ tr: 'Kayıtlar yükleniyor…', en: 'Loading records…' }),
+      recordSummary: (rec) => t({
+        tr: `başlangıç ${rec.starting} µm · kaplama ${rec.plating} µm · bitmiş ${rec.finished} µm`,
+        en: `starting ${rec.starting} µm · plating ${rec.plating} µm · finished ${rec.finished} µm`,
+      }),
+      recordRemove: t({ tr: 'Sil', en: 'Delete' }),
+      recordRemoveAria: (name) => t({ tr: `${name} kaydını sil`, en: `Delete record ${name}` }),
+      recordRemoved: t({ tr: 'Kayıt silindi.', en: 'The record was deleted.' }),
+      confirmRecordRemove: (name) => t({
+        tr: `"${name}" kaydı silinecek. Emin misin?`,
+        en: `The record "${name}" will be deleted. Are you sure?`,
+      }),
+
+      // Sunucu kodları buradan cümleye çevrilir; hata yükü dilsiz gelir
+      // (kod + yapısal detay), cümle bu dosyada kurulur.
+      errorText: (res) => {
+        if (!res || res.ok) return null
+        if (res.error === 'network') {
+          return t({
+            tr: 'Sunucuya ulaşılamadı. Bağlantını kontrol et.',
+            en: 'Could not reach the server. Check your connection.',
+          })
+        }
+        if (res.error === 'MISSING_FIELDS' && res.detail?.field === 'displayName') {
+          return t({ tr: 'Ad boş olamaz.', en: 'The name cannot be empty.' })
+        }
+        if (res.error === 'TOO_LONG') {
+          return t({
+            tr: `Değer çok uzun (en çok ${res.detail?.max} karakter).`,
+            en: `The value is too long (at most ${res.detail?.max} characters).`,
+          })
+        }
+        if (res.error === 'FILE_TOO_LARGE') {
+          return t({
+            tr: `Dosya çok büyük (en çok ${Math.round((res.detail?.max ?? 0) / 1024)} KB).`,
+            en: `The file is too large (at most ${Math.round((res.detail?.max ?? 0) / 1024)} KB).`,
+          })
+        }
+        if (res.error === 'UNSUPPORTED_IMAGE' || res.error === 'INVALID_CONTENT_TYPE') {
+          return t({
+            tr: 'Yalnızca PNG ve JPEG kabul ediliyor.',
+            en: 'Only PNG and JPEG are accepted.',
+          })
+        }
+        return t({ tr: 'İşlem tamamlanamadı. Tekrar dene.', en: 'The operation could not be completed. Try again.' })
+      },
+    },
   }
 }

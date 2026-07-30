@@ -77,10 +77,13 @@ export default function CopperConverter() {
   // lib/thicknessRecords.js + hooks/useSavedThickness.js tarafında.
   const saveName = f.saveName.trim()
 
-  const onSave = () => {
+  // Kaydetme/silme oturum açıkken ağ üzerinden gider (Faz 7): çağrılar bu
+  // yüzden async, ama dönen yük saf katmanın hata şeklini korur — ekranın
+  // metin kurma yolu değişmedi.
+  const onSave = async () => {
     if (!r.ok) { setNotice({ level: 'warn', text: text.saved.needResult }); return }
     if (saveName === '') { setNotice({ level: 'warn', text: text.saved.needName }); return }
-    const res = saved.save(recordFrom(saveName, r))
+    const res = await saved.save(recordFrom(saveName, r))
     setNotice(text.savedNotice('save', res))
     if (!res.error) setActiveId(res.record.id)
   }
@@ -92,8 +95,8 @@ export default function CopperConverter() {
     setNotice(text.savedNotice('restore', { ok: true }))
   }
 
-  const onRemove = (rec) => {
-    const res = saved.remove(rec.id)
+  const onRemove = async (rec) => {
+    const res = await saved.remove(rec.id)
     setNotice(text.savedNotice('remove', res))
     if (!res.error && activeId === rec.id) setActiveId(null)
   }

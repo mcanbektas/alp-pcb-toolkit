@@ -117,6 +117,7 @@ export function authText(lang) {
       logout: t({ tr: 'Çıkış yap', en: 'Sign out' }),
       signedOut: t({ tr: 'Çıkış yapıldı.', en: 'Signed out.' }),
       projects: t({ tr: 'Projelerim', en: 'My projects' }),
+      account: t({ tr: 'Hesabım', en: 'My account' }),
     },
 
     field: {

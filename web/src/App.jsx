@@ -53,6 +53,7 @@ const ThermalRelief = lazy(() => import('./pages/tools/ThermalRelief'))
 // araç ekranlarıyla aynı gerekçe: ilk boyamada yalnızca girişte gereken kod.
 const Projects = lazy(() => import('./pages/account/Projects'))
 const Project = lazy(() => import('./pages/account/Project'))
+const Account = lazy(() => import('./pages/account/Account'))
 
 // Uygulama geneli metinler. Ekran metni gibi bunlar da `pick()` ile çözülür:
 // doğrudan `DICT[lang]` indekslemesi eksik çeviride `undefined` verirdi, `pick`
@@ -142,6 +143,7 @@ function AccountArea() {
     return (
       <div className="lang-switch" role="group">
         <Link to="/projelerim">{text.header.projects}</Link>
+        <Link to="/hesabim">{text.header.account}</Link>
         <span className="header-user">{user.displayName}</span>
         <button type="button" onClick={onLogout}>{text.header.logout}</button>
       </div>
@@ -214,6 +216,7 @@ export default function App() {
                   <Route path="/parola-sifirla" element={<ResetPassword />} />
                   <Route path="/e-posta-dogrula" element={<ConfirmEmail />} />
                   <Route path="/projelerim" element={<Projects />} />
+                  <Route path="/hesabim" element={<Account />} />
                   <Route path="/proje/:id" element={<Project />} />
                   <Route path="/arac/trace-width" element={<TraceWidth />} />
                   <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
