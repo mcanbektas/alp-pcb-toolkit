@@ -30,6 +30,19 @@ function toolDisplayName(toolKey, lang) {
   return tool ? pick(tool.name, lang) : toolKey
 }
 
+// Liste sırası: güncelleme tarihine göre yeniden eskiye. Elle sıralama (eski
+// yukarı/aşağı düğmeleri) kaldırıldı — satırda zaten tarih yazıyor ve 60
+// hesaplı bir projede tek satırı taşımak düzinelerce tıklama demekti.
+// Eşit tarihte kayıt sırası (`sortOrder`) ayırır, yoksa sıra render'dan
+// render'a oynardı. Sunucunun kendi sırası `sortOrder`dır ve proje raporu
+// hâlâ onu kullanır — belge kronolojik kalsın diye bilerek dokunulmadı.
+function sortByDate(calculations) {
+  return [...calculations].sort((a, b) => {
+    const diff = new Date(b.updatedAt) - new Date(a.updatedAt)
+    return diff !== 0 ? diff : b.sortOrder - a.sortOrder
+  })
+}
+
 // Kaydı kendi araç ekranında açan yol. Anahtar `categories.js`'te yoksa
 // (araç kaldırılmış ya da anahtar ayrışmış) `null` döner ve "Aç" gösterilmez —
 // var olmayan bir yola götüren düğme koymaktansa hiç koymamak doğru.
@@ -110,7 +123,7 @@ export default function Project() {
         setProject(res.data)
         setName(res.data.name)
         setDescription(res.data.description ?? '')
-        setCalcs([...res.data.calculations].sort((a, b) => a.sortOrder - b.sortOrder))
+        setCalcs(sortByDate(res.data.calculations))
       } else if (res.error === 'PROJECT_NOT_FOUND') {
         setNotFound(true)
       } else {
@@ -158,25 +171,6 @@ export default function Project() {
     if (res.ok) {
       setCalcs((prev) => prev.filter((c) => c.id !== calc.id))
     } else {
-      setCalcStatus({ text: pt.genericError })
-    }
-  }
-
-  async function move(calc, direction) {
-    const idx = calcs.findIndex((c) => c.id === calc.id)
-    const swapIdx = idx + direction
-    if (idx === -1 || swapIdx < 0 || swapIdx >= calcs.length) return
-
-    const previous = calcs
-    const next = [...calcs]
-    ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
-    setCalcs(next)
-
-    const res = await api.post(`/api/projects/${id}/calculations/reorder`, {
-      orderedIds: next.map((c) => c.id),
-    })
-    if (!res.ok) {
-      setCalcs(previous) // sunucu reddettiyse yerel sıralama geri alınır
       setCalcStatus({ text: pt.genericError })
     }
   }
@@ -290,10 +284,8 @@ export default function Project() {
 
       <CalculationList
         rows={rows}
-        count={calcs.length}
         pt={pt}
         calcStatus={calcStatus}
-        onMove={move}
         onDelete={setPendingCalc}
       />
 

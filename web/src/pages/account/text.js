@@ -94,8 +94,6 @@ export function getText(lang) {
       // Kaydın motor sürümü uygulamanınkinden geriyse: sonuç eski bir
       // denklem/sabit kümesiyle üretilmiştir, açıp yeniden kaydetmek gerekir.
       staleTag: t({ tr: 'eski sürüm', en: 'older version' }),
-      moveUpAria: (name) => t({ tr: `${name} yukarı taşı`, en: `Move ${name} up` }),
-      moveDownAria: (name) => t({ tr: `${name} aşağı taşı`, en: `Move ${name} down` }),
       deleteAria: (name) => t({ tr: `${name} hesabını sil`, en: `Delete calculation ${name}` }),
       // Onay kartının başlığı; gövdesi `confirmDeleteCalc(name)` cümlesidir ve
       // iptal düğmesinin yazısı çerçeve metni olduğu için `uiText.js`'ten gelir.

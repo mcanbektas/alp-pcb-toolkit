@@ -2,8 +2,13 @@
 //
 // `Project.jsx`'ten ayrıldı: sayfa yükleme + ad/açıklama düzenleme + liste +
 // sıralama + rapor indirmeyi tek dosyada tutuyordu (SRP ihlali, ~370 satır).
-// Bu bileşen yalnızca listeyi çizer; veri türevlerini (`rows`) ve eylemleri
-// (`onMove`/`onDelete`) prop olarak alır, kendi state'i ya da ağ çağrısı yoktur.
+// Bu bileşen yalnızca listeyi çizer; veri türevlerini (`rows`) ve eylemi
+// (`onDelete`) prop olarak alır, kendi state'i ya da ağ çağrısı yoktur.
+//
+// Sıralama elle YAPILMAZ: satırlar güncelleme tarihine göre yeniden eskiye
+// dizilir ve sıra `Project.jsx`'te kurulur. Yukarı/aşağı düğmeleri buradan
+// kaldırıldı — 60 satırlık bir listede tek satırı taşımak için düzinelerce
+// tıklama gerekiyordu ve satırda zaten tarih yazıyordu.
 //
 // GÜVENLİK (Project.jsx'ten taşınan kural): hiçbir satırda ham `reportJson`
 // DOM'a yazılmaz — `rows` içindeki `preview` sunucunun türettiği düz
@@ -13,7 +18,7 @@
 import { Link } from 'react-router-dom'
 import { reportDateStamp } from '../../data/reportText'
 
-export default function CalculationList({ rows, count, pt, calcStatus, onMove, onDelete }) {
+export default function CalculationList({ rows, pt, calcStatus, onDelete }) {
   return (
     <section className="panel">
       <h2>{pt.calcsHeading}</h2>
@@ -24,7 +29,7 @@ export default function CalculationList({ rows, count, pt, calcStatus, onMove, o
         <p className="empty-note">{pt.calcsEmpty}</p>
       ) : (
         <div className="tool-list">
-          {rows.map(({ calc, label, preview, mode, stale, openHref }, i) => (
+          {rows.map(({ calc, label, preview, mode, stale, openHref }) => (
             <div key={calc.id} className="tool-row">
               <span className="name">
                 {label}
@@ -46,24 +51,6 @@ export default function CalculationList({ rows, count, pt, calcStatus, onMove, o
                     {pt.openLabel}
                   </Link>
                 )}
-                <button
-                  type="button"
-                  className="row-add"
-                  disabled={i === 0}
-                  onClick={() => onMove(calc, -1)}
-                  aria-label={pt.moveUpAria(label)}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className="row-add"
-                  disabled={i === count - 1}
-                  onClick={() => onMove(calc, 1)}
-                  aria-label={pt.moveDownAria(label)}
-                >
-                  ↓
-                </button>
                 <button
                   type="button"
                   className="row-add"
