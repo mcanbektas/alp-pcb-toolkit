@@ -8,6 +8,7 @@ import { commonText } from './data/uiText'
 import { authText } from './data/authText'
 import { LANGS, LANG_LABEL, pick } from './lib/i18n'
 import logo from './assets/logo.png'
+import { CATEGORIES } from './data/categories'
 import Home from './pages/Home'
 import CategoryPage from './pages/CategoryPage'
 import Login from './pages/auth/Login'
@@ -64,6 +65,12 @@ const FOOTER = {
   en: 'Results are approximate engineering estimates. Verify against manufacturer data and '
     + 'measurement for critical designs.',
 }
+
+// Footer sütun başlıkları. Kategori bağlantıları categories.js'ten gelir —
+// elle liste tutulmaz, yeni kategori eklendiğinde footer kendiliğinden büyür.
+const FOOTER_CATEGORIES = { tr: 'Kategoriler', en: 'Categories' }
+const FOOTER_ACCOUNT = { tr: 'Hesap', en: 'Account' }
+const FOOTER_CONTACT = { tr: 'İletişim', en: 'Contact us' }
 
 // Slogan çevrilirken kapsamı daraltılmaz ya da genişletilmez: iki dil aynı
 // alanı tarif eder. "Donanım mühendisliği" karşılığı "hardware engineering"dir;
@@ -190,7 +197,52 @@ function Layout({ children }) {
       </header>
       <main className="container">{children}</main>
       <footer className="site-footer">
-        <div className="container">{pick(FOOTER, lang)}</div>
+        <div className="container">
+          <div className="footer-grid">
+            <div className="footer-brand">
+              <Link to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>
+                <img src={logo} alt="ALP PCB Toolkit" />
+              </Link>
+              <span className="tagline">{pick(TAGLINE, lang)}</span>
+            </div>
+
+            <nav className="footer-col">
+              <h2>{pick(FOOTER_CATEGORIES, lang)}</h2>
+              <ul>
+                {CATEGORIES.map((c) => (
+                  <li key={c.slug}>
+                    <Link to={`/kategori/${c.slug}`}>{pick(c.title, lang)}</Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <nav className="footer-col">
+              <h2>{pick(FOOTER_ACCOUNT, lang)}</h2>
+              <ul>
+                <li><Link to="/projelerim">{authText(lang).header.projects}</Link></li>
+                <li><Link to="/hesabim">{authText(lang).header.account}</Link></li>
+              </ul>
+            </nav>
+
+            <nav className="footer-col">
+              <h2>{pick(FOOTER_CONTACT, lang)}</h2>
+              <ul>
+                {/* Adresler çevrilmez — e-posta, iki dilli metin kuralının
+                    dışındadır. Başlık ise iki dillidir. */}
+                <li><a className="footer-mail" href="mailto:mahmutcr038@gmail.com">mahmutcr038@gmail.com</a></li>
+                <li><a className="footer-mail" href="mailto:alperenisik1171@gmail.com">alperenisik1171@gmail.com</a></li>
+              </ul>
+            </nav>
+          </div>
+
+          {/* Uyarı cümlesi footer'da SABİT durur (CLAUDE.md, "Sonuç sunumu") —
+              yapı zenginleşti diye kalkmaz, alt satıra iner. */}
+          <div className="footer-legal">
+            <span>{pick(FOOTER, lang)}</span>
+            <span className="footer-copy">© {new Date().getFullYear()} ALP PCB Toolkit</span>
+          </div>
+        </div>
       </footer>
     </>
   )
