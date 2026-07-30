@@ -1273,11 +1273,11 @@ dosyalar da CSS de oradan türetiliyor.
 iddia etmiyor (alt küme dosyasında o glif yok — eski aralık olmayan bir kapsamı duyuruyordu)
 ve `greek` `U+03A3-03E1` + `U+03F0-03FF` yerine `U+03A3-03FF`.
 
-**Ölçülen sınır (iş değil, kayıt):** sitede kullanılan 38 karakter üç alt kümenin de dışında
-— `→`, `≈`, `≤`, `≥`, `√`, `✓`, `□`, alt ve üst simgeler. Bunlar sistem yazı tipinden çizilir
-ve fontlar Google'dan gelirken de öyleydi. Aralığı genişletmek çözmez: glifler alt küme
-dosyalarında yok, kendi alt kümemizi üretmek gerekir. PDF tam `ttf` kullandığı için etkilenmez.
-`--coverage` bu listeyi sayar.
+**Ölçülen sınır:** sitede kullanılan 38 karakter üç alt kümenin de dışında — `→`, `≈`, `≤`,
+`≥`, `√`, `✓`, `□`, alt ve üst simgeler. Bunlar sistem yazı tipinden çizilir ve fontlar
+Google'dan gelirken de öyleydi. Aralığı genişletmek çözmez: glifler alt küme dosyalarında yok,
+kendi alt kümemizi kesmek gerekir. PDF tam `ttf` kullandığı için etkilenmez. `--coverage` bu
+listeyi sayar. *(26'sı §24'te kesildi; 12'si fontlarda hiç yok, kayıt olarak duruyor.)*
 
 ### 23.2 `ttf`ler `public/` dışına alındı
 
@@ -1330,3 +1330,54 @@ not, sonra yerel liste ve bayrak silindi), §21'in hesap akışı 8/8 (ilk giri�
 
 **Açık kalan:** backend testleri — kullanıcı kararı bekliyor, bu turda başlanmadı. Faz 8
 sunucu adımı hâlâ bloke (sunucu, alan adı, SMTP yok).
+
+## 24. Sembol alt kümesi — kendi kestiğimiz dördüncü alt küme
+
+**Tarih:** 2026-07-30 (gece) · **Sonuç:** §23.1'in ölçtüğü 38 karakterin **26'sı** artık
+kendi fontumuzdan çiziliyor. Commit `0505fbc`.
+
+Google'ın yayınladığı üç alt küme (`latin`, `latin-ext`, `greek`) bu karakterleri taşımıyor
+ve glifler alt küme dosyalarında da yok — yalnız ailenin tam `ttf`sinde var. Yani `unicode-range`
+genişletmek işe yaramazdı: tarayıcı dosyayı indirir, glifi bulamaz, yine sistem yüzüne düşerdi.
+Alt küme bu yüzden tam `ttf`den **kesiliyor**.
+
+- `npm run fonts -- --symbols`: kaynak `ttf`ler geçici dizine iner, `web/scripts/subset-symbols.py`
+  (fontTools) keser, yalnız çıkan `woff2` depoda kalır. Kaynak `ttf`ler depoya girmez —
+  `assets/report-fonts/` zaten PDF için 970 KB taşıyor, ikinci kopyanın anlamı yok.
+- IBM Plex Sans yukarı akışta yalnız değişken font: kesme sırasında istenen ağırlığa
+  sabitleniyor (`wght`, `wdth=100`), çıktı statik.
+- 11 dosya, ~37 KB. `dist/fonts` 424 KB → 484 KB. `unicode-range` gating sayesinde tipik bir
+  araç ekranı bunlardan üç-dördünü indiriyor.
+- **Aralık, dosyanın içindekidir ve aile başına ayrıdır.** Chakra Petch'in charset'i dar:
+  `✓`, `↔`, `─` orada yok, IBM Plex'te var. Kayıt `web/scripts/font-symbols.json`de (üretilmiş
+  dosya) ve CSS oradan yazılıyor — bir yüz, çizemediği kod noktası için asla ilan edilmiyor.
+  Commit 1'de `latin`ten `U+2074`ü düşürmenin gerekçesiyle aynı gerekçe.
+- **Üretim tekrarlanabilir:** `head.modified` damgası `head.created`e sabitlendi. Sabitlenmeden
+  her koşu farklı bayt üretiyordu ve `--symbols` gerçek değişikliği taze zaman damgasından
+  ayırt edemiyordu (ilk denemede 11 dosya boş yere "değişti" dedi).
+- `--coverage` artık iki şeyi söylüyor: aile başına eksikler ve hiçbir ailede olmayanlar.
+  Üretilen `fonts.css` taramadan çıkarıldı — başlığındaki eksik karakter listesi taramanın
+  kendi çıktısıydı, sayılırsa her sembol sonsuza dek listede kalıyordu.
+
+**Araç gereksinimi:** `--symbols` için makinede `fontTools` + `brotli` gerekir
+(`python3 -m pip install --user fonttools brotli`). Depo bağımlılığı DEĞİL: `package.json`a
+hiçbir şey eklenmedi, çıkan `woff2` commit'lendiği için font kümesini değiştirmeyen kimse bu
+araçlara ihtiyaç duymaz.
+
+**Kalan sınır (kullanıcı kararıyla kayıt olarak duruyor):** 12 karakter üç ailenin tam
+`ttf`sinde de yok — `⁻ ₐ ₙ ∈ ∝ ∠ ∥ ≪ ⌈ ⌉ □ ✗`. Kesilecek glif olmadığı için sistem yüzünden
+çizilirler. En sık geçenler `⁻` (20 dosya, `10⁻⁶` gösterimi), `□` (9 dosya, Ω/□) ve `∠`
+(4 dosya). Kaynak metinde değiştirmek (örn. `Formula`nın `^` sözdizimi) düşünüldü ve
+**bilinçle yapılmadı**: ~25 dosyada iki dilli metin değişikliği demek ve ekran görüntüsünde
+mevcut hâli kabul edilebilir duruyor.
+
+**Doğrulama:** `npm test` 1957 yeşil, `npm run build` temiz, `ipc` taraması temiz, iki ardışık
+`--symbols` bayt bayt aynı, `--check` geçiyor, web imajı yeniden kuruldu. Gerçek tarayıcı 14/14.
+
+**Yöntem notu — `document.fonts.check()` bu iş için yanlış araç.** Yüklenme durumunu söyler,
+glif kapsamını söylemez: hiçbir yüzün kapsamadığı karakterde `true` döner (sistem yüzü daima
+"yüklü" sayılır), indirilmemiş bir yüzde `false` döner. İlk doğrulama denemesi tam bu yüzden
+dört yerde yanlış sonuç verdi. Doğru araç `document.fonts.load(font, text)`: eşleşen FontFace
+listesini döndürür, boş dizi "bu karakteri hiçbir yüzümüz kapsamıyor" demektir. Bağımsız ikinci
+kanıt olarak beş `→` bizim ailemizle 262 px, sistem yüzüyle 193 px genişlikte çizildi; panel
+ekran görüntüsünde kayıp glif kutusu yok.

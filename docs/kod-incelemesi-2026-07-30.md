@@ -150,6 +150,8 @@ ayrı `CountAsync`'e indirildi.
 - **3 kapandı** — `ttf`ler `assets/report-fonts/` altına alındı; `dist/fonts` 1,4 MB → 424 KB.
 - **4 kapandı** — ölçüldü, gerçekti (yerel liste 46 ms görünüyordu). `useSavedThickness` artık
   oturum görülmüş bir tarayıcıda ilk boyamada yerel listeyi basmıyor; girişsiz yol aynı hızda.
-- **1 hâlâ açık** (backend testleri, kullanıcı kararı bekliyor), **5 kayıt olarak duruyor** —
-  §23'te ayrıca ölçüldü: alt kümelerin dışında kalan karakter sayısı 38 ve `→`, `≈`, `√`, `✓`
-  gibi semboller de bu sınıfta.
+- **5 kısmen kapandı** — §23'te ölçüldü (alt kümelerin dışında 38 karakter), §24'te 26'sı
+  kendi kestiğimiz `symbols` alt kümesiyle kapandı. IBM Plex Mono'nun `greek` alt kümesi hâlâ
+  yayınlanmıyor (Ω mono'da sistem yüzünden) ve 12 karakter üç ailenin tam `ttf`sinde de yok —
+  ikisi de kayıt, iş değil.
+- **1 hâlâ açık:** backend testleri, kullanıcı kararı bekliyor.
