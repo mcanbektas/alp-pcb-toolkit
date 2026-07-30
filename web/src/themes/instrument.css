@@ -255,13 +255,6 @@ a:hover { text-decoration: underline; }
 }
 .tool-row.soon { color: var(--muted); background: transparent; border-style: dashed; }
 .tool-row .name { font-weight: 500; }
-/* Hesap ekranındaki firma logosu önizlemesi. Ekrana özel değil, ortak kural:
-   yüklenen görselin boyu satır yüksekliğini bozmasın diye sınırlanır. */
-.logo-preview {
-  display: block; max-width: 260px; max-height: 72px; width: auto; height: auto;
-  margin: 4px 0 12px; padding: 8px; background: var(--raised);
-  border: 1px solid var(--line); border-radius: 6px;
-}
 /* Kayıt satırındaki ikincil bilgi (tarih, önizleme değeri) — .result-table
    içindeki .sub ile aynı ton, kural orada araç tablosuna bağlıydı. */
 .tool-row .sub { color: var(--muted); font-size: 0.76rem; }

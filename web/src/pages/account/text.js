@@ -114,9 +114,9 @@ export function getText(lang) {
     account: {
       title: t({ tr: 'Hesabım', en: 'My account' }),
       intro: t({
-        tr: 'Raporlarda görünen ad, firma ve logo burada durur. Kaydedilmiş bakır kalınlığı '
+        tr: 'Raporlarda görünen ad ve firma burada durur. Kaydedilmiş bakır kalınlığı '
           + 'kayıtların da bu sayfadan yönetilir.',
-        en: 'The name, company and logo that appear on reports live here. Your saved copper '
+        en: 'The name and company that appear on reports live here. Your saved copper '
           + 'thickness records are managed from this page too.',
       }),
       loginRequired: t({ tr: 'Hesap bilgilerini görmek için giriş yapmalısın.', en: 'Sign in to see your account.' }),
@@ -142,26 +142,6 @@ export function getText(lang) {
       saveLabel: t({ tr: 'Kaydet', en: 'Save' }),
       saving: t({ tr: 'Kaydediliyor…', en: 'Saving…' }),
       profileSaved: t({ tr: 'Profil güncellendi.', en: 'Profile updated.' }),
-
-      logoHeading: t({ tr: 'Firma logosu', en: 'Company logo' }),
-      logoHint: t({
-        tr: 'PNG ya da JPEG, en çok 512 KB. Yüklenirse rapor başlığındaki varsayılan logonun '
-          + 'yerine geçer.',
-        en: 'PNG or JPEG, at most 512 KB. Once uploaded it replaces the default logo in the '
-          + 'report header.',
-      }),
-      logoAlt: t({ tr: 'Yüklenmiş firma logosu', en: 'Uploaded company logo' }),
-      logoEmpty: t({ tr: 'Logo yüklenmemiş — raporlar varsayılan logoyla çıkar.', en: 'No logo uploaded — reports use the default logo.' }),
-      logoPick: t({ tr: 'Dosya seç', en: 'Choose a file' }),
-      logoUpload: t({ tr: 'Yükle', en: 'Upload' }),
-      logoUploading: t({ tr: 'Yükleniyor…', en: 'Uploading…' }),
-      logoRemove: t({ tr: 'Logoyu kaldır', en: 'Remove logo' }),
-      logoUploaded: t({ tr: 'Logo yüklendi.', en: 'The logo was uploaded.' }),
-      logoRemoved: t({ tr: 'Logo kaldırıldı.', en: 'The logo was removed.' }),
-      confirmLogoRemove: t({
-        tr: 'Logo kaldırılacak; raporlar yeniden varsayılan logoyla çıkacak. Emin misin?',
-        en: 'The logo will be removed and reports will use the default logo again. Are you sure?',
-      }),
 
       recordsHeading: t({ tr: 'Kayıtlı bakır kalınlıkları', en: 'Saved copper thicknesses' }),
       recordsIntro: t({

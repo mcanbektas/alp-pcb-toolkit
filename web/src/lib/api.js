@@ -154,12 +154,6 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
     patch: (path, body, opts) => request('PATCH', path, body, opts),
     del: (path, opts) => request('DELETE', path, undefined, opts),
     postBlob: (path, body, fallbackFileName, opts) => requestBlob('POST', path, body, fallbackFileName, opts),
-    // Dosya yükleme (logo). Gövde `FormData`'dır; yanıt yine JSON'dur, bu
-    // yüzden ayrı bir istek yolu değil, aynı `request` üzerinden gider.
-    postForm: (path, formData, opts) => request('POST', path, formData, opts),
-    // İkili gövdeli GET (logo önizleme). `<img src>` yetkilendirme başlığı
-    // gönderemediği için görsel de istemciye buradan, token'lı istekle gelir.
-    getBlob: (path, fallbackFileName, opts) => requestBlob('GET', path, undefined, fallbackFileName, opts),
     // Açılıştaki sessiz oturum kurtarma. `post('/api/auth/refresh')` ile
     // ELLE çağrılmamalı: sekme yarışındaki yeniden deneme yalnızca burada var.
     refreshSession: () => refreshOnce(),

@@ -111,7 +111,7 @@ export function AuthProvider({ children }) {
     return api.get(`/api/auth/confirm-email?${q}`, { auth: false })
   }, [api])
 
-  // Profil (ad/firma/logo) değiştikten sonra başlıktaki ad ve rapor formundaki
+  // Profil (ad/firma) değiştikten sonra başlıktaki ad ve rapor formundaki
   // "Hazırlayan" varsayılanı da tazelenmeli; ekran kendi kopyasını tutarsa
   // ikisi ayrışır. `loadMe` zaten oturum durumunu da doğru bırakır.
   const refreshUser = useCallback(() => loadMe(), [loadMe])
