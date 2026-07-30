@@ -10,13 +10,8 @@ import {
   OZ_NOMINAL_ROWS, METHOD_NOMINAL, METHOD_DERIVED,
 } from '../../../lib/copper'
 import { sheetResistance } from '../../../lib/plane'
-import {
-  THICKNESS_SCHEMA, SCHEMA_VERSION as RECORD_SCHEMA_VERSION,
-  RECORD_UNIT_LENGTH, unitForSource,
-} from '../../../lib/thicknessRecords'
 
-// Kaynak anahtarları kayıt şemasının kaynak alanıyla birebir aynıdır
-// (lib/thicknessRecords.js: RECORD_SOURCES).
+// Kaynak anahtarları: hesabın üç giriş yolu.
 export const SOURCE_WEIGHT = 'weight'
 export const SOURCE_THICKNESS = 'thickness'
 // Ölçülen bitmiş kalınlık yolu (spec §4.3): bitmiş değer türetilmez, girilir;
@@ -61,7 +56,6 @@ export const INITIAL_FORM = {
 
   // Kalınlık kaydının adı (spec §4.3). Hesaba hiç girmez; alan tanımı
   // olmadığı için readForm bu anahtarı görmez.
-  saveName: '',
 }
 
 const TEMP = { '°C': 1 }
@@ -238,65 +232,11 @@ const toUm = (t_m) => t_m / LENGTH['µm']
  * Sonuçtan saklanabilir kalınlık kaydı üretir. Hesap geçersizse null döner —
  * yarım bir kayıt yazılmaz.
  */
-export function recordFrom(name, r) {
-  if (!r || !r.ok) return null
-
-  // "Girilen değer": ağırlık yolunda oz/ft², kalınlık yolunda folyo kalınlığı,
-  // ölçülen yolunda bitmiş kalınlık — hepsi kaydın kendi biriminde.
-  let value
-  if (r.source === SOURCE_WEIGHT) value = r.oz
-  else if (r.source === SOURCE_FINISHED) value = toUm(r.finished)
-  else value = toUm(r.starting)
-
-  return {
-    schema: THICKNESS_SCHEMA,
-    schemaVersion: RECORD_SCHEMA_VERSION,
-    name,
-    source: r.source,
-    unit: unitForSource(r.source),
-    value,
-    layer: r.layer,
-    // Etkin kaplama saklanır: iç katmanda 0'dır, çünkü bitmiş kalınlığa
-    // girmez. Böylece zarf her zaman bitmiş = başlangıç + kaplama tutar.
-    plating: toUm(r.plating),
-    starting: toUm(r.starting),
-    finished: toUm(r.finished),
-  }
-}
 
 /**
  * Kayıttan form yaması. Kayıt kanonik olarak µm tuttuğu için geri yüklenen
  * alanların birim seçicileri de µm'ye ayarlanır.
  */
-export function formFromRecord(rec) {
-  if (!rec) return null
-
-  const patch = {
-    source: rec.source,
-    layer: rec.layer,
-    plating: String(rec.plating),
-  }
-
-  if (rec.source === SOURCE_WEIGHT) {
-    // Tabloda karşılığı olan ağırlık seçici basamağına oturur; olmayan ağırlık
-    // "Özel değer…" yoluna düşer. Serbest alan her iki durumda da doldurulur.
-    const row = nominalRow(rec.value)
-    patch.ozPick = row ? String(row.oz) : OZ_CUSTOM
-    patch.oz = String(rec.value)
-  } else if (rec.source === SOURCE_THICKNESS) {
-    patch.thickness = String(rec.starting)
-    patch.thicknessu = RECORD_UNIT_LENGTH
-  } else {
-    patch.finished = String(rec.finished)
-    patch.finishedu = RECORD_UNIT_LENGTH
-    // Ölçülen yolda folyo kalınlığı da bir girdidir (dış katmanda kaplamayı
-    // geriye çözmek için gerekir).
-    patch.thickness = String(rec.starting)
-    patch.thicknessu = RECORD_UNIT_LENGTH
-  }
-
-  return patch
-}
 
 // Grafik: bakır ağırlığına göre kare direnci
 export function buildSweep(r) {

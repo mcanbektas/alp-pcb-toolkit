@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
-import TextField from '../../../components/TextField'
 import Segmented from '../../../components/Segmented'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
@@ -10,7 +9,6 @@ import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
 import { statusChip, worstLevel, countAtLevel } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
-import useSavedThickness from '../../../hooks/useSavedThickness'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
 import { fmt, fmtEng, fmtOhm, fmtPct } from '../../../lib/num'
@@ -18,7 +16,7 @@ import { METHOD_NOMINAL, METHOD_DERIVED } from '../../../lib/copper'
 import CopperSchematic from './schematic'
 import {
   INITIAL_FORM, SOURCES, SOURCE_WEIGHT, SOURCE_FINISHED, OZ_ROWS, OZ_CUSTOM,
-  compute, buildSweep, recordFrom, formFromRecord,
+  compute, buildSweep,
 } from './model'
 import { getText } from './text'
 import { buildReportSection } from './report'
@@ -30,21 +28,13 @@ export default function CopperConverter() {
 
   // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
   // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
-  // `saved` adı bu ekranda bakır kalınlığı kayıtlarına ait — proje kaydının
-  // bağı ayrı adla durur.
   const savedCalc = useSavedCalculation({
     toolKey: 'cu-converter', initialForm: INITIAL_FORM, patch,
   })
-  const saved = useSavedThickness()
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
   const ui = useMemo(() => commonText(lang), [lang])
-
-  // Son kayıt eyleminin ekrandaki tek satırlık sonucu ve listede işaretli kayıt.
-  // Yalnızca sunum durumu; hesaba girmez.
-  const [notice, setNotice] = useState(null)
-  const [activeId, setActiveId] = useState(null)
 
   const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
@@ -71,35 +61,6 @@ export default function CopperConverter() {
     : null
   const tol = r.ok ? r.tolerance : null
   const tolText = text.toleranceNote(r)
-
-  // --- Kalınlık kayıtları (spec §4.3) ---
-  // Ekran yalnızca çağırır: kayıt zarfını model.js kurar, doğrulama ve saklama
-  // lib/thicknessRecords.js + hooks/useSavedThickness.js tarafında.
-  const saveName = f.saveName.trim()
-
-  // Kaydetme/silme oturum açıkken ağ üzerinden gider (Faz 7): çağrılar bu
-  // yüzden async, ama dönen yük saf katmanın hata şeklini korur — ekranın
-  // metin kurma yolu değişmedi.
-  const onSave = async () => {
-    if (!r.ok) { setNotice({ level: 'warn', text: text.saved.needResult }); return }
-    if (saveName === '') { setNotice({ level: 'warn', text: text.saved.needName }); return }
-    const res = await saved.save(recordFrom(saveName, r))
-    setNotice(text.savedNotice('save', res))
-    if (!res.error) setActiveId(res.record.id)
-  }
-
-  const onRestore = (rec) => {
-    // Ad da geri gelir: aynı kaydı düzeltip yeniden kaydetmek üzerine yazar.
-    patch({ ...formFromRecord(rec), saveName: rec.name })
-    setActiveId(rec.id)
-    setNotice(text.savedNotice('restore', { ok: true }))
-  }
-
-  const onRemove = async (rec) => {
-    const res = await saved.remove(rec.id)
-    setNotice(text.savedNotice('remove', res))
-    if (!res.error && activeId === rec.id) setActiveId(null)
-  }
 
   return (
     <>
@@ -241,81 +202,6 @@ export default function CopperConverter() {
             hint={text.fields.tolEtch.hint}
           />
 
-          <h2 className="section">{text.saved.caption}</h2>
-
-          {!saved.available && <p className="empty-note warn">{text.saved.unavailable}</p>}
-
-          <TextField
-            label={text.saved.nameLabel}
-            value={f.saveName} onChange={set('saveName')}
-            placeholder={text.saved.namePlaceholder}
-            hint={text.saved.nameHint}
-          />
-
-          {/* Yalnızca depolama yokken düğme kapanır: o durumun tek çaresi
-              tarayıcı ayarıdır. Eksik ad ya da geçersiz sonuçta düğme açık
-              kalır ve nedeni tıklayınca yazılır — sessizce kapalı bir düğme
-              kullanıcıya hiçbir şey anlatmaz. */}
-          <button
-            type="button"
-            className="row-add"
-            onClick={onSave}
-            disabled={!saved.available}
-          >
-            + {text.saved.saveLabel}
-          </button>
-
-          {notice && (
-            <p className={notice.level === 'warn' ? 'empty-note warn' : 'empty-note'}>
-              {notice.text}
-            </p>
-          )}
-
-          {saved.loading && <p className="empty-note">{text.saved.loading}</p>}
-
-          {!saved.loading && saved.records.length === 0 && (
-            <p className="empty-note">{text.saved.empty}</p>
-          )}
-
-          {!saved.loading && saved.records.length > 0 && (
-            <div className="row-list">
-              <div className="row-list-head">
-                <span className="idx" />
-                <span>{text.saved.headName}</span>
-                <span>{text.saved.headSummary}</span>
-                <span className="act" />
-              </div>
-
-              {saved.records.map((rec, i) => (
-                <div className="row-list-item" key={rec.id}>
-                  <span className="idx">{i + 1}</span>
-                  <span className="cell">
-                    <button
-                      type="button"
-                      className="row-add"
-                      onClick={() => onRestore(rec)}
-                      aria-label={`${rec.name} — ${text.saved.restoreLabel}`}
-                    >
-                      {rec.name}
-                    </button>
-                  </span>
-                  <span className="cell">
-                    <span className="chip">
-                      {fmt(rec.starting, 4)} · {fmt(rec.finished, 4)} µm
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    className="act"
-                    onClick={() => onRemove(rec)}
-                    aria-label={`${rec.name} — ${text.saved.removeLabel}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
@@ -588,47 +474,6 @@ export default function CopperConverter() {
             </>
           )}
 
-          {/* Kayıt listesi hesabın geçerliliğinden bağımsızdır: girdi eksikken
-              de görünür, çünkü geri yüklemek girdiyi düzeltmenin yoludur. */}
-          {saved.records.length > 0 && (
-            <>
-              <h2 className="section">{text.saved.caption}</h2>
-              <table className="pick-table">
-                <thead>
-                  <tr>
-                    <th>{text.saved.colName}</th>
-                    <th>{text.saved.colSource}</th>
-                    <th>{text.saved.colLayer}</th>
-                    <th>{text.saved.colStarting}</th>
-                    <th>{text.saved.colPlating}</th>
-                    <th>{text.saved.colFinished}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {saved.records.map((rec) => (
-                    <tr
-                      key={rec.id}
-                      className={`pick${rec.id === activeId ? ' on' : ''}`}
-                      onClick={() => onRestore(rec)}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRestore(rec) }
-                      }}
-                      aria-selected={rec.id === activeId}
-                    >
-                      <td>{rec.name}</td>
-                      <td>{text.sourceLong[rec.source]}</td>
-                      <td>{text.layerLabel[rec.layer]}</td>
-                      <td>{fmt(rec.starting, 4)}</td>
-                      <td>{fmt(rec.plating, 4)}</td>
-                      <td>{fmt(rec.finished, 4)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="empty-note">{text.saved.tableNote}</p>
-            </>
-          )}
         </section>
 
         {/* ---------- Sağ: Teknik detay ---------- */}

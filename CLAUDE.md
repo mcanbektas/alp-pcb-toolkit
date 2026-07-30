@@ -30,13 +30,12 @@ React bileşeni testi yazılmaz** — arayüz doğrulaması `npm run build` + ta
 kontrol ile yapılır. Yeni bir test/lint aracı eklemek istersen önce sor.
 
 Sunucu tarafının kendi testleri var (`api/Alp.Api.Tests`, xunit): `dotnet test Alp.Api.sln`.
-Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG kapısı, kalınlık
-kayıtlarında ad tekliği / 50 sınırı, proje-hesap sahipliği. Uçlar HTTP
+Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG kapısı, proje-hesap sahipliği. Uçlar HTTP
 üzerinden değil, işleyicileri doğrudan çağırarak sınanır (test edilen üyeler `internal` +
 `InternalsVisibleTo`); veritabanı bellek içi SQLite'tır ve şema modelden kurulur, çünkü
 `InMemory` sağlayıcısı benzersiz dizin ZORLAMAZ. Ayrıntı ve kapsam dışı bırakılanlar:
 `docs/uyelik-ve-rapor-plani.md` §25. **Yeni bir uç yazarken kuralını da test et** — sahiplik,
-sınır ve tür doğrulaması bu üç sınıf zaten oradadır.
+sınır ve tür doğrulaması için desen bu sınıflarda hazırdır.
 
 Saf sayılan ve bu yüzden test edilen üç yer: `src/lib/`, ekranların `report.js` dosyaları
 ve ekranların `text.js` sözlükleri. Sonuncusu `dfmTextPaths.test.js`'te kaynak dosyaları
@@ -135,8 +134,6 @@ soyut portu bilir.
      çalışır — aralıkta kök yoksa çözücü yine hata döner, asla tahmin üretmez.
    - `storage.js` — kalıcı depolama **portu** (`read`/`write`/`remove`). `browserStorage`,
      `memoryStorage`, `nullStorage` uygulamaları burada.
-   - `thicknessRecords.js` — bakır kalınlığı kayıtları: şema adı, `schemaVersion`, doğrulama,
-     liste/kaydet/sil. `localStorage`'ı tanımaz, portu parametre olarak alır.
    - `statusChip.js` — durum çipinin tek kaynağı. `worstLevel(levels)` en kötü seviyeyi,
      `statusChip(worst, count, ui)` `{cls, text}` döndürür. **İki tarihsel söz varlığını
      köprüler**: genel araçlar `'ok'|'warn'|'danger'`, DFM araçları
@@ -191,9 +188,9 @@ soyut portu bilir.
      Sonuç satırlarını üreten `epsEffRows(eps, fmt, lang)` saf kalır ve dili parametre alır;
      varsayılanı **yoktur** — atlanan argüman sessizce Türkçeye düşmesin diye zorunludur.
 3. **`src/hooks/`** — `useToolForm` yalnızca React state'ini yönetir; hesap bilgisi taşımaz.
-   Somut depolama portunu bağlayan hook'lar: `useSavedThickness`, `useDfmProfiles`,
+   Somut depolama portunu bağlayan hook'lar: `useDfmProfiles`,
    `useClearanceProfiles`, `useSavedStackups`. Pano erişimi `useClipboard`'dadır.
-   Tarayıcı API'si yalnızca bu beşinde görünür.
+   Tarayıcı API'si yalnızca bu dördünde görünür.
    `useSavedCalculation` ağ ve URL erişimini bağlar (doğrulama saf katmanda,
    `lib/savedCalculation.js`) — bkz. aşağıdaki "Kaydedilmiş hesap bağı".
    `useProjectSaver` projeye kaydetmenin ağ/liste durumunu tutar (proje listesi,
@@ -276,7 +273,14 @@ Bu sınıftan bir hata (`text.table.pctOfSupply is not a function`) bir ekranı 
   "Yük altında:" → "Under load:", `V_maks` → `V_max`, `D_matkap` → `D_drill`,
   `N_kullanıcı` → `N_user`. Alt simgede Türkçe sözcük bırakılmaz.
 - **Çevrilmeyenler:** kod yorumları, değişken/dosya adları, birim sembolleri, E serisi adları
-  ve kullanıcının kendi girdiği veri (örn. kaydedilmiş bakır kalınlığı kaydının adı).
+  ve kullanıcının kendi girdiği veri (örn. kaydedilmiş bir DFM profilinin adı).
+
+**Bilinçli sapma — kalınlık kayıtları kaldırıldı (2026-07-30).** Spec §4.3'ün "kayıtlı
+bakır kalınlığı" özelliği (adlandırılmış kayıt, listele/geri yükle/sil, girişte hesaba
+senkron) bütünüyle söküldü: istemci (`thicknessRecords.js`, `useSavedThickness`,
+CopperConverter'daki iki kayıt paneli), sunucu uçları ve testleri. İstenmedi; aynı listeyi
+iki yüzeyde yönetmek de kafa karıştırıyordu. `ThicknessRecords` tablosu logo kararıyla aynı
+gerekçeyle şemada duruyor. Geri istenirse desen DFM profillerinde yaşıyor.
 
 **Bilinçli sapma:** `categories.js` 29 araç kaydı içerir, `docs/spec.md` §15 ise 21 ekran
 sayar. Fark kasıtlıdır, düzeltilmemeli: spec'in 2. ekranı (*Trace Resistance, Voltage Drop
@@ -315,8 +319,8 @@ kontrol sözleşmesi paylaşır:
   bütün başlıkları çağırandan alır, tarihi bile dışarıdan ister. Eksik etiket sessizce
   `undefined` basmaz; `SUMMARY_LABEL_KEYS` eksikse hata döner (bir kez basmıştı).
 - Karar profilleri: **`clearanceProfile.js`** (clearance/creepage tabloları),
-  **`stackupProfiles.js`** (kaydedilmiş stack-up'lar). İkisi de `thicknessRecords.js`
-  desenini izler.
+  **`stackupProfiles.js`** (kaydedilmiş stack-up'lar). İkisi de aynı saf-depo
+  desenini izler (şema adı, `schemaVersion`, doğrulama; port parametre alınır).
 - Hesap motorları: `padstack.js`, `clearanceCreepage.js`, `bgaBreakout.js`, `stackup.js`,
   `thermalRelief.js`.
 - Somut bağlar: `useDfmProfiles`, `useClearanceProfiles`, `useSavedStackups`,
@@ -500,9 +504,9 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   benzeri lisanslı içerik `src/` veya `docs/` altına gömülmez. Bunun yerine kullanıcının
   içe aktardığı profil/veri seti kullanılır ve `localStorage`'da tutulur. Böyle bir veri
   yokken sonuç, standart tabanlı doğrulanmış gibi sunulmaz.
-  Böyle bir veri saklanacaksa desen hazırdır ve bakır kalınlığı kayıtlarında uygulanıyor:
-  port `src/lib/storage.js`, saf depo `src/lib/thicknessRecords.js` (şema adı, `schemaVersion`,
-  doğrulama; portu parametre alır), somut bağ `src/hooks/useSavedThickness.js`. Ekran kendi
+  Böyle bir veri saklanacaksa desen hazırdır ve DFM profillerinde uygulanıyor:
+  port `src/lib/storage.js`, saf depo `src/lib/dfmProfile.js` (şema adı, `schemaVersion`,
+  doğrulama; portu parametre alır), somut bağ `src/hooks/useDfmProfiles.js`. Ekran kendi
   `JSON.parse`/`localStorage` kodunu yazmaz. Format değişirse eski kayıt sessizce yanlış
   okunmaz, açık hata döner.
 
