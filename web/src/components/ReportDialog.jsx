@@ -152,7 +152,7 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
 
       {error && <p className="field-hint danger">{error}</p>}
 
-      <div className="report-actions">
+      <div className="report-actions stretch">
         <button type="button" className="row-add" disabled={busy !== null} onClick={() => download('pdf')}>
           {busy === 'pdf' ? text.working : text.pdfButton(text.docLangNames[docLang])}
         </button>

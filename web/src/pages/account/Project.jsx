@@ -291,9 +291,11 @@ export default function Project() {
           <p className={metaStatus.level === 'ok' ? 'field-hint' : 'field-hint danger'}>{metaStatus.text}</p>
         )}
 
-        <button type="button" className="row-add" disabled={metaBusy} onClick={saveMeta}>
-          {metaBusy ? pt.saving : pt.saveLabel}
-        </button>
+        <div className="report-actions stretch">
+          <button type="button" className="row-add" disabled={metaBusy} onClick={saveMeta}>
+            {metaBusy ? pt.saving : pt.saveLabel}
+          </button>
+        </div>
       </section>
 
       <CalculationList
@@ -332,7 +334,7 @@ export default function Project() {
 
         {reportError && <p className="field-hint danger">{reportError}</p>}
 
-        <div className="report-actions">
+        <div className="report-actions stretch">
           <button
             type="button"
             className="row-add"

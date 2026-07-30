@@ -219,7 +219,7 @@ export default function SaveToProject({
             <p className={feedback.level === 'ok' ? 'field-hint' : 'field-hint danger'}>{feedback.text}</p>
           )}
 
-          <div className="report-actions">
+          <div className="report-actions stretch">
             <button type="button" className="row-add" disabled={busy || !r?.ok} onClick={handleUpdate}>
               {busy ? st.updating : st.updateLabel}
             </button>
@@ -255,9 +255,11 @@ export default function SaveToProject({
             <p className={feedback.level === 'ok' ? 'field-hint' : 'field-hint danger'}>{feedback.text}</p>
           )}
 
-          <button type="button" className="row-add" disabled={busy || !r?.ok} onClick={handleCreate}>
-            {busy ? st.saving : st.saveLabel}
-          </button>
+          <div className="report-actions stretch">
+            <button type="button" className="row-add" disabled={busy || !r?.ok} onClick={handleCreate}>
+              {busy ? st.saving : st.saveLabel}
+            </button>
+          </div>
         </>
       )}
     </div>

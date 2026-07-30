@@ -192,7 +192,7 @@ export default function Account() {
 
           {profileError && <p className="field-hint danger">{profileError}</p>}
 
-          <div className="report-actions">
+          <div className="report-actions stretch">
             <button type="submit" className="row-add" disabled={profileBusy}>
               {profileBusy ? at.saving : at.saveLabel}
             </button>
@@ -238,7 +238,7 @@ export default function Account() {
 
           {passwordError && <p className="field-hint danger">{passwordError}</p>}
 
-          <div className="report-actions">
+          <div className="report-actions stretch">
             <button type="submit" className="row-add" disabled={passwordBusy}>
               {passwordBusy ? at.passwordSaving : at.passwordSaveLabel}
             </button>

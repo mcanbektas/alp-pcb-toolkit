@@ -482,6 +482,13 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.55); }
 
 /* Rapor indirme düğmeleri — ReportDialog.jsx */
 .report-actions { display: flex; gap: 8px; margin-top: 4px; }
+/* Panelin SONUNDAKİ eylem satırı — form bitişi. Düğmeler panelin tam
+   genişliğine yayılır ve satırı eşit bölüşür: panelin ana eylemi bu depoda
+   zaten tam genişliktir (.btn-primary, .btn-ghost). Sağa yaslama onay
+   kartının (.confirm-dialog-actions) deseni, buraya taşınmaz. Liste satırı
+   içindeki .report-actions (Aç/Sil) bu sınıfı ALMAZ ve dar kalır. */
+.report-actions.stretch { margin-top: 10px; }
+.report-actions.stretch .row-add { flex: 1; padding-top: 8px; padding-bottom: 8px; }
 
 /* ---------- Fields ---------- */
 
@@ -540,8 +547,12 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.55); }
   padding: 7px 9px;
   transition: background 0.15s ease, color 0.15s ease;
 }
+/* Satırlar sırayla yüzey / sayfa zemini alır: uzun listede göz satır
+   takibini çizgisiz yapabilsin. Vurgulanan satır (.on) zebradan her zaman
+   ayrışır — kural aşağıda ve :not(.on) ile zebra ona hiç dokunmaz. */
+.combo-list li:nth-child(even) .combo-option:not(.on) { background: var(--bg); }
 /* Klavye ve fare AYNI satırı vurgular: gezinme sırası tek olmalı. */
-.combo-option.on { background: var(--raised); }
+.combo-option.on { background: var(--green-deep); }
 .combo-option[aria-selected="true"] { color: var(--accent); }
 /* "Yeni proje" satırı listenin başındadır ve var olanlardan ayrılır. */
 .combo-option.create { color: var(--accent); font-weight: 600; }
