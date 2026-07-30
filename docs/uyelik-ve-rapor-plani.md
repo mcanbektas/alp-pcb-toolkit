@@ -1451,3 +1451,53 @@ taşımıyor" satırını bırakıyor. Gerçek tarayıcıda rapor turu 10/10.
 sıfırlama), hız sınırı kovaları, `XlsxReportBuilder`, rota bağlama ve nginx yolları. Bunlar
 gerçek tarayıcı turunda ve canlı yığın denemelerinde görülüyor; teste taşınırlarsa ayrı bir
 karar olur.
+
+## 26. Firma logosu kaldırıldı, e-posta kalıcı
+
+**Tarih:** 2026-07-30 (gece) · **Sonuç:** hesap ekranındaki logo yükleme özelliği tümden
+kalktı; rapor başlığında daima uygulamanın kendi logosu duruyor ve firma yalnızca künyede
+metin olarak görünüyor. Kullanıcı kararı: "company logoya ihtiyaç yok".
+
+### 26.1 Kaldırılanlar
+
+- **Ekran:** `/hesabim`'daki "Firma logosu" paneli (önizleme, dosya seçici, yükle/kaldır
+  düğmeleri), `pages/account/text.js`'teki logo metinleri ve dört tema dosyasındaki
+  `.logo-preview` kuralı.
+- **Uçlar:** `GET/POST/DELETE /api/me/logo` üçü de düştü. Sihirli baytlardan tür tespiti
+  (`DetectImageType`), 512 KB'lık dosya sınırı ve 1 MB'lık gövde sınırı onlarla gitti.
+- **Rapor bağı:** `PdfReportBuilder.Build` artık `logoOverride` almıyor; `ReportEndpoints`
+  kullanıcının logosunu çekmiyor (`UserLogo` düştü). Üç çağrı yeri de sadeleşti.
+- **Sözleşme:** `MeResponse.HasLogo` kalktı. İstemcideki `api.postForm` ve `api.getBlob` de
+  gitti — tek kullanıcıları logo yükleme ve önizlemeydi.
+- **Test:** `LogoImageTypeTests` (9 test) silindi, süit 70 → 61.
+
+**Sütunlar duruyor:** `ApplicationUser.LogoBytes` / `LogoContentType` şemada kaldı. Düşürmek
+geri alınamaz bir migration; okuyucusu olmayan iki sütunun bedeli yok ve özellik geri
+istenirse veri kaybı olmadan dönülür. Kalıcı silmeye karar verilirse tek migration yeter.
+Yükleme yolu kapandığı için yeni bayt da yazılamıyor.
+
+Yan kazanç: kullanıcı başına yarım megabaytlık, ürün karşılığı olmayan bir yazma yüzeyi
+kapandı.
+
+### 26.2 E-posta değiştirilemez — zaten öyleydi
+
+Kullanıcı isteği "kayıttan sonra e-posta değiştirilemesin" idi; kod bunu baştan sağlıyordu ve
+bu turda yalnız **kaydı** netleşti:
+
+- `UpdateMeRequest` yalnız `DisplayName` ve `Company` taşıyor — e-posta diye bir alan yok, yani
+  uç doğrudan çağrılsa bile değişmez. Canlı yığında doğrulandı: gövdeye `email` eklenmiş bir
+  `PATCH /api/me` 200 dönüyor ve adres aynı kalıyor.
+- Ekranda alan `readOnly` ve altında "E-posta adresi değiştirilemez." yazıyor. Alan yine
+  gösteriliyor: kullanıcı hangi hesapta olduğunu görmeli.
+- Gerekçe `Contracts.cs`'e yazıldı: kimlik doğrulaması ve parola sıfırlama o adrese bağlı.
+
+Ad ve firma düzenlenebilir kaldı (ad boşa çekilemez — raporun "Hazırlayan" varsayılanı; firma
+boş bırakılınca alan silinir).
+
+**Doğrulama:** `dotnet build` 0 uyarı, 61/61 sunucu testi, `npm test` 1957 yeşil,
+`npm run build` temiz, `ipc` taraması temiz, yığın yeniden kuruldu. Canlı: üç logo ucu da 404,
+`GET /api/me` artık `hasLogo` göndermiyor, e-posta değiştirme denemesi yok sayılıyor. Gerçek
+tarayıcıda `/hesabim` 10/10 — logo paneli yok, sayfada "logo" kelimesi geçmiyor, dosya girişi
+yok, e-posta salt okunur, ad ve firma düzenlenebilir, firma kaydedilip yenilemede geri geldi,
+kalınlık paneli yerinde, konsol hatası yok. İki rapor yolu da çalışıyor: tek seferlik PDF
+239 KB, proje raporu 228 KB, ikisinde de logo 1372×314 (§24'teki tam çözünürlük).

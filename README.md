@@ -64,7 +64,7 @@ junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor ek
 dönüşür; motor testsiz merge edilmez.
 
 Sunucu tarafında `api/Alp.Api.Tests` (xunit) var ve kapsamı orada da kural bazlıdır: rapor
-önizlemesi süzmesi, boyutsuz SVG kapısı, logo tür tespiti, kalınlık kayıtlarında ad tekliği ve
+önizlemesi süzmesi, boyutsuz SVG kapısı, kalınlık kayıtlarında ad tekliği ve
 50 kayıt sınırı, proje-hesap sahipliği. Uçlar HTTP üzerinden değil, işleyicileri doğrudan
 çağırarak sınanır; veritabanı bellek içi SQLite'tır ve şema modelden kurulur, çünkü `InMemory`
 sağlayıcısı benzersiz dizin zorlamaz. CI ayrı bir adımda koşturur, veritabanı servisi
@@ -210,7 +210,7 @@ istendiğinde `index.html` döner.
 | grup | uçlar |
 | --- | --- |
 | oturum | `POST /api/auth/{register,login,refresh,logout,forgot-password,reset-password}`, `GET /api/auth/confirm-email` |
-| profil | `GET/PATCH /api/me`, `GET/POST/DELETE /api/me/logo` |
+| profil | `GET/PATCH /api/me` — e-posta değiştirilemez, `PATCH` yalnızca ad ve firma alır |
 | kalınlık kaydı | `GET/POST /api/thickness-records`, `DELETE /api/thickness-records/{id}` |
 | proje | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` |
 | hesap | `POST /api/projects/{id}/calculations`, `POST /api/projects/{id}/calculations/reorder`, `GET/PATCH/DELETE /api/calculations/{id}` |

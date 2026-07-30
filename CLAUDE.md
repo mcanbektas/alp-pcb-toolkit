@@ -30,8 +30,8 @@ React bileşeni testi yazılmaz** — arayüz doğrulaması `npm run build` + ta
 kontrol ile yapılır. Yeni bir test/lint aracı eklemek istersen önce sor.
 
 Sunucu tarafının kendi testleri var (`api/Alp.Api.Tests`, xunit): `dotnet test Alp.Api.sln`.
-Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG kapısı, logo tür
-tespiti, kalınlık kayıtlarında ad tekliği / 50 sınırı, proje-hesap sahipliği. Uçlar HTTP
+Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG kapısı, kalınlık
+kayıtlarında ad tekliği / 50 sınırı, proje-hesap sahipliği. Uçlar HTTP
 üzerinden değil, işleyicileri doğrudan çağırarak sınanır (test edilen üyeler `internal` +
 `InternalsVisibleTo`); veritabanı bellek içi SQLite'tır ve şema modelden kurulur, çünkü
 `InMemory` sağlayıcısı benzersiz dizin ZORLAMAZ. Ayrıntı ve kapsam dışı bırakılanlar:
