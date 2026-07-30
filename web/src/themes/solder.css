@@ -564,6 +564,10 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.62); }
 .pw-toggle svg { width: 17px; height: 17px; display: block; }
 .field-hint { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
 .field-hint.danger { color: var(--danger); }
+/* Ortalanmış ipucu — belge dili notu gibi, ortalanmış bir denetimin
+   (Segmented) altında duran tek satır. Sola yaslı hâli denetimden kopuk
+   görünüyordu. */
+.field-hint.center { text-align: center; }
 
 .seg {
   display: flex; border: 1px solid var(--line); border-radius: 5px;

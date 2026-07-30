@@ -147,7 +147,7 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
           value={docLang}
           onChange={setDocLang}
         />
-        <span className="field-hint">{text.docLangNote(text.docLangNames[docLang])}</span>
+        <span className="field-hint center">{text.docLangNote(text.docLangNames[docLang])}</span>
       </div>
 
       {error && <p className="field-hint danger">{error}</p>}

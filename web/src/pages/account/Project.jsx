@@ -328,7 +328,7 @@ export default function Project() {
             value={docLang}
             onChange={setDocLang}
           />
-          <span className="field-hint">{rt.docLangNote(rt.docLangNames[docLang])}</span>
+          <span className="field-hint center">{rt.docLangNote(rt.docLangNames[docLang])}</span>
           <span className="field-hint">{rt.docLangPartial}</span>
         </div>
 
