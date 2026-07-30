@@ -31,7 +31,7 @@ jobs:
       - run: npm run build
 
   api:
-    name: api — build
+    name: api — test + build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,3 +40,7 @@ jobs:
           dotnet-version: 9.0.x
       - run: dotnet restore api/Alp.Api.sln
       - run: dotnet build api/Alp.Api.sln -c Release --no-restore
+      # Sunucu kuralları (rapor önizlemesi, SVG kapısı, logo türü, ad tekliği,
+      # sahiplik) testten geçmeden ileri gidilmez. Veritabanı servisi gerekmez:
+      # testler bellek içi SQLite kurar, bkz. Alp.Api.Tests/TestHost.cs
+      - run: dotnet test api/Alp.Api.sln -c Release --no-build --verbosity minimal

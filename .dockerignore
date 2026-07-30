@@ -21,3 +21,7 @@ deploy/*.env
 
 # Üretilmiş raporlar
 api/Alp.Api/App_Data
+
+# Testler imaja girmez: api imajı yalnız uygulama projesini yayımlıyor, test
+# kaynağı bağlamda dursa da hiç derlenmez. CI ayrı bir adımda koşturuyor.
+api/Alp.Api.Tests
