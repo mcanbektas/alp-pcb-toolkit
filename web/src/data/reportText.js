@@ -32,8 +32,16 @@ export function reportText(lang) {
     }),
     heading: t({ tr: 'Rapor al', en: 'Get a report' }),
     preparedByLabel: t({ tr: 'Hazırlayan', en: 'Prepared by' }),
-    pdfButton: t({ tr: 'PDF indir', en: 'Download PDF' }),
-    xlsxButton: t({ tr: 'Excel indir', en: 'Download Excel' }),
+    // Düğme seçilen dili kendi üstünde taşır: seçici yukarıda kalıyor ve
+    // indirmeden önce son bakılan yer düğmedir. `name` çağıranın seçtiği dilin
+    // ARAYÜZ dilindeki adıdır (bkz. docLangNames).
+    pdfButton: (name) => t({ tr: `PDF indir — ${name}`, en: `Download PDF — ${name}` }),
+    xlsxButton: (name) => t({ tr: `Excel indir — ${name}`, en: `Download Excel — ${name}` }),
+    // Seçicinin altındaki tek satır: seçim ne yapacak, açıkça yazsın.
+    docLangNote: (name) => t({
+      tr: `Belge ${name} üretilecek; dosya adı da dil kodunu taşır.`,
+      en: `The document will be produced in ${name}; the file name carries the language code too.`,
+    }),
     working: t({ tr: 'Hazırlanıyor…', en: 'Preparing…' }),
     // İndirme sessizce olup bitiyordu: düğme eski hâline dönüyor, başka hiçbir
     // şey olmuyordu. Dosya adı da bildirime yazılır — tarayıcı indirmeyi nereye

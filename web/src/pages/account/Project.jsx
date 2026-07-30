@@ -326,6 +326,7 @@ export default function Project() {
             value={docLang}
             onChange={setDocLang}
           />
+          <span className="field-hint">{rt.docLangNote(rt.docLangNames[docLang])}</span>
           <span className="field-hint">{rt.docLangPartial}</span>
         </div>
 
@@ -338,7 +339,7 @@ export default function Project() {
             disabled={reportBusy !== null}
             onClick={() => downloadReport('pdf')}
           >
-            {reportBusy === 'pdf' ? pt.working : pt.pdfButton}
+            {reportBusy === 'pdf' ? pt.working : rt.pdfButton(rt.docLangNames[docLang])}
           </button>
           <button
             type="button"
@@ -346,7 +347,7 @@ export default function Project() {
             disabled={reportBusy !== null}
             onClick={() => downloadReport('xlsx')}
           >
-            {reportBusy === 'xlsx' ? pt.working : pt.xlsxButton}
+            {reportBusy === 'xlsx' ? pt.working : rt.xlsxButton(rt.docLangNames[docLang])}
           </button>
         </div>
       </section>

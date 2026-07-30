@@ -99,6 +99,7 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
       // Belgenin çerçeve metni yükle birlikte gider — sunucu kendi sözlüğünü
       // taşımaz (bkz. reportText.js'teki reportLabels notu).
       labels: reportLabels(docLang),
+      lang: docLang,
       sections: [captureFor(docLang)],
     })
     if (!built.ok) {
@@ -146,16 +147,17 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
           value={docLang}
           onChange={setDocLang}
         />
+        <span className="field-hint">{text.docLangNote(text.docLangNames[docLang])}</span>
       </div>
 
       {error && <p className="field-hint danger">{error}</p>}
 
       <div className="report-actions">
         <button type="button" className="row-add" disabled={busy !== null} onClick={() => download('pdf')}>
-          {busy === 'pdf' ? text.working : text.pdfButton}
+          {busy === 'pdf' ? text.working : text.pdfButton(text.docLangNames[docLang])}
         </button>
         <button type="button" className="row-add" disabled={busy !== null} onClick={() => download('xlsx')}>
-          {busy === 'xlsx' ? text.working : text.xlsxButton}
+          {busy === 'xlsx' ? text.working : text.xlsxButton(text.docLangNames[docLang])}
         </button>
       </div>
     </div>
