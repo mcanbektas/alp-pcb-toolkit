@@ -67,8 +67,8 @@ dönüşür; motor testsiz merge edilmez.
 Üç aile (IBM Plex Sans, IBM Plex Mono, Chakra Petch) depoda durur ve siteyle birlikte
 servis edilir; sayfa hiçbir dış kaynağa istek atmaz. İki dizin, iki tüketici:
 
-- `web/public/fonts/` — sitenin indirdiği `woff2` alt kümeleri. Yalnız bunlar `dist/`e ve
-  web imajına girer.
+- `web/public/fonts/` — sitenin indirdiği `woff2` alt kümeleri (`latin`, `latin-ext`, `greek`
+  ve bizim kestiğimiz `symbols`). Yalnız bunlar `dist/`e ve web imajına girer.
 - `assets/report-fonts/` — PDF raporuna gömülen tam kapsamlı `ttf`ler. api imajı bunları
   `/app/fonts` altına alır (`api/Dockerfile`), `Reports__FontsPath` oraya bakar. Site bu
   dosyaları hiç indirmez; `public/` altında dururlarken yine de `dist/`e ve web imajına
@@ -83,6 +83,7 @@ Lisans: SIL Open Font License 1.1; metin her iki dizinde `OFL-*.txt` olarak duru
 cd web
 npm run fonts                 # yalnız src/fonts.css'i yeniden üretir
 npm run fonts -- --fetch      # font dosyalarını da indirir (ağ gerekir)
+npm run fonts -- --symbols    # sembol alt kümesini tam ttf'den keser (ağ + fonttools)
 npm run fonts -- --check      # üretilmiş dosya güncel mi (çıkış kodu 0/1)
 npm run fonts -- --coverage   # sitedeki karakterler alt kümelerde var mı
 ```
@@ -98,10 +99,30 @@ lisans metinleri `google/fonts` deposunun sabit bir commit'inden gelir. `--fetch
 diskteki ile karşılaştırıp yalnız değişenleri bildirir, yani beklenmedik bir değişiklik
 commit'ten önce görünür.
 
-İki bilinen sınır, ikisi de fontlar Google'dan gelirken de böyleydi: IBM Plex Mono'nun `greek`
-alt kümesi yayınlanmıyor (mono metindeki Ω sistem yazı tipinden çizilir) ve alt kümelerin
-kapsamadığı semboller — `→`, `≈`, `√`, `✓`, alt/üst simgeler — yine sistem yüzünden çizilir.
-`--coverage` bunları sayar; PDF tam `ttf` kullandığı için orada eksik yoktur.
+**Dördüncü alt küme bizimdir: `symbols`.** Mühendislik metninin kullandığı `→`, `←`, `≈`, `≤`,
+`≥`, `√`, `∞`, `✓` ve alt/üst simgeler Google'ın yayınladığı `latin` / `latin-ext` / `greek`
+alt kümelerinin hiçbirinde yok — glif ailenin tam `ttf`sinde duruyor, alt küme dosyasına
+girmemiş. Aralığı genişletmek işe yaramaz; `--symbols` alt kümeyi tam `ttf`den keser
+(`web/scripts/subset-symbols.py`, `fontTools`). Aralık dosyanın **içindeki** kod noktalarıdır
+ve aile başına ayrıdır — kayıt `web/scripts/font-symbols.json`, o da üretilmiş bir dosyadır.
+Kesme kaynağı olan tam `ttf`ler depoya girmez; geçici dizine inip kesildikten sonra silinir.
+
+`--symbols` için makinede `fontTools` + `brotli` gerekir
+(`python3 -m pip install --user fonttools brotli`). Depoya yalnız çıkan `woff2` girdiği için
+font kümesini değiştirmeyen biri bu araçlara hiç ihtiyaç duymaz. Üretim tekrarlanabilir:
+kesilen dosyanın `head.modified` damgası sabitlenir, yoksa her koşu farklı bayt üretirdi.
+
+Kalan sınırlar — üçü de fontlar Google'dan gelirken de böyleydi:
+
+- IBM Plex Mono'nun `greek` alt kümesi yayınlanmıyor; mono metindeki Ω sistem yazı tipinden
+  çizilir.
+- Sembol listesindeki 38 karakterin **12'si üç ailenin tam `ttf`sinde de yok**
+  (`⁻ ₐ ₙ ∈ ∝ ∠ ∥ ≪ ⌈ ⌉ □ ✗`) — kesilecek glif olmadığı için bunlar sistem yüzünden çizilir.
+  `--coverage` hem bunları hem aile başına eksikleri sayar.
+- Chakra Petch'in charset'i dar: `✓`, `↔` ve `─` başlıkta sistem yüzünden gelir, gövdede
+  (IBM Plex Sans/Mono) kendi fontumuzdan.
+
+PDF tam `ttf` kullandığı için alt küme sınırlarından etkilenmez.
 
 ## Mimari
 

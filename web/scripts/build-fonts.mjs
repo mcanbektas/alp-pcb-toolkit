@@ -13,6 +13,8 @@
 // Kullanım (`web/` dizininden):
 //   npm run fonts                 yalnız `src/fonts.css`i yeniden üretir
 //   npm run fonts -- --fetch      font dosyalarını da indirir (ağ gerekir)
+//   npm run fonts -- --symbols    sembol alt kümesini tam ttf'den keser
+//                                 (ağ + `python3 -m pip install --user fonttools brotli`)
 //   npm run fonts -- --check      üretilmiş dosya güncel mi (çıkış kodu 0/1)
 //   npm run fonts -- --coverage   sitedeki karakterler alt kümelerde var mı
 //
@@ -30,9 +32,11 @@
 // / `aynı` diye bildirir. Beklenmeyen bir `değişti` satırı, sabitlenen sürümün
 // altından dosya değişmiş demektir; commit'lemeden önce bakılır.
 
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { mkdir, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
@@ -88,6 +92,60 @@ const SUBSET_RANGES = {
   greek: 'U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF',
 }
 
+// ---- sembol alt kümesi ----
+//
+// Mühendislik metninin kullandığı ama Google'ın `latin` / `latin-ext` / `greek`
+// alt kümelerinin HİÇBİRİNDE olmayan karakterler. Glif ailenin tam `ttf`sinde
+// duruyor, alt küme dosyasına girmemiş — yani aralığı genişletmek işe yaramaz,
+// kendi alt kümemizi kesmek gerekiyor (`--symbols`, `subset-symbols.py`).
+//
+// Liste elle tutulur, kaynak taramasından türetilmez: bir ekrana yeni bir sembol
+// yazıldığında `woff2` ikilileri kendiliğinden değişmesin. `--coverage` sitede
+// geçip de buraya girmemiş karakteri söyler; gerçekten gerekiyorsa buraya eklenir.
+//
+// Üç ailenin hiçbirinde OLMAYAN karakterler de listede duruyor (⁻ ₐ ₙ ∈ ∝ ∠ ∥ ≪
+// ⌈ ⌉ □ ✗): kesme adımı onları sessizce atar ve CSS'te de görünmezler, ama listede
+// kalmaları "denendi, fontta yok" kaydıdır. Onlar sistem yazı tipinden çizilir.
+const SYMBOLS = [
+  // üst simgeler ve üst eksi
+  0x2070, 0x2074, 0x2075, 0x2076, 0x2077, 0x2078, 0x2079, 0x207B,
+  // alt simgeler
+  0x2080, 0x2081, 0x2082, 0x2083, 0x2084, 0x2085, 0x2090, 0x2099,
+  // oklar
+  0x2190, 0x2192, 0x2194,
+  // matematik
+  0x2202, 0x2208, 0x221A, 0x221D, 0x221E, 0x2220, 0x2225, 0x222B,
+  0x2248, 0x2260, 0x2264, 0x2265, 0x226A,
+  // tavan işareti, çizgi, kare, onay/çarpı
+  0x2308, 0x2309, 0x2500, 0x25A1, 0x2713, 0x2717,
+]
+
+// Kesme kaynakları: `google/fonts` deposundaki tam kapsamlı `ttf`ler, sabit
+// commit. Bunlar depoya GİRMEZ — geçici dizine inip kesildikten sonra silinirler;
+// depoda yalnız çıkan `woff2` durur. IBM Plex Sans yalnız değişken font olarak
+// yayınlandığı için istenen ağırlığa sabitlenir (`instance`).
+const SYMBOL_SOURCES = {
+  'ibm-plex-sans': {
+    repoPath: 'ofl/ibmplexsans/IBMPlexSans[wdth,wght].ttf',
+    instance: (weight) => ({ wght: weight, wdth: 100 }),
+  },
+  'ibm-plex-mono': {
+    perWeight: {
+      400: 'ofl/ibmplexmono/IBMPlexMono-Regular.ttf',
+      500: 'ofl/ibmplexmono/IBMPlexMono-Medium.ttf',
+      600: 'ofl/ibmplexmono/IBMPlexMono-SemiBold.ttf',
+    },
+  },
+  'chakra-petch': {
+    perWeight: {
+      400: 'ofl/chakrapetch/ChakraPetch-Regular.ttf',
+      500: 'ofl/chakrapetch/ChakraPetch-Medium.ttf',
+      600: 'ofl/chakrapetch/ChakraPetch-SemiBold.ttf',
+      700: 'ofl/chakrapetch/ChakraPetch-Bold.ttf',
+    },
+  },
+}
+
 // PDF raporuna gömülen tam kapsamlı `ttf`ler; depoda `assets/report-fonts/`
 // altında dururlar. Site bunları indirmez, api imajı alır (bkz.
 // `api/Dockerfile`), böylece ekran ile belge aynı aileleri gösterir.
@@ -118,6 +176,11 @@ const repoDir = path.resolve(webDir, '..')
 const WOFF2_DIR = path.join(webDir, 'public', 'fonts')
 const TTF_DIR = path.join(repoDir, 'assets', 'report-fonts')
 const CSS_FILE = path.join(webDir, 'src', 'fonts.css')
+// Sembol alt kümesinin ürünü: hangi ailede hangi kod noktası GERÇEKTEN var.
+// `--symbols` yazar, CSS üretimi okur — böylece CSS yazmak ağ ya da Python
+// istemez ve aralık, dosyanın içeriğiyle birebir aynı kalır.
+const SYMBOLS_FILE = path.join(scriptDir, 'font-symbols.json')
+const SUBSET_SCRIPT = path.join(scriptDir, 'subset-symbols.py')
 
 const CDN = (pkg, file) => `https://cdn.jsdelivr.net/npm/@fontsource/${pkg}@${FONTSOURCE_VERSION}/${file}`
 const RAW = (repoPath) => 'https://raw.githubusercontent.com/google/fonts/'
@@ -148,7 +211,7 @@ function wrapRanges(ranges, indent = '  ', width = 100) {
   return lines.join('\n')
 }
 
-function fontFace({ family, pkg, subset, weight }) {
+function fontFace({ family, pkg, subset, weight, ranges }) {
   return [
     '@font-face {',
     `  font-family: '${family}';`,
@@ -157,13 +220,28 @@ function fontFace({ family, pkg, subset, weight }) {
     // `swap`: yazı tipi inerken metin görünmez kalmaz, sistem yüzüyle çizilir.
     '  font-display: swap;',
     `  src: url('/fonts/${woff2Name(pkg, subset, weight)}') format('woff2');`,
-    wrapRanges(SUBSET_RANGES[subset]),
+    wrapRanges(ranges ?? SUBSET_RANGES[subset]),
     '}',
   ].join('\n')
 }
 
+// `--symbols`ün bıraktığı kayıt. Yoksa sembol blokları hiç yazılmaz: uydurma bir
+// aralıkla var olmayan dosyayı çağırmak, düzeltmeye çalıştığımız hatanın kendisi.
+function readSymbols() {
+  if (!existsSync(SYMBOLS_FILE)) return null
+  const parsed = JSON.parse(readFileSync(SYMBOLS_FILE, 'utf8'))
+  return parsed?.families ?? null
+}
+
+const codepointRange = (list) => list
+  .map((cp) => `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`)
+  .join(', ')
+
 function buildCss() {
+  const symbolFamilies = readSymbols()
   const total = FAMILIES.reduce((n, f) => n + f.subsets.length * f.weights.length, 0)
+    + (symbolFamilies ? FAMILIES.filter((f) => symbolFamilies[f.family]?.length)
+      .reduce((n, f) => n + f.weights.length, 0) : 0)
   const header = `/* Yazı tipleri — Faz 3b. BU DOSYA ÜRETİLMİŞTİR, ELLE DÜZENLENMEZ.
  *
  * Üretici: \`web/scripts/build-fonts.mjs\` — \`npm run fonts\`. Aile, ağırlık ve
@@ -190,9 +268,17 @@ function buildCss() {
  * yazı tipinden çizilir. Site fontları dışarıdan çekerken de durum aynıydı,
  * bu bir gerileme değil.
  *
- * Ağırlıklar temaların kullandıklarıdır (400/500/600/700). Alt kümelerin
- * kapsamadığı karakter (→, ≈, √, ✓, alt/üst simgeler) sistem yüzünden çizilir;
- * hangileri olduğunu \`npm run fonts -- --coverage\` sayar.
+ *   symbols    BİZİM kestiğimiz alt küme — oklar, matematik, alt/üst simgeler
+ *
+ * Dördüncüsü Google'da yok: →, ≈, √, ✓ gibi karakterler yayınlanan üç alt kümenin
+ * hiçbirinde değil, glifler yalnız tam \`ttf\`de duruyor. Aralığı genişletmek işe
+ * yaramazdı; alt küme tam \`ttf\`den kesiliyor (\`npm run fonts -- --symbols\`).
+ * Aralık dosyanın İÇİNDEKİ kod noktalarıdır, aile başına ayrı — Chakra Petch'in
+ * charset'i IBM Plex'ten dar.
+ *
+ * Ağırlıklar temaların kullandıklarıdır (400/500/600/700). Hiçbir ailede
+ * bulunmayan karakter (⁻ ₐ ₙ ∈ ∝ ∠ ∥ ≪ ⌈ ⌉ □ ✗) yine sistem yüzünden çizilir;
+ * kalan açığı \`npm run fonts -- --coverage\` sayar.
  *
  * Lisans: SIL Open Font License 1.1 — metinler her iki font dizininde durur
  * (\`public/fonts/OFL-*.txt\`, \`assets/report-fonts/OFL-*.txt\`).
@@ -203,6 +289,12 @@ function buildCss() {
   const blocks = FAMILIES.map(({ family, pkg, subsets, weights }) => {
     const faces = subsets.flatMap((subset) => weights
       .map((weight) => fontFace({ family, pkg, subset, weight })))
+    const symbols = symbolFamilies?.[family] ?? []
+    if (symbols.length > 0) {
+      faces.push(...weights.map((weight) => fontFace({
+        family, pkg, subset: 'symbols', weight, ranges: codepointRange(symbols),
+      })))
+    }
     return `/* --- ${family} --- */\n${faces.join('\n')}`
   })
 
@@ -214,8 +306,10 @@ function buildCss() {
 function missingFiles() {
   const missing = []
   const label = (full) => path.relative(repoDir, full)
-  for (const { pkg, subsets, weights } of FAMILIES) {
-    for (const subset of subsets) {
+  const symbolFamilies = readSymbols()
+  for (const { family, pkg, subsets, weights } of FAMILIES) {
+    const all = symbolFamilies?.[family]?.length ? [...subsets, 'symbols'] : subsets
+    for (const subset of all) {
       for (const weight of weights) {
         const full = path.join(WOFF2_DIR, woff2Name(pkg, subset, weight))
         if (!existsSync(full)) missing.push(label(full))
@@ -338,6 +432,87 @@ async function fetchAll() {
   return true
 }
 
+// ---- sembol alt kümesi kesme ----
+//
+// Ağ burada, font cerrahisi `subset-symbols.py`de: kaynak `ttf`ler geçici dizine
+// iner, kesilir, yalnız çıkan `woff2` depoda kalır. Kaynak `ttf`ler depoya
+// girmez — 1,4 MB'ı ikinci kez taşımanın anlamı yok.
+async function buildSymbols() {
+  const tmpDir = await mkdtemp(path.join(tmpdir(), 'alp-fonts-'))
+  const jobs = []
+
+  console.log(`sembol alt kümesi — google/fonts @ ${GOOGLE_FONTS_REF.slice(0, 10)}`)
+  for (const { family, pkg, weights } of FAMILIES) {
+    const source = SYMBOL_SOURCES[pkg]
+    if (!source) {
+      console.error(`  ${family}: kesme kaynağı tanımlı değil (SYMBOL_SOURCES)`)
+      return false
+    }
+    for (const weight of weights) {
+      const repoPath = source.perWeight?.[weight] ?? source.repoPath
+      if (!repoPath) {
+        console.error(`  ${family} ${weight}: kaynak ttf yok`)
+        return false
+      }
+      const local = path.join(tmpDir, `${pkg}-${weight}-${path.basename(repoPath)}`)
+      if (!existsSync(local)) {
+        // eslint-disable-next-line no-await-in-loop
+        await writeFile(local, await download(RAW(repoPath)))
+      }
+      jobs.push({
+        name: woff2Name(pkg, 'symbols', weight),
+        family,
+        source: local,
+        instance: source.instance ? source.instance(weight) : null,
+      })
+    }
+  }
+
+  let report
+  try {
+    const out = execFileSync('python3', [SUBSET_SCRIPT], {
+      input: JSON.stringify({ outDir: tmpDir, codepoints: SYMBOLS, jobs }),
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'inherit'],
+    })
+    report = JSON.parse(out)
+  } catch (err) {
+    console.error('  kesme başarısız — `python3 -m pip install --user fonttools brotli` gerekir.')
+    console.error(`  ${err.message.split('\n')[0]}`)
+    await rm(tmpDir, { recursive: true, force: true })
+    return false
+  }
+
+  const counts = { yeni: 0, değişti: 0, aynı: 0 }
+  for (const item of report.files) {
+    if (item.skipped) {
+      console.log(`  atlandı  ${item.name} — ailede tek sembol yok`)
+      continue
+    }
+    const buf = readFileSync(path.join(tmpDir, item.name))
+    const state = await writeIfChanged(WOFF2_DIR, item.name, buf)
+    counts[state] += 1
+    if (state !== 'aynı') console.log(`  ${state.padEnd(8)} ${item.name} (${item.bytes} B)`)
+  }
+  await rm(tmpDir, { recursive: true, force: true })
+
+  // Aralık kaydı: aile başına dosyanın İÇİNDEKİ kod noktaları. CSS bunu okur.
+  const families = Object.fromEntries(Object.entries(report.families)
+    .map(([family, list]) => [family, [...list].sort((a, b) => a - b)]))
+  const record = `${JSON.stringify({
+    note: 'ÜRETİLMİŞTİR — build-fonts.mjs --symbols. Aile başına, kesilen woff2 '
+      + 'dosyasının içindeki kod noktaları; fonts.css aralıkları buradan gelir.',
+    families,
+  }, null, 2)}\n`
+  await writeFile(SYMBOLS_FILE, record)
+
+  for (const [family, list] of Object.entries(families)) {
+    console.log(`  ${family}: ${list.length}/${SYMBOLS.length} sembol kesildi`)
+  }
+  console.log(`  ${counts.yeni} yeni, ${counts.değişti} değişti, ${counts.aynı} aynı`)
+  return true
+}
+
 // ---- kapsama raporu ----
 //
 // "Yeni bir alt küme gerekiyor mu?" sorusunun cevabı. Sitedeki metinlerde geçen
@@ -355,6 +530,9 @@ async function sourceFiles(dir, out = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     if (entry.name === 'node_modules' || entry.name === 'dist') continue
     const full = path.join(dir, entry.name)
+    // Üretilen CSS taranmaz: başlığındaki "şu karakterler eksik" notu, taramanın
+    // kendi çıktısıdır — sayılırsa her sembol sonsuza dek listede kalır.
+    if (full === CSS_FILE) continue
     if (entry.isDirectory()) await sourceFiles(full, out)
     else if (/\.(jsx?|css|html)$/.test(entry.name) && !/\.test\.jsx?$/.test(entry.name)) out.push(full)
   }
@@ -363,7 +541,12 @@ async function sourceFiles(dir, out = []) {
 
 async function coverage() {
   const ranges = parseRanges()
-  const covered = (cp) => ranges.some(([from, to]) => cp >= from && cp <= to)
+  const symbolFamilies = readSymbols() ?? {}
+  // Sembol alt kümesinde kod noktası her ailede olmayabilir. "Kapsandı" saymak
+  // için EN AZ BİR ailede bulunması yeter — gövde metni IBM Plex Sans, tablo
+  // Mono, başlık Chakra; hangisinde geçtiğini karakter bazında bilemeyiz.
+  const inSymbols = new Set(Object.values(symbolFamilies).flat())
+  const covered = (cp) => inSymbols.has(cp) || ranges.some(([from, to]) => cp >= from && cp <= to)
   const files = [...await sourceFiles(path.join(webDir, 'src')), path.join(webDir, 'index.html')]
   const found = new Map()
   for (const file of files) {
@@ -376,11 +559,21 @@ async function coverage() {
       found.set(key, where)
     }
   }
+  // Aile başına eksik: sembol listesinde olup o ailenin fontunda bulunmayanlar.
+  // Bunlar o ailede sistem yüzünden çizilir, ötekinde çizilebilir.
+  for (const { family } of FAMILIES) {
+    const list = symbolFamilies[family] ?? []
+    const eksik = SYMBOLS.filter((cp) => !list.includes(cp))
+    if (eksik.length > 0) {
+      console.log(`${family}: ${SYMBOLS.length - eksik.length}/${SYMBOLS.length} sembol fontta var, `
+        + `${eksik.length} yok — ${eksik.map((cp) => String.fromCodePoint(cp)).join(' ')}`)
+    }
+  }
   if (found.size === 0) {
-    console.log('Kapsama: sitedeki her karakter alt kümelerin içinde.')
+    console.log('Kapsama: sitedeki her karakter en az bir ailenin alt kümesinde.')
     return
   }
-  console.log(`Kapsama: ${found.size} karakter alt kümelerin dışında — sistem yazı tipinden çizilir.`)
+  console.log(`\nKapsama: ${found.size} karakter hiçbir alt kümede yok — sistem yazı tipinden çizilir.`)
   for (const [key, where] of [...found.entries()].sort()) {
     const first = [...where][0]
     const rest = where.size > 1 ? ` (+${where.size - 1} dosya)` : ''
@@ -392,15 +585,21 @@ async function coverage() {
 
 async function main() {
   const args = new Set(process.argv.slice(2))
-  const unknown = [...args].filter((a) => !['--fetch', '--check', '--coverage'].includes(a))
+  const bilinen = ['--fetch', '--symbols', '--check', '--coverage']
+  const unknown = [...args].filter((a) => !bilinen.includes(a))
   if (unknown.length > 0) {
     console.error(`Bilinmeyen argüman: ${unknown.join(', ')}`)
-    console.error('Kullanım: node scripts/build-fonts.mjs [--fetch] [--check] [--coverage]')
+    console.error(`Kullanım: node scripts/build-fonts.mjs [${bilinen.join('] [')}]`)
     process.exitCode = 2
     return
   }
 
   if (args.has('--fetch') && !await fetchAll()) {
+    process.exitCode = 1
+    return
+  }
+
+  if (args.has('--symbols') && !await buildSymbols()) {
     process.exitCode = 1
     return
   }
