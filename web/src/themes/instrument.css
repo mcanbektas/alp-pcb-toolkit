@@ -817,9 +817,13 @@ a.row-add { display: inline-block; text-decoration: none; }
    düğme onun içinde olsaydı metinle birlikte yukarı kayıp kaybolurdu. */
 .copy-box { position: relative; }
 /* Metnin ilk satırı simgenin altına girmesin diye sağdan yer ayrılır. */
-.copy-box .summary-box { padding-right: 46px; }
+.copy-box .summary-box { padding-right: 62px; }
 .copy-btn {
-  position: absolute; top: 8px; right: 8px; z-index: 1;
+  /* Sağdan 24px: <pre> kendi içinde kaydığı için dikey kaydırma çubuğu onun sağ
+     kenarında oturuyor ve düğme 8px'te ona biniyordu. 24px, klasik çubuğun en
+     geniş hâlini (17px) de temizler; üstü kapanan çubukta (macOS) yalnız biraz
+     daha içeride durur. */
+  position: absolute; top: 8px; right: 24px; z-index: 1;
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
   color: var(--muted); cursor: pointer;
