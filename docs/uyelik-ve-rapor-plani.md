@@ -1087,3 +1087,66 @@ sunucuda doğrulanmıştı).
 
 Sonuç: örnekleme kuralı **19** dosyadan kalktı, tek kopya `LineChart.jsx`'teki
 `sampleIndices`'te. Ekran ve rapor aynı fonksiyonu çağırıyor.
+
+## 20. Proje detayı artık rapor bölümü taşımıyor
+
+**Tarih:** 2026-07-30 · **Kapsam:** `docs/kod-incelemesi-2026-07-29.md`'nin en ağır P1'i
+(proje detayı %92 gereksiz bayt) ve onu izleyen iki yan sonuç.
+
+### Ölçüm
+
+60 hesaplı bir projede (her hesabın rapor bölümü satır içi şema + grafik SVG'si taşıyor):
+
+| | yanıt |
+|---|---|
+| önce (`reportJson` + `inputsJson` + `resultJson` dahil) | ~906 KB |
+| sonra (yalnız önizleme satırları) | **26,5 KB** · 26 ms |
+
+Düşüş **%97**. Satır içi SVG istemciye artık hiç ulaşmıyor: yanıtta `<svg` geçmiyor,
+`reportJson` alanı yok.
+
+### Sözleşme
+
+- `CalculationDto`'dan `ReportJson` kalktı (**yazma yönünde hâlâ kabul ediliyor**, yalnız
+  yanıtlarda dönmüyor). Proje detayı ayrıca ham `InputsJson`/`ResultJson` da taşımıyor:
+  liste satırı için yeni ve dar bir tip var, `CalculationSummaryDto`.
+- Yeni alanlar: `preview` (etiket/değer/birim/emphasis, vurgulanan başa alınmış, en fazla
+  iki satır, 80 karakterde kırpılmış), `previewMode`, `hasReport`. Sonuncusu şart: bölümün
+  kendisi dönmediği için "rapor bölümü yok" çipi başka türlü bilinemezdi.
+- Türetme `Alp.Api/Projects/ReportPreview.cs`'te ve istemcideki `previewRows`/`previewMode`
+  ile aynı kuralları uyguluyor. O iki saf fonksiyon (ve testleri) silindi — kuralın iki
+  kopyası kalsaydı ekran ile sunucu zamanla ayrışırdı. `restoreForm`/`engineStatus` yerinde.
+- **Yeni uç:** `POST /api/projects/{id}/report/{pdf,xlsx}`. İstemci rapor bölümlerini artık
+  alamadığı için yükü sunucu kuruyor; gövdede yalnız `{title, preparedBy, date}` gidiyor,
+  firma adı kullanıcı kaydından okunuyor. Bölüm toplama kodu `/api/reports/{id}/download`
+  ile ortak (`ProjectPayload`) — iki yol aynı projeden farklı belge üretemez.
+  Mevcut `POST /api/reports/{pdf,xlsx}` sözleşmesi ("yükü istemci kurar") değişmedi; araç
+  ekranı canlı SVG'yi hâlâ o an yakalayıp gönderiyor.
+- `Project.jsx`'teki `useMemo` kalktı: satır başına iki `JSON.parse` yapan iş artık yok.
+
+### Yol boyunca çıkan iki hata
+
+1. **"Hazırlayan" alanı boş kalıyordu.** `user` ilk render'da henüz yüklenmediği için proje
+   sayfası doğrudan açıldığında (ya da F5'lendiğinde) alan boş kalıyor ve PDF'e basınca
+   "Hazırlayan adı boş olamaz" çıkıyordu. `ReportDialog`'da çözülmüş olan tek seferlik
+   doldurma deseni `Project.jsx`'e de uygulandı. Eski bir kusur, bu turda görünür oldu.
+2. **Boyutsuz SVG sunucuyu asıyordu — dayanıklılık açığı.** `viewBox` ve `width`/`height`
+   taşımayan bir SVG çizime verildiğinde QuestPDF/Skia çözüm bulamıyor ve hata fırlatmak
+   yerine dönüyor: istek yanıtsız kalırken süreç %248 CPU ve **7 GB** bellek yiyor (yerel
+   ölçüm; Kestrel "thread pool starvation" uyarısı bastı, konteyner elle kurtarıldı).
+   Kullanıcı kendi rapor bölümünü kaydedebildiği için bu, kimlik doğrulamalı **tek istekle**
+   sunucuyu düşürmeye yeterdi. `PdfReportBuilder.TryRenderSvg` artık çizimden önce
+   `HasIntrinsicSize` kapısından geçiriyor: boyutsuz SVG çizilmez, `onSvgError` ile günlüğe
+   yazılır, rapor notla üretilir. Uygulamanın kendi çizimleri `viewBox` taşıdığı için
+   kaybedilen bir şey yok. Doğrulama: boyutsuz SVG 13 ms/200, önceden asan proje 29 ms/200.
+
+### Doğrulama
+
+- `npm test` 1957 yeşil (6 test silindi: kuralı sunucuya taşınan `previewRows`/`previewMode`),
+  `npm run build` temiz, `dotnet build` 0 uyarı.
+- Canlı yığın: proje raporu 200 + iki ardışık indirmede birebir aynı bayt, eksik alanda 400
+  (`MISSING_FIELDS` + `detail.field`), başkasının/olmayan projede 404, tokensiz 401,
+  bölümsüz projede 409 (`REPORT_NOT_REPRODUCIBLE` + `detail.reason`), tekil hesap ucunda
+  `inputsJson` var / `reportJson` yok.
+- Gerçek tarayıcı: proje ekranı 8/8 (önizleme satırları, "Aç" bağlantısı, iki kez indirme —
+  52801 bayt, fark 0), araç ekranı 10/10.

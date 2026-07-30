@@ -23,11 +23,12 @@ uygulandı ve her biri çalışan yığına / gerçek tarayıcıya karşı doğr
 | `refresh`/`logout` hız sınırı kovası | **Yapıldı** | 40 ardışık refresh 429 almadı (eski 30 limitte alırdı) |
 | `PATCH /api/projects/{id}` over-fetch | **Yapıldı** | PATCH 200, `Count`=5 doğru, `Include` kalktı |
 | `reorder` over-fetch | **Yapıldı** | SQL yalnız `SET SortOrder`; reportJson+inputsJson korundu |
-| `Project.jsx` memoizasyonu | **Yapıldı** | `rows` `useMemo`'ya alındı; tarayıcı 17/17 |
+| `Project.jsx` memoizasyonu | **Yapıldı**, sonra gereksizleşti | `useMemo` 2026-07-30'da kalktı: satır başına iki `JSON.parse` yapan iş artık yok |
 | Sahiplik yardımcıları (10 uç) | **Yapıldı** | `LoadOwnedProject`/`LoadOwnedCalculation`; curl ile own 200 / yok 404 / tokensiz 401 |
 | `lib/statusChip.js` + severity köprüsü | **Yapıldı** | 29 ekran taşındı, bekçi testi; tarayıcıda ok/warn/unknown çipleri doğru |
 | `SaveToProject`/`Project.jsx` ayrıştırma | **Yapıldı** | `useProjectSaver` hook + `CalculationList` bileşeni; tarayıcı 17/17 |
-| Proje detayı over-fetch (reportJson) | **Ertelendi** | rapor turu — indirme o bölümlere muhtaç, birlikte ele alınacak |
+| Proje detayı over-fetch (reportJson) | **Yapıldı** (2026-07-30) | 60 hesapta 906 KB → 26,5 KB (%97); yeni proje raporu ucu — bkz. plan §20 |
+| Boyutsuz SVG dizgiyi asıyor (bu turda çıktı) | **Yapıldı** (2026-07-30) | tek istekle %248 CPU + 7 GB; `HasIntrinsicSize` kapısı, boyutsuz SVG 13 ms/200 |
 | Rapor dosyası saklama politikası | **Yapıldı** (2026-07-30) | dosya yazma kalktı; indirme kayıttan yeniden üretiyor — bkz. plan §19 |
 | PDF `Build` try/catch + exception handler | **Yapıldı** (2026-07-30) | `ReportLayoutException` → 422 `REPORT_TOO_LARGE`; üretim `UseExceptionHandler` |
 | `Results.File` akışa çevirme | **Düştü** (2026-07-30) | diskten okuma yolu tümüyle kalktı; akışa çevrilecek dosya yok |

@@ -141,7 +141,7 @@ istendiğinde `index.html` döner.
 | oturum | `POST /api/auth/{register,login,refresh,logout,forgot-password,reset-password}`, `GET /api/auth/confirm-email`, `GET /api/me` |
 | proje | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` |
 | hesap | `POST /api/projects/{id}/calculations`, `POST /api/projects/{id}/calculations/reorder`, `GET/PATCH/DELETE /api/calculations/{id}` |
-| rapor | `POST /api/reports/{pdf,xlsx}`, `GET /api/reports`, `GET /api/reports/{id}/download` |
+| rapor | `POST /api/reports/{pdf,xlsx}`, `POST /api/projects/{id}/report/{pdf,xlsx}`, `GET /api/reports`, `GET /api/reports/{id}/download` |
 
 Sunucu 29 aracın hiçbirini tanımaz. Tarayıcı biçimlenmiş (zaten metne çevrilmiş) rapor yükünü
 kurar, sunucu yalnızca dizer — yeni araç eklendiğinde backend'de hiçbir şey değişmez.
@@ -158,6 +158,10 @@ Kaynağı olmayan/başkasına ait her kaynak **aynı 404**'ü döndürür; numar
   türetilmiş veridir ve kaynağı kaydedilmiş hesapların rapor bölümleridir. "Tekrar indir"
   bu yüzden bir dosya kopyası değil, kayıttan yeniden üretimdir. `Reports` tablosu kütük
   olarak kalır (kim, ne zaman, hangi biçim, kaç bayt).
+- Araç ekranının raporunda yükü tarayıcı kurar (canlı çizimi o an yakalar); proje raporunda
+  ise sunucu kurar — kaydedilmiş bölümler zaten onda. Proje detayı bu yüzden ham rapor
+  bölümü **göndermez**, yalnızca birkaç satırlık önizleme taşır: 60 hesaplı bir projede
+  yanıt 906 KB yerine 26,5 KB.
 - Kabul edilen sınır: projeye kaydedilmemiş tek seferlik bir rapor geri getirilemez —
   o ekranın verisi hiçbir yerde durmuyor. İndirme ucu bu durumda `REPORT_NOT_REPRODUCIBLE`
   döner, sessizce boş dosya vermez.
