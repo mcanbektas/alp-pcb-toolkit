@@ -12,7 +12,10 @@ export const REPORT_ERR_NO_SECTIONS = 'no-sections'
 
 // `field.js`'teki hata sözleşmesiyle aynı biçim: kod tek başına yetmiyorsa
 // yapısal `detail`, asla kurulmuş cümle.
-export function buildReportPayload({ title, preparedBy, company, date, sections }) {
+// `labels`: belgenin çerçeve metni (`reportText.js` → `reportLabels(lang)`).
+// Yükün parçasıdır çünkü sunucu hiçbir kullanıcı metni tanımaz — dizgici
+// başlıkları da buradan okur, kendi sözlüğünü taşımaz.
+export function buildReportPayload({ title, preparedBy, company, date, sections, labels }) {
   if (!preparedBy || !preparedBy.trim()) {
     return { ok: false, error: REPORT_ERR_MISSING_PREPARED_BY }
   }
@@ -28,6 +31,7 @@ export function buildReportPayload({ title, preparedBy, company, date, sections 
       preparedBy: preparedBy.trim(),
       company: company?.trim() || null,
       date,
+      labels,
       sections: sections.map(normalizeSection),
     },
   }

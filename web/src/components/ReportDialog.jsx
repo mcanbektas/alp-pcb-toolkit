@@ -8,7 +8,11 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
 import { useNotice } from '../hooks/useNotice'
-import { reportText, reportErrorText, reportDateStamp } from '../data/reportText'
+import {
+  reportText, reportLabels, reportErrorText, reportDateStamp, DOC_LANG_NAMES,
+} from '../data/reportText'
+import Segmented from './Segmented'
+import { LANGS } from '../lib/i18n'
 import { buildReportPayload } from '../lib/reportPayload'
 import { serializeSvgElement } from '../lib/svgInline'
 import { downloadBlob } from '../lib/api'
@@ -23,6 +27,11 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
   const { showNotice } = useNotice()
 
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
+
+  // Belge dili — arayüz dilinden AYRI tutulur. Başlangıç değeri arayüz dilidir
+  // (olağan durum), ama kullanıcı değiştirince `useLang()` değişmez: Türkçe
+  // çalışıp İngilizce rapor indirmek istenen bir şey, siteyi çevirmek değil.
+  const [docLang, setDocLang] = useState(lang)
 
   // `user` ilk render'da HENÜZ YOK: oturum sessiz yenilemeyle çözülüyor ve
   // yanıt sonradan geliyor. Başlangıç değeri o yüzden boş kalıyordu —
@@ -68,10 +77,13 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
     setError(null)
 
     const built = buildReportPayload({
-      title: text.reportTitle,
+      title: reportText(docLang).reportTitle,
       preparedBy,
       company: user?.company,
       date: reportDateStamp(),
+      // Belgenin çerçeve metni yükle birlikte gider — sunucu kendi sözlüğünü
+      // taşımaz (bkz. reportText.js'teki reportLabels notu).
+      labels: reportLabels(docLang),
       sections: [withCapturedSvg()],
     })
     if (!built.ok) {
@@ -105,6 +117,22 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
           <input type="text" value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} />
         </span>
       </label>
+
+      {/* Belge dili arayüz dilinden AYRI bir seçimdir: Türkçe çalışıp
+          İngilizce rapor vermek olağan bir istek. `useLang()` bu yüzden
+          değiştirilmez — seçim yalnızca yükü etkiler, siteyi çevirmez. */}
+      <div className="field">
+        <span className="field-label">{text.docLangLabel}</span>
+        <Segmented
+          options={LANGS.map((code) => ({
+            value: code,
+            label: <span lang={code}>{DOC_LANG_NAMES[code]}</span>,
+          }))}
+          value={docLang}
+          onChange={setDocLang}
+        />
+        <span className="field-hint">{text.docLangPartial}</span>
+      </div>
 
       {error && <p className="field-hint danger">{error}</p>}
 

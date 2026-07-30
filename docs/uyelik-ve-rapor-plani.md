@@ -202,6 +202,20 @@ sözlüğünün C#'a kopyalanması gerekirdi — sürdürülemez.
 Bunun yerine **tarayıcı biçimlenmiş rapor yükünü üretir, sunucu yalnızca dizer.** Yeni araç
 eklendiğinde sunucuda tek satır değişmez.
 
+**Ek (30.07.2026) — `labels` alanı.** Kural yazıldığı hâliyle yalnızca *bölümleri* kapsıyordu;
+belgenin çerçevesi (`Özet`, `Hazırlayan`, `Girdiler`, `Sonuçlar`, Excel sayfa adları, dizgi
+başarısızlığında basılan iki cümle) `Alp.Reports` içinde çakılı Türkçeydi. Sonuç: İngilizce
+arayüzde **karışık dilli belge** — bölümler İngilizce, başlıklar Türkçe. Çerçeve metni de yüke
+alındı (`ReportLabels`, karşılığı `web/src/data/reportText.js` → `reportLabels(lang)`), böylece
+sunucuda hiçbir kullanıcı metni kalmadı ve üçüncü bir dil eklendiğinde yine tek satır değişmez.
+Yan sonuç: `GET /api/reports/{id}/download` **POST'a döndü** — kayıttan yeniden üretim de
+etiketlere ihtiyaç duyuyor ve GET gövde taşımıyor.
+
+**Belge dili arayüz dilinden ayrıdır.** Rapor panelinde ayrı bir seçici var (`docLang`); Türkçe
+çalışıp İngilizce rapor indirmek olağan bir istek ve seçim `useLang()`'e dokunmaz. Bugünkü
+sınır: seçim yalnızca çerçeveyi çevirir. Bölümler araç ekranında ekranın dilinde kurulur,
+proje raporunda ise kaydedildikleri dile donmuştur. Panel bunu yazar, sessiz kalmaz.
+
 ```jsonc
 {
   "schemaVersion": 1,

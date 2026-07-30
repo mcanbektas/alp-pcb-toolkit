@@ -14,8 +14,11 @@ import { useNotice } from '../../hooks/useNotice'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { commonText } from '../../data/uiText'
 import {
-  reportText, reportErrorText, reportDateStamp, REPORT_ERR_NOT_REPRODUCIBLE,
+  reportText, reportLabels, reportErrorText, reportDateStamp, REPORT_ERR_NOT_REPRODUCIBLE,
+  DOC_LANG_NAMES,
 } from '../../data/reportText'
+import Segmented from '../../components/Segmented'
+import { LANGS } from '../../lib/i18n'
 import { downloadBlob } from '../../lib/api'
 import { pick } from '../../lib/i18n'
 import { ENGINE_VERSION } from '../../lib/engineVersion'
@@ -98,6 +101,8 @@ export default function Project() {
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
   const [reportBusy, setReportBusy] = useState(null) // null | 'pdf' | 'xlsx'
   const [reportError, setReportError] = useState(null)
+  // Belge dili — arayüz dilinden ayrı, başlangıcı arayüz dili.
+  const [docLang, setDocLang] = useState(lang)
 
   // `user` İLK RENDER'DA HENÜZ YOK: oturum sessiz yenilemeyle çözülüyor ve yanıt
   // sonradan geliyor. Başlangıç değeri o yüzden boş kalıyordu — proje sayfası
@@ -191,9 +196,13 @@ export default function Project() {
     const path = `/api/projects/${encodeURIComponent(id)}/report/${format}`
     const fallback = format === 'pdf' ? 'rapor.pdf' : 'rapor.xlsx'
     const res = await api.postBlob(path, {
-      title: rt.reportTitle,
+      title: reportText(docLang).reportTitle,
       preparedBy: preparedBy.trim(),
       date: reportDateStamp(),
+      // Bölümleri sunucu kendi kaydından toplar ama çerçeve metnini
+      // toplayamaz: sunucuda kullanıcı metni yok. Belgenin başlıkları bu
+      // yüzden künyeyle birlikte gider (bkz. reportText.js → reportLabels).
+      labels: reportLabels(docLang),
     }, fallback)
     setReportBusy(null)
 
@@ -298,6 +307,22 @@ export default function Project() {
             <input type="text" value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} />
           </span>
         </label>
+
+        {/* Belge dili arayüz dilinden AYRI bir seçim — bkz. ReportDialog'daki
+            aynı desen. Proje raporunda seçim şimdilik yalnızca çerçeveyi
+            çevirir: bölümler kayıttan geliyor ve kaydedildikleri dile donmuş. */}
+        <div className="field">
+          <span className="field-label">{rt.docLangLabel}</span>
+          <Segmented
+            options={LANGS.map((code) => ({
+              value: code,
+              label: <span lang={code}>{DOC_LANG_NAMES[code]}</span>,
+            }))}
+            value={docLang}
+            onChange={setDocLang}
+          />
+          <span className="field-hint">{rt.docLangPartial}</span>
+        </div>
 
         {reportError && <p className="field-hint danger">{reportError}</p>}
 
