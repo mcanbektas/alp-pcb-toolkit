@@ -18,6 +18,12 @@
 // Düğme `<label>` içinde durur: tıklanınca odak zaten girdiye gider, bu da
 // istenen davranış. `type="button"` zorunlu — varsayılan `submit` olsaydı göz
 // simgesine basmak formu gönderirdi.
+//
+// Düğme girdinin İÇİNE, sağ kenarına saydam olarak oturur (`.pw-row`). Kendi
+// kutusu olsaydı alan iki parçaya bölünmüş görünürdü. Bindirmenin tek riski
+// uzun parolanın simgenin altına girmesi; bu, girdiye simge genişliği kadar
+// sağ iç boşluk verilerek kapatılır — kural tema dosyalarındaki `.pw-row input`
+// satırındadır ve silinmemeli.
 import { useState } from 'react'
 import { useLang } from '../hooks/useLang'
 import { commonText } from '../data/uiText'
@@ -35,7 +41,7 @@ export default function AuthField({
   return (
     <label className="field">
       <span className="field-label">{label}</span>
-      <span className="field-row">
+      <span className={isPassword ? 'field-row pw-row' : 'field-row'}>
         <input
           type={isPassword && revealed ? 'text' : type}
           value={value}

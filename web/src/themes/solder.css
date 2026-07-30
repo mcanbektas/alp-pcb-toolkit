@@ -507,18 +507,21 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.62); }
 .field-row select { flex: 0 0 auto; }
 .select-only { width: 100%; }
 
-/* Parola görünürlük düğmesi (AuthField). Girdinin kardeşi ve onunla aynı
-   yükseklikte durur — girdinin İÇİNE bindirilmedi, çünkü kutunun içine
-   yerleştirmek uzun parolada metnin simgenin altına girmesi demek olurdu. */
+/* Parola görünürlük düğmesi (AuthField). Girdinin İÇİNDE, sağ kenarında ve
+   SAYDAM durur: kendi kutusu olsaydı alan iki parçaya bölünmüş görünürdü.
+   Bindirmenin tek riski uzun parolanın simgenin altına girmesi — girdiye
+   simge genişliği kadar sağ iç boşluk verilerek kapatılır, o satır silinmemeli. */
+.pw-row { position: relative; }
+.pw-row input { padding-right: 40px; }
 .pw-toggle {
-  flex: 0 0 auto;
+  position: absolute; top: 1px; right: 1px; bottom: 1px;
   display: inline-flex; align-items: center; justify-content: center;
   width: 38px; padding: 0;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
+  background: none; border: none; border-radius: 0 3px 3px 0;
   color: var(--muted); cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease;
 }
-.pw-toggle:hover { color: var(--accent); border-color: var(--accent-dim); }
+.pw-toggle:hover { color: var(--accent); }
 .pw-toggle svg { width: 17px; height: 17px; display: block; }
 .field-hint { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
 .field-hint.danger { color: var(--danger); }
