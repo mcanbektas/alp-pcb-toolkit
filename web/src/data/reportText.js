@@ -33,10 +33,25 @@ export function reportText(lang) {
   }
 }
 
+// Sunucunun rapor uçlarından dönebilen kodlar. Dize sabiti tek yerde durur:
+// hem burada hem uç noktada ayrı ayrı yazılırsa biri değişince eşleşme sessizce
+// kopar ve kullanıcı genel hatayı görür.
+export const REPORT_ERR_TOO_LARGE = 'REPORT_TOO_LARGE'
+
 export function reportErrorText(res, lang) {
   if (!res || res.ok) return null
   const t = (dict) => pick(dict, lang)
 
+  // PDF dizgisi içeriği sayfaya sığdıramadı (çok bölümlü, grafikli proje
+  // raporu). Excel aynı yükü kaldırıyor, bu yüzden mesaj çıkış yolunu da
+  // söyler — "tekrar deneyin" burada yanlış tavsiye olurdu, tekrar denemek
+  // aynı sonucu verir.
+  if (res.error === REPORT_ERR_TOO_LARGE) {
+    return t({
+      tr: 'Rapor bu içerikle tek belgeye sığmadı. Daha az hesapla deneyin ya da Excel indirin.',
+      en: 'The report does not fit into a single document with this content. Try fewer calculations or download Excel.',
+    })
+  }
   if (res.error === API_ERR_NETWORK) {
     return t({
       tr: 'Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.',
