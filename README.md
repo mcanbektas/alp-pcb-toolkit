@@ -39,6 +39,7 @@ npm run fonts       # src/fonts.css'i yeniden üretir (bkz. "Yazı tipleri")
 ```bash
 cd api
 dotnet build Alp.Api.sln
+dotnet test Alp.Api.sln               # xunit — sunucu kuralları, bkz. aşağıdaki not
 dotnet run --project Alp.Api          # http://localhost:5000, uçlar /api altında
 ```
 
@@ -61,6 +62,13 @@ denetiminden kaçar.
 `docs/spec.md` §13'ün altı referans testi (microstrip, via direnci, PDN hedef empedansı,
 junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor eklendiğinde teste
 dönüşür; motor testsiz merge edilmez.
+
+Sunucu tarafında `api/Alp.Api.Tests` (xunit) var ve kapsamı orada da kural bazlıdır: rapor
+önizlemesi süzmesi, boyutsuz SVG kapısı, logo tür tespiti, kalınlık kayıtlarında ad tekliği ve
+50 kayıt sınırı, proje-hesap sahipliği. Uçlar HTTP üzerinden değil, işleyicileri doğrudan
+çağırarak sınanır; veritabanı bellek içi SQLite'tır ve şema modelden kurulur, çünkü `InMemory`
+sağlayıcısı benzersiz dizin zorlamaz. CI ayrı bir adımda koşturur, veritabanı servisi
+gerekmez. Kapsam dışı bırakılanlar ve gerekçeleri: `docs/uyelik-ve-rapor-plani.md` §25.
 
 ### Yazı tipleri
 

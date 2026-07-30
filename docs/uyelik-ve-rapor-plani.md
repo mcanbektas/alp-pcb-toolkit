@@ -1381,3 +1381,73 @@ dört yerde yanlış sonuç verdi. Doğru araç `document.fonts.load(font, text)
 listesini döndürür, boş dizi "bu karakteri hiçbir yüzümüz kapsamıyor" demektir. Bağımsız ikinci
 kanıt olarak beş `→` bizim ailemizle 262 px, sistem yüzüyle 193 px genişlikte çizildi; panel
 ekran görüntüsünde kayıp glif kutusu yok.
+
+## 25. Sunucu testleri — dar kapsam
+
+**Tarih:** 2026-07-30 (gece) · **Sonuç:** `api/` tarafındaki sıfır test 70 oldu. Commit'ler:
+`ccbb18e` (test projesi), `de1ef2c` (testlerin bulduğu kapı hatası).
+
+Kapsam kurallara göre seçildi — yalnız elle doğrulanmış ve elle doğrulanması pahalı olanlar:
+
+| Ne | Kaç test |
+|---|---|
+| `ReportPreview` süzmesi (vurgulanan satır başa, iki satır sınırı, 80 karakterde kırpma, SVG'ye dokunmama) | 11 |
+| Boyutsuz SVG kapısı | 9 + 4 (§25.2) |
+| Logo tür tespiti (sihirli baytlar) | 9 |
+| Kalınlık kayıtları: ad tekliği, 50 sınırı, sahiplik, alan doğrulaması | 25 |
+| Proje ve hesap sahipliği (404 şekli, veri değişmedi kontrolü) | 12 |
+
+Bunların altısı `savedCalculation.test.js`'ten silinen testlerin karşılığı: kural sunucuya
+taşınmıştı, testi taşınmamıştı (§19'un açık bıraktığı iş).
+
+### 25.1 Şekil kararları
+
+- **Uçlar HTTP üzerinden değil, işleyicileri doğrudan çağırarak sınanıyor.** Korunmak istenen
+  şey kuralın kendisi; yönlendirme, kimlik doğrulama ve hız sınırı her turda gerçek tarayıcıyla
+  görülüyor. Test edilen 11 üye `private` → `internal` oldu ve `InternalsVisibleTo` eklendi;
+  dışa açık yüzey yine yalnız rotalar. `WebApplicationFactory` yolu daha çok şey kapsardı ama
+  JWT anahtarı, Postgres bağlantısı ve migration kapatması gerektiriyordu — kural başına düşen
+  kurulum maliyeti buna değmiyor.
+- **Veritabanı bellek içi SQLite, şema modelden kuruluyor** (`EnsureCreated`), yani
+  `(UserId, NameKey)` benzersiz dizini gerçekten var. `InMemory` sağlayıcısı dizin ZORLAMAZ;
+  ad tekliğini onunla sınamak, kuralı sağlayan şeyi atlamak olurdu. Veritabanı adlı ve
+  paylaşımlı önbellekli, her bağlam kendi bağlantısını açıyor — yarış senaryosu ancak böyle
+  kurulabiliyor. CI'da veritabanı servisi gerekmiyor.
+- **Yarış dalı deterministik tetikleniyor:** bir `SaveChangesInterceptor` çakışan satırı ucun
+  kendi kaydetmesinden hemen önce yazıyor. Satırı önceden koymak ucun kendi sorgusunda
+  görünürdü ve sınanan dal hiç çalışmazdı — ilk deneme tam bu yüzden yanlıştı.
+- **SVG kapısı özel yükleme (`private`) yordamına yansımayla değil, gerçek belge üretilerek
+  sınanıyor:** `onSvgError` geri çağrısı dinleniyor. Korunan arıza canlıydı (%248 CPU, 7 GB).
+- CI'ya `dotnet test` adımı eklendi; derlemeden sonra koşuyor.
+
+**Yol boyunca imaj derlemesi kırıldı ve düzeltildi:** `api/Dockerfile` `dotnet restore
+Alp.Api.sln` çağırıyordu ve çözüm artık test projesini de sayıyor — dosyası imaj bağlamına
+kopyalanmadığı için restore patlıyordu. Artık uygulama projesi geri yükleniyor (referansları
+geçişli geliyor), test projesi `.dockerignore`'da: xunit ve SQLite çalışma imajına girmiyor.
+
+### 25.2 Testlerin bulduğu hata — kapıda harf duyarlılığı
+
+SVG bir XML lehçesidir, öznitelik adları HARF DUYARLIDIR: `VIEWBOX` diye bir öznitelik yok.
+`HasIntrinsicSize` ise `viewBox` / `width` / `height` aramasını harf duyarsız yapıyordu. Sonuç:
+istemciden gelen `<svg VIEWBOX="0 0 100 40">` kapıdan geçiyor, çizim katmanı boyutsuz eleman
+görüyor ve BÜTÜN belge düzen hatasına düşüyordu — kullanıcı 422 `REPORT_TOO_LARGE` alıyordu,
+yani sebebi yanlış söyleyen bir hata, ve tek çizim yerine bütün raporu kaybediyordu.
+`schematicSvg` istemciden geldiği için o dize uydurulabilir.
+
+Öznitelik aramaları `Ordinal` oldu. Etiket araması harf duyarsız kaldı — işi etiketi BULMAK,
+geçerliliğine karar vermek değil. Gerçek tarayıcı yakalaması `viewBox` yazdığı için mutlu yol
+değişmedi.
+
+Kapının eklendiği askıda kalma burada olmuyordu: aynı turda eklenen düzen koruması boyutsuz
+elemanı yakalıyor. İki koruma üst üste biniyordu ve dıştaki yanlış hata kodunu veriyordu.
+
+**Doğrulama:** `dotnet build` 0 uyarı, 70/70 test, `npm test` 1957 yeşil, `ipc` taraması temiz,
+api imajı yeniden kuruldu ve sağlıklı. Canlı yığında dört SVG durumu ölçüldü: geçerli `viewBox`
+çizimi basıyor (77 971 B); `VIEWBOX` ve gerçekten boyutsuz SVG artık ikisi de 200 dönüp çizimi
+atlıyor (81 662 B) — `VIEWBOX` eskiden 422 veriyordu — ve ikisi de api günlüğüne "boyut bilgisi
+taşımıyor" satırını bırakıyor. Gerçek tarayıcıda rapor turu 10/10.
+
+**Kapsanmayanlar (bilinçli):** kimlik doğrulama akışı (kayıt, e-posta doğrulaması, parola
+sıfırlama), hız sınırı kovaları, `XlsxReportBuilder`, rota bağlama ve nginx yolları. Bunlar
+gerçek tarayıcı turunda ve canlı yığın denemelerinde görülüyor; teste taşınırlarsa ayrı bir
+karar olur.

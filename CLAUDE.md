@@ -29,6 +29,15 @@ Linter kurulu değil. Test kapsamı bilinçli olarak dar: **saf fonksiyonlar tes
 React bileşeni testi yazılmaz** — arayüz doğrulaması `npm run build` + tarayıcıda elle
 kontrol ile yapılır. Yeni bir test/lint aracı eklemek istersen önce sor.
 
+Sunucu tarafının kendi testleri var (`api/Alp.Api.Tests`, xunit): `dotnet test Alp.Api.sln`.
+Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG kapısı, logo tür
+tespiti, kalınlık kayıtlarında ad tekliği / 50 sınırı, proje-hesap sahipliği. Uçlar HTTP
+üzerinden değil, işleyicileri doğrudan çağırarak sınanır (test edilen üyeler `internal` +
+`InternalsVisibleTo`); veritabanı bellek içi SQLite'tır ve şema modelden kurulur, çünkü
+`InMemory` sağlayıcısı benzersiz dizin ZORLAMAZ. Ayrıntı ve kapsam dışı bırakılanlar:
+`docs/uyelik-ve-rapor-plani.md` §25. **Yeni bir uç yazarken kuralını da test et** — sahiplik,
+sınır ve tür doğrulaması bu üç sınıf zaten oradadır.
+
 Saf sayılan ve bu yüzden test edilen üç yer: `src/lib/`, ekranların `report.js` dosyaları
 ve ekranların `text.js` sözlükleri. Sonuncusu `dfmTextPaths.test.js`'te kaynak dosyaları
 metin olarak okuyup metin yollarını yürüterek denetlenir — bileşen render edilmez.

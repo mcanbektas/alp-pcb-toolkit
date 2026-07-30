@@ -154,4 +154,8 @@ ayrı `CountAsync`'e indirildi.
   kendi kestiğimiz `symbols` alt kümesiyle kapandı. IBM Plex Mono'nun `greek` alt kümesi hâlâ
   yayınlanmıyor (Ω mono'da sistem yüzünden) ve 12 karakter üç ailenin tam `ttf`sinde de yok —
   ikisi de kayıt, iş değil.
-- **1 hâlâ açık:** backend testleri, kullanıcı kararı bekliyor.
+- **1 kapandı** — `api/Alp.Api.Tests`, 70 test; kapsam ve şekil kararları §25'te. Testler
+  yazılırken SVG kapısında harf duyarlılığı hatası bulundu ve düzeltildi (§25.2): istemciden
+  gelen `<svg VIEWBOX=…>` kapıdan geçip bütün raporu 422'ye düşürüyordu.
+
+Böylece bu incelemenin açık listesinde iş kalmadı; 5 kayıt olarak duruyor.
