@@ -1,7 +1,7 @@
 // Kaydedilmiş hesabın geri yüklenmesi — saf katman.
 //
-// Sunucu `InputsJson`/`ResultJson`/`ReportJson` alanlarını opak dize olarak
-// saklar; hangi aracın hangi alanları olduğunu bilmez. Bu yüzden kaydı ekrana
+// Sunucu `InputsJson`/`ResultJson` alanlarını opak dize olarak saklar; hangi
+// aracın hangi alanları olduğunu bilmez. Bu yüzden kaydı ekrana
 // geri koyarken doğrulama tamamen burada yapılır. React, DOM ve ağ bilmez;
 // hata durumunda `{ ok: false, error: <kod> }` döner, cümle kurmaz.
 //
@@ -23,10 +23,9 @@ export const ENGINE_UNKNOWN = 'unknown'
 // yenilendiğinde kaybolmasın diye.
 export const CALC_PARAM = 'hesap'
 
-// Bozuk/şişirilmiş bir kaydın ekranı kilitlemesini engelleyen üst sınırlar.
+// Bozuk/şişirilmiş bir kaydın ekranı kilitlemesini engelleyen üst sınır.
 // Normal bir satır listesi bunun çok altında kalır.
 const MAX_ROWS = 500
-const MAX_PREVIEW_TEXT = 80
 
 function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -139,58 +138,4 @@ export function engineStatus(savedVersion, currentVersion) {
   const current = Number.parseInt(currentVersion, 10)
   if (!Number.isFinite(saved) || !Number.isFinite(current)) return ENGINE_UNKNOWN
   return saved < current ? ENGINE_STALE : ENGINE_CURRENT
-}
-
-function previewText(value) {
-  if (!isPrimitive(value) || value === null) return null
-  const text = String(value).trim()
-  if (text === '') return null
-  return text.length > MAX_PREVIEW_TEXT ? `${text.slice(0, MAX_PREVIEW_TEXT)}…` : text
-}
-
-/**
- * Proje listesindeki hesap satırı için kısa önizleme.
- *
- * GÜVENLİK: `reportJson` satır içi SVG dizesi de taşır (`schematicSvg`,
- * `chart.svg`). Buradan YALNIZCA `results` dizisinin etiket/değer/birim
- * alanları okunur; SVG alanlarına hiç dokunulmaz, dolayısıyla ekrana geri
- * yazılabilecek bir işaretleme bu fonksiyondan çıkmaz.
- *
- * Vurgulanan satır (`emphasis`) başa alınır: bir hesabın baş sonucu odur,
- * kayıt satırında ilk görünmesi gereken de o.
- */
-export function previewRows(reportJson, limit = 2) {
-  if (typeof reportJson !== 'string' || reportJson.trim() === '') return []
-
-  let parsed
-  try {
-    parsed = JSON.parse(reportJson)
-  } catch {
-    return []
-  }
-
-  if (!isPlainObject(parsed) || !Array.isArray(parsed.results)) return []
-
-  const rows = []
-  for (const field of parsed.results) {
-    if (!isPlainObject(field)) continue
-    const label = previewText(field.label)
-    const value = previewText(field.value)
-    if (label === null || value === null) continue
-    rows.push({ label, value, unit: previewText(field.unit), emphasis: field.emphasis === true })
-  }
-
-  const ordered = [...rows.filter((f) => f.emphasis), ...rows.filter((f) => !f.emphasis)]
-  return ordered.slice(0, Math.max(0, limit))
-}
-
-/** Kaydın rapor bölümündeki mod etiketi (ör. "Sentez") — yoksa `null`. */
-export function previewMode(reportJson) {
-  if (typeof reportJson !== 'string' || reportJson.trim() === '') return null
-  try {
-    const parsed = JSON.parse(reportJson)
-    return isPlainObject(parsed) ? previewText(parsed.mode) : null
-  } catch {
-    return null
-  }
 }

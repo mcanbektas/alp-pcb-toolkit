@@ -6,8 +6,9 @@
 // (`onMove`/`onDelete`) prop olarak alır, kendi state'i ya da ağ çağrısı yoktur.
 //
 // GÜVENLİK (Project.jsx'ten taşınan kural): hiçbir satırda ham `reportJson`
-// DOM'a yazılmaz — `rows` içindeki `preview` yalnızca `lib/savedCalculation.js`
-// `previewRows`'un döndürdüğü düz etiket/değer/birim dizeleridir.
+// DOM'a yazılmaz — `rows` içindeki `preview` sunucunun türettiği düz
+// etiket/değer/birim dizeleridir; ham bölüm (ve içindeki satır içi SVG)
+// istemciye hiç gelmez.
 
 import { Link } from 'react-router-dom'
 import { reportDateStamp } from '../../data/reportText'
@@ -36,7 +37,7 @@ export default function CalculationList({ rows, count, pt, calcStatus, onMove, o
                     {' · '}{row.label} {row.value}{row.unit ? ` ${row.unit}` : ''}
                   </span>
                 ))}
-                {!calc.reportJson && <span className="chip"> {pt.noReportTag}</span>}
+                {!calc.hasReport && <span className="chip"> {pt.noReportTag}</span>}
                 {stale && <span className="chip"> {pt.staleTag}</span>}
               </span>
               <span className="report-actions">

@@ -37,6 +37,9 @@ export function reportText(lang) {
 // hem burada hem uç noktada ayrı ayrı yazılırsa biri değişince eşleşme sessizce
 // kopar ve kullanıcı genel hatayı görür.
 export const REPORT_ERR_TOO_LARGE = 'REPORT_TOO_LARGE'
+// Yeniden üretecek kaynak veri yok: rapor bir projeye bağlı değil ya da
+// projede okunabilir rapor bölümü kalmamış.
+export const REPORT_ERR_NOT_REPRODUCIBLE = 'REPORT_NOT_REPRODUCIBLE'
 
 export function reportErrorText(res, lang) {
   if (!res || res.ok) return null

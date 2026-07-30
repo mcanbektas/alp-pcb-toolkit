@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  restoreForm, engineStatus, previewRows, previewMode,
+  restoreForm, engineStatus,
   CALC_ERR_PARSE, CALC_ERR_SHAPE,
   ENGINE_CURRENT, ENGINE_STALE, ENGINE_UNKNOWN,
 } from './savedCalculation'
@@ -125,68 +125,5 @@ describe('engineStatus', () => {
     expect(engineStatus('', '1')).toBe(ENGINE_UNKNOWN)
     expect(engineStatus(undefined, '1')).toBe(ENGINE_UNKNOWN)
     expect(engineStatus('1', 'x')).toBe(ENGINE_UNKNOWN)
-  })
-})
-
-describe('previewRows', () => {
-  const section = JSON.stringify({
-    toolName: 'Yol Genişliği',
-    mode: 'Sentez',
-    schematicSvg: '<svg><script>x</script></svg>',
-    chart: { svg: '<svg/>', table: null },
-    results: [
-      { label: 'Direnç', value: '68.32', unit: 'mΩ' },
-      { label: 'Önerilen genişlik', value: '0.3605', unit: 'mm', emphasis: true },
-      { label: 'Güç kaybı', value: '71.01', unit: 'mW' },
-    ],
-  })
-
-  it('vurgulanan satırı başa alır ve sınıra kadar döner', () => {
-    expect(previewRows(section, 2)).toEqual([
-      { label: 'Önerilen genişlik', value: '0.3605', unit: 'mm', emphasis: true },
-      { label: 'Direnç', value: '68.32', unit: 'mΩ', emphasis: false },
-    ])
-  })
-
-  it('SVG alanlarını hiç okumaz — çıktıda işaretleme bulunmaz', () => {
-    const out = JSON.stringify(previewRows(section, 10))
-    expect(out).not.toContain('<svg')
-    expect(out).not.toContain('script')
-  })
-
-  it('etiketi ya da değeri olmayan satırı atar', () => {
-    const json = JSON.stringify({
-      results: [
-        { label: 'Var', value: '1' },
-        { label: '', value: '2' },
-        { label: 'Değersiz', value: null },
-        { label: 'Nesne', value: { x: 1 } },
-      ],
-    })
-    expect(previewRows(json, 10)).toEqual([{ label: 'Var', value: '1', unit: null, emphasis: false }])
-  })
-
-  it('uzun metni kısaltır', () => {
-    const json = JSON.stringify({ results: [{ label: 'x'.repeat(200), value: '1' }] })
-    const [row] = previewRows(json, 1)
-    expect(row.label).toHaveLength(81) // 80 karakter + kısaltma işareti
-    expect(row.label.endsWith('…')).toBe(true)
-  })
-
-  it('eksik/bozuk rapor bölümünde boş dizi döner', () => {
-    expect(previewRows(null)).toEqual([])
-    expect(previewRows('')).toEqual([])
-    expect(previewRows('{bozuk')).toEqual([])
-    expect(previewRows('{}')).toEqual([])
-    expect(previewRows(JSON.stringify({ results: 'yok' }))).toEqual([])
-  })
-})
-
-describe('previewMode', () => {
-  it('mod etiketini döner, yoksa null', () => {
-    expect(previewMode(JSON.stringify({ mode: 'Analiz' }))).toBe('Analiz')
-    expect(previewMode(JSON.stringify({ mode: null }))).toBe(null)
-    expect(previewMode('{bozuk')).toBe(null)
-    expect(previewMode(null)).toBe(null)
   })
 })

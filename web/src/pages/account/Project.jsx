@@ -1,25 +1,23 @@
 // Proje detayı — ad/açıklama düzenleme, sıralı hesap listesi (silme +
 // yukarı/aşağı taşıma) ve proje raporu indirme.
 //
-// GÜVENLİK: hiçbir hesabın ham `reportJson`'ı (içinde satır içi SVG dizesi
-// taşır) `dangerouslySetInnerHTML` ile DOM'a geri yazılmaz — yalnızca
-// sunucuya PDF/XLSX üretimi için gönderilir. Ekrandaki önizleme yalnızca
-// düz veriden kurulur: araç adı, tarih ve `resultJson`'dan birkaç sayısal
-// alan; SVG dizesi hiçbir zaman JSX'e basılmaz.
+// GÜVENLİK: ham `reportJson` (içinde satır içi SVG dizesi taşır) bu ekrana
+// hiç GELMEZ. Proje detayı yalnızca sunucunun türettiği düz önizleme
+// satırlarını taşır; rapor üretiminde bölümleri de sunucu kendi kaydından
+// toplar. Böylece SVG dizesinin JSX'e basılabileceği bir yol kalmıyor.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
-import { reportText, reportErrorText, reportDateStamp } from '../../data/reportText'
-import { buildReportPayload, REPORT_ERR_MISSING_PREPARED_BY } from '../../lib/reportPayload'
+import {
+  reportText, reportErrorText, reportDateStamp, REPORT_ERR_NOT_REPRODUCIBLE,
+} from '../../data/reportText'
 import { downloadBlob } from '../../lib/api'
 import { pick } from '../../lib/i18n'
 import { ENGINE_VERSION } from '../../lib/engineVersion'
-import {
-  CALC_PARAM, ENGINE_STALE, engineStatus, previewMode, previewRows,
-} from '../../lib/savedCalculation'
+import { CALC_PARAM, ENGINE_STALE, engineStatus } from '../../lib/savedCalculation'
 import { findTool } from '../../data/categories'
 import { getText } from './text'
 import CalculationList from './CalculationList'
@@ -60,26 +58,37 @@ export default function Project() {
 
   const [calcStatus, setCalcStatus] = useState(null)
 
-  // Satır türevleri (ad, önizleme, mod, eski-sürüm, aç bağlantısı) yalnızca
-  // `calcs` veya dil değişince kurulur. Eskiden bunlar render içindeki `.map`'te
-  // hesaplanıyordu; her satır için `reportJson` iki kez `JSON.parse` ediliyordu
-  // (previewRows + previewMode) ve "Hazırlayan" alanına her tuş vuruşu bir
-  // render tetiklediği için bu 2×N ayrıştırma her tuşta tekrarlanıyordu.
-  const rows = useMemo(() => calcs.map((calc) => {
-    const label = toolDisplayName(calc.toolKey, lang)
-    return {
-      calc,
-      label,
-      preview: previewRows(calc.reportJson, 2),
-      mode: previewMode(calc.reportJson),
-      stale: engineStatus(calc.engineVersion, ENGINE_VERSION) === ENGINE_STALE,
-      openHref: toolLinkFor(calc),
-    }
-  }), [calcs, lang])
+  // Satır türevleri artık ayrıştırma içermiyor: önizleme ve mod etiketi
+  // sunucudan hazır geliyor (`calc.preview` / `calc.previewMode`), geriye
+  // yalnızca araç adının diline göre seçilmesi ve bağlantı kurma kalıyor.
+  // Eskiden burada her satır için `reportJson` iki kez `JSON.parse` ediliyordu
+  // ve "Hazırlayan" alanına yazılan her harf bunu tekrarlıyordu; `useMemo` de
+  // o yüzden vardı, artık gerekmiyor.
+  const rows = calcs.map((calc) => ({
+    calc,
+    label: toolDisplayName(calc.toolKey, lang),
+    preview: calc.preview ?? [],
+    mode: calc.previewMode ?? null,
+    stale: engineStatus(calc.engineVersion, ENGINE_VERSION) === ENGINE_STALE,
+    openHref: toolLinkFor(calc),
+  }))
 
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
   const [reportBusy, setReportBusy] = useState(null) // null | 'pdf' | 'xlsx'
   const [reportError, setReportError] = useState(null)
+
+  // `user` İLK RENDER'DA HENÜZ YOK: oturum sessiz yenilemeyle çözülüyor ve yanıt
+  // sonradan geliyor. Başlangıç değeri o yüzden boş kalıyordu — proje sayfası
+  // doğrudan açıldığında (ya da F5'lendiğinde) PDF'e basınca "Hazırlayan adı boş
+  // olamaz" çıkıyordu; SPA içinde gezinerek gelindiğinde ad zaten yüklü olduğu
+  // için sorun görünmüyordu. ReportDialog'daki düzeltmenin aynısı: ad geldiğinde
+  // alan BİR KEZ doldurulur ve kullanıcının yazdığı değer ezilmez.
+  const filledFromUser = useRef(false)
+  useEffect(() => {
+    if (filledFromUser.current || !user?.displayName) return
+    filledFromUser.current = true
+    setPreparedBy((current) => (current === '' ? user.displayName : current))
+  }, [user?.displayName])
 
   useEffect(() => {
     if (!isAuthenticated) return undefined
@@ -159,40 +168,26 @@ export default function Project() {
     }
   }
 
+  // Rapor bölümleri artık istemciye hiç gelmiyor (proje detayı yalnızca
+  // önizleme satırlarını taşır), bu yüzden yükü sunucu kuruyor: gövdede
+  // belgenin künyesi gider, bölümleri sunucu kaydedilmiş hesaplardan toplar.
+  // Firma adını da sunucu kendi kaydından okur.
   async function downloadReport(format) {
     setReportError(null)
 
-    const sections = []
-    for (const calc of calcs) {
-      if (!calc.reportJson) continue
-      try {
-        sections.push(JSON.parse(calc.reportJson))
-      } catch {
-        // Bozuk/eski bir rapor bölümü sessizce atlanır — bir hesabın kaydı
-        // diğerlerinin raporunu engellemez.
-      }
-    }
-    if (sections.length === 0) {
-      setReportError(pt.noSections)
-      return
-    }
-
-    const built = buildReportPayload({
-      title: rt.reportTitle,
-      preparedBy,
-      company: user?.company,
-      date: reportDateStamp(),
-      sections,
-    })
-    if (!built.ok) {
-      setReportError(built.error === REPORT_ERR_MISSING_PREPARED_BY ? rt.missingPreparedBy : pt.noSections)
+    if (!preparedBy.trim()) {
+      setReportError(rt.missingPreparedBy)
       return
     }
 
     setReportBusy(format)
-    const path = `${format === 'pdf' ? '/api/reports/pdf' : '/api/reports/xlsx'}?projectId=${encodeURIComponent(id)}`
+    const path = `/api/projects/${encodeURIComponent(id)}/report/${format}`
     const fallback = format === 'pdf' ? 'rapor.pdf' : 'rapor.xlsx'
-    const res = await api.postBlob(path, built.payload, fallback)
+    const res = await api.postBlob(path, {
+      title: rt.reportTitle,
+      preparedBy: preparedBy.trim(),
+      date: reportDateStamp(),
+    }, fallback)
     setReportBusy(null)
 
     if (res.ok) {
@@ -200,6 +195,10 @@ export default function Project() {
       // ReportDialog ile aynı geri bildirim: proje raporu da ayrı bir indirme
       // yüzeyi, sessiz kalmamalı.
       showNotice(rt.downloaded(res.fileName))
+    } else if (res.error === REPORT_ERR_NOT_REPRODUCIBLE) {
+      // Projede kayıtlı rapor bölümü yok — bu genel bir hata değil, eksik olan
+      // veri; kullanıcıya ne yapması gerektiğini söyleyen kendi metni var.
+      setReportError(pt.noSections)
     } else {
       setReportError(reportErrorText(res, lang))
     }
