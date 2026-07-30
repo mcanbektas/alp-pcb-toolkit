@@ -1150,3 +1150,66 @@ Düşüş **%97**. Satır içi SVG istemciye artık hiç ulaşmıyor: yanıtta `
   `inputsJson` var / `reportJson` yok.
 - Gerçek tarayıcı: proje ekranı 8/8 (önizleme satırları, "Aç" bağlantısı, iki kez indirme —
   52801 bayt, fark 0), araç ekranı 10/10.
+
+## 21. Faz 7 ve atanmamış profil uçları — hesap yüzeyi tamamlandı
+
+**Tarih:** 2026-07-30 · **Kapsam:** §16'dan devreden `PATCH /api/me`, logo yükleme ve
+`/api/thickness-records/*`; ayrıca kalınlık kayıtlarının hesaba taşınması (Faz 7).
+
+### Kalınlık kayıtları — iki kaynak, tek sözleşme
+
+Karar: **girişsizken tarayıcıda, girişliyken hesapta; ilk girişte yerel kayıtlar hesaba bir
+kez kopyalanır.** Böylece CLAUDE.md'nin "oturum açılmamışken bütün araçlar tam çalışır"
+kuralı bozulmuyor ve kullanıcı bugüne kadar biriktirdiklerini kaybetmiyor.
+
+- Yeni uçlar: `GET/POST /api/thickness-records`, `DELETE /api/thickness-records/{id}`.
+  `DataJson` sunucu için opak dizedir — şemayı `web/src/lib/thicknessRecords.js` tanımlar ve
+  doğrular. Sunucu yalnız ada göre tekliği, 50 kayıt sınırını ve sahipliği bilir.
+- Ada göre teklik istemcideki `recordId` ile aynı kuralı izler: Türkçe küçük harfe indirgenmiş
+  ad. "Üst Katman" ile "üst katman" aynı kayıt (üzerine yazar), "Ust katman" ayrı kayıt.
+  Sınır aşıldığında sessizce en eski silinmez, 409 `RECORD_LIMIT` döner.
+- `useSavedThickness` artık kaynağı oturuma göre seçiyor ve **hata sözleşmesini koruyor**:
+  sunucu kodları saf katmanın şekline çevriliyor (`RECORD_LIMIT` → `THICKNESS_ERR_LIMIT`,
+  gerisi `THICKNESS_ERR_STORAGE` + `cause`), böylece ekranın metin dosyası hiç değişmedi.
+  Çağrılar async oldu; `CopperConverter` iki çağrısını `await`'e aldı.
+- Taşıma tek sefer koşar ve hangi hesap için yapıldığı tarayıcıda tutulur
+  (`alp-pcb.thickness.migrated.v1`, kullanıcı kimliği listesi). Hesapta aynı adlı kayıt varsa
+  **hesaptaki korunur** — o, cihazdaki kopyadan daha güncel sayılır. Yerel kopya silinmez.
+
+### Profil ve logo
+
+- `PATCH /api/me`: `displayName` (boşa çekilemez — rapordaki "Hazırlayan" varsayılanı odur,
+  en çok 80 karakter), `company` (en çok 120; boş dize GÖNDERİLİRSE alan temizlenir, alan
+  atlanırsa değişmez — proje güncellemesindeki kuralın aynısı).
+- Logo **veritabanında** durur (`LogoBytes` + `LogoContentType`; `LogoPath` alanı düştü,
+  migration `UserLogoBytes`). Diskte ikinci bir dosya yüzeyi açmamak rapor kararıyla
+  tutarlı: yedek veritabanı yedeğiyle gelir, kullanıcı silinince kaskatla gider.
+- `POST /api/me/logo` multipart alır. Sınır çift katmanlı: gövde limiti 1 MB (zarf), dosya
+  limiti 512 KB. **Tür dosyanın kendisinden okunur** (PNG/JPEG sihirli baytları); `Content-Type`
+  başlığı ve uzantı istemcinin iddiasıdır ve serbestçe uydurulabilir — sahte bir "image/png"
+  400 `UNSUPPORTED_IMAGE` alır, böylece logo alanı rastgele veri deposuna dönüşemez.
+- `GET /api/me/logo` yetkilendirme ister; `<img src>` başlık gönderemediği için ekran görseli
+  token'lı istekle blob olarak çeker. `MeResponse` logonun kendisini değil `hasLogo` bayrağını
+  taşır — her sayfa yüklemesinde yüzlerce KB taşımanın anlamı yok.
+- **Rapor logosu artık kullanıcınındır:** `PdfReportBuilder.Build(payload, logoOverride)`.
+  Logosu olan kullanıcının belgesi kendi logosuyla, olmayanınki varsayılanla çıkar. Logo
+  yükten değil sunucudan gelir — istemcinin gönderdiği görsel doğrulanmamış bayt olurdu.
+
+### Yeni ekran
+
+`/hesabim` (`pages/account/Account.jsx`): profil alanları, logo yükleme/kaldırma ve
+kaydedilmiş kalınlıkların listesi/silinmesi. İki dilli, mevcut panel deseniyle; tek yeni
+görsel kural `.logo-preview` ve **dört tema dosyasına birden** eklendi. Başlıkta "Hesabım"
+bağlantısı var. `useAuth` artık `refreshUser` veriyor: profil değişince başlıktaki ad ve
+rapor formundaki varsayılan da tazeleniyor, ekran kendi kopyasını tutmuyor.
+
+### Doğrulama
+
+- `npm test` 1957 yeşil, `npm run build` temiz, `dotnet build` 0 uyarı, `ipc` taraması temiz.
+- Canlı yığın: profil 200 / boş ad 400 / uzun firma 400 · logo yükle 200, indir 200
+  (`image/png`), sahte PNG 400, 600 KB 400 · kayıt kaydet 200, aynı ad üzerine yazdı (tek
+  satır), ASCII farkı ayrı satır, boş ad 400, sil 204, olmayan 404, tokensiz 401, 51. kayıt
+  409 · logolu ve logosuz PDF farklı bayt (22 504 ↔ 46 368).
+- Gerçek tarayıcı 8/8: girişsiz kayıt tarayıcıda oluştu, giriş sonrası hesaba taşındı, yerel
+  depo silinince de duruyor (yani sunucudan geliyor), firma kaydı yenilemede geri geldi,
+  logo yüklenip önizlendi, kayıt silindi, konsol hatası yok.

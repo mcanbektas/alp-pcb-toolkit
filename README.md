@@ -138,7 +138,9 @@ istendiğinde `index.html` döner.
 
 | grup | uçlar |
 | --- | --- |
-| oturum | `POST /api/auth/{register,login,refresh,logout,forgot-password,reset-password}`, `GET /api/auth/confirm-email`, `GET /api/me` |
+| oturum | `POST /api/auth/{register,login,refresh,logout,forgot-password,reset-password}`, `GET /api/auth/confirm-email` |
+| profil | `GET/PATCH /api/me`, `GET/POST/DELETE /api/me/logo` |
+| kalınlık kaydı | `GET/POST /api/thickness-records`, `DELETE /api/thickness-records/{id}` |
 | proje | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` |
 | hesap | `POST /api/projects/{id}/calculations`, `POST /api/projects/{id}/calculations/reorder`, `GET/PATCH/DELETE /api/calculations/{id}` |
 | rapor | `POST /api/reports/{pdf,xlsx}`, `POST /api/projects/{id}/report/{pdf,xlsx}`, `GET /api/reports`, `GET /api/reports/{id}/download` |
@@ -259,6 +261,12 @@ veri gerektiğinde kullanıcının kendi veri seti kullanılır ve tarayıcıda 
 girmez. Standart tabanlı bir veri yüklü değilken sonuç, standart tabanlı doğrulanmış gibi
 sunulmaz — örneğin `traceCalc.js` klasik ampirik iletken ısınma denklemini kullanır ve sonuç
 panelinde bunun veri tabanlı hesapla eşdeğer olmadığı etiketle belirtilir.
+
+Bakır kalınlığı kayıtları bunun istisnasıdır ve iki kaynaklıdır: **giriş yapılmamışken
+tarayıcıda, giriş yapılmışken hesapta.** İlk girişte tarayıcıdaki kayıtlar hesaba bir kez
+kopyalanır (hesapta aynı adlı kayıt varsa o korunur) ve yerel kopya silinmez — çıkış
+yapıldığında kullanıcı yine kendi listesini görür. Hesap ekranı `/hesabim` bu kayıtları
+listeler ve siler.
 
 Saklama deseni tek yerde tanımlıdır ve bakır kalınlığı kayıtlarında uygulanır:
 
