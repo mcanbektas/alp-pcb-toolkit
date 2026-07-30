@@ -18,10 +18,11 @@
 //     yazar. Aynı hesabı iki kez kaydedince projede iki satır oluşması bu
 //     yüzden bitti; kopya isteyen "Yeni kayıt olarak ekle" ile bağı bilerek
 //     koparır.
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
+import useProjectSaver from '../hooks/useProjectSaver'
 import {
   LINK_ANONYMOUS, LINK_BROKEN, LINK_ERROR, LINK_LOADING, LINK_MISMATCH, LINK_NOT_FOUND, LINK_READY,
 } from '../hooks/useSavedCalculation'
@@ -60,38 +61,23 @@ export default function SaveToProject({
 }) {
   const { lang } = useLang()
   const st = saveToProjectText(lang)
-  const { isAuthenticated, api } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   const boundId = saved?.calculationId ?? null
   const linkNote = linkNoteFor(saved?.status, st)
 
-  const [projects, setProjects] = useState([])
-  const [loadingList, setLoadingList] = useState(true)
+  // Ağ ve liste durumu hook'ta; liste yalnızca giriş yapılmış ve BAĞSIZ ekranda
+  // çekilir (bağlıyken hedef bellidir).
+  const { projects, loadingList, listError, busy, create, update } = useProjectSaver({
+    enabled: isAuthenticated && !boundId,
+  })
+
   const [projectId, setProjectId] = useState('')
   const [newName, setNewName] = useState('')
-  const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState(null) // { level: 'ok' | 'warn', text }
 
-  useEffect(() => {
-    // Bağlıyken proje listesi gerekmiyor: hedef belli, üzerine yazılacak.
-    if (!isAuthenticated || boundId) return undefined
-    let cancelled = false
-    ;(async () => {
-      setLoadingList(true)
-      const res = await api.get('/api/projects')
-      if (cancelled) return
-      if (res.ok) {
-        setProjects(res.data.projects)
-      } else {
-        setFeedback({ level: 'warn', text: st.loadError })
-      }
-      setLoadingList(false)
-    })()
-    return () => { cancelled = true }
-    // `st` her render'da yeni bir nesne — yalnızca giriş durumu/istemci/bağ
-    // değiştiğinde yeniden çekilir, dil değişince değil.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, api, boundId])
+  // Liste çekilemediyse geri bildirimi göster — dile bağlı metin bileşende.
+  const listNote = listError ? { level: 'warn', text: st.loadError } : null
 
   // Sonuç geçersizken kaydedilecek bir şey yok; yalnızca bağ hakkında
   // söylenecek bir şey varsa panel yine de görünür — bozuk bir kayıt
@@ -146,26 +132,11 @@ export default function SaveToProject({
       return
     }
 
-    setBusy(true)
-
-    let targetId = projectId
-    let targetName = projects.find((p) => p.id === projectId)?.name ?? ''
-    if (trimmedName) {
-      const createRes = await api.post('/api/projects', { name: trimmedName })
-      if (!createRes.ok) {
-        setBusy(false)
-        setFeedback({ level: 'warn', text: st.genericError })
-        return
-      }
-      targetId = createRes.data.id
-      targetName = createRes.data.name
-    }
-
-    const res = await api.post(`/api/projects/${targetId}/calculations`, {
-      toolKey,
-      ...calculationBody(),
+    const res = await create({
+      projectId,
+      newName: trimmedName,
+      body: { toolKey, ...calculationBody() },
     })
-    setBusy(false)
 
     if (!res.ok) {
       setFeedback({ level: 'warn', text: st.genericError })
@@ -174,19 +145,18 @@ export default function SaveToProject({
 
     setFeedback({ level: 'ok', text: st.savedNote })
     setNewName('')
-    setProjects((prev) => (
-      prev.some((p) => p.id === targetId) ? prev : [...prev, { id: targetId, name: targetName }]
-    ))
-    setProjectId(targetId)
+    setProjectId(res.projectId)
     // Ekran artık bu kayda bağlı: ikinci "Kaydet" kopya satır açmaz.
-    saved?.bind({ calculationId: res.data.id, projectId: targetId, projectName: targetName })
+    saved?.bind({
+      calculationId: res.calculationId,
+      projectId: res.projectId,
+      projectName: res.projectName,
+    })
   }
 
   async function handleUpdate() {
     setFeedback(null)
-    setBusy(true)
-    const res = await api.patch(`/api/calculations/${boundId}`, calculationBody())
-    setBusy(false)
+    const res = await update({ id: boundId, body: calculationBody() })
     setFeedback(res.ok
       ? { level: 'ok', text: st.updatedNote }
       : { level: 'warn', text: st.genericError })
@@ -228,6 +198,8 @@ export default function SaveToProject({
         </>
       ) : (
         <>
+          {listNote && <p className="field-hint danger">{listNote.text}</p>}
+
           {loadingList ? (
             <p className="empty-note">{st.loadingProjects}</p>
           ) : (

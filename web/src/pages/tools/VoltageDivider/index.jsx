@@ -7,6 +7,7 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import { statusChip, worstLevel, countAtLevel } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
@@ -28,11 +29,6 @@ const V_UNITS = ['V', 'mV']
 const axisRes = (v) => fmtEng(v, '', 3).replace(' ', '')
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
-const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
-
-function worstLevel(findings) {
-  return findings.reduce((acc, fd) => (LEVEL_RANK[fd.level] > LEVEL_RANK[acc] ? fd.level : acc), 'ok')
-}
 
 export default function VoltageDivider() {
   const [mode, setMode] = useState(MODE_ANALYSIS)
@@ -64,11 +60,9 @@ export default function VoltageDivider() {
 
   const status = useMemo(() => {
     if (!r.ok || r.findings.length === 0) return null
-    const worst = worstLevel(r.findings)
-    const count = r.findings.filter((fd) => fd.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
-    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
-    return { cls: 'danger', text: ui.statusDanger(count) }
+    const levels = r.findings.map((fd) => fd.level)
+    const worst = worstLevel(levels)
+    return statusChip(worst, countAtLevel(levels, worst), ui)
   }, [r, ui])
 
   const chartSeries = s ? [{ key: 'vout', name: 'V_out', tone: toneClass(0), points: s.points }] : []

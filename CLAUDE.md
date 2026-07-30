@@ -128,6 +128,12 @@ soyut portu bilir.
      `memoryStorage`, `nullStorage` uygulamaları burada.
    - `thicknessRecords.js` — bakır kalınlığı kayıtları: şema adı, `schemaVersion`, doğrulama,
      liste/kaydet/sil. `localStorage`'ı tanımaz, portu parametre olarak alır.
+   - `statusChip.js` — durum çipinin tek kaynağı. `worstLevel(levels)` en kötü seviyeyi,
+     `statusChip(worst, count, ui)` `{cls, text}` döndürür. **İki tarihsel söz varlığını
+     köprüler**: genel araçlar `'ok'|'warn'|'danger'`, DFM araçları
+     `'ok'|'warning'|'danger'|'unknown'` — `'warn'` ile `'warning'` aynı `warn` sınıfına düşer.
+     29 ekran bu tek eşlemeyi kullanır; `pages/tools/statusChip.guard.test.js` kopya mantığın
+     geri sızmasını engeller.
    - `savedCalculation.js` — projeye kaydedilmiş bir hesabın geri yüklenmesi. `restoreForm`
      kaydı aracın **mevcut** `INITIAL_FORM` şemasına süzer: tanınmayan alan atılır, eksik
      alan başlangıç değerinde kalır. Bir aracın alanları zamanla değiştiği için kayıt ham
@@ -176,6 +182,9 @@ soyut portu bilir.
    Tarayıcı API'si yalnızca bu beşinde görünür.
    `useSavedCalculation` ağ ve URL erişimini bağlar (doğrulama saf katmanda,
    `lib/savedCalculation.js`) — bkz. aşağıdaki "Kaydedilmiş hesap bağı".
+   `useProjectSaver` projeye kaydetmenin ağ/liste durumunu tutar (proje listesi,
+   oluştur/güncelle); `SaveToProject` bileşeni yalnızca form girdisi, geri bildirim metni
+   ve canlı SVG yakalamayı bırakır — sunum ile ağ ayrı katmanda.
 4. **`src/pages/tools/<Ad>/`** — araç ekranı, altı dosya:
    - `index.jsx` — düzen ve state. Hesap yapmaz, metin üretmez; metni `getText(lang)`'ten alır.
    - `model.js` — alan tanımları + `compute()` + `buildSweep()`. Saf, test edilebilir.

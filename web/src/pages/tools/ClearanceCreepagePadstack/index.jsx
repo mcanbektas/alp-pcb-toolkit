@@ -10,6 +10,7 @@ import ProfilePanel, { PROFILE_KIND_DECISION } from '../../../components/Profile
 import DfmChecks from '../../../components/DfmChecks'
 import DfmSummaryBox from '../../../components/DfmSummaryBox'
 import useToolForm from '../../../hooks/useToolForm'
+import { statusChip } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import useDfmProfiles from '../../../hooks/useDfmProfiles'
 import useClearanceProfiles from '../../../hooks/useClearanceProfiles'
@@ -17,7 +18,7 @@ import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
 import { dfmText } from '../../../data/dfmText'
 import { fmt } from '../../../lib/num'
-import { summarizeChecks, STATUS_OK, STATUS_WARNING, STATUS_DANGER, STATUS_UNKNOWN } from '../../../lib/dfmCheck'
+import { summarizeChecks } from '../../../lib/dfmCheck'
 import { buildDfmSummary } from '../../../lib/dfmSummary'
 import { profileKeyOptions } from '../../../lib/clearanceProfile'
 import ClearanceCreepagePadstackSchematic from './schematic'
@@ -112,11 +113,7 @@ export default function ClearanceCreepagePadstack() {
   const status = useMemo(() => {
     if (!r.ok || checks.length === 0) return null
     const worst = summary.worst
-    const count = summary[worst]
-    if (worst === STATUS_OK) return { cls: 'ok', text: ui.statusOk }
-    if (worst === STATUS_WARNING) return { cls: 'warn', text: ui.statusWarn(count) }
-    if (worst === STATUS_DANGER) return { cls: 'danger', text: ui.statusDanger(count) }
-    return { cls: 'unknown', text: ui.statusUnknown(count) }
+    return statusChip(worst, summary[worst], ui)
   }, [r, checks, summary, ui])
 
   const summaryText = useMemo(() => {

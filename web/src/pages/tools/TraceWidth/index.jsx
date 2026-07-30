@@ -7,6 +7,7 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import { statusChip, worstLevel, countAtLevel } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
@@ -26,7 +27,6 @@ const mil = (m) => m / LENGTH.mil
 const axisMm = (v) => fmt(v, 3)
 
 const MARK = { ok: '✓', warn: '!', danger: '×' }
-const LEVEL_RANK = { ok: 0, warn: 1, danger: 2 }
 
 export default function TraceWidth() {
   const [mode, setMode] = useState(MODE_SYNTHESIS)
@@ -57,11 +57,9 @@ export default function TraceWidth() {
   // aralık dışı bir girdi artık "tüm kontroller geçti" diye görünmez.
   const status = useMemo(() => {
     if (!r.ok || notes.length === 0) return null
-    const worst = notes.reduce((acc, n) => (LEVEL_RANK[n.level] > LEVEL_RANK[acc] ? n.level : acc), 'ok')
-    const count = notes.filter((n) => n.level === worst).length
-    if (worst === 'ok') return { cls: 'ok', text: ui.statusOk }
-    if (worst === 'warn') return { cls: 'warn', text: ui.statusWarn(count) }
-    return { cls: 'danger', text: ui.statusDanger(count) }
+    const levels = notes.map((n) => n.level)
+    const worst = worstLevel(levels)
+    return statusChip(worst, countAtLevel(levels, worst), ui)
   }, [r, notes, ui])
 
   const otherLayer = r.ok ? (r.layer === 'external' ? 'internal' : 'external') : 'internal'

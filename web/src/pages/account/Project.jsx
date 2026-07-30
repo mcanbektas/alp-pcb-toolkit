@@ -7,7 +7,7 @@
 // düz veriden kurulur: araç adı, tarih ve `resultJson`'dan birkaç sayısal
 // alan; SVG dizesi hiçbir zaman JSX'e basılmaz.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
@@ -22,6 +22,7 @@ import {
 } from '../../lib/savedCalculation'
 import { findTool } from '../../data/categories'
 import { getText } from './text'
+import CalculationList from './CalculationList'
 
 function toolDisplayName(toolKey, lang) {
   const tool = findTool(toolKey)
@@ -58,6 +59,23 @@ export default function Project() {
   const [metaStatus, setMetaStatus] = useState(null)
 
   const [calcStatus, setCalcStatus] = useState(null)
+
+  // Satır türevleri (ad, önizleme, mod, eski-sürüm, aç bağlantısı) yalnızca
+  // `calcs` veya dil değişince kurulur. Eskiden bunlar render içindeki `.map`'te
+  // hesaplanıyordu; her satır için `reportJson` iki kez `JSON.parse` ediliyordu
+  // (previewRows + previewMode) ve "Hazırlayan" alanına her tuş vuruşu bir
+  // render tetiklediği için bu 2×N ayrıştırma her tuşta tekrarlanıyordu.
+  const rows = useMemo(() => calcs.map((calc) => {
+    const label = toolDisplayName(calc.toolKey, lang)
+    return {
+      calc,
+      label,
+      preview: previewRows(calc.reportJson, 2),
+      mode: previewMode(calc.reportJson),
+      stale: engineStatus(calc.engineVersion, ENGINE_VERSION) === ENGINE_STALE,
+      openHref: toolLinkFor(calc),
+    }
+  }), [calcs, lang])
 
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
   const [reportBusy, setReportBusy] = useState(null) // null | 'pdf' | 'xlsx'
@@ -258,83 +276,14 @@ export default function Project() {
         </button>
       </section>
 
-      <section className="panel">
-        <h2>{pt.calcsHeading}</h2>
-
-        {calcStatus && <p className="field-hint danger">{calcStatus.text}</p>}
-
-        {calcs.length === 0 ? (
-          <p className="empty-note">{pt.calcsEmpty}</p>
-        ) : (
-          <div className="tool-list">
-            {calcs.map((calc, i) => {
-              const label = toolDisplayName(calc.toolKey, lang)
-              // Önizleme rapor bölümünden gelir: satırlar orada zaten
-              // etiketlenmiş ve birimlenmiştir. `resultJson`'ın ham anahtarları
-              // (`wMm 0.3605`) kullanıcıya bir şey anlatmıyordu.
-              const preview = previewRows(calc.reportJson, 2)
-              const mode = previewMode(calc.reportJson)
-              const stale = engineStatus(calc.engineVersion, ENGINE_VERSION) === ENGINE_STALE
-              const openHref = toolLinkFor(calc)
-              return (
-                <div key={calc.id} className="tool-row">
-                  <span className="name">
-                    {label}
-                    {mode && <span className="sub"> · {mode}</span>}
-                    <span className="sub"> — {reportDateStamp(new Date(calc.updatedAt))}</span>
-                    {preview.map((row, ri) => (
-                      // Etiket benzersiz olmak zorunda değil — anahtar sırayla kurulur.
-                      // eslint-disable-next-line react/no-array-index-key
-                      <span key={`${ri}-${row.label}`} className="sub">
-                        {' · '}{row.label} {row.value}{row.unit ? ` ${row.unit}` : ''}
-                      </span>
-                    ))}
-                    {!calc.reportJson && <span className="chip"> {pt.noReportTag}</span>}
-                    {stale && <span className="chip"> {pt.staleTag}</span>}
-                  </span>
-                  <span className="report-actions">
-                    {openHref && (
-                      <Link
-                        className="row-add"
-                        to={openHref}
-                        aria-label={pt.openAria(label)}
-                      >
-                        {pt.openLabel}
-                      </Link>
-                    )}
-                    <button
-                      type="button"
-                      className="row-add"
-                      disabled={i === 0}
-                      onClick={() => move(calc, -1)}
-                      aria-label={pt.moveUpAria(label)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="row-add"
-                      disabled={i === calcs.length - 1}
-                      onClick={() => move(calc, 1)}
-                      aria-label={pt.moveDownAria(label)}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="row-add"
-                      onClick={() => deleteCalc(calc)}
-                      aria-label={pt.deleteAria(label)}
-                    >
-                      {pt.deleteLabel}
-                    </button>
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </section>
+      <CalculationList
+        rows={rows}
+        count={calcs.length}
+        pt={pt}
+        calcStatus={calcStatus}
+        onMove={move}
+        onDelete={deleteCalc}
+      />
 
       <section className="panel">
         <h2>{pt.reportHeading}</h2>

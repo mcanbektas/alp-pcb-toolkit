@@ -11,6 +11,7 @@ import ProfilePanel from '../../../components/ProfilePanel'
 import DfmChecks from '../../../components/DfmChecks'
 import DfmSummaryBox from '../../../components/DfmSummaryBox'
 import useToolForm from '../../../hooks/useToolForm'
+import { statusChip } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import useDfmProfiles from '../../../hooks/useDfmProfiles'
 import useSavedStackups from '../../../hooks/useSavedStackups'
@@ -20,7 +21,7 @@ import { commonText } from '../../../data/uiText'
 import { dfmText } from '../../../data/dfmText'
 import { fmt } from '../../../lib/num'
 import {
-  summarizeChecks, STATUS_OK, STATUS_WARNING, STATUS_DANGER, STATUS_UNKNOWN,
+  summarizeChecks,
 } from '../../../lib/dfmCheck'
 import { buildDfmSummary } from '../../../lib/dfmSummary'
 import {
@@ -104,11 +105,7 @@ export default function StackupPlanner() {
   const status = useMemo(() => {
     if (!r.ok || checks.length === 0) return null
     const worst = summary.worst
-    const count = summary[worst]
-    if (worst === STATUS_OK) return { cls: 'ok', text: ui.statusOk }
-    if (worst === STATUS_WARNING) return { cls: 'warn', text: ui.statusWarn(count) }
-    if (worst === STATUS_DANGER) return { cls: 'danger', text: ui.statusDanger(count) }
-    return { cls: 'unknown', text: ui.statusUnknown(count) }
+    return statusChip(worst, summary[worst], ui)
   }, [r, checks, summary, ui])
 
   // Aktarım yükü: seçili sinyal katmanının empedans parametreleri, kopyalanabilir
