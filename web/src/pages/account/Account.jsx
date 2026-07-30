@@ -13,13 +13,18 @@ import { useNotice } from '../../hooks/useNotice'
 import useSavedThickness from '../../hooks/useSavedThickness'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { commonText } from '../../data/uiText'
+// Parola politikası cümlesi ve Identity hata kodlarının çevirisi giriş/kayıt
+// ekranlarıyla ORTAK: ikinci bir kopya yazılırsa aynı kural iki ekranda
+// farklı cümleyle anlatılır ve biri güncellenip diğeri unutulur.
+import { authText, authErrorText } from '../../data/authText'
 import { getText } from './text'
 
 export default function Account() {
   const { lang } = useLang()
   const at = getText(lang).account
+  const aut = authText(lang)
   const ui = commonText(lang)
-  const { isLoading, isAuthenticated, user, api, refreshUser } = useAuth()
+  const { isLoading, isAuthenticated, user, api, refreshUser, changePassword } = useAuth()
   const { showNotice } = useNotice()
   const saved = useSavedThickness()
 
@@ -27,6 +32,12 @@ export default function Account() {
   const [company, setCompany] = useState('')
   const [profileBusy, setProfileBusy] = useState(false)
   const [profileError, setProfileError] = useState(null)
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newPassword2, setNewPassword2] = useState('')
+  const [passwordBusy, setPasswordBusy] = useState(false)
+  const [passwordError, setPasswordError] = useState(null)
 
   const [recordError, setRecordError] = useState(null)
 
@@ -62,6 +73,43 @@ export default function Account() {
     }
     await refreshUser()
     showNotice(at.profileSaved)
+  }
+
+  async function onChangePassword(e) {
+    e.preventDefault()
+    setPasswordError(null)
+
+    // İki kopyanın eşitliği ve boşluk denetimi İSTEMCİDE yapılır: sunucuya
+    // gitmeye değmeyecek iki hata bunlar ve ikisi de "auth" hız sınırından
+    // bir hak yerdi. Parolanın kendisi (uzunluk, karakter sınıfları) yine
+    // yalnızca sunucuda doğrulanır — kural tek yerde durur.
+    if (!currentPassword || !newPassword || !newPassword2) {
+      setPasswordError(at.passwordMissing)
+      return
+    }
+    if (newPassword !== newPassword2) {
+      setPasswordError(at.passwordMismatch)
+      return
+    }
+    if (newPassword === currentPassword) {
+      setPasswordError(at.passwordSame)
+      return
+    }
+
+    setPasswordBusy(true)
+    const res = await changePassword(currentPassword, newPassword)
+    setPasswordBusy(false)
+
+    if (!res.ok) {
+      setPasswordError(authErrorText(res, lang))
+      return
+    }
+
+    // Alanlar başarıdan sonra temizlenir — parola ekranda asılı kalmaz.
+    setCurrentPassword('')
+    setNewPassword('')
+    setNewPassword2('')
+    showNotice(at.passwordChanged)
   }
 
   async function confirmRemoveRecord() {
@@ -146,6 +194,61 @@ export default function Account() {
           <div className="report-actions">
             <button type="submit" className="row-add" disabled={profileBusy}>
               {profileBusy ? at.saving : at.saveLabel}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="panel">
+        <h2>{at.passwordHeading}</h2>
+        <p className="field-hint">{at.passwordIntro}</p>
+
+        <form onSubmit={onChangePassword}>
+          {/* `autoComplete` değerleri parola yöneticileri için: alanlar aynı
+              formda olduğu için ipucu verilmezse yeni parola mevcut parola
+              olarak kaydediliyor. */}
+          <label className="field">
+            <span className="field-label">{at.currentPasswordLabel}</span>
+            <span className="field-row">
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </span>
+          </label>
+
+          <label className="field">
+            <span className="field-label">{at.newPasswordLabel}</span>
+            <span className="field-row">
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </span>
+            <span className="field-hint">{aut.field.passwordHint}</span>
+          </label>
+
+          <label className="field">
+            <span className="field-label">{at.newPasswordRepeatLabel}</span>
+            <span className="field-row">
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={newPassword2}
+                onChange={(e) => setNewPassword2(e.target.value)}
+              />
+            </span>
+          </label>
+
+          {passwordError && <p className="field-hint danger">{passwordError}</p>}
+
+          <div className="report-actions">
+            <button type="submit" className="row-add" disabled={passwordBusy}>
+              {passwordBusy ? at.passwordSaving : at.passwordSaveLabel}
             </button>
           </div>
         </form>

@@ -45,6 +45,13 @@ function identityCodeText(code, lang) {
       tr: 'Bağlantının süresi dolmuş veya geçersiz.',
       en: 'The link has expired or is invalid.',
     },
+    // Parola değiştirmede mevcut parola yanlış girildiğinde Identity bu kodu
+    // döndürür. Cümle "mevcut parola" der: yeni parolanın politika hatalarıyla
+    // karışırsa kullanıcı yanlış alanı düzeltmeye çalışır.
+    PasswordMismatch: {
+      tr: 'Mevcut parola yanlış.',
+      en: 'The current password is incorrect.',
+    },
   }
   return pick(MAP[code] ?? {
     tr: 'Girilen bilgiler kabul edilmedi.',

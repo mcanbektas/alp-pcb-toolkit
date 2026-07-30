@@ -148,6 +148,29 @@ export function getText(lang) {
       saving: t({ tr: 'Kaydediliyor…', en: 'Saving…' }),
       profileSaved: t({ tr: 'Profil güncellendi.', en: 'Profile updated.' }),
 
+      passwordHeading: t({ tr: 'Parola', en: 'Password' }),
+      passwordIntro: t({
+        tr: 'Parolanı değiştirdiğinde diğer cihazlardaki oturumların kapanır; '
+          + 'bu ekranda oturumun açık kalır.',
+        en: 'Changing your password signs you out on your other devices; this screen stays '
+          + 'signed in.',
+      }),
+      currentPasswordLabel: t({ tr: 'Mevcut parola', en: 'Current password' }),
+      newPasswordLabel: t({ tr: 'Yeni parola', en: 'New password' }),
+      newPasswordRepeatLabel: t({ tr: 'Yeni parola (tekrar)', en: 'New password (again)' }),
+      passwordSaveLabel: t({ tr: 'Parolayı değiştir', en: 'Change password' }),
+      passwordSaving: t({ tr: 'Değiştiriliyor…', en: 'Changing…' }),
+      passwordChanged: t({ tr: 'Parola değiştirildi.', en: 'The password was changed.' }),
+      passwordMissing: t({ tr: 'Bütün alanları doldur.', en: 'Fill in every field.' }),
+      passwordMismatch: t({
+        tr: 'Yeni parolanın iki kopyası aynı değil.',
+        en: 'The two copies of the new password do not match.',
+      }),
+      passwordSame: t({
+        tr: 'Yeni parola mevcut parolayla aynı olamaz.',
+        en: 'The new password cannot be the same as the current one.',
+      }),
+
       recordsHeading: t({ tr: 'Kayıtlı bakır kalınlıkları', en: 'Saved copper thicknesses' }),
       recordsIntro: t({
         tr: 'Bakır Kalınlığı Dönüştürücü ekranında kaydettiklerin. Giriş yaptığında hesabına '

@@ -106,6 +106,16 @@ export function AuthProvider({ children }) {
     api.post('/api/auth/reset-password', { email, token, newPassword }, { auth: false })
   ), [api])
 
+  // Parola değiştirme. Sunucu bu kullanıcının bütün yenileme token'larını
+  // iptal edip BU oturuma yenisini basar — diğer cihazlar düşer, buradaki
+  // sekme ayakta kalır. Dönen erişim token'ı bu yüzden saklanmalı: eskisi
+  // süresi dolunca yenilenemez ve kullanıcı sessizce oturumdan düşerdi.
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    const res = await api.post('/api/me/password', { currentPassword, newPassword })
+    if (res.ok) tokenRef.current = res.data.accessToken
+    return res
+  }, [api])
+
   const confirmEmail = useCallback((userId, token) => {
     const q = `userId=${encodeURIComponent(userId)}&token=${encodeURIComponent(token)}`
     return api.get(`/api/auth/confirm-email?${q}`, { auth: false })
@@ -127,11 +137,13 @@ export function AuthProvider({ children }) {
     logout,
     forgotPassword,
     resetPassword,
+    changePassword,
     confirmEmail,
     // Auth dışı uçlar (rapor, proje) için: token ekleme ve 401'de sessiz
     // yenileme burada zaten çözülmüş durumda, ekran yeniden kurmaz.
     api,
-  }), [status, user, refreshUser, login, register, logout, forgotPassword, resetPassword, confirmEmail, api])
+  }), [status, user, refreshUser, login, register, logout, forgotPassword, resetPassword,
+    changePassword, confirmEmail, api])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
