@@ -1,6 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+// Yazı tipleri temadan bağımsızdır (dört tema da aynı üç aileyi kullanır), bu
+// yüzden tema anahtarından ayrı bir dosyada durur ve ondan ÖNCE yüklenir.
+import './fonts.css'
 import './theme.css'
 
 // Eski HashRouter bağlantıları (#/arac/...) BrowserRouter'a geçişte kırılmasın
