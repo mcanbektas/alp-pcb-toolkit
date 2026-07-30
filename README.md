@@ -1,7 +1,18 @@
 # ALP PCB Toolkit
 
-PCB tasarımı için çevrim içi donanım mühendisliği karar destek araçları. Tüm hesaplar tarayıcıda
-(client-side) çalışır; backend, veritabanı veya API çağrısı yoktur.
+PCB tasarımı için çevrim içi donanım mühendisliği karar destek araçları.
+
+**Hesapların tamamı tarayıcıda çalışır.** Hiçbir hesap sunucuya gitmez ve oturum açılmamışken
+bütün araçlar tam çalışır. Backend yalnızca üyelik, proje/hesap kaydı ve PDF/Excel rapor
+üretimi için vardır.
+
+Depo iki parçadır:
+
+| dizin | ne | yığın |
+| --- | --- | --- |
+| `web/` | arayüz ve bütün hesap motorları | Vite + React 18 + react-router-dom |
+| `api/` | üyelik, proje/hesap kaydı, rapor üretimi | ASP.NET Core 9, Identity + JWT, EF Core, QuestPDF/ClosedXML |
+| `deploy/` | kendi sunucumuza dağıtım yığını | nginx + api + postgres, Docker Compose |
 
 Arayüz iki dillidir — **Türkçe / English** — ve dil başlıktaki düğmeden değiştirilir. Varsayılan
 Türkçedir: araç adlarının ve mühendislik terimlerinin karşılığı önce Türkçe yazıldı, İngilizce
@@ -14,18 +25,37 @@ formdan mı yoksa kaynağı belirsiz bir yaklaşımdan mı geliyor, ekranda yaza
 ## Geliştirme
 
 ```bash
+cd web
 npm install
 npm run dev         # http://localhost:3000  (vite.config.js: port 3000, strictPort)
 npm run build       # dist/
 npm run preview
 
-npm test            # vitest run — yalnızca src/lib/ altındaki saf hesap fonksiyonları
+npm test            # vitest run — saf hesap fonksiyonları + rapor bölümleri + metin bekçileri
 npm run test:watch
 ```
 
-Linter kurulu değildir. Test kapsamı bilinçli olarak dardır: **yalnızca `src/lib/` altındaki
-saf hesap fonksiyonları test edilir, React bileşeni testi yazılmaz.** Arayüz doğrulaması
-`npm run build` + tarayıcıda elle kontrol ile yapılır.
+```bash
+cd api
+dotnet build Alp.Api.sln
+dotnet run --project Alp.Api          # http://localhost:5000, uçlar /api altında
+```
+
+```bash
+cd deploy
+cp .env.example .env                  # en az POSTGRES_PASSWORD ve JWT_KEY doldurulur
+docker compose up -d --build          # http://localhost:8080 (nginx + api + postgres)
+```
+
+Linter kurulu değildir. Test kapsamı bilinçli olarak dardır: **saf fonksiyonlar test edilir,
+React bileşeni testi yazılmaz.** Arayüz doğrulaması `npm run build` + tarayıcıda elle kontrol
+ile yapılır. Saf sayılan üç yer: `src/lib/`, ekranların `report.js` dosyaları ve ekranların
+`text.js` sözlükleri.
+
+Son ikisi bileşen render etmeden denetlenir: `dfmTextPaths.test.js` kaynak dosyaları metin
+olarak okuyup her `text.…` yolunu iki dilde yürütür, `toolKeys.test.js` ise araç anahtarı ↔
+katalog eşleşmesini ve her ekranın kayıt bağını denetler. Bu iki kural build'den ve tip
+denetiminden kaçar.
 
 `docs/spec.md` §13'ün altı referans testi (microstrip, via direnci, PDN hedef empedansı,
 junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor eklendiğinde teste
@@ -44,9 +74,10 @@ kategori sayfası gelir, her araç kendi paketini açıldığında çeker.
 
 **`src/lib/`** — saf hesap fonksiyonları. React, DOM, tarayıcı API'si ve kullanıcıya görünen
 metin bilmez. Hata durumunda `{ error: <kod> }` döner; kodu metne çeviren taraf ekranın
-`text.js` dosyasıdır. Girişler SI birimindedir.
+`text.js` dosyasıdır. Girişler SI birimindedir. Somut bağımlılıklar (tarayıcı depolaması, ağ)
+`hooks/` katmanında bağlanır; `lib/` yalnızca soyut portu bilir.
 
-**`src/pages/tools/<Ad>/`** — her araç ekranı dört dosyadır:
+**`src/pages/tools/<Ad>/`** — her araç ekranı beş dosyadır:
 
 | dosya | sorumluluk |
 | --- | --- |
@@ -54,11 +85,17 @@ metin bilmez. Hata durumunda `{ error: <kod> }` döner; kodu metne çeviren tara
 | `text.js` | ekranın tüm kullanıcı metni, iki dilli. Tek dış yüzü `getText(lang)`. |
 | `schematic.jsx` | devre/geometri SVG'si. Yazılarını `text` prop'undan alır. |
 | `index.jsx` | düzen ve state. Hesap yapmaz, metin üretmez. |
+| `report.js` | raporun o araca ait bölümü. Ekranla **aynı** kaynaktan aynı satırları üretir. |
 
 Ekran düzeni tüm araçlarda aynıdır: `.tool-header` → üç panel (*Girdiler* / *Sonuç* /
 *Teknik detay + Geçerlilik ve varsayımlar*) → parametrik grafik → kategoriye dönen bağlantı.
-Renkler ve fontlar yalnızca `src/theme.css` değişkenlerinden gelir; ekrana özel CSS ve inline
-style yazılmaz.
+Renkler ve fontlar yalnızca tema değişkenlerinden gelir (`src/themes/*.css`); ekrana özel CSS
+ve inline style yazılmaz.
+
+Grafiğin altındaki veri tablosu seyreltilerek gösterilir ve **örnekleme kuralı tek yerdedir**:
+`LineChart.jsx` içindeki `sampleIndices(length, every)`. Ekran da rapor da onu çağırır —
+kuralın ikinci bir kopyası yazıldığında rapor tablosu ekrandakinden sessizce ayrışıyordu
+(eğrinin sağ ucundaki asimptot satırı düşüyordu).
 
 ### Dil katmanı
 
@@ -79,21 +116,58 @@ dışarıdan alır, ekran da `text.fieldLabels`'ı geçirir. Böylece hesap katm
 Çevrilmeyenler: kod yorumları, değişken/dosya adları, birim sembolleri, E serisi adları ve
 kullanıcının kendi girdiği veri. Sayı biçimi de dile göre değişmez — ondalık ayırıcı gösterimde
 her zaman noktadır, çünkü çıktı kopyalanıp başka araca yapıştırılır. (Girişte hem nokta hem
-virgül kabul edilir.)
+virgül kabul edilir.) Yüzde işareti bu kuralın dışındadır: Türkçe `%5`, İngilizce `5%` yazar ve
+kalıp yalnızca `commonText(lang).pct` içindedir.
 
 Sayı akışı: form state **string** tutar, ayrıştırma yalnızca `compute()` içinde `lib/fields.js`
-üzerinden yapılır (ondalık için hem nokta hem virgül geçerlidir; belirsiz binlik ayırıcı
-sessizce yorumlanmaz, açık hata döner). **Ara değerlerde yuvarlama yapılmaz** — `fmt*` yalnızca
-JSX içinde çağrılır.
+üzerinden yapılır (belirsiz binlik ayırıcı sessizce yorumlanmaz, açık hata döner).
+**Ara değerlerde yuvarlama yapılmaz** — `fmt*` yalnızca JSX içinde çağrılır.
 
 Ayrıntılı kurallar ve bilinen sapmalar: [`CLAUDE.md`](CLAUDE.md). Formüllerin kaynağı:
 [`docs/spec.md`](docs/spec.md).
 
+### Backend (`api/`)
+
+Dört proje: `Alp.Api` (uçlar), `Alp.Data` (EF Core bağlamı + migration), `Alp.Domain`
+(varlıklar), `Alp.Reports` (PDF/Excel dizgisi). Repository/service katmanı **yoktur** ve bu
+bilinçli bir karardır — bu ölçekte eklemek gereksiz dolaylılık olurdu.
+
+Bütün uçlar `/api` önekiyle çalışır (sağlık uçları dahil: `/api/health`, `/api/health/ready`),
+çünkü nginx yalnızca `/api/` konumunu vekile geçirir; önek dışına yazılan bir uç dışarıdan
+istendiğinde `index.html` döner.
+
+| grup | uçlar |
+| --- | --- |
+| oturum | `POST /api/auth/{register,login,refresh,logout,forgot-password,reset-password}`, `GET /api/auth/confirm-email`, `GET /api/me` |
+| proje | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/{id}` |
+| hesap | `POST /api/projects/{id}/calculations`, `POST /api/projects/{id}/calculations/reorder`, `GET/PATCH/DELETE /api/calculations/{id}` |
+| rapor | `POST /api/reports/{pdf,xlsx}`, `GET /api/reports`, `GET /api/reports/{id}/download` |
+
+Sunucu 29 aracın hiçbirini tanımaz. Tarayıcı biçimlenmiş (zaten metne çevrilmiş) rapor yükünü
+kurar, sunucu yalnızca dizer — yeni araç eklendiğinde backend'de hiçbir şey değişmez.
+
+Kaynağı olmayan/başkasına ait her kaynak **aynı 404**'ü döndürür; numaralandırmaya kapalıdır.
+
+### Üyelik, proje kaydı ve rapor
+
+- Araçlar girişsiz tam çalışır. Giriş yalnızca kaydetmek ve rapor almak için gerekir.
+  E-posta doğrulaması zorunludur.
+- Bir hesap projeye kaydedilir; kayıt `?hesap=<id>` bağıyla ekrana geri yüklenir. Bağlıyken
+  "Kaydet" yerine "Kaydı güncelle" çıkar, böylece kopya kayıt oluşmaz.
+- Rapor PDF veya Excel olarak indirilir. **Üretilen belge sunucuda saklanmaz:** rapor
+  türetilmiş veridir ve kaynağı kaydedilmiş hesapların rapor bölümleridir. "Tekrar indir"
+  bu yüzden bir dosya kopyası değil, kayıttan yeniden üretimdir. `Reports` tablosu kütük
+  olarak kalır (kim, ne zaman, hangi biçim, kaç bayt).
+- Kabul edilen sınır: projeye kaydedilmemiş tek seferlik bir rapor geri getirilemez —
+  o ekranın verisi hiçbir yerde durmuyor. İndirme ucu bu durumda `REPORT_NOT_REPRODUCIBLE`
+  döner, sessizce boş dosya vermez.
+- Karar ve gerekçeler: [`docs/uyelik-ve-rapor-plani.md`](docs/uyelik-ve-rapor-plani.md) §19.
+
 ## Araçlar
 
-7 kategori, 29 ekran — 25'i aktif, 4'ü planlanmış. `src/data/categories.js` tek kaynaktır:
-`path` alanı olan araç aktif, olmayan "yakında" olarak gösterilir. Adların iki dildeki
-karşılığı da orada durur; tablolardaki adlar o dosyayla birebir aynıdır.
+8 kategori, **29 ekran, hepsi yayında**. `src/data/categories.js` tek kaynaktır: `path` alanı
+olan araç aktif, olmayan "yakında" olarak gösterilir. Adların iki dildeki karşılığı da orada
+durur; tablolardaki adlar o dosyayla birebir aynıdır.
 
 ### PCB Akım, Güç ve Bakır · PCB Current, Power and Copper
 
@@ -144,7 +218,20 @@ karşılığı da orada durur; tablolardaki adlar o dosyayla birebir aynıdır.
 | LED, Ohm Kanunu ve RLC | LED, Ohm's Law & RLC | `/arac/led-ohm-rlc` |
 | RC/RL Zaman Sabiti ve Kristal | RC/RL Time Constant & Crystal | `/arac/rc-kristal` |
 
-### PCB Üretim, DFM ve Dönüşümler · PCB Manufacturing, DFM and Conversions
+### PCB Üretim ve DFM · PCB Manufacturing and DFM
+
+| ekran | screen | yol |
+| --- | --- | --- |
+| Clearance, Creepage ve Padstack | Clearance, Creepage & Padstack | `/arac/clearance-creepage-padstack` |
+| BGA Breakout | BGA Breakout | `/arac/bga-breakout` |
+| Stack-Up Planlayıcı | Stack-Up Planner | `/arac/stack-up-planlayici` |
+| Thermal Relief | Thermal Relief | `/arac/thermal-relief` |
+
+Bu dört ekran ortak bir üretici yetenek profili ve ortak bir kontrol sözleşmesi paylaşır
+(`lib/dfmProfile.js`, `lib/dfmCheck.js`, `lib/dfmSummary.js`). Girilmeyen sınır `null` kalır
+ve ona bağlı kontrol `unknown` döner — **sessiz varsayılan üretici değeri yoktur.**
+
+### Dönüştürücüler · Converters
 
 | ekran | screen | yol |
 | --- | --- | --- |
@@ -155,17 +242,19 @@ karşılığı da orada durur; tablolardaki adlar o dosyayla birebir aynıdır.
 | Sıcaklık Dönüştürücü | Temperature Converter | `/arac/sicaklik-donusturucu` |
 | Kompleks Sayı Dönüştürücü | Complex Number Converter | `/arac/kompleks-sayi` |
 
-Dönüştürücülerin kaynağı `docs/spec.md` §11; bakır kalınlığı dönüştürücüsü §4.3'tedir ve
-*PCB Akım, Güç ve Bakır* kategorisinde durur.
-
-Dördü planlandı, henüz yayında değil: Clearance, Creepage ve Padstack · BGA Breakout ·
-Stack-Up Planlayıcı · Thermal Relief.
+Dönüştürücüler ayrı bir kategoridir ve *PCB Üretim ve DFM* ile karıştırılmamalı: `docs/spec.md`
+§11'in altı dönüşümü tanım gereği tam bağıntılardır (ampirik katsayı, eğri uydurma ya da tablo
+içermezler). Bakır kalınlığı dönüştürücüsü ise adına rağmen buraya ait değildir — kaplama payı
+ve aşındırma faktörü gibi üretim parametrelerini hesapladığı için *PCB Akım, Güç ve Bakır*
+kategorisinde durur (§4.3).
 
 ## Tarayıcıda saklama
 
 Lisanslı standart tabloları, karar tabloları ve eğri verisi **repoya kopyalanmaz**. Böyle bir
 veri gerektiğinde kullanıcının kendi veri seti kullanılır ve tarayıcıda tutulur; repoya hiç
-girmez. Bugün böyle bir içe aktarma ekranı yoktur — gerektiğinde eklenecektir.
+girmez. Standart tabanlı bir veri yüklü değilken sonuç, standart tabanlı doğrulanmış gibi
+sunulmaz — örneğin `traceCalc.js` klasik ampirik iletken ısınma denklemini kullanır ve sonuç
+panelinde bunun veri tabanlı hesapla eşdeğer olmadığı etiketle belirtilir.
 
 Saklama deseni tek yerde tanımlıdır ve bakır kalınlığı kayıtlarında uygulanır:
 
@@ -175,37 +264,50 @@ Saklama deseni tek yerde tanımlıdır ve bakır kalınlığı kayıtlarında uy
 | saf depo | `src/lib/thicknessRecords.js` | şema adı, `schemaVersion`, doğrulama, liste/kaydet/sil — portu parametre alır |
 | bağ | `src/hooks/useSavedThickness.js` | somut portu bağlar, React durumunu yönetir |
 
-Ekran ne `localStorage`'ı ne `JSON.parse`'ı görür. Kayıt zarfında `schemaVersion` vardır; format
+Aynı deseni DFM profilleri, clearance tabloları ve kaydedilmiş stack-up'lar da izler. Ekran ne
+`localStorage`'ı ne `JSON.parse`'ı görür. Kayıt zarfında `schemaVersion` vardır; format
 değişirse eski kayıt sessizce yanlış okunmaz, açık hata döner. Depolamaya erişilemediğinde
 (gizli sekme, kapalı site verisi) port `nullStorage`'a düşer ve hesap çalışmaya devam eder.
-
-Standart tabanlı bir veri yüklü değilken sonuç, standart tabanlı doğrulanmış gibi sunulmaz. Örneğin
-`traceCalc.js` şu an klasik ampirik iletken ısınma denklemini kullanır ve sonuç panelinde bunun
-veri tabanlı hesapla eşdeğer olmadığı etiketle belirtilir.
 
 ## Yeni araç ekleme
 
 1. Hesap motorunu `src/lib/<konu>.js` olarak yaz — kod döner, metin döndürmez.
-2. `src/pages/tools/<Ad>/` klasörünü dört dosyayla kur. `text.js` doğduğu anda iki dillidir;
-   tek dille yazılıp sonra çevrilmez.
+2. `src/pages/tools/<Ad>/` klasörünü kur (`model.js`, `text.js`, `schematic.jsx`, `index.jsx`).
+   `text.js` doğduğu anda iki dillidir; tek dille yazılıp sonra çevrilmez.
 3. `src/App.jsx` içine `const Ad = lazy(() => import('./pages/tools/Ad'))` ve
    `<Route path="/arac/<slug>" element={<Ad />} />` ekle.
 4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver; `name` alanı
    `{ tr, en }` sözlüğüdür ve ekranın `h1` başlığıyla birebir aynı kalır.
 5. `docs/spec.md` §13'te karşılığı varsa testi aynı commit'te yaz.
+6. `report.js` + `report.test.js` yaz, ekrana `<ReportDialog>` ve `<SaveToProject>` ekle.
+   `SaveToProject`'in `toolKey`'i 4. adımdaki `id` ile **birebir aynı** olmalı; kaydı geri
+   yükleyebilmek için `useSavedCalculation` de bağlanır.
 
 Referans ekran: `src/pages/tools/VoltageDivider/`. Formüller için önce `docs/spec.md`'nin ilgili
 bölümünü oku; denklemleri, sabitleri veya geçerlilik sınırlarını hafızadan uydurma. Spec ile
 mevcut kod çelişirse dur ve sor.
 
-## GitHub Pages'e yayınlama
+## Dağıtım
 
-1. GitHub'da repo oluşturup projeyi push edin (`main` branch).
-2. Repo → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. `main`'e yapılan her push `.github/workflows/deploy.yml` ile otomatik build alıp yayınlar.
+**Dağıtım kendi sunucumuza yapılır, GitHub Pages'e değil.** Uygulama kökten (`/`) servis
+edilir: `vite.config.js` içinde `base: '/'`, `App.jsx` içinde `BrowserRouter`.
 
-`vite.config.js` içindeki `base: './'` ve `HashRouter` kombinasyonu repo adından bağımsız
-çalışmayı sağlar; ikisi de değiştirilmemelidir.
+`BrowserRouter` derin bağlantıda sunucudan SPA geri dönüşü ister; karşılığı
+`deploy/nginx.conf` içindeki `try_files $uri $uri/ /index.html` satırıdır. Düşerse site ilk
+açılışta çalışır, **sayfa yenilendiğinde 404 verir** — her dağıtımda ilk kontrol budur.
+
+Yığın, ayrıntılar ve sunucu runbook'u: [`deploy/README.md`](deploy/README.md).
+
+- `deploy/docker-compose.yml` imajları yerelde derler; `deploy/docker-compose.prod.yml` onun
+  üstüne binip `ghcr.io`'daki hazır imajları kullanır, TLS ve certbot ekler.
+- Sırlar `deploy/.env`'dedir ve depoya girmez. Şablon `.env.example`.
+- `.github/workflows/ci.yml` her dalda test/derleme koşar; `deploy.yml` yalnızca `main`'de
+  imaj derleyip `ghcr.io`'ya iter. **Sunucuya bağlanan adım bilerek yoktur** — sunucu henüz
+  yok, kullanılmayan bir SSH sırrı depoda durmaz.
+- Şema açılışta uygulanır (`Database__MigrateOnStartup`); konteynerde `dotnet ef` yoktur.
+  Ayar tek kopyalı dağıtım içindir.
+- SMTP verilmezse postalar yalnızca günlüğe yazılır. **Üretimde bu bir arızadır:** e-posta
+  doğrulaması zorunlu olduğu için doğrulama postası gitmezse hiçbir kullanıcı giriş yapamaz.
 
 ## Notlar
 
@@ -214,3 +316,5 @@ mevcut kod çelişirse dur ve sor.
 - Ara hesaplarda yuvarlama yapılmaz; yalnızca gösterimde uygulanır.
 - Kapalı form empedans sonuçları üretime hazır gibi sunulmaz; alan çözücü fazına kadar
   "hızlı denklem modu" etiketiyle ve geçerlilik sınırlarıyla birlikte gösterilir.
+- Ters hesaplarda Newton–Raphson tek başına kullanılmaz; `lib/solve.js` içindeki `solveBounded`
+  (Brent, tökezlerse bisection) kullanılır ve arama aralığı fiziksel sınırlara kapatılır.

@@ -28,12 +28,14 @@ uygulandı ve her biri çalışan yığına / gerçek tarayıcıya karşı doğr
 | `lib/statusChip.js` + severity köprüsü | **Yapıldı** | 29 ekran taşındı, bekçi testi; tarayıcıda ok/warn/unknown çipleri doğru |
 | `SaveToProject`/`Project.jsx` ayrıştırma | **Yapıldı** | `useProjectSaver` hook + `CalculationList` bileşeni; tarayıcı 17/17 |
 | Proje detayı over-fetch (reportJson) | **Ertelendi** | rapor turu — indirme o bölümlere muhtaç, birlikte ele alınacak |
-| Rapor dosyası saklama politikası | **Ertelendi** | rapor turu |
-| PDF `Build` try/catch + exception handler | **Ertelendi** | rapor turu |
-| `Results.File` akışa çevirme | **Ertelendi** | rapor turu |
+| Rapor dosyası saklama politikası | **Yapıldı** (2026-07-30) | dosya yazma kalktı; indirme kayıttan yeniden üretiyor — bkz. plan §19 |
+| PDF `Build` try/catch + exception handler | **Yapıldı** (2026-07-30) | `ReportLayoutException` → 422 `REPORT_TOO_LARGE`; üretim `UseExceptionHandler` |
+| `Results.File` akışa çevirme | **Düştü** (2026-07-30) | diskten okuma yolu tümüyle kalktı; akışa çevrilecek dosya yok |
+| Grafik son satırı (§17'den devreden) | **Yapıldı** (2026-07-30) | 19 dosya `sampleIndices`'e taşındı, 6 gerçek ayrışmaya regresyon testi |
 
-Test sayısı 1887 → **1953** (statusChip 7 + guard + roundtrip vb.). `npm run build` temiz,
-`dotnet build` 0 uyarı. Aşağıdaki maddelerin ayrıntısı olduğu gibi bırakıldı (tarih kaydı).
+Test sayısı 1887 → **1953** → **1963** (statusChip 7 + guard + roundtrip, sonra 7 grafik
+son-satır regresyonu + 3 rapor hata metni). `npm run build` temiz, `dotnet build` 0 uyarı.
+Aşağıdaki maddelerin ayrıntısı olduğu gibi bırakıldı (tarih kaydı).
 
 **Not — `refresh` düzeltmesinde yöntem değişti:** aşağıdaki öneri çerez-özeti anahtarıydı;
 daha derin bakınca kusurlu çıktı (token her yenilemede rotate ettiği için meşru oturum hiç

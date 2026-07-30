@@ -1010,3 +1010,80 @@ kalıcı olan taraf odur.
 Ekranın bağlı olduğu kayıt silinirse ekran bunu ancak bir sonraki yüklemede fark eder
 (güncelleme 404 döner ve genel hata mesajı görünür) — özel bir mesaj yazılmadı.
 Faz 3b (fontlar), Faz 7, Faz 8'in sunucu adımı ve Faz 9 hâlâ açık.
+
+## 19. Rapor turu — saklama kararı, PDF koruması, grafik örneklemesi
+
+**Tarih:** 2026-07-30 · **Kapsam:** `docs/kod-incelemesi-2026-07-29.md`'de "rapor turu" diye
+ertelenen dört madde + §17'nin açık bıraktığı grafik-son-satır temizliği.
+
+### Karar — üretilen rapor dosyası saklanmaz
+
+Kullanıcı kararı: **belge diske yazılmaz, ama kullanıcı istediği zaman tekrar
+indirebilmelidir.** İkisi çelişmiyor çünkü rapor türetilmiş veridir: kaynağı kaydedilmiş
+hesapların `ReportJson` bölümleridir ve onlar veritabanında zaten duruyor.
+
+- `Persist` → `LogReport`: dosya yazma kalktı, `Reports` tablosu **kütük** olarak kalıyor
+  (kim, ne zaman, hangi biçim, kaç bayt). `Report.FilePath` alanı silindi
+  (`20260730055157_DropReportFilePath`).
+- `GET /api/reports/{id}/download` artık diskten okumuyor, **yeniden üretiyor**: projenin
+  hesaplarını `SortOrder`'a göre okur, her `ReportJson`'ı `ReportSection` olarak ayrıştırır
+  (bozuk bölüm sessizce atlanır — istemcideki `Project.jsx` ile aynı kural), belgeyi kaydın
+  biçiminde (PDF/Excel) yeniden basar. Uç `reports` hız sınırı kovasına alındı: artık CPU
+  harcıyor.
+- Belgenin **tarihi ilk üretim günüdür** (`GeneratedAt`), yeniden basma günü değil.
+- Yeniden üretilemeyen iki durum aynı koda düşer, ikisi de 409 +
+  `REPORT_NOT_REPRODUCIBLE` (yapısal `detail.reason`): projeye kaydedilmemiş tek seferlik
+  rapor (`no-project` — proje silinmişse FK `SetNull` yüzünden buraya düşer) ve projede
+  hiç okunabilir bölüm kalmaması (`no-sections`). 404 **değil**: kayıt duruyor, eksik olan
+  kaynak veri.
+- Bunun kabul edilen sınırı: **kaydetmeden alınan rapor geri getirilemez.** O ekranın verisi
+  hiçbir yerde durmuyor.
+- `Storage:ReportsPath` ayarı, `StorageOptions` sınıfı ve compose'daki
+  `Storage__ReportsPath` satırı kalktı. `deploy/docker-compose.yml`'deki `reports` volume'u
+  **adı tarihsel kalmak üzere korundu**: artık yalnızca `/app/App_Data/keys` altındaki Data
+  Protection anahtarlarını taşıyor ve yeniden adlandırmak boş bir volume demek olurdu — o an
+  postası yolda olan doğrulama bağlantıları geçersizleşirdi.
+
+Bu karar aynı zamanda "Rapor indirme dosyayı tamamen belleğe alıyor" (P2, `Results.File` +
+`File.ReadAllBytesAsync`) maddesini de kapatır: diskten okuma yolu tümüyle kalktı, akışa
+çevrilecek bir dosya yok.
+
+### PDF layout hatası artık 500 değil
+
+`builder.Build(payload)` korumasızdı; QuestPDF içeriği sayfaya sığdıramadığında
+`DocumentLayoutException` işlenmeden 500'e düşüyordu (5000 satırlık geçerli yükle canlı
+sunucuda doğrulanmıştı).
+
+- `Alp.Reports/ReportLayoutException.cs` eklendi; `PdfReportBuilder.Build` dizgiyi sarıyor
+  (`Compose` ayrı bir metoda alındı). **Uygulama katmanı QuestPDF'in istisna türünü
+  tanımıyor** — dizgici değişirse uçtaki `catch` aynı kalır.
+- `POST /api/reports/pdf` ve yeniden üretim yolu 422 + `REPORT_TOO_LARGE` döner.
+- Arayüz mesajı çıkış yolunu da söylüyor ("daha az hesapla deneyin ya da Excel indirin") —
+  "tekrar deneyin" burada yanlış tavsiye olurdu, tekrar denemek aynı sonucu verir.
+- `Program.cs`'e **üretim** exception handler'ı eklendi: `{ error: 'SERVER_ERROR' }` gövdesi
+  + garantili `LogError`. Geliştirmede bilinçli olarak kapalı (geliştirici istisna sayfası
+  daha yararlı).
+
+### Grafik son satırı — kural tek kaynağa indi
+
+§17'nin "3 pilot araçta da var" notu eksik çıktı. Gerçek tablo:
+
+- Ham `i % N === 0` filtresi **11** `report.js` dosyasındaydı. Bunlardan **6'sı** gerçekten
+  son satırı düşürüyordu: `TraceWidth`, `SingleEnded`, `TimingCrystal`, `DiffPair`,
+  `LedOhmRlc`, `AwgConverter`. Her birine regresyon testi yazıldı (önce
+  `(rows.length - 1) % every !== 0` doğrulanır, sonra son satır eşitliği).
+- `ResistorCode` ve `LengthConverter`'da **grafik taraması yok** — §17'nin saydığı iki pilot
+  aracın düzeltilecek bir şeyi yoktu.
+- `CopperConverter` bozuk sanılmıştı ama `buildSweep` çalışma noktasını ek örnek olarak
+  soktuğu için satır sayısı 61'e çıkıyor ve son indeks 5'e tam bölünüyor — hata yoktu.
+- Kalan 4 dosya (`TemperatureConverter`, `FrequencyConverter`, `Junction`,
+  `DecibelConverter`) 61 noktalı taramada tesadüfen doğruydu; tarama adımı değişince
+  sessizce ayrışacakları için onlar da taşındı.
+- Ayrıca §17'nin "yerel eşdeğer düzeltmeyle bırakıldı" dediği **8** dosya kuralın satır içi
+  kopyasını taşıyordu (`ComplexConverter`, `Crosstalk`, `PowerPlane`, `PropDelay`,
+  `CriticalLength`, `Skew`, `Termination`, `Decoupling`). Hepsi `sampleIndices`'e çevrildi;
+  yan fayda: kopyaların üçü boş dizide `-1` indeksine düşüyordu, paylaşılan fonksiyonun
+  `length > 0` koruması bunu da kapattı.
+
+Sonuç: örnekleme kuralı **19** dosyadan kalktı, tek kopya `LineChart.jsx`'teki
+`sampleIndices`'te. Ekran ve rapor aynı fonksiyonu çağırıyor.
