@@ -12,6 +12,7 @@ import {
   reportText, reportLabels, reportErrorText, reportDateStamp, DOC_LANG_NAMES,
 } from '../data/reportText'
 import Segmented from './Segmented'
+import useLangCapture from '../hooks/useLangCapture'
 import { LANGS } from '../lib/i18n'
 import { buildReportPayload } from '../lib/reportPayload'
 import { serializeSvgElement } from '../lib/svgInline'
@@ -32,6 +33,9 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
   // (olağan durum), ama kullanıcı değiştirince `useLang()` değişmez: Türkçe
   // çalışıp İngilizce rapor indirmek istenen bir şey, siteyi çevirmek değil.
   const [docLang, setDocLang] = useState(lang)
+
+  const capture = useLangCapture()
+  const sectionRef = useRef(section)
 
   // `user` ilk render'da HENÜZ YOK: oturum sessiz yenilemeyle çözülüyor ve
   // yanıt sonradan geliyor. Başlangıç değeri o yüzden boş kalıyordu —
@@ -63,14 +67,25 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
     )
   }
 
-  function withCapturedSvg() {
-    return {
-      ...section,
-      schematicSvg: schematicRef?.current ? serializeSvgElement(schematicRef.current) : null,
-      chart: section.chart
-        ? { ...section.chart, svg: chartRef?.current ? serializeSvgElement(chartRef.current) : null }
-        : null,
-    }
+  // Bölüm ve SVG'ler BELGE dilinde okunur. `section` prop'u ekranın o anki
+  // dilinde kurulur, SVG'ler de canlı DOM'dan gelir; `capture` dili kısa
+  // süreliğine çevirip ikisini birden hedef dilde alır (bkz. useLangCapture).
+  // Prop'u ref üzerinden okumak ZORUNLU: dil çevrildiğinde ekran yeniden
+  // render olur ve YENİ bir `section` geçirir, ama bu fonksiyonun kapanışı
+  // eskisini tutar. Ref her render'da tazelendiği için güncel olanı verir.
+  sectionRef.current = section
+
+  function captureFor(docLanguage) {
+    return capture(docLanguage, () => {
+      const current = sectionRef.current
+      return {
+        ...current,
+        schematicSvg: schematicRef?.current ? serializeSvgElement(schematicRef.current) : null,
+        chart: current.chart
+          ? { ...current.chart, svg: chartRef?.current ? serializeSvgElement(chartRef.current) : null }
+          : null,
+      }
+    })
   }
 
   async function download(format) {
@@ -84,7 +99,7 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
       // Belgenin çerçeve metni yükle birlikte gider — sunucu kendi sözlüğünü
       // taşımaz (bkz. reportText.js'teki reportLabels notu).
       labels: reportLabels(docLang),
-      sections: [withCapturedSvg()],
+      sections: [captureFor(docLang)],
     })
     if (!built.ok) {
       setError(text.missingPreparedBy)
@@ -131,7 +146,6 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
           value={docLang}
           onChange={setDocLang}
         />
-        <span className="field-hint">{text.docLangPartial}</span>
       </div>
 
       {error && <p className="field-hint danger">{error}</p>}

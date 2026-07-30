@@ -10,14 +10,15 @@ export function reportText(lang) {
   return {
     reportTitle: t({ tr: 'DONANIM RAPORU', en: 'HARDWARE REPORT' }),
     docLangLabel: t({ tr: 'Belge dili', en: 'Document language' }),
-    // Bölümlerin dili henüz seçimi izlemiyor (ekranın/kaydın dilinde kurulur).
-    // Sessiz kalmak yerine yazılır — kullanıcı karışık dilli belgeyi arıza
-    // sanmasın, sınır bilinsin.
+    // Yalnızca PROJE raporunda gösterilir. Bölümler artık kayıtta her iki
+    // dilde durur, ama bu değişiklikten ÖNCE kaydedilmiş hesaplar tek dille
+    // yazılmıştı ve onlar kendi dillerinde çıkar. Sessiz kalmak yerine
+    // yazılır — kullanıcı tek bir Türkçe bölümü arıza sanmasın.
     docLangPartial: t({
-      tr: 'Seçim belgenin başlıklarını çevirir. Hesap bölümleri şimdilik '
-        + 'kaydedildikleri/ekranda durdukları dilde çıkar.',
-      en: 'The choice translates the document headings. Calculation sections still come out '
-        + 'in the language they were saved in or shown on screen.',
+      tr: 'Bu değişiklikten önce kaydedilmiş hesaplar tek dille yazılmıştı; onlar '
+        + 'kendi dillerinde çıkar. Hesabı açıp yeniden kaydetmek iki dilli hâle getirir.',
+      en: 'Calculations saved before this change were written in a single language and come '
+        + 'out in that language. Opening one and saving it again makes it bilingual.',
     }),
     heading: t({ tr: 'Rapor al', en: 'Get a report' }),
     preparedByLabel: t({ tr: 'Hazırlayan', en: 'Prepared by' }),

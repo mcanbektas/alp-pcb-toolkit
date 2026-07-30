@@ -18,11 +18,13 @@
 //     yazar. Aynı hesabı iki kez kaydedince projede iki satır oluşması bu
 //     yüzden bitti; kopya isteyen "Yeni kayıt olarak ekle" ile bağı bilerek
 //     koparır.
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
 import useProjectSaver from '../hooks/useProjectSaver'
+import useLangCapture from '../hooks/useLangCapture'
+import { LANGS } from '../lib/i18n'
 import {
   LINK_ANONYMOUS, LINK_BROKEN, LINK_ERROR, LINK_LOADING, LINK_MISMATCH, LINK_NOT_FOUND, LINK_READY,
 } from '../hooks/useSavedCalculation'
@@ -72,6 +74,9 @@ export default function SaveToProject({
     enabled: isAuthenticated && !boundId,
   })
 
+  const capture = useLangCapture()
+  const sectionRef = useRef(section)
+
   const [projectId, setProjectId] = useState('')
   const [newName, setNewName] = useState('')
   const [feedback, setFeedback] = useState(null) // { level: 'ok' | 'warn', text }
@@ -96,21 +101,41 @@ export default function SaveToProject({
     )
   }
 
-  function withCapturedSvg(current) {
-    if (!current) return null
-    return {
-      ...current,
-      schematicSvg: schematicRef?.current ? serializeSvgElement(schematicRef.current) : null,
-      chart: current.chart
-        ? { ...current.chart, svg: chartRef?.current ? serializeSvgElement(chartRef.current) : null }
-        : null,
+  // Bölüm HER DİLDE saklanır. Kayıt bir kez yazılır ama proje raporu yıllar
+  // sonra istenebilir ve o an arayüz dili başka olabilir; tek dilde saklamak,
+  // raporun kaydın diline donması demekti (64 eski kayıt hâlâ öyle).
+  //
+  // Diller `capture` ile sırayla gezilir: dil kısa süreliğine çevrilir, ekranın
+  // o dildeki bölümü ve canlı SVG'si okunur, dil geri alınır — kullanıcı
+  // hiçbirini görmez (bkz. useLangCapture). Alternatifi 29 araç ekranında
+  // bölümü iki kez kurmak ve şemayı ikinci kez gizli çizmekti.
+  //
+  // Bedeli kayıt boyutu: iki SVG kümesi, hesap başına ~12 KB yerine ~25 KB.
+  sectionRef.current = section
+
+  function capturedByLang() {
+    if (!sectionRef.current) return null
+
+    const byLang = {}
+    for (const code of LANGS) {
+      byLang[code] = capture(code, () => {
+        const current = sectionRef.current
+        return {
+          ...current,
+          schematicSvg: schematicRef?.current ? serializeSvgElement(schematicRef.current) : null,
+          chart: current.chart
+            ? { ...current.chart, svg: chartRef?.current ? serializeSvgElement(chartRef.current) : null }
+            : null,
+        }
+      })
     }
+    return byLang
   }
 
   // Kayıt gövdesi tek yerde kurulur: yeni kayıt ile güncelleme aynı alanları
   // yazmalı, yoksa güncellenen satır zamanla ilk kaydından ayrışır.
   function calculationBody() {
-    const captured = withCapturedSvg(section)
+    const captured = capturedByLang()
     return {
       toolMode: toolMode ?? null,
       inputsJson: JSON.stringify(f),

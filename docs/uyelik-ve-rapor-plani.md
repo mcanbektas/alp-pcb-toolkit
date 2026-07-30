@@ -212,9 +212,19 @@ Yan sonuç: `GET /api/reports/{id}/download` **POST'a döndü** — kayıttan ye
 etiketlere ihtiyaç duyuyor ve GET gövde taşımıyor.
 
 **Belge dili arayüz dilinden ayrıdır.** Rapor panelinde ayrı bir seçici var (`docLang`); Türkçe
-çalışıp İngilizce rapor indirmek olağan bir istek ve seçim `useLang()`'e dokunmaz. Bugünkü
-sınır: seçim yalnızca çerçeveyi çevirir. Bölümler araç ekranında ekranın dilinde kurulur,
-proje raporunda ise kaydedildikleri dile donmuştur. Panel bunu yazar, sessiz kalmaz.
+çalışıp İngilizce rapor indirmek olağan bir istek ve seçim `useLang()`'e dokunmaz.
+
+**Bölümler de seçimi izler.** Bölüm `report.js`'ten ekranın `getText(lang)`'iyle kurulur ve
+şema/grafik SVG'si canlı DOM'dan okunur — ikisi de "ekranda hangi dil varsa" o dilde. Çözüm,
+29 araç ekranını değiştirmek yerine `hooks/useLangCapture.js`: dil `flushSync` ile çevrilir,
+bölüm ve SVG okunur, yine `flushSync` ile geri alınır. İki eşzamanlı commit arasında tarayıcı
+boyama yapamadığı için kullanıcı çevrilmeyi görmez.
+
+Aynı kanca kaydetmede de kullanılır: `ReportJson` artık dil haritasıdır
+(`{"tr": {...}, "en": {...}}`), yani proje raporu yıllar sonra da istenen dilde üretilebilir.
+Bedeli kayıt boyutu — iki SVG kümesi, hesap başına ~12 KB yerine ~25 KB. Eski tek bölümlü
+kayıtlar okunmaya devam eder: `Alp.Api/Projects/StoredSection.cs` kökte bölüm alanı görürse
+kaydı eski şekil sayar, istenen dil yoksa eldekine düşer. Proje paneli bunu yazar.
 
 ```jsonc
 {

@@ -122,7 +122,10 @@ export default function Project() {
     let cancelled = false
     ;(async () => {
       setLoading(true)
-      const res = await api.get(`/api/projects/${id}`)
+      // `lang`: liste önizlemesi kayıttaki dil haritasından seçilir (bkz.
+      // sunucudaki StoredSection) — arayüz dilinde okunmazsa İngilizce
+      // arayüzde Türkçe etiketler görünür.
+      const res = await api.get(`/api/projects/${id}?lang=${lang}`)
       if (cancelled) return
       if (res.ok) {
         setProject(res.data)
@@ -137,7 +140,7 @@ export default function Project() {
       setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [id, isAuthenticated, api])
+  }, [id, isAuthenticated, api, lang])
 
   async function saveMeta() {
     setMetaStatus(null)
@@ -203,6 +206,9 @@ export default function Project() {
       // toplayamaz: sunucuda kullanıcı metni yok. Belgenin başlıkları bu
       // yüzden künyeyle birlikte gider (bkz. reportText.js → reportLabels).
       labels: reportLabels(docLang),
+      // Metin değil ANAHTAR: sunucu kayıttaki hangi dil dalını okuyacağını
+      // bundan öğrenir.
+      lang: docLang,
     }, fallback)
     setReportBusy(null)
 
