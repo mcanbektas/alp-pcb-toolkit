@@ -119,10 +119,8 @@ export function getText(lang) {
     account: {
       title: t({ tr: 'Hesabım', en: 'My account' }),
       intro: t({
-        tr: 'Raporlarda görünen ad ve firma burada durur. Kaydedilmiş bakır kalınlığı '
-          + 'kayıtların da bu sayfadan yönetilir.',
-        en: 'The name and company that appear on reports live here. Your saved copper '
-          + 'thickness records are managed from this page too.',
+        tr: 'Raporlarda görünen ad ve firma burada durur.',
+        en: 'The name and company that appear on reports live here.',
       }),
       loginRequired: t({ tr: 'Hesap bilgilerini görmek için giriş yapmalısın.', en: 'Sign in to see your account.' }),
       loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
@@ -171,29 +169,6 @@ export function getText(lang) {
         en: 'The new password cannot be the same as the current one.',
       }),
 
-      recordsHeading: t({ tr: 'Kayıtlı bakır kalınlıkları', en: 'Saved copper thicknesses' }),
-      recordsIntro: t({
-        tr: 'Bakır Kalınlığı Dönüştürücü ekranında kaydettiklerin. Giriş yaptığında hesabına '
-          + 'taşınır; çıkış yaptığında tarayıcındaki kopyayla çalışmaya devam edersin.',
-        en: 'What you saved on the Copper Thickness Converter screen. They move to your account '
-          + 'when you sign in; signed out, you keep working with the copy in your browser.',
-      }),
-      recordsEmpty: t({ tr: 'Henüz kayıt yok.', en: 'No records yet.' }),
-      recordsLoading: t({ tr: 'Kayıtlar yükleniyor…', en: 'Loading records…' }),
-      recordSummary: (rec) => t({
-        tr: `başlangıç ${rec.starting} µm · kaplama ${rec.plating} µm · bitmiş ${rec.finished} µm`,
-        en: `starting ${rec.starting} µm · plating ${rec.plating} µm · finished ${rec.finished} µm`,
-      }),
-      recordRemove: t({ tr: 'Sil', en: 'Delete' }),
-      recordRemoveAria: (name) => t({ tr: `${name} kaydını sil`, en: `Delete record ${name}` }),
-      recordRemoved: t({ tr: 'Kayıt silindi.', en: 'The record was deleted.' }),
-      // Onay kartının başlığı; gövdesi `confirmRecordRemove(name)` cümlesidir ve
-      // iptal düğmesinin yazısı çerçeve metni olduğu için `uiText.js`'ten gelir.
-      recordRemoveTitle: t({ tr: 'Kaydı sil', en: 'Delete record' }),
-      confirmRecordRemove: (name) => t({
-        tr: `"${name}" kaydı silinecek. Emin misin?`,
-        en: `The record "${name}" will be deleted. Are you sure?`,
-      }),
 
       // Sunucu kodları buradan cümleye çevrilir; hata yükü dilsiz gelir
       // (kod + yapısal detay), cümle bu dosyada kurulur.

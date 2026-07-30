@@ -1,5 +1,7 @@
-// Hesap ayarları — raporlarda görünen ad/firma ve kaydedilmiş bakır kalınlıkları
-// (Faz 7 + Faz 5'ten devreden profil uçları).
+// Hesap ayarları — raporlarda görünen ad/firma ve parola değiştirme.
+// (Kayıtlı bakır kalınlıkları buradan kaldırıldı: aynı liste ve silme, kayıtların
+// üretildiği Bakır Kalınlığı Dönüştürücü ekranında zaten var — ikinci yönetim
+// yüzeyi hiçbir şey kazandırmıyordu. Özellik ve senkron orada sürüyor.)
 //
 // E-posta salt okunur: kayıt adresi kalıcıdır (kimlik doğrulaması ve parola
 // sıfırlama ona bağlı) ve `PATCH /api/me` böyle bir alan taşımaz. Alan yine
@@ -10,10 +12,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
-import useSavedThickness from '../../hooks/useSavedThickness'
 import AuthField from '../../components/AuthField'
-import ConfirmDialog from '../../components/ConfirmDialog'
-import { commonText } from '../../data/uiText'
 // Parola politikası cümlesi ve Identity hata kodlarının çevirisi giriş/kayıt
 // ekranlarıyla ORTAK: ikinci bir kopya yazılırsa aynı kural iki ekranda
 // farklı cümleyle anlatılır ve biri güncellenip diğeri unutulur.
@@ -24,10 +23,8 @@ export default function Account() {
   const { lang } = useLang()
   const at = getText(lang).account
   const aut = authText(lang)
-  const ui = commonText(lang)
   const { isLoading, isAuthenticated, user, api, refreshUser, changePassword } = useAuth()
   const { showNotice } = useNotice()
-  const saved = useSavedThickness()
 
   const [displayName, setDisplayName] = useState('')
   const [company, setCompany] = useState('')
@@ -39,14 +36,6 @@ export default function Account() {
   const [newPassword2, setNewPassword2] = useState('')
   const [passwordBusy, setPasswordBusy] = useState(false)
   const [passwordError, setPasswordError] = useState(null)
-
-  const [recordError, setRecordError] = useState(null)
-
-  // Silinmek üzere seçilen kayıt ve isteğin sürüp sürmediği. Onay artık
-  // `window.confirm` değil, ortak `ConfirmDialog` — bkz. Projects.jsx'teki
-  // aynı desen ve docs/uyelik-ve-rapor-plani.md §6.4'teki İSTİSNA notu.
-  const [pendingRecord, setPendingRecord] = useState(null)
-  const [removingRecord, setRemovingRecord] = useState(false)
 
   // Alanlar kullanıcı yüklendiğinde BİR KEZ doldurulur; sonraki tazelemeler
   // (`refreshUser`) kullanıcının yazdığını ezmemeli.
@@ -111,23 +100,6 @@ export default function Account() {
     setNewPassword('')
     setNewPassword2('')
     showNotice(at.passwordChanged)
-  }
-
-  async function confirmRemoveRecord() {
-    const rec = pendingRecord
-    if (!rec) return
-
-    setRecordError(null)
-    setRemovingRecord(true)
-    const res = await saved.remove(rec.id)
-    setRemovingRecord(false)
-    setPendingRecord(null)
-
-    if (res.error) {
-      setRecordError(at.errorText({ error: res.cause ?? res.error, detail: res }))
-      return
-    }
-    showNotice(at.recordRemoved)
   }
 
   if (isLoading) return null
@@ -246,54 +218,6 @@ export default function Account() {
         </form>
       </section>
 
-      <section className="panel">
-        <h2>{at.recordsHeading}</h2>
-        <p className="field-hint">{at.recordsIntro}</p>
-
-        {recordError && <p className="field-hint danger">{recordError}</p>}
-
-        {saved.loading && <p className="empty-note">{at.recordsLoading}</p>}
-
-        {!saved.loading && saved.records.length === 0 && (
-          <p className="empty-note">{at.recordsEmpty}</p>
-        )}
-
-        {saved.records.length > 0 && (
-          <div className="tool-list">
-            {saved.records.map((rec) => (
-              <div key={rec.id} className="tool-row">
-                <span className="name">
-                  {rec.name}
-                  <span className="sub"> — {at.recordSummary(rec)}</span>
-                </span>
-                <span className="report-actions">
-                  <button
-                    type="button"
-                    className="row-add"
-                    onClick={() => setPendingRecord(rec)}
-                    aria-label={at.recordRemoveAria(rec.name)}
-                  >
-                    {at.recordRemove}
-                  </button>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Liste kaç kayıt taşırsa taşısın kart BİR KEZ render edilir; hangi
-          kaydın sorulduğu `pendingRecord` state'inde durur. */}
-      <ConfirmDialog
-        open={pendingRecord !== null}
-        title={at.recordRemoveTitle}
-        message={pendingRecord ? at.confirmRecordRemove(pendingRecord.name) : ''}
-        confirmLabel={at.recordRemove}
-        cancelLabel={ui.cancel}
-        busy={removingRecord}
-        onConfirm={confirmRemoveRecord}
-        onCancel={() => setPendingRecord(null)}
-      />
     </>
   )
 }
