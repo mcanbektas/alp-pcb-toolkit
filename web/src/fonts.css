@@ -8,8 +8,11 @@
  * fonts.googleapis.com'dan çekiyordu: her ziyaretçi üçüncü tarafa istek
  * gönderiyor ve site o hizmete bağımlı kalıyordu.
  *
- * Aynı aileler PDF raporunda da kullanılır — api imajı `ttf` sürümlerini alır
- * (bkz. `api/Dockerfile`), yani ekran ile belge aynı yazı tipini gösterir.
+ * Aynı aileler PDF raporunda da kullanılır: tam kapsamlı `ttf` sürümleri
+ * `assets/report-fonts/` altındadır ve api imajına oradan girer (bkz.
+ * `api/Dockerfile`), yani ekran ile belge aynı yazı tipini gösterir. Site
+ * yalnız woff2 çağırdığı için ttf'ler `public/` altında DURMAZ — orada olsalar
+ * tarayıcı hiç indirmediği hâlde `dist/`e ve web imajına girerlerdi.
  *
  * Alt kümeler ayrı dosyalardır ve `unicode-range` ile seçilir; tarayıcı yalnız
  * gereken parçayı indirir:
@@ -25,8 +28,8 @@
  * kapsamadığı karakter (→, ≈, √, ✓, alt/üst simgeler) sistem yüzünden çizilir;
  * hangileri olduğunu `npm run fonts -- --coverage` sayar.
  *
- * Lisans: SIL Open Font License 1.1 — `public/fonts/OFL-IBMPlex.txt`,
- * `public/fonts/OFL-ChakraPetch.txt`.
+ * Lisans: SIL Open Font License 1.1 — metinler her iki font dizininde durur
+ * (`public/fonts/OFL-*.txt`, `assets/report-fonts/OFL-*.txt`).
  *
  * 26 blok, @fontsource 5.3.0.
  */

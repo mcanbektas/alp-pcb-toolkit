@@ -88,8 +88,9 @@ const SUBSET_RANGES = {
   greek: 'U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF',
 }
 
-// PDF raporuna gömülen tam kapsamlı `ttf`ler. Site bunları indirmez; api imajı
-// alır (bkz. `api/Dockerfile`), böylece ekran ile belge aynı aileleri gösterir.
+// PDF raporuna gömülen tam kapsamlı `ttf`ler; depoda `assets/report-fonts/`
+// altında dururlar. Site bunları indirmez, api imajı alır (bkz.
+// `api/Dockerfile`), böylece ekran ile belge aynı aileleri gösterir.
 // `IBM Plex Sans` yukarı akışta yalnız değişken font olarak yayınlanıyor.
 const REPORT_FONTS = [
   { file: 'IBMPlexSans-Variable.ttf', repoPath: 'ofl/ibmplexsans/IBMPlexSans[wdth,wght].ttf' },
@@ -110,8 +111,12 @@ const LICENCES = [
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const webDir = path.resolve(scriptDir, '..')
+const repoDir = path.resolve(webDir, '..')
+// Site yalnız woff2 çağırır, bu yüzden yalnız onlar `public/` altındadır. Tam
+// kapsamlı ttf'ler depoda ayrı bir dizinde durur: `public/` altında olsalar
+// tarayıcı hiç indirmediği hâlde `dist/`e ve web imajına girerlerdi.
 const WOFF2_DIR = path.join(webDir, 'public', 'fonts')
-const TTF_DIR = path.join(webDir, 'public', 'fonts')
+const TTF_DIR = path.join(repoDir, 'assets', 'report-fonts')
 const CSS_FILE = path.join(webDir, 'src', 'fonts.css')
 
 const CDN = (pkg, file) => `https://cdn.jsdelivr.net/npm/@fontsource/${pkg}@${FONTSOURCE_VERSION}/${file}`
@@ -169,8 +174,11 @@ function buildCss() {
  * fonts.googleapis.com'dan çekiyordu: her ziyaretçi üçüncü tarafa istek
  * gönderiyor ve site o hizmete bağımlı kalıyordu.
  *
- * Aynı aileler PDF raporunda da kullanılır — api imajı \`ttf\` sürümlerini alır
- * (bkz. \`api/Dockerfile\`), yani ekran ile belge aynı yazı tipini gösterir.
+ * Aynı aileler PDF raporunda da kullanılır: tam kapsamlı \`ttf\` sürümleri
+ * \`assets/report-fonts/\` altındadır ve api imajına oradan girer (bkz.
+ * \`api/Dockerfile\`), yani ekran ile belge aynı yazı tipini gösterir. Site
+ * yalnız woff2 çağırdığı için ttf'ler \`public/\` altında DURMAZ — orada olsalar
+ * tarayıcı hiç indirmediği hâlde \`dist/\`e ve web imajına girerlerdi.
  *
  * Alt kümeler ayrı dosyalardır ve \`unicode-range\` ile seçilir; tarayıcı yalnız
  * gereken parçayı indirir:
@@ -186,8 +194,8 @@ function buildCss() {
  * kapsamadığı karakter (→, ≈, √, ✓, alt/üst simgeler) sistem yüzünden çizilir;
  * hangileri olduğunu \`npm run fonts -- --coverage\` sayar.
  *
- * Lisans: SIL Open Font License 1.1 — \`public/fonts/OFL-IBMPlex.txt\`,
- * \`public/fonts/OFL-ChakraPetch.txt\`.
+ * Lisans: SIL Open Font License 1.1 — metinler her iki font dizininde durur
+ * (\`public/fonts/OFL-*.txt\`, \`assets/report-fonts/OFL-*.txt\`).
  *
  * ${total} blok, @fontsource ${FONTSOURCE_VERSION}.
  */`
@@ -205,16 +213,18 @@ function buildCss() {
 // çağıran bir `@font-face` sessizce sentetik kalınlaştırmaya düşer.
 function missingFiles() {
   const missing = []
+  const label = (full) => path.relative(repoDir, full)
   for (const { pkg, subsets, weights } of FAMILIES) {
     for (const subset of subsets) {
       for (const weight of weights) {
-        const name = woff2Name(pkg, subset, weight)
-        if (!existsSync(path.join(WOFF2_DIR, name))) missing.push(`public/fonts/${name}`)
+        const full = path.join(WOFF2_DIR, woff2Name(pkg, subset, weight))
+        if (!existsSync(full)) missing.push(label(full))
       }
     }
   }
   for (const { file } of REPORT_FONTS) {
-    if (!existsSync(path.join(TTF_DIR, file))) missing.push(path.relative(webDir, path.join(TTF_DIR, file)))
+    const full = path.join(TTF_DIR, file)
+    if (!existsSync(full)) missing.push(label(full))
   }
   return missing
 }
@@ -302,12 +312,26 @@ async function fetchAll() {
   }
 
   console.log(`ttf + lisans — google/fonts @ ${GOOGLE_FONTS_REF.slice(0, 10)}`)
-  for (const { file, repoPath } of [...REPORT_FONTS, ...LICENCES]) {
+  for (const { file, repoPath } of REPORT_FONTS) {
     // eslint-disable-next-line no-await-in-loop
     const buf = await download(RAW(repoPath))
-    const dir = file.endsWith('.ttf') ? TTF_DIR : WOFF2_DIR
     // eslint-disable-next-line no-await-in-loop
-    note(await writeIfChanged(dir, file, buf), file)
+    note(await writeIfChanged(TTF_DIR, file, buf), file)
+  }
+  // Lisans metni her iki dizine de yazılır: woff2'ler ve ttf'ler ayrı yerlerde
+  // durup ayrı imajlara giriyor, SIL OFL 1.1 metnin fontla birlikte taşınmasını
+  // istiyor. Aynı dosyanın iki kopyası, eksik lisanstan iyidir.
+  //
+  // Satır sonu LF'e çevrilir: yukarı akıştaki metin CRLF taşıyor, depo ise
+  // (`core.autocrlf=input`) LF tutuyor. Çevrilmezse indirilen dosya diskteki
+  // ile hiç eşleşmez ve `--fetch` her koşuda "değişti" der.
+  for (const { file, repoPath } of LICENCES) {
+    // eslint-disable-next-line no-await-in-loop
+    const buf = Buffer.from((await download(RAW(repoPath))).toString('utf8').replace(/\r\n/g, '\n'))
+    for (const dir of [WOFF2_DIR, TTF_DIR]) {
+      // eslint-disable-next-line no-await-in-loop
+      note(await writeIfChanged(dir, file, buf), `${path.basename(dir)}/${file}`)
+    }
   }
 
   console.log(`  ${counts.yeni} yeni, ${counts.değişti} değişti, ${counts.aynı} aynı`)

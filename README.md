@@ -65,8 +65,16 @@ dönüşür; motor testsiz merge edilmez.
 ### Yazı tipleri
 
 Üç aile (IBM Plex Sans, IBM Plex Mono, Chakra Petch) depoda durur ve siteyle birlikte
-servis edilir; sayfa hiçbir dış kaynağa istek atmaz. Aynı aileler PDF raporuna da gömülür.
-Lisans: SIL Open Font License 1.1, metinler `web/public/fonts/OFL-*.txt`.
+servis edilir; sayfa hiçbir dış kaynağa istek atmaz. İki dizin, iki tüketici:
+
+- `web/public/fonts/` — sitenin indirdiği `woff2` alt kümeleri. Yalnız bunlar `dist/`e ve
+  web imajına girer.
+- `assets/report-fonts/` — PDF raporuna gömülen tam kapsamlı `ttf`ler. api imajı bunları
+  `/app/fonts` altına alır (`api/Dockerfile`), `Reports__FontsPath` oraya bakar. Site bu
+  dosyaları hiç indirmez; `public/` altında dururlarken yine de `dist/`e ve web imajına
+  giriyorlardı.
+
+Lisans: SIL Open Font License 1.1; metin her iki dizinde `OFL-*.txt` olarak durur.
 
 **`web/src/fonts.css` üretilmiş bir dosyadır, elle düzenlenmez.** Üreteci
 `web/scripts/build-fonts.mjs`; aile, ağırlık ve alt küme listesi orada tek tablodadır:
