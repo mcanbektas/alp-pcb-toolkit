@@ -33,6 +33,7 @@ npm run preview
 
 npm test            # vitest run — saf hesap fonksiyonları + rapor bölümleri + metin bekçileri
 npm run test:watch
+npm run fonts       # src/fonts.css'i yeniden üretir (bkz. "Yazı tipleri")
 ```
 
 ```bash
@@ -60,6 +61,39 @@ denetiminden kaçar.
 `docs/spec.md` §13'ün altı referans testi (microstrip, via direnci, PDN hedef empedansı,
 junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor eklendiğinde teste
 dönüşür; motor testsiz merge edilmez.
+
+### Yazı tipleri
+
+Üç aile (IBM Plex Sans, IBM Plex Mono, Chakra Petch) depoda durur ve siteyle birlikte
+servis edilir; sayfa hiçbir dış kaynağa istek atmaz. Aynı aileler PDF raporuna da gömülür.
+Lisans: SIL Open Font License 1.1, metinler `web/public/fonts/OFL-*.txt`.
+
+**`web/src/fonts.css` üretilmiş bir dosyadır, elle düzenlenmez.** Üreteci
+`web/scripts/build-fonts.mjs`; aile, ağırlık ve alt küme listesi orada tek tablodadır:
+
+```bash
+cd web
+npm run fonts                 # yalnız src/fonts.css'i yeniden üretir
+npm run fonts -- --fetch      # font dosyalarını da indirir (ağ gerekir)
+npm run fonts -- --check      # üretilmiş dosya güncel mi (çıkış kodu 0/1)
+npm run fonts -- --coverage   # sitedeki karakterler alt kümelerde var mı
+```
+
+Yeni ağırlık ya da alt küme gerektiğinde betikteki `FAMILIES` tablosuna eklenir, `--fetch`
+ile koşturulur, inen dosyalar ve `fonts.css` aynı commit'e girer. Ağırlık dosyası inmeden
+CSS'e yazılırsa tarayıcı var olanı sentetik kalınlaştırır ve harfler bozulur; üreteç bu yüzden
+CSS'i yazmadan önce çağırdığı her dosyayı diskte arar ve bulamazsa durur.
+
+Kaynaklar betikte sabitlenmiştir — sürüm yükseltmek bilinçli bir adımdır: `woff2` dosyaları ve
+`unicode-range` değerleri `@fontsource` paketlerinden, PDF'e gömülen tam kapsamlı `ttf`ler ile
+lisans metinleri `google/fonts` deposunun sabit bir commit'inden gelir. `--fetch` her dosyayı
+diskteki ile karşılaştırıp yalnız değişenleri bildirir, yani beklenmedik bir değişiklik
+commit'ten önce görünür.
+
+İki bilinen sınır, ikisi de fontlar Google'dan gelirken de böyleydi: IBM Plex Mono'nun `greek`
+alt kümesi yayınlanmıyor (mono metindeki Ω sistem yazı tipinden çizilir) ve alt kümelerin
+kapsamadığı semboller — `→`, `≈`, `√`, `✓`, alt/üst simgeler — yine sistem yüzünden çizilir.
+`--coverage` bunları sayar; PDF tam `ttf` kullandığı için orada eksik yoktur.
 
 ## Mimari
 
