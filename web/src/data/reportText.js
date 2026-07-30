@@ -10,6 +10,16 @@ export function reportText(lang) {
   return {
     reportTitle: t({ tr: 'DONANIM RAPORU', en: 'HARDWARE REPORT' }),
     docLangLabel: t({ tr: 'Belge dili', en: 'Document language' }),
+    // Dil adları ARAYÜZ dilinde yazılır: İngilizce arayüzde "Turkish",
+    // Türkçede "İngilizce". Başlıktaki dil değiştirme düğmesinin kuralı
+    // (her dilin adı KENDİ dilinde, `lang={code}` ile) buraya geçmez —
+    // orada kural, kullanıcının anlamadığı bir arayüze düştüğünde çıkışı
+    // bulabilmesi içindir. Burada site dili hiç değişmiyor; bu sıradan bir
+    // form seçeneği ve okunduğu dilde okunmalı.
+    docLangNames: {
+      tr: t({ tr: 'Türkçe', en: 'Turkish' }),
+      en: t({ tr: 'İngilizce', en: 'English' }),
+    },
     // Yalnızca PROJE raporunda gösterilir. Bölümler artık kayıtta her iki
     // dilde durur, ama bu değişiklikten ÖNCE kaydedilmiş hesaplar tek dille
     // yazılmıştı ve onlar kendi dillerinde çıkar. Sessiz kalmak yerine
@@ -83,12 +93,6 @@ export function reportErrorText(res, lang) {
     en: 'The report could not be generated. Please try again.',
   })
 }
-
-// Belge dili seçicisinin metni. Dil adları KENDİ dillerinde yazılır ve
-// `lang={code}` taşır — `<html lang>` kuralıyla aynı gerekçe (bkz. CLAUDE.md):
-// `text-transform` sayfanın diline bakar ve kullanıcı anlamadığı bir arayüzde
-// bile kendi dilini tanıyabilmeli.
-export const DOC_LANG_NAMES = { tr: 'Türkçe', en: 'English' }
 
 // Belgenin ÇERÇEVE metni — sayfa başlıkları, blok adları, Excel sayfa adları
 // ve dizgi başarısızlığında basılan iki cümle.

@@ -15,7 +15,6 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import { commonText } from '../../data/uiText'
 import {
   reportText, reportLabels, reportErrorText, reportDateStamp, REPORT_ERR_NOT_REPRODUCIBLE,
-  DOC_LANG_NAMES,
 } from '../../data/reportText'
 import Segmented from '../../components/Segmented'
 import { LANGS } from '../../lib/i18n'
@@ -322,7 +321,7 @@ export default function Project() {
           <Segmented
             options={LANGS.map((code) => ({
               value: code,
-              label: <span lang={code}>{DOC_LANG_NAMES[code]}</span>,
+              label: rt.docLangNames[code],
             }))}
             value={docLang}
             onChange={setDocLang}

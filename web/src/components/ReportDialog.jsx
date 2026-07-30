@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
 import { useNotice } from '../hooks/useNotice'
 import {
-  reportText, reportLabels, reportErrorText, reportDateStamp, DOC_LANG_NAMES,
+  reportText, reportLabels, reportErrorText, reportDateStamp,
 } from '../data/reportText'
 import Segmented from './Segmented'
 import useLangCapture from '../hooks/useLangCapture'
@@ -141,7 +141,7 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
         <Segmented
           options={LANGS.map((code) => ({
             value: code,
-            label: <span lang={code}>{DOC_LANG_NAMES[code]}</span>,
+            label: text.docLangNames[code],
           }))}
           value={docLang}
           onChange={setDocLang}
