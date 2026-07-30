@@ -13,6 +13,7 @@ import {
   fmt, fmtEng, fmtRes, fmtAmp, fmtPow, fmtVolt, fmtPct,
 } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import {
   formFields, TOOL_OHM, TOOL_LED, TOOL_RLC, TOOL_COMBO,
   MODE_SYNTHESIS, COMBO_SERIES,
@@ -134,8 +135,11 @@ function chartSection(s, text) {
     title: meta.caption,
     svg: null,
     table: {
+      // Ekrandaki <ChartDataTable every={6} .../> ile aynı örnekleme kuralı
+      // (sampleIndices): son nokta her zaman dahil. 70/90 noktalı taramalarda
+      // düz `i % 6` filtresi son satırı düşürüyordu.
       columns: [meta.x, meta.y],
-      rows: s.rows.filter((_, i) => i % 6 === 0).map((row) => [fmtEng(row.x, '', 4), fmt(row.y, 4)]),
+      rows: sampleIndices(s.rows.length, 6).map((i) => [fmtEng(s.rows[i].x, '', 4), fmt(s.rows[i].y, 4)]),
     },
   }
 }

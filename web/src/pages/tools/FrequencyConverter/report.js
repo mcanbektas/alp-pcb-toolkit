@@ -10,6 +10,7 @@
 
 import { fmt, fmtEng } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields, SOURCE_FREQUENCY } from './model'
 
 function inputRows(f, text) {
@@ -39,10 +40,12 @@ function chartSection(s, text) {
     title: text.chart.caption,
     svg: null,
     table: {
+      // Örnekleme ekranla aynı `sampleIndices` kuralından gelir (son nokta her
+      // zaman dahil). 61 noktalı taramada düz `i % 10` filtresi de son satırı
+      // veriyordu; tarama adımı değişince ayrışmasın diye kural tek yerdedir.
       columns: [text.chart.x, text.chart.y],
-      rows: s.rows
-        .filter((_, i) => i % 10 === 0)
-        .map((row) => [fmtEng(row.x, 'Hz', 4), fmtEng(row.y, 's', 4)]),
+      rows: sampleIndices(s.rows.length, 10)
+        .map((i) => [fmtEng(s.rows[i].x, 'Hz', 4), fmtEng(s.rows[i].y, 's', 4)]),
     },
   }
 }

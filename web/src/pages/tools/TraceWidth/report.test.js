@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildReportSection } from './report'
 import { compute, buildSweep, INITIAL_FORM, MODE_SYNTHESIS, MODE_ANALYSIS } from './model'
 import { getText } from './text'
+import { fmt } from '../../../lib/num'
 
 // docs/uyelik-ve-rapor-plani.md §8 risk R6: rapor bölümü ekrandaki sonuçla
 // aynı `r`/`text` kaynağından üretilir; bu test her sürümde yapının bozulup
@@ -74,6 +75,21 @@ describe('TraceWidth report.js', () => {
     expect(section.chart.svg).toBeNull()
     expect(section.chart.table.rows.length).toBeGreaterThan(0)
     expect(section.chart.table.columns).toHaveLength(3)
+  })
+
+  it('chart tablosu taramanın son satırını hiç atlamaz (ekrandaki kuralla aynı)', () => {
+    const f = INITIAL_FORM
+    const r = compute(MODE_SYNTHESIS, f, text.fieldLabels)
+    const s = buildSweep(r)
+    // 70 noktalı taramada son indeks (69) 5'in katı DEĞİLDİR: eski
+    // `i % 5 === 0` filtresi tam da bu yüzden son satırı düşürüyordu, ekran ise
+    // <ChartDataTable every={5} .../> ile onu her zaman gösteriyordu.
+    expect((s.rows.length - 1) % 5).not.toBe(0)
+
+    const section = buildReportSection({ mode: MODE_SYNTHESIS, f, r, s, text })
+    const rows = section.chart.table.rows
+    const last = s.rows[s.rows.length - 1]
+    expect(rows[rows.length - 1]).toEqual([fmt(last.x, 3), fmt(last.y, 3), fmt(last.other, 3)])
   })
 
   it('s verilmezse chart null döner (ekrandaki boş-grafik durumuyla aynı)', () => {

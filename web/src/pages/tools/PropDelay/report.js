@@ -6,6 +6,7 @@
 import { fmt, fmtEng } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { epsEffRows } from '../../../components/EpsEffFields'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields } from './model'
 
 function inputRows(f, text) {
@@ -27,11 +28,7 @@ function chartSection(s, text) {
   // her zaman ekler (LineChart.jsx) — eğrinin sağ ucu asimptotu taşır. Aynı
   // garanti burada da verilmezse rapor tablosu ekrandakinden bir satır eksik
   // kalabilir.
-  const indices = []
-  for (let i = 0; i < s.rows.length; i += 6) indices.push(i)
-  if (indices.length && indices[indices.length - 1] !== s.rows.length - 1) {
-    indices.push(s.rows.length - 1)
-  }
+  const indices = sampleIndices(s.rows.length, 6)
   return {
     title: text.chart.caption,
     svg: null,

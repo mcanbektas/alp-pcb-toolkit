@@ -13,6 +13,7 @@
 import { fmt, fmtEng, fmtOhm, fmtPct } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { METHOD_NOMINAL, METHOD_DERIVED } from '../../../lib/copper'
+import { sampleIndices } from '../../../components/LineChart'
 import { SOURCE_WEIGHT, SOURCE_FINISHED, OZ_CUSTOM, OZ_ROWS } from './model'
 
 // Sol paneldeki girdi alanlarını, ekranda göründükleri sırayla ve aynı
@@ -198,8 +199,11 @@ function chartSection(r, s, text) {
     title: text.chart.caption,
     svg: null,
     table: {
+      // Ekrandaki <ChartDataTable every={5} .../> ile aynı örnekleme kuralı
+      // (sampleIndices): son nokta her zaman dahil. 60 noktalı taramada düz
+      // `i % 5` filtresi son satırı (59) düşürüyordu.
       columns: [text.chart.x, text.chart.legend],
-      rows: s.rows.filter((_, i) => i % 5 === 0).map((row) => [fmt(row.x, 3), `${fmtOhm(row.y)}/□`]),
+      rows: sampleIndices(s.rows.length, 5).map((i) => [fmt(s.rows[i].x, 3), `${fmtOhm(s.rows[i].y)}/□`]),
     },
   }
 }

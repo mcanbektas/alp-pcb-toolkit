@@ -14,6 +14,7 @@ import {
   fmt, fmtEng, fmtOhm, fmtAmp, fmtVolt, fmtPow,
 } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import {
   formFields, traceColumns, TOOL_PLANE, TOOL_PARALLEL,
 } from './model'
@@ -126,11 +127,7 @@ function chartSection(r, s, text) {
   const isPlane = r.tool === TOOL_PLANE
   const chartMeta = text.chart[s.kind]
   const every = isPlane ? 6 : 1
-  const indices = []
-  for (let i = 0; i < s.rows.length; i += every) indices.push(i)
-  if (indices.length && indices[indices.length - 1] !== s.rows.length - 1) {
-    indices.push(s.rows.length - 1)
-  }
+  const indices = sampleIndices(s.rows.length, every)
   return {
     title: chartMeta.caption,
     svg: null,

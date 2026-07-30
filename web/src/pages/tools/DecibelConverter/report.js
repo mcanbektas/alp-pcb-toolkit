@@ -12,6 +12,7 @@
 
 import { fmt, fmtEng, fmtOhm, fmtVolt } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields, MODE_DBM } from './model'
 
 function inputRows(f, text) {
@@ -61,7 +62,11 @@ function gainResults(r, text) {
 function chartSection(s, text) {
   if (!s) return null
   const chart = text.chart[s.kind]
-  const rows = s.rows.filter((_, i) => i % 5 === 0)
+  // Örnekleme ekrandaki <ChartDataTable every={5} .../> ile aynı
+  // `sampleIndices` kuralını paylaşır: son nokta her zaman dahil. 61 noktalı
+  // taramada düz `i % 5` filtresi de son satırı veriyordu; tarama adımı
+  // değişince ayrışmasın diye kural tek yerdedir.
+  const rows = sampleIndices(s.rows.length, 5).map((i) => s.rows[i])
 
   if (s.kind === 'dbm') {
     return {

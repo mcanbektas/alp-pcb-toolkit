@@ -6,6 +6,7 @@
 import { fmt, fmtEng } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { epsEffRows } from '../../../components/EpsEffFields'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields } from './model'
 
 function inputRows(f, text) {
@@ -50,22 +51,15 @@ function inputRows(f, text) {
 // ReportDialog indirme anında dolduracak (bkz. withCapturedSvg).
 // Sütun başlıkları ve satır seyreltmesi index.jsx'teki <ChartDataTable
 // every={6}> ile aynı — orada seri adı da aynen `1/${ser.divisor}` biçimindedir.
-// İndeks seçimi ChartDataTable (LineChart.jsx) ile birebir aynı olmalı: `every`
-// adımda bir örnekle, ama son noktayı (eğrinin sağ ucu/asimptotu) hiçbir zaman
-// atlama — ekranda "Son nokta her zaman gösterilir" yorumuyla zorla eklenir.
-function chartIndices(length, every) {
-  const indices = []
-  for (let i = 0; i < length; i += every) indices.push(i)
-  if (indices[indices.length - 1] !== length - 1) indices.push(length - 1)
-  return indices
-}
-
+// İndeks seçimi ChartDataTable (LineChart.jsx) ile birebir aynı: `every` adımda
+// bir örnekle, ama son noktayı (eğrinin sağ ucu/asimptotu) hiçbir zaman atlama.
+// Kural `sampleIndices` içinde tek kopya durur — ekran da rapor da onu çağırır.
 function chartSection(s, text) {
   if (!s) return null
 
   const columns = [text.chart.x, ...s.series.map((ser) => `1/${ser.divisor}`)]
   const xs = s.series[0]?.points ?? []
-  const rows = chartIndices(xs.length, 6).map((i) => [
+  const rows = sampleIndices(xs.length, 6).map((i) => [
     fmtEng(xs[i][0], 's', 4),
     ...s.series.map((ser) => `${fmt(ser.points[i][1], 4)} mm`),
   ])

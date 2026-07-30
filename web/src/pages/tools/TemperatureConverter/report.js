@@ -8,6 +8,7 @@
 // imza `{ f, r, s, text }`dir; üst düzey `mode` alanı `r.mode`'dan okunur.
 
 import { fmt } from '../../../lib/num'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields, MODE_DELTA, SWEEP_K } from './model'
 
 // Sıcaklık ekranın tamamında altı anlamlı basamakla gösterilir (bkz.
@@ -92,8 +93,12 @@ function chartSection(r, s, text) {
     title: text.chart.caption(s.mode, s.param),
     svg: null,
     table: {
+      // Örnekleme ekrandaki <ChartDataTable every={5} .../> ile aynı
+      // `sampleIndices` kuralını paylaşır: son nokta her zaman dahil. Bugünkü
+      // 61 noktalı taramada düz `i % 5` filtresi de son satırı veriyordu, ama
+      // tarama adımı değişirse sessizce ayrışırdı — kural tek yerde durur.
       columns: [text.chart.x(s.mode), seriesName],
-      rows: s.rows.filter((_, i) => i % 5 === 0).map((row) => [fmt(row.x, 5), fmt(row.y, 5)]),
+      rows: sampleIndices(s.rows.length, 5).map((i) => [fmt(s.rows[i].x, 5), fmt(s.rows[i].y, 5)]),
     },
   }
 }

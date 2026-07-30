@@ -6,6 +6,7 @@
 import { fmt, fmtEng, fmtRes, fmtVolt } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { VOLTAGE, fromSI } from '../../../lib/units'
+import { sampleIndices } from '../../../components/LineChart'
 import {
   formFields, capColumns, MODE_MIN, MODE_NETWORK,
 } from './model'
@@ -41,17 +42,11 @@ function inputRows(mode, f, text) {
 // ChartDataTable (src/components/LineChart.jsx) `every` adımda örnekler ama son
 // noktayı her zaman zorla ekler — eğrinin sağ ucu asimptotu taşır. Aynı garanti
 // burada da uygulanmazsa rapor/Excel tablosu ekrandaki son satırı sessizce
-// kaybeder (bkz. Faz 6 inceleme notu).
-function sampledIndices(rows, every) {
-  const idx = []
-  for (let i = 0; i < rows.length; i += every) idx.push(i)
-  if (idx[idx.length - 1] !== rows.length - 1) idx.push(rows.length - 1)
-  return idx
-}
-
+// kaybeder (bkz. Faz 6 inceleme notu). Kural `sampleIndices` içinde tek kopya
+// durur — ekran da rapor da aynı fonksiyonu çağırır.
 function chartTable(r, s, text) {
   const every = r.mode === MODE_MIN ? 6 : 20
-  const idx = sampledIndices(s.rows, every)
+  const idx = sampleIndices(s.rows.length, every)
 
   if (r.mode === MODE_MIN) {
     return {

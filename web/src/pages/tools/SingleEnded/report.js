@@ -5,6 +5,7 @@
 
 import { fmt, fmtEng, fmtRes } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields, MODE_SYNTHESIS } from './model'
 
 function inputRows(mode, f, text) {
@@ -26,8 +27,11 @@ function chartSection(r, s, text) {
     title: text.chart.caption,
     svg: null,
     table: {
+      // Ekrandaki <ChartDataTable every={6} .../> ile aynı örnekleme kuralı
+      // (sampleIndices): son nokta her zaman dahil. 70 noktalı taramada düz
+      // `i % 6` filtresi son satırı (69) düşürüyordu.
       columns: [text.chart.x, text.chart.y],
-      rows: s.rows.filter((_, i) => i % 6 === 0).map((row) => [fmt(row.x, 4), fmtRes(row.y, 4)]),
+      rows: sampleIndices(s.rows.length, 6).map((i) => [fmt(s.rows[i].x, 4), fmtRes(s.rows[i].y, 4)]),
     },
   }
 }

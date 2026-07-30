@@ -11,6 +11,7 @@
 import { fmt, fmtEng } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { epsEffRows } from '../../../components/EpsEffFields'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields } from './model'
 
 function inputRows(f, text) {
@@ -36,11 +37,10 @@ function chartSection(s, text) {
     text.chart.seriesSkew,
     ...(s.differentLayer ? [text.chart.seriesSame] : []),
   ]
-  const indices = []
-  for (let i = 0; i < s.points.length; i += 6) indices.push(i)
   // Son nokta her zaman gösterilir — ChartDataTable ile birebir aynı kural
-  // (bkz. LineChart.jsx), eğrinin sağ ucu asimptotu/işletim noktasını taşır.
-  if (indices[indices.length - 1] !== s.points.length - 1) indices.push(s.points.length - 1)
+  // (`sampleIndices`, bkz. LineChart.jsx), eğrinin sağ ucu asimptotu/işletim
+  // noktasını taşır.
+  const indices = sampleIndices(s.points.length, 6)
 
   const rows = indices.map((i) => [
     `${fmt(s.points[i][0], 4)} mm`,

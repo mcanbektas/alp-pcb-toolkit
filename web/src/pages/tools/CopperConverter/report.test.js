@@ -6,6 +6,7 @@ import {
 } from './model'
 import { METHOD_NOMINAL } from '../../../lib/copper'
 import { getText } from './text'
+import { fmt, fmtOhm } from '../../../lib/num'
 
 // docs/uyelik-ve-rapor-plani.md §8 risk R6: rapor bölümü ekrandaki sonuçla
 // aynı `r`/`text` kaynağından üretilir; bu test her sürümde yapının bozulup
@@ -90,6 +91,21 @@ describe('CopperConverter report.js', () => {
     expect(section.chart.svg).toBeNull()
     expect(section.chart.table.rows.length).toBeGreaterThan(0)
     expect(section.chart.table.columns).toHaveLength(2)
+  })
+
+  it('chart tablosu taramanın son satırını hiç atlamaz (ekrandaki kuralla aynı)', () => {
+    const f = INITIAL_FORM
+    const r = compute(f, text.fieldLabels)
+    const s = buildSweep(r)
+    // `buildSweep` 60 örneğe çalışma noktasını da sokuşturur, yani satır sayısı
+    // 61'e çıkar ve son indeks (60) tesadüfen 5'in katı olur — eski
+    // `i % 5 === 0` filtresi bu araçta son satırı düşürmüyordu. Kural yine de
+    // ekranla tek kaynaktan gelmeli: tarama adımı ya da imleç ekleme kuralı
+    // değişirse bu test ayrışmayı yakalar.
+    const section = buildReportSection({ f, r, s, text })
+    const rows = section.chart.table.rows
+    const last = s.rows[s.rows.length - 1]
+    expect(rows[rows.length - 1]).toEqual([fmt(last.x, 3), `${fmtOhm(last.y)}/□`])
   })
 
   it('s verilmezse chart null döner (ekrandaki boş-grafik durumuyla aynı)', () => {

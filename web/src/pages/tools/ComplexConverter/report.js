@@ -5,6 +5,7 @@
 
 import { fmt, fmtOhm } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields, MODE_RECT, SWEEP_PHASE } from './model'
 
 function inputRows(f, text) {
@@ -37,10 +38,10 @@ function chartSection(r, s, text) {
   if (!s) return null
   const formatY = (v) => (s.param === SWEEP_PHASE ? `${fmt(v, 3)}°` : fmtOhm(v))
   // Ekrandaki <ChartDataTable every={10}> ile birebir aynı örnekleme: modülüs
-  // ıskalasa bile son indeks (eğrinin sağ ucu) her zaman eklenir.
-  const indices = []
-  for (let i = 0; i < s.rows.length; i += 10) indices.push(i)
-  if (indices[indices.length - 1] !== s.rows.length - 1) indices.push(s.rows.length - 1)
+  // ıskalasa bile son indeks (eğrinin sağ ucu) her zaman eklenir. Kural
+  // LineChart.jsx'teki `sampleIndices`'te tek kopya durur — ekran ile rapor
+  // aynı fonksiyonu çağırır, kural iki yerde ayrı ayrı yazılmaz.
+  const indices = sampleIndices(s.rows.length, 10)
   return {
     title: text.chart.caption[s.param],
     svg: null,

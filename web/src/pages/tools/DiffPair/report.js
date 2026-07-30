@@ -5,6 +5,7 @@
 
 import { fmt, fmtEng, fmtRes } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields, MODE_SYNTHESIS, STRUCT_MICROSTRIP, STRUCT_STRIPLINE } from './model'
 
 // formFields() (model.js) etiketleri hata mesajı amaçlı genel `fieldLabels`
@@ -44,8 +45,12 @@ function chartSection(r, s, text) {
     title: meta.caption,
     svg: null,
     table: {
+      // Örnekleme ekrandaki <ChartDataTable every={6} .../> ile aynı
+      // `sampleIndices` kuralını izler: son nokta her zaman dahil. 70 noktalı
+      // taramada düz `i % 6` filtresi son satırı (69) düşürüyordu.
       columns: [meta.x, 'Z_diff', 'Z_odd'],
-      rows: s.rows.filter((_, i) => i % 6 === 0).map((row) => [fmt(row.x, 3), fmt(row.y, 3), fmt(row.odd, 3)]),
+      rows: sampleIndices(s.rows.length, 6)
+        .map((i) => [fmt(s.rows[i].x, 3), fmt(s.rows[i].y, 3), fmt(s.rows[i].odd, 3)]),
     },
   }
 }

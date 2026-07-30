@@ -10,6 +10,7 @@
 
 import { fmt, fmtEng, fmtPct } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import { DIR_DIAMETER } from './model'
 
 // Girdi satırları — ekrandaki NumberField'lerin gösterdiği birimle birebir.
@@ -93,10 +94,13 @@ function chartSection(s, text) {
     title: text.sweepCaption[s.param],
     svg: null,
     table: {
+      // Ekrandaki <ChartDataTable every={5} .../> ile aynı örnekleme kuralı
+      // (sampleIndices): son nokta her zaman dahil. Seri 44 gauge satırı
+      // taşıdığı için düz `i % 5` filtresi son satırı (43 — en ince tel)
+      // düşürüyordu.
       columns: [text.sweepAxis[s.param], text.chartY],
-      rows: s.rows
-        .filter((_, i) => i % 5 === 0)
-        .map((row) => [fmt(row.x, 4), `AWG ${text.awgLabel(row.y)}`]),
+      rows: sampleIndices(s.rows.length, 5)
+        .map((i) => [fmt(s.rows[i].x, 4), `AWG ${text.awgLabel(s.rows[i].y)}`]),
     },
   }
 }

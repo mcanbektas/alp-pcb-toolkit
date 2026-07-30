@@ -6,6 +6,7 @@ import {
   MODE_ANALYSIS, MODE_SYNTHESIS, COMBO_PARALLEL, COMBO_SERIES,
 } from './model'
 import { getText } from './text'
+import { fmt, fmtEng } from '../../../lib/num'
 
 // docs/uyelik-ve-rapor-plani.md §8 risk R6: rapor bölümü ekrandaki sonuçla
 // aynı `r`/`text` kaynağından üretilir; bu test her sürümde yapının bozulup
@@ -121,6 +122,20 @@ describe('LedOhmRlc report.js', () => {
       expect(section.chart.svg).toBeNull()
       expect(section.chart.table.columns).toHaveLength(2)
       expect(section.chart.table.rows.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('chart tablosu taramanın son satırını hiç atlamaz (ekrandaki kuralla aynı)', () => {
+    for (const tool of [TOOL_OHM, TOOL_LED, TOOL_RLC]) {
+      const { s, section } = buildFor(tool, MODE_ANALYSIS)
+      // 70/90 noktalı taramalarda son indeks 6'nın katı DEĞİLDİR: eski
+      // `i % 6 === 0` filtresi tam da bu yüzden son satırı düşürüyordu, ekran
+      // ise <ChartDataTable every={6} .../> ile onu her zaman gösteriyordu.
+      expect((s.rows.length - 1) % 6, tool).not.toBe(0)
+
+      const rows = section.chart.table.rows
+      const last = s.rows[s.rows.length - 1]
+      expect(rows[rows.length - 1], tool).toEqual([fmtEng(last.x, '', 4), fmt(last.y, 4)])
     }
   })
 

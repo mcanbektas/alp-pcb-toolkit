@@ -4,6 +4,7 @@ import {
   compute, buildSweep, INITIAL_FORM, DIR_AWG, DIR_DIAMETER, SWEEP_D, SWEEP_AREA,
 } from './model'
 import { getText } from './text'
+import { fmt } from '../../../lib/num'
 
 // docs/uyelik-ve-rapor-plani.md §8 risk R6: rapor bölümü ekrandaki sonuçla
 // aynı `r`/`text` kaynağından üretilir; bu test her sürümde yapının bozulup
@@ -110,6 +111,21 @@ describe('AwgConverter report.js', () => {
     expect(section.chart.svg).toBeNull()
     expect(section.chart.table.rows.length).toBeGreaterThan(0)
     expect(section.chart.table.columns).toHaveLength(2)
+  })
+
+  it('chart tablosu serinin son satırını (en ince tel) hiç atlamaz', () => {
+    const f = INITIAL_FORM
+    const r = compute(f, text.fieldLabels)
+    const s = buildSweep(r, SWEEP_D)
+    // Seri AWG 40…−3 arası 44 satır taşır; son indeks (43) 5'in katı DEĞİLDİR:
+    // eski `i % 5 === 0` filtresi tam da bu yüzden son satırı düşürüyordu,
+    // ekran ise <ChartDataTable every={5} .../> ile onu her zaman gösteriyordu.
+    expect((s.rows.length - 1) % 5).not.toBe(0)
+
+    const section = buildReportSection({ f, r, s, text })
+    const rows = section.chart.table.rows
+    const last = s.rows[s.rows.length - 1]
+    expect(rows[rows.length - 1]).toEqual([fmt(last.x, 4), `AWG ${text.awgLabel(last.y)}`])
   })
 
   it('s verilmezse chart null döner (ekrandaki boş-grafik durumuyla aynı)', () => {

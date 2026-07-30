@@ -6,6 +6,7 @@
 import { fmt, fmtEng, fmtOhm, fmtVolt, fmtWatt } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { LENGTH } from '../../../lib/units'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields, MODE_SYNTHESIS, MODE_ANALYSIS } from './model'
 
 const mm = (m) => m / LENGTH.mm
@@ -46,12 +47,17 @@ function toleranceRows(r, text) {
 function chartSection(r, s, text) {
   if (!s) return null
   const otherLayer = r.layer === 'external' ? 'internal' : 'external'
+  // Ekrandaki <ChartDataTable every={5} .../> ile aynı örnekleme kuralı
+  // (sampleIndices): son nokta her zaman dahil edilir. Düz `i % 5` filtresi
+  // 70 noktalı taramada son satırı (69) düşürüyordu — rapor ekranda görünenden
+  // bir satır eksik çıkıyordu.
   return {
     title: text.chart.caption,
     svg: null,
     table: {
       columns: [text.chart.x, text.layerSeries[r.layer], text.layerSeries[otherLayer]],
-      rows: s.rows.filter((_, i) => i % 5 === 0).map((row) => [fmt(row.x, 3), fmt(row.y, 3), fmt(row.other, 3)]),
+      rows: sampleIndices(s.rows.length, 5)
+        .map((i) => [fmt(s.rows[i].x, 3), fmt(s.rows[i].y, 3), fmt(s.rows[i].other, 3)]),
     },
   }
 }

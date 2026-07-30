@@ -16,6 +16,7 @@
 import { fmt, fmtEng, fmtRes } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { epsEffRows } from '../../../components/EpsEffFields'
+import { sampleIndices } from '../../../components/LineChart'
 import { formFields } from './model'
 
 function inputRows(f, text) {
@@ -63,9 +64,7 @@ function chartSection(r, s, text) {
   // ChartDataTable (LineChart.jsx) ile birebir aynı örnekleme kuralı: her 6
   // noktada bir satır, artı son nokta (eğrinin doyum noktaya yakın kuyruğu)
   // dizinde yoksa zorla eklenir. Yalnızca modulo alınırsa son satır düşer.
-  const indices = []
-  for (let i = 0; i < s.rows.length; i += 6) indices.push(i)
-  if (indices[indices.length - 1] !== s.rows.length - 1) indices.push(s.rows.length - 1)
+  const indices = sampleIndices(s.rows.length, 6)
   return {
     title: text.chart.caption,
     svg: null,

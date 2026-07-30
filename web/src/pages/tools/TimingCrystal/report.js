@@ -10,6 +10,7 @@
 
 import { fmt, fmtEng, fmtAmp, fmtPct } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import {
   formFields, TOOL_RC, TOOL_RL, TOOL_CRYSTAL, MODE_SYNTHESIS,
 } from './model'
@@ -122,8 +123,12 @@ function chartSection(r, s, text) {
     title: chartMeta.caption,
     svg: null,
     table: {
+      // Ekrandaki <ChartDataTable every={6} .../> ile aynı örnekleme kuralı
+      // (sampleIndices): son nokta her zaman dahil. 80/90 noktalı taramalarda
+      // düz `i % 6` filtresi son satırı düşürüyordu.
       columns,
-      rows: s.rows.filter((_, i) => i % 6 === 0).map((row) => {
+      rows: sampleIndices(s.rows.length, 6).map((i) => {
+        const row = s.rows[i]
         const out = [formatX(row.x), formatY(row.y)]
         if (s.dischargePoints) out.push(formatY(row.discharge))
         return out

@@ -8,6 +8,7 @@
 
 import { fmt, fmtWatt } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import {
   formFields, MODE_JUNCTION, MODE_HEATSINK, MODE_SURFACE,
 } from './model'
@@ -127,8 +128,12 @@ function chartSection(r, s, text) {
     title: chartMeta.caption,
     svg: null,
     table: {
+      // Örnekleme ekrandaki <ChartDataTable every={6} .../> ile aynı
+      // `sampleIndices` kuralını paylaşır: son nokta her zaman dahil. 61
+      // noktalı taramada düz `i % 6` filtresi de son satırı veriyordu; tarama
+      // adımı değişince ayrışmasın diye kural tek yerdedir.
       columns: [chartMeta.x, text.chart.seriesTj],
-      rows: s.rows.filter((_, i) => i % 6 === 0).map((row) => [chartX(row.x), `${fmt(row.y, 4)} °C`]),
+      rows: sampleIndices(s.rows.length, 6).map((i) => [chartX(s.rows[i].x), `${fmt(s.rows[i].y, 4)} °C`]),
     },
   }
 }

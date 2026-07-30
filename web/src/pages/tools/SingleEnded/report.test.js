@@ -5,6 +5,7 @@ import {
   STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW,
 } from './model'
 import { getText } from './text'
+import { fmt, fmtRes } from '../../../lib/num'
 
 // docs/uyelik-ve-rapor-plani.md §8 risk R6: rapor bölümü ekrandaki sonuçla
 // aynı `r`/`text` kaynağından üretilir; bu test her sürümde yapının bozulup
@@ -137,6 +138,21 @@ describe('SingleEnded report.js', () => {
     expect(section.chart.svg).toBeNull()
     expect(section.chart.table.rows.length).toBeGreaterThan(0)
     expect(section.chart.table.columns).toHaveLength(2)
+  })
+
+  it('chart tablosu taramanın son satırını hiç atlamaz (ekrandaki kuralla aynı)', () => {
+    const f = INITIAL_FORM
+    const r = compute(MODE_ANALYSIS, f, text.fieldLabels)
+    const s = buildSweep(r)
+    // 70 noktalı taramada son indeks (69) 6'nın katı DEĞİLDİR: eski
+    // `i % 6 === 0` filtresi tam da bu yüzden son satırı düşürüyordu, ekran ise
+    // <ChartDataTable every={6} .../> ile onu her zaman gösteriyordu.
+    expect((s.rows.length - 1) % 6).not.toBe(0)
+
+    const section = buildReportSection({ mode: MODE_ANALYSIS, f, r, s, text })
+    const rows = section.chart.table.rows
+    const last = s.rows[s.rows.length - 1]
+    expect(rows[rows.length - 1]).toEqual([fmt(last.x, 4), fmtRes(last.y, 4)])
   })
 
   it('s verilmezse chart null döner (ekrandaki boş-grafik durumuyla aynı)', () => {

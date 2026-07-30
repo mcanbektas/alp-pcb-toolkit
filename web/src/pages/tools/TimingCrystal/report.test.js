@@ -6,6 +6,7 @@ import {
   MODE_ANALYSIS, MODE_SYNTHESIS,
 } from './model'
 import { getText } from './text'
+import { fmt, fmtEng } from '../../../lib/num'
 
 // docs/uyelik-ve-rapor-plani.md §8 risk R6: rapor bölümü ekrandaki sonuçla
 // aynı `r`/`text` kaynağından üretilir; bu test her sürümde yapının bozulup
@@ -94,6 +95,19 @@ describe('TimingCrystal report.js', () => {
     expect(section.chart.table.rows.length).toBeGreaterThan(0)
     // RC grafiğinde şarj + deşarj serisi vardır → 3 sütun (zaman, şarj, deşarj)
     expect(section.chart.table.columns).toHaveLength(3)
+  })
+
+  it('chart tablosu taramanın son satırını hiç atlamaz (ekrandaki kuralla aynı)', () => {
+    const { s, section } = build(TOOL_RC, MODE_ANALYSIS)
+    // 80 noktalı RC taramasında son indeks (79) 6'nın katı DEĞİLDİR: eski
+    // `i % 6 === 0` filtresi tam da bu yüzden son satırı düşürüyordu, ekran ise
+    // <ChartDataTable every={6} .../> ile onu her zaman gösteriyordu.
+    expect((s.rows.length - 1) % 6).not.toBe(0)
+
+    const rows = section.chart.table.rows
+    const last = s.rows[s.rows.length - 1]
+    expect(rows[rows.length - 1][0]).toBe(fmtEng(last.x, 's', 4))
+    expect(rows[rows.length - 1][1]).toBe(fmt(last.y, 4))
   })
 
   it('RL grafiğinde deşarj sütunu yoktur (yalnızca 2 sütun)', () => {

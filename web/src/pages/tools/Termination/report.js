@@ -12,6 +12,7 @@ import {
   fmt, fmtRes, fmtAmp, fmtWatt, fmtVolt, fmtPct,
 } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
+import { sampleIndices } from '../../../components/LineChart'
 import {
   formFields, TERM_SERIES, TERM_PARALLEL, TERM_THEVENIN,
 } from './model'
@@ -137,11 +138,10 @@ function chartSection(r, s, text) {
   const formatY = (v) => (isPower ? fmtWatt(v) : fmtRes(v, 4))
 
   const points = s.series[0].points
-  const indices = []
-  for (let i = 0; i < points.length; i += 6) indices.push(i)
   // Son nokta her zaman gösterilir — ChartDataTable ile birebir aynı kural
-  // (bkz. LineChart.jsx), eğrinin sağ ucu asimptotu/işletim noktasını taşır.
-  if (indices[indices.length - 1] !== points.length - 1) indices.push(points.length - 1)
+  // (`sampleIndices`, bkz. LineChart.jsx), eğrinin sağ ucu asimptotu/işletim
+  // noktasını taşır.
+  const indices = sampleIndices(points.length, 6)
 
   const rows = indices.map((i) => [
     `${fmt(points[i][0], 4)} Ω`,
