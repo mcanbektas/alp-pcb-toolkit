@@ -5,6 +5,7 @@ import SelectField from '../../../components/SelectField'
 import TextField from '../../../components/TextField'
 import RowList from '../../../components/RowList'
 import ToolHeader from '../../../components/ToolHeader'
+import ResultPanel from '../../../components/ResultPanel'
 import Commentary from '../../../components/Commentary'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
@@ -387,16 +388,10 @@ export default function StackupPlanner() {
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
-        <section className="panel">
-          <h2>{ui.result}</h2>
-
-          {!r.ok ? (
-            r.ambiguous ? (
-              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
-            ) : (
-              <p className="empty-note">{text.reasonText(r.reason, r.invalid, r.code, r.index)}</p>
-            )
-          ) : (
+        {/* İç `r.ok &&` kapısı gerekli: children JSX'i ResultPanel çizmese de
+            burada kurulur — bkz. TraceWidth'teki aynı not. */}
+        <ResultPanel r={r} reason={(code) => text.reasonText(code, r.invalid, r.code, r.index)}>
+          {r.ok && (
             <>
               <div className="big-result">
                 <div className="label">{text.bigResult.label}</div>
@@ -482,7 +477,7 @@ export default function StackupPlanner() {
               <Commentary items={notes} />
             </>
           )}
-        </section>
+        </ResultPanel>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">

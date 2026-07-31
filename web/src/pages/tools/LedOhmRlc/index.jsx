@@ -5,6 +5,7 @@ import SelectField from '../../../components/SelectField'
 import TextField from '../../../components/TextField'
 import Segmented from '../../../components/Segmented'
 import ToolHeader from '../../../components/ToolHeader'
+import ResultPanel from '../../../components/ResultPanel'
 import Commentary from '../../../components/Commentary'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
@@ -210,20 +211,15 @@ export default function LedOhmRlc() {
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
-        <section className="panel">
-          <h2>{ui.result}</h2>
-
-          {!r.ok ? (
-            r.ambiguous ? (
-              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
-            ) : (
-              <p className="empty-note">
-                {r.reason === REASON_VALUE_LIST
-                  ? text.valueListError(r.valueList, r.at)
-                  : text.reasonText(r.reason, r)}
-              </p>
-            )
-          ) : (
+        {/* İç `r.ok &&` kapısı gerekli: children JSX'i ResultPanel çizmese de
+            burada kurulur — bkz. TraceWidth'teki aynı not. */}
+        <ResultPanel
+          r={r}
+          reason={(code) => (code === REASON_VALUE_LIST
+            ? text.valueListError(r.valueList, r.at)
+            : text.reasonText(code, r))}
+        >
+          {r.ok && (
             <>
               {r.tool === TOOL_OHM && (
                 <>
@@ -379,7 +375,7 @@ export default function LedOhmRlc() {
               <Commentary items={notes} />
             </>
           )}
-        </section>
+        </ResultPanel>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">

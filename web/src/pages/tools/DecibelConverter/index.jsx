@@ -4,6 +4,7 @@ import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import ToolHeader from '../../../components/ToolHeader'
+import ResultPanel from '../../../components/ResultPanel'
 import Commentary from '../../../components/Commentary'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
@@ -188,16 +189,10 @@ export default function DecibelConverter() {
         </section>
 
         {/* ---------- Orta: Sonuç ---------- */}
-        <section className="panel">
-          <h2>{ui.result}</h2>
-
-          {!r.ok ? (
-            r.ambiguous ? (
-              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
-            ) : (
-              <p className="empty-note">{text.reasonText(r.reason)}</p>
-            )
-          ) : r.mode === MODE_DBM ? (
+        {/* İç `r.ok &&` kapısı gerekli: children JSX'i ResultPanel çizmese de
+            burada kurulur — bkz. TraceWidth'teki aynı not. */}
+        <ResultPanel r={r} reason={text.reasonText}>
+          {r.ok && (r.mode === MODE_DBM ? (
             <>
               <div className="big-result">
                 <div className="label">{text.bigDbm.label}</div>
@@ -302,8 +297,8 @@ export default function DecibelConverter() {
 
               <Commentary items={notes} />
             </>
-          )}
-        </section>
+          ))}
+        </ResultPanel>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">

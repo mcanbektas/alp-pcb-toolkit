@@ -4,6 +4,7 @@ import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import ToolHeader from '../../../components/ToolHeader'
+import ResultPanel from '../../../components/ResultPanel'
 import Commentary from '../../../components/Commentary'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
@@ -504,16 +505,10 @@ export default function ClearanceCreepagePadstack() {
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
-        <section className="panel">
-          <h2>{ui.result}</h2>
-
-          {!r.ok ? (
-            r.ambiguous ? (
-              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
-            ) : (
-              <p className="empty-note">{text.reasonText(r.reason, r.invalid)}</p>
-            )
-          ) : (
+        {/* İç `r.ok &&` kapısı gerekli: children JSX'i ResultPanel çizmese de
+            burada kurulur — bkz. TraceWidth'teki aynı not. */}
+        <ResultPanel r={r} reason={(code) => text.reasonText(code, r.invalid)}>
+          {r.ok && (
             <>
               <div className="big-result">
                 <div className="label">
@@ -615,7 +610,7 @@ export default function ClearanceCreepagePadstack() {
               <Commentary items={notes} />
             </>
           )}
-        </section>
+        </ResultPanel>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">
