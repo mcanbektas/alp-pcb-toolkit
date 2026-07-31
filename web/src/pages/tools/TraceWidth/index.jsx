@@ -85,6 +85,7 @@ export default function TraceWidth() {
           <TraceSchematic ref={schematicRef} r={r} text={text.schematic} />
 
           <Segmented
+            label={text.modeGroup}
             value={mode}
             onChange={setMode}
             options={[

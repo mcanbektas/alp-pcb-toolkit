@@ -68,6 +68,7 @@ export default function FrequencyConverter() {
           <FrequencySchematic ref={schematicRef} r={r} text={text.schematic} />
 
           <Segmented
+            label={text.sourceGroup}
             value={f.source}
             onChange={set('source')}
             options={SOURCES.map((x) => ({ value: x, label: text.sourceLabel[x] }))}

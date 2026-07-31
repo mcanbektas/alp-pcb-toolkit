@@ -78,6 +78,7 @@ export default function DiffPair() {
           <DiffPairSchematic ref={schematicRef} r={r} form={f} text={text.schematic} />
 
           <Segmented
+            label={text.modeGroup}
             value={mode}
             onChange={setMode}
             options={[

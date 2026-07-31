@@ -161,12 +161,14 @@ export function getText(lang) {
         + 'and computes drill, pad, antipad and worst-case annular ring geometry on the padstack side.',
     }),
 
+    tabsGroup: t({ tr: 'Hesap konusu', en: 'Calculation topic' }),
     tabs: {
       clearance: t({ tr: 'Clearance', en: 'Clearance' }),
       creepage: t({ tr: 'Creepage', en: 'Creepage' }),
       padstack: t({ tr: 'Padstack', en: 'Padstack' }),
     },
 
+    modeGroup: t({ tr: 'Padstack hesap modu', en: 'Padstack calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — ringi bul', en: 'Analysis — find the ring' }),
     modeSynthesis: t({ tr: 'Sentez — padi bul', en: 'Synthesis — find the pad' }),
 

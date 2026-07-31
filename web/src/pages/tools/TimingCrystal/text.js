@@ -46,6 +46,7 @@ export function getText(lang) {
       [TOOL_CRYSTAL]: t({ tr: 'Kristal yük kapasitesi', en: 'Crystal load capacitance' }),
     },
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeLabel: {
       [TOOL_RC]: {
         ana: t({ tr: 'Analiz — zaman sabitini bul', en: 'Analysis — find the time constant' }),

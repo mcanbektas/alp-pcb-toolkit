@@ -54,6 +54,7 @@ export function getText(lang) {
 
     awgLabel,
 
+    dirGroup: t({ tr: 'Dönüşüm yönü', en: 'Conversion direction' }),
     dirLabel: {
       [DIR_AWG]: t({ tr: 'Numaradan çapa', en: 'Gauge to diameter' }),
       [DIR_DIAMETER]: t({ tr: 'Çaptan numaraya', en: 'Diameter to gauge' }),
@@ -535,6 +536,7 @@ Valid range: AWG -3 (4/0) … 40`,
     },
 
     // --- Grafik ---
+    sweepGroup: t({ tr: 'Taranan parametre', en: 'Swept parameter' }),
     sweepLabel: {
       [SWEEP_D]: t({ tr: 'Çap', en: 'Diameter' }),
       [SWEEP_AREA]: t({ tr: 'Kesit alanı', en: 'Cross-sectional area' }),

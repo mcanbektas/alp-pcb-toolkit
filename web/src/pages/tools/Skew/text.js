@@ -72,6 +72,7 @@ export function getText(lang) {
         + 'works with two separate εeff values.',
     }),
 
+    layerGroup: t({ tr: 'Hatların katman düzeni', en: 'Layer arrangement of the lines' }),
     layerLabel: {
       [LAYER_SAME]: t({ tr: 'Aynı katman', en: 'Same layer' }),
       [LAYER_DIFFERENT]: t({

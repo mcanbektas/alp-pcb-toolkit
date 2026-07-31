@@ -37,6 +37,7 @@ export function getText(lang) {
         + 'inductance separately.',
     }),
 
+    sourceGroup: t({ tr: 'Gerilim dalgalanması girdisi', en: 'Voltage ripple input' }),
     sourceLabel: {
       [SRC_TOLERANCE]: t({ tr: 'Ray gerilimi + tolerans %', en: 'Rail voltage + tolerance %' }),
       [SRC_DIRECT]: t({ tr: 'Doğrudan izin verilen ΔV', en: 'Directly entered allowed ΔV' }),

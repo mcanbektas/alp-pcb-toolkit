@@ -217,6 +217,7 @@ export default function ClearanceCreepagePadstack() {
           />
 
           <Segmented
+            label={text.tabsGroup}
             value={tab}
             onChange={switchTab}
             options={[
@@ -337,6 +338,7 @@ export default function ClearanceCreepagePadstack() {
           {tab === TAB_PADSTACK && (
             <>
               <Segmented
+                label={text.modeGroup}
                 value={mode}
                 onChange={setMode}
                 options={[

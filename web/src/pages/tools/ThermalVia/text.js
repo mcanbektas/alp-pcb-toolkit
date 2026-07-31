@@ -22,6 +22,7 @@ export function getText(lang) {
         + 'thermal resistance, the relative improvement with via count and the heat conducted.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — direnci bul', en: 'Analysis — find resistance' }),
     modeSynthesis: t({ tr: 'Sentez — via sayısı bul', en: 'Synthesis — find via count' }),
 

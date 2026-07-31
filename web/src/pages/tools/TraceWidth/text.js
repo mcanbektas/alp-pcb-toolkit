@@ -51,6 +51,7 @@ export function getText(lang) {
         + 'current density together.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeSynthesis: t({ tr: 'Sentez — genişlik bul', en: 'Synthesis — find width' }),
     modeAnalysis: t({ tr: 'Analiz — kapasite bul', en: 'Analysis — find capacity' }),
 

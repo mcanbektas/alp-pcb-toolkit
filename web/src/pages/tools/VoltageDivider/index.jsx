@@ -82,6 +82,7 @@ export default function VoltageDivider() {
           <DividerSchematic ref={schematicRef} r={r} text={text.schematic} />
 
           <Segmented
+            label={text.modeGroup}
             value={mode}
             onChange={(v) => { setMode(v); setPickIndex(0) }}
             options={[
@@ -348,6 +349,7 @@ export default function VoltageDivider() {
         <div className="chart-head">
           <h2>{ui.chart}</h2>
           <Segmented
+            label={text.sweepGroup}
             value={sweep}
             onChange={setSweep}
             options={SWEEP_PARAMS.map((p) => ({ value: p, label: text.sweepLabel[p] }))}

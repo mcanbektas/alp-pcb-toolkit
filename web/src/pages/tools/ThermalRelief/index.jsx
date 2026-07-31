@@ -202,6 +202,7 @@ export default function ThermalRelief() {
           <ThermalReliefSchematic ref={schematicRef} r={r} text={text.schematic} fmtLen={asMm} />
 
           <Segmented
+            label={text.spokeMode.label}
             value={f.spokeMode}
             onChange={set('spokeMode')}
             options={[

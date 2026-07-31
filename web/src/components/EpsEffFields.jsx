@@ -23,6 +23,7 @@ import {
 const DIM_UNITS = ['mm', 'um', 'mil']
 
 const TEXT = {
+  sourceGroup: { tr: 'εeff kaynağı', en: 'εeff source' },
   sourceManual: { tr: 'Elle gir', en: 'Enter manually' },
   sourceGeometry: { tr: 'Geometriden hesapla', en: 'Compute from geometry' },
   structMicrostrip: { tr: 'Microstrip', en: 'Microstrip' },
@@ -56,6 +57,7 @@ export default function EpsEffFields({ f, set }) {
   return (
     <>
       <Segmented
+        label={t(TEXT.sourceGroup)}
         value={f.epsSource}
         onChange={set('epsSource')}
         options={[

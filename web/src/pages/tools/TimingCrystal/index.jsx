@@ -96,6 +96,7 @@ export default function TimingCrystal() {
           />
 
           <Segmented
+            label={text.modeGroup}
             value={mode}
             onChange={setMode}
             options={[

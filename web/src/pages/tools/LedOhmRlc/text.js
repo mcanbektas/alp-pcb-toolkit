@@ -60,6 +60,7 @@ export function getText(lang) {
       [TOOL_COMBO]: t({ tr: 'Seri / paralel birleşim', en: 'Series / parallel combination' }),
     },
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeLabel: {
       [MODE_ANALYSIS]: t({
         tr: 'Analiz — empedansı bul',

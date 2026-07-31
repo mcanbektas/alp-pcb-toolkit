@@ -166,6 +166,7 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
       <div className="field">
         <span className="field-label">{text.docLangLabel}</span>
         <Segmented
+          label={text.docLangLabel}
           options={LANGS.map((code) => ({
             value: code,
             label: text.docLangNames[code],

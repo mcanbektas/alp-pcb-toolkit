@@ -87,6 +87,7 @@ export default function Junction() {
           <JunctionSchematic ref={schematicRef} r={r} form={f} mode={mode} text={text.schematic} />
 
           <Segmented
+            label={text.modeGroup}
             value={mode}
             onChange={setMode}
             options={MODES.map((m) => ({ value: m, label: text.modeLabel[m] }))}

@@ -206,6 +206,7 @@ export function getText(lang) {
         + 'E-series value and the temperature drift together.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — koddan değere', en: 'Analysis — code to value' }),
     modeSynthesis: t({ tr: 'Sentez — değerden koda', en: 'Synthesis — value to code' }),
 

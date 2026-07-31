@@ -41,6 +41,7 @@ export function getText(lang) {
         + 'self-resonant frequency of each capacitor and the anti-resonance peaks between them.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeLabel: {
       [MODE_MIN]: t({ tr: 'Minimum kapasite', en: 'Minimum capacitance' }),
       [MODE_NETWORK]: t({ tr: 'Kapasitör ağı', en: 'Capacitor network' }),

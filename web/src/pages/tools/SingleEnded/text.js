@@ -36,6 +36,7 @@ export function getText(lang) {
         + 'for a target impedance with a bounded root search.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — empedansı bul', en: 'Analysis — find impedance' }),
     modeSynthesis: t({ tr: 'Sentez — genişliği bul', en: 'Synthesis — find width' }),
 

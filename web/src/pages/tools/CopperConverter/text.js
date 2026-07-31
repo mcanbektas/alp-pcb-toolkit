@@ -87,6 +87,8 @@ export function getText(lang) {
         + 'be named and stored in this browser.',
     }),
 
+    sourceGroup: t({ tr: 'Girdi büyüklüğü', en: 'Input quantity' }),
+
     // Kaynak seçicisinin kısa etiketleri — üç düğme aynı şeride sığmalı.
     sourceLabel: {
       weight: t({ tr: 'Bakır ağırlığından', en: 'From copper weight' }),

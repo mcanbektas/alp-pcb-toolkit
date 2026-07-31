@@ -133,6 +133,7 @@ export function getText(lang) {
         + 'network on the board.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeLabel: {
       [MODE_JUNCTION]: 'Junction (θ_JA)',
       [MODE_HEATSINK]: t({ tr: 'Soğutucu', en: 'Heatsink' }),

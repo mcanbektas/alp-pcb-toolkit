@@ -34,6 +34,7 @@ export function getText(lang) {
         + 'approximate parasitics.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — tek via', en: 'Analysis — single via' }),
     modeSynthesis: t({ tr: 'Sentez — via sayısı bul', en: 'Synthesis — find via count' }),
 

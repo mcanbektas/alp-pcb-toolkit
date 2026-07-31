@@ -82,6 +82,7 @@ export default function DecibelConverter() {
           <DecibelSchematic ref={schematicRef} r={r} text={text.schematic} />
 
           <Segmented
+            label={text.modeGroup}
             value={f.mode}
             onChange={set('mode')}
             options={MODES.map((m) => ({ value: m, label: text.modeLabel[m] }))}

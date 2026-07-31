@@ -41,6 +41,7 @@ export function getText(lang) {
         + 'the vector lies in.',
     }),
 
+    modeGroup: t({ tr: 'Dönüşüm yönü', en: 'Conversion direction' }),
     modeLabel,
 
     kindLabel: {
@@ -335,6 +336,7 @@ In the code the phase is ALWAYS
       x: t({ tr: 'Sanal bileşen X (Ω)', en: 'Imaginary part X (Ω)' }),
       marker: t({ tr: 'seçilen', en: 'selected' }),
 
+      sweepGroup: t({ tr: 'Taranan parametre', en: 'Swept parameter' }),
       sweepLabel: {
         [SWEEP_MAG]: t({ tr: '|Z| taraması', en: '|Z| sweep' }),
         [SWEEP_PHASE]: t({ tr: 'φ taraması', en: 'φ sweep' }),

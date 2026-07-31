@@ -25,6 +25,7 @@ export function getText(lang) {
         + 'differential pair; finds the trace spacing or width for a target differential impedance.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — empedansı bul', en: 'Analysis — find impedance' }),
     modeSynthesis: t({ tr: 'Sentez — geometriyi bul', en: 'Synthesis — find geometry' }),
 

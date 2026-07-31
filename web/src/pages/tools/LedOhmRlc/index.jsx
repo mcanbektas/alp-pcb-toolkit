@@ -84,6 +84,7 @@ export default function LedOhmRlc() {
 
           {HAS_MODES[f.tool] && (
             <Segmented
+              label={text.modeGroup}
               value={mode}
               onChange={setMode}
               options={[

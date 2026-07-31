@@ -378,6 +378,7 @@ export function getText(lang) {
         + 'impedance and in the bias.',
     }),
 
+    typeGroup: t({ tr: 'Terminasyon türü', en: 'Termination type' }),
     typeLabel: {
       [TERM_SERIES]: t({ tr: 'Seri', en: 'Series' }),
       [TERM_PARALLEL]: t({ tr: 'Paralel', en: 'Parallel' }),

@@ -124,6 +124,7 @@ export function getText(lang) {
       epsEven: { label: t({ tr: 'Even mod εeff', en: 'Even-mode εeff' }) },
     },
     fextHeading: t({ tr: 'Far-end crosstalk', en: 'Far-end crosstalk' }),
+    fextModeGroup: t({ tr: 'FEXT hesabı', en: 'FEXT computation' }),
     fextOff: t({ tr: 'FEXT hesaplama', en: 'Do not compute FEXT' }),
     fextOn: t({ tr: 'FEXT hesapla — modal εeff gir', en: 'Compute FEXT — enter modal εeff' }),
 

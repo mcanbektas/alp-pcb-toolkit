@@ -75,6 +75,7 @@ export default function AwgConverter() {
           <AwgSchematic ref={schematicRef} r={r} text={text.schematic} />
 
           <Segmented
+            label={text.dirGroup}
             value={f.dir}
             onChange={set('dir')}
             options={DIRECTIONS.map((x) => ({ value: x, label: text.dirLabel[x] }))}
@@ -321,6 +322,7 @@ export default function AwgConverter() {
         <div className="chart-head">
           <h2>{ui.chart}</h2>
           <Segmented
+            label={text.sweepGroup}
             value={sweep}
             onChange={setSweep}
             options={SWEEPS.map((x) => ({ value: x, label: text.sweepLabel[x] }))}

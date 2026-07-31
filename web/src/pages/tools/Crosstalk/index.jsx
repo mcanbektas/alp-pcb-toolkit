@@ -121,6 +121,7 @@ export default function Crosstalk() {
           <h2 className="section">{text.fextHeading}</h2>
 
           <Segmented
+            label={text.fextModeGroup}
             value={f.fextMode}
             onChange={set('fextMode')}
             options={[

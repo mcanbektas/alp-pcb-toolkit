@@ -38,6 +38,7 @@ export function getText(lang) {
         + 'they are not converted with the same equation.',
     }),
 
+    modeGroup: t({ tr: 'Dönüşüm türü', en: 'Conversion kind' }),
     modeLabel: {
       [MODE_ABS]: t({ tr: 'Mutlak sıcaklık', en: 'Absolute temperature' }),
       [MODE_DELTA]: t({ tr: 'Sıcaklık farkı (ΔT)', en: 'Temperature difference (ΔT)' }),
@@ -72,6 +73,7 @@ export function getText(lang) {
       }),
     },
 
+    sweepGroup: t({ tr: 'Grafik ekseni', en: 'Chart axis' }),
     sweepLabel: {
       [SWEEP_F]: t({ tr: 'Fahrenheit ekseni', en: 'Fahrenheit axis' }),
       [SWEEP_K]: t({ tr: 'Kelvin ekseni', en: 'Kelvin axis' }),

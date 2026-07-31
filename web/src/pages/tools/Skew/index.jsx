@@ -78,6 +78,7 @@ export default function Skew() {
           <EpsEffFields f={f} set={set} />
 
           <Segmented
+            label={text.layerGroup}
             value={f.layer}
             onChange={set('layer')}
             options={LAYERS.map((x) => ({ value: x, label: text.layerLabel[x] }))}

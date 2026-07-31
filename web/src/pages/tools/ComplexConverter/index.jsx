@@ -78,6 +78,7 @@ export default function ComplexConverter() {
           <ComplexSchematic ref={schematicRef} r={r} text={text.schematic} />
 
           <Segmented
+            label={text.modeGroup}
             value={f.mode}
             onChange={set('mode')}
             options={MODES.map((m) => ({ value: m, label: text.modeLabel[m] }))}
@@ -232,6 +233,7 @@ export default function ComplexConverter() {
         <div className="chart-head">
           <h2>{ui.chart}</h2>
           <Segmented
+            label={text.chart.sweepGroup}
             value={sweep}
             onChange={setSweep}
             options={SWEEP_PARAMS.map((p) => ({ value: p, label: text.chart.sweepLabel[p] }))}

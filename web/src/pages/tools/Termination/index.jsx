@@ -109,6 +109,7 @@ export default function Termination() {
           <TerminationSchematic ref={schematicRef} r={r} text={text.schematic} />
 
           <Segmented
+            label={text.typeGroup}
             value={type}
             onChange={setType}
             options={TERM_TYPES.map((x) => ({ value: x, label: text.typeLabel[x] }))}

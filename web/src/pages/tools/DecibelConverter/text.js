@@ -55,6 +55,7 @@ export function getText(lang) {
         + '20·log₁₀ together with the condition under which that difference holds.',
     }),
 
+    modeGroup: t({ tr: 'Büyüklük türü', en: 'Quantity kind' }),
     modeLabel: {
       [MODE_POWER]: t({ tr: 'Güç oranı', en: 'Power ratio' }),
       [MODE_VOLTAGE]: t({ tr: 'Gerilim oranı', en: 'Voltage ratio' }),

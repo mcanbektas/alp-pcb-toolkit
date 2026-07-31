@@ -38,6 +38,7 @@ export function getText(lang) {
         + 'window, power and source impedance together.',
     }),
 
+    modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — çıkışı bul', en: 'Analysis — find output' }),
     modeSynthesis: t({ tr: 'Sentez — çifti bul', en: 'Synthesis — find pair' }),
 
@@ -249,6 +250,7 @@ From target to ratio:
       }),
     ],
 
+    sweepGroup: t({ tr: 'Taranan parametre', en: 'Swept parameter' }),
     sweepLabel: {
       RL: t({ tr: 'R_L taraması', en: 'R_L sweep' }),
       R2: t({ tr: 'R2 taraması', en: 'R2 sweep' }),

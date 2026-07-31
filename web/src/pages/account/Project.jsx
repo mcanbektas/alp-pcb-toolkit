@@ -358,6 +358,7 @@ export default function Project() {
         <div className="field">
           <span className="field-label">{rt.docLangLabel}</span>
           <Segmented
+            label={rt.docLangLabel}
             options={LANGS.map((code) => ({
               value: code,
               label: rt.docLangNames[code],

@@ -31,6 +31,7 @@ export function getText(lang) {
         + 'unit equivalent of both quantities and with the angular frequency.',
     }),
 
+    sourceGroup: t({ tr: 'Girdi büyüklüğü', en: 'Input quantity' }),
     sourceLabel: {
       [SOURCE_FREQUENCY]: t({ tr: 'Frekanstan', en: 'From frequency' }),
       [SOURCE_PERIOD]: t({ tr: 'Periyottan', en: 'From period' }),

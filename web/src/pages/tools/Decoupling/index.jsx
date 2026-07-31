@@ -98,6 +98,7 @@ export default function Decoupling() {
           <DecouplingSchematic ref={schematicRef} r={r} mode={mode} text={text.schematic} />
 
           <Segmented
+            label={text.modeGroup}
             value={mode}
             onChange={setMode}
             options={[
