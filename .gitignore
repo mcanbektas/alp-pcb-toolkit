@@ -1,5 +1,8 @@
 node_modules
 dist
+# Prerender'ın sunucu paketi (`vite build --ssr`). Yalnız derleme sırasında,
+# Node'da koşar; `dist/` gibi üretilmiş çıktıdır ve depoya girmez.
+.prerender
 .DS_Store
 *.local
 

@@ -14,28 +14,45 @@
 // bir küme döner ve profile bağlı kontroller `unknown` olur. Sessiz bir
 // varsayılan üretici değeri hiçbir yolda üretilmez.
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { defaultStorage, nullStorage } from '../lib/storage'
 import {
   createDfmProfileStore, limitsToSI, noProfileLimits, parseProfileJson, profileToJson,
   DFM_ERR_NOT_FOUND,
 } from '../lib/dfmProfile'
 
+// Sabit boş liste: her render'da yeni dizi üretmek, listeyi bağımlılık dizisinde
+// taşıyan ekranlarda gereksiz yeniden hesap demek olurdu.
+const EMPTY_LIST = []
+
 export default function useDfmProfiles(storage = defaultStorage) {
   const store = useMemo(() => createDfmProfileStore(storage), [storage])
 
-  // İlk okuma bir kez yapılır. Depolamaya erişilemiyorsa `browserStorage()`
-  // zaten `nullStorage`'a düşer, bozuk kayıtta liste boş döner; ikisinde de
-  // istisna dışarı sızmaz ve ekran çalışmaya devam eder.
-  const [profiles, setProfiles] = useState(() => store.list())
-  const [activeId, setActiveId] = useState(() => store.activeId())
-
-  const available = storage !== nullStorage
+  // Depo İLK RENDER'DA OKUNMAZ, mount'tan sonra okunur. Gerekçe hydration:
+  // araç sayfaları derleme sonrası prerender'lanıyor
+  // (`scripts/build-prerender.mjs`) ve prerender sunucuda koşarken depo yok —
+  // ilk render burada depoyu okusaydı sunucudaki ağaç (profil yok, depolama
+  // erişilemez) tarayıcıdakiyle ayrışır ve React bütün araç ekranını sessizce
+  // yeniden çizerdi. Dört DFM ekranında ölçülen sonuç tam olarak buydu.
+  //
+  // Karşılığı, kayıtlı profili olan kullanıcıda bir karelik "profil yok"
+  // görüntüsüdür. `LangProvider` ile aynı takas — bkz. docs/prerender-karari.md §2.
+  //
+  // Depolamaya erişilemiyorsa `browserStorage()` zaten `nullStorage`'a düşer,
+  // bozuk kayıtta liste boş döner; ikisinde de istisna dışarı sızmaz.
+  const [profiles, setProfiles] = useState(EMPTY_LIST)
+  const [activeId, setActiveId] = useState(null)
+  const [available, setAvailable] = useState(true)
 
   const refresh = useCallback(() => {
     setProfiles(store.list())
     setActiveId(store.activeId())
   }, [store])
+
+  useEffect(() => {
+    refresh()
+    setAvailable(storage !== nullStorage)
+  }, [refresh, storage])
 
   const save = useCallback((profile) => {
     const res = store.save(profile)

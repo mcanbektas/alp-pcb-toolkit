@@ -278,23 +278,37 @@ function Layout({ children }) {
   )
 }
 
-export default function App() {
+// Yönlendiricinin ÜSTÜNDEKİ sağlayıcılar. Ayrı durmalarının nedeni prerender:
+// tarayıcıda `BrowserRouter`, derleme sonrası prerender'da `StaticRouter`
+// kullanılır (`scripts/prerender/entry-server.jsx`), ama her iki durumda da
+// sağlayıcı sırası aynı kalmalı — yoksa iki yol farklı ağaç kurar ve
+// hydration eşleşmez.
+//
+// NoticeProvider yönlendiricinin ÜSTÜNDE: çıkışta önce bildirim kurulup sonra
+// sayfa değiştiriliyor, sağlayıcı içeride olsaydı yönlendirme onu söker ve
+// kart hiç görünmezdi.
+export function AppProviders({ children }) {
   return (
     <LangProvider>
-      {/* NoticeProvider yönlendiricinin ÜSTÜNDE: çıkışta önce bildirim kurulup
-          sonra sayfa değiştiriliyor, sağlayıcı içeride olsaydı yönlendirme onu
-          söker ve kart hiç görünmezdi. */}
-      <NoticeProvider>
-        <BrowserRouter>
-          <TitleSync />
-          <AuthProvider>
-            <Layout>
-              {/* Hata sınırı Suspense'in DIŞINDA: chunk indirme hatası
-                  Suspense'i değil en yakın boundary'yi bulur — içeride
-                  olsaydı asılı fallback yine kurtarılamazdı. */}
-              <ErrorBoundary>
-                <Suspense fallback={<LoadingNote />}>
-                  <Routes>
+      <NoticeProvider>{children}</NoticeProvider>
+    </LangProvider>
+  )
+}
+
+// Yönlendiricinin İÇİNDEKİ ağaç. Router'ı kendisi kurmaz: çağıran taraf
+// (tarayıcı ya da prerender) hangi yönlendiriciyi saracağına karar verir.
+export function AppRoutes() {
+  return (
+    <>
+      <TitleSync />
+      <AuthProvider>
+        <Layout>
+          {/* Hata sınırı Suspense'in DIŞINDA: chunk indirme hatası
+              Suspense'i değil en yakın boundary'yi bulur — içeride
+              olsaydı asılı fallback yine kurtarılamazdı. */}
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingNote />}>
+              <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/kategori/:slug" element={<CategoryPage />} />
                   <Route path="/giris" element={<Login />} />
@@ -335,13 +349,21 @@ export default function App() {
                   <Route path="/arac/stack-up-planlayici" element={<StackupPlanner />} />
                   <Route path="/arac/thermal-relief" element={<ThermalRelief />} />
                   <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </ErrorBoundary>
-            </Layout>
-          </AuthProvider>
-        </BrowserRouter>
-      </NoticeProvider>
-    </LangProvider>
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </Layout>
+      </AuthProvider>
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <AppProviders>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AppProviders>
   )
 }

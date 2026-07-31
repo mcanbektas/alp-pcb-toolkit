@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import App from './App'
 // Yazı tipleri temadan bağımsızdır (dört tema da aynı üç aileyi kullanır), bu
 // yüzden tema anahtarından ayrı bir dosyada durur ve ondan ÖNCE yüklenir.
@@ -13,8 +13,27 @@ if (window.location.hash.startsWith('#/')) {
   window.history.replaceState(null, '', window.location.hash.slice(1) + window.location.search)
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const container = document.getElementById('root')
+const tree = (
   <React.StrictMode>
     <App />
   </React.StrictMode>
 )
+
+// Araç ve kategori sayfaları derleme sonrası prerender'lanıyor
+// (`scripts/build-prerender.mjs`), yani kök düğüm DOLU gelebilir. O zaman
+// `hydrateRoot`: var olan DOM yeniden kullanılır, atılıp yeniden kurulmaz.
+//
+// İki durumda yine de `createRoot`:
+//   - kök boşsa — prerender'lanmamış rota (giriş, hesap sayfaları) ya da
+//     SPA geri düşüşüyle gelen boş kabuk;
+//   - istekte sorgu dizesi varsa — prerender çıktısı sorgusuz üretildi ve
+//     `?hesap=<id>` ile açılan araç ekranının ilk render'ı farklıdır
+//     (`useSavedCalculation` yükleme durumunda başlar). O sayfa kullanıcıya
+//     özeldir, prerender kazancı zaten aranmaz.
+// Ayrıntı: docs/prerender-karari.md §2.
+if (container.hasChildNodes() && !window.location.search) {
+  hydrateRoot(container, tree)
+} else {
+  createRoot(container).render(tree)
+}

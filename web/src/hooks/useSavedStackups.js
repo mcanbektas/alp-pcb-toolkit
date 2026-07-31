@@ -9,7 +9,7 @@
 //
 // Zaman damgası saf katmana dışarıdan verilir; onu üreten tek yer burasıdır.
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { defaultStorage, nullStorage } from '../lib/storage'
 import {
   createStackupStore, parseStackupJson, stackupToJson,
@@ -23,13 +23,23 @@ function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
+const EMPTY_LIST = []
+
 export default function useSavedStackups(storage = defaultStorage) {
   const store = useMemo(() => createStackupStore(storage), [storage])
 
-  const [stackups, setStackups] = useState(() => store.list())
-  const available = storage !== nullStorage
+  // Depo ilk render'da OKUNMAZ — gerekçe `useDfmProfiles`'taki uzun notta:
+  // araç sayfaları prerender'lanıyor ve ilk render sunucudakiyle birebir
+  // aynı olmak zorunda.
+  const [stackups, setStackups] = useState(EMPTY_LIST)
+  const [available, setAvailable] = useState(true)
 
   const refresh = useCallback(() => setStackups(store.list()), [store])
+
+  useEffect(() => {
+    refresh()
+    setAvailable(storage !== nullStorage)
+  }, [refresh, storage])
 
   const save = useCallback((name, layers) => {
     const id = stackupId(name)

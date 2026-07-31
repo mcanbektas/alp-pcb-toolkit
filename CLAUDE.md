@@ -19,7 +19,7 @@ Ayrıntı: aşağıdaki "Dil (tr / en)" bölümü.
 ```bash
 npm install
 npm run dev      # http://localhost:3000  (vite.config.js: port 3000, strictPort)
-npm run build    # dist/
+npm run build    # dist/ — vite build + SSR paketi + prerender + sitemap (aşağıya bkz.)
 npm run preview
 npm test         # vitest run — yalnızca src/lib/ altındaki saf hesap fonksiyonları
 npm run test:watch
@@ -56,10 +56,48 @@ servis edilir: `vite.config.js` içinde `base: '/'` ve `App.jsx` içinde `Browse
 kullanılır. `main.jsx` eski `#/arac/...` bağlantılarını yeni yollara çeviren bir yönlendirme
 taşır — kullanıcıların kayıtlı bağlantıları kırılmasın diye duruyor, silinmemeli.
 
-`BrowserRouter` derin bağlantıda sunucudan SPA geri dönüşü ister: `/arac/...` isteğine
-`index.html` dönmeyen bir yapılandırmada sayfa yenilendiğinde 404 alınır. Karşılığı
-`deploy/nginx.conf` içindeki `try_files $uri $uri/ /index.html` satırıdır; düşerse site
-ilk açılışta çalışır, **sayfa yenilendiğinde 404 verir**. Her dağıtımda ilk kontrol budur.
+`BrowserRouter` derin bağlantıda sunucudan SPA geri dönüşü ister: `/giris` isteğine bir
+HTML kabuğu dönmeyen yapılandırmada sayfa yenilendiğinde 404 alınır. Karşılığı
+`deploy/nginx.conf` içindeki `try_files` satırıdır; düşerse site ilk açılışta çalışır,
+**sayfa yenilendiğinde 404 verir**. Her dağıtımda ilk kontrol budur.
+
+### Prerender (SSG) — araç ve kategori sayfaları
+
+`npm run build` dört adımdır ve sırası önemlidir:
+
+```
+vite build                                   → dist/ (boş kabuk + hash'li varlıklar)
+vite build --ssr scripts/prerender/…         → .prerender/ (Node paketi, depoya girmez)
+node scripts/build-prerender.mjs             → 38 sayfa + spa-fallback.html
+node scripts/build-sitemap.mjs               → dist/sitemap.xml
+```
+
+Site saf SPA'ydı ve JS koşturmayan bot her sayfada boş `<div id="root">` görüyordu.
+Artık `/`, 8 kategori ve `path`i olan 29 araç derleme sonrası `react-dom/server` ile
+render edilip `dist/<yol>.html` olarak yazılıyor; `<title>` de rota başına yazılıyor
+(`TitleSync` ile aynı kaynak ve kalıp). Kararların tamamı ve elenen seçenekler:
+**`docs/prerender-karari.md`**.
+
+Bilinmesi gereken üç şey:
+
+- **`App.jsx` yönlendirici-bağımsız**: `AppProviders` (router'ın üstü) + `AppRoutes`
+  (router'ın içi) ayrı export edilir. Tarayıcı `BrowserRouter`, prerender `StaticRouter`
+  sarar. Sağlayıcı sırası tek yerdedir; bozulursa iki yol farklı ağaç kurar.
+- **İlk render tarayıcıya özgü hiçbir şey okumaz.** `hydrateRoot` kullanılıyor ve
+  prerender'lı HTML ile ilk client render'ı birebir aynı olmak zorunda. Bu yüzden
+  `LangProvider` ilk render'da her zaman `DEFAULT_LANG`'tır ve profil hook'ları
+  (`useDfmProfiles`, `useClearanceProfiles`, `useSavedStackups`) depoyu **mount'tan
+  sonra** okur. **Yeni bir hook ilk render'da `localStorage`'a bakarsa dört DFM
+  ekranında olan olur: hydration ayrışır ve React bütün ekranı sessizce yeniden çizer.**
+  Bu build'den ve testten kaçar — ölçmenin yolu `docs/prerender-karari.md` §8'dedir.
+- **`dist/index.html` artık boş kabuk değil, ana sayfadır.** SPA geri düşüşü
+  `spa-fallback.html`'dir. nginx zinciri
+  `try_files $uri $uri.html $uri/index.html /spa-fallback.html /index.html` ve her
+  parçasının gerekçesi ölçülmüştür (301 yönlendirmesi, kök isteği, no-store) — sadeleştirmeden
+  önce `docs/prerender-karari.md` §6 okunur.
+
+Yeni araç eklendiğinde ek bir adım YOKTUR: rota da başlık da `src/data/categories.js`ten
+türer, prerender ve sitemap kendiliğinden kapsar.
 
 ### Dağıtım (Faz 8)
 

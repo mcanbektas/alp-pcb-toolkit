@@ -6,25 +6,34 @@
 // Profil yüklü değilken hesap yine çalışır; motor `profile: null` alır ve
 // tablo tabanlı değerlendirmeyi hiç yapmaz.
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { defaultStorage, nullStorage } from '../lib/storage'
 import {
   createClearanceProfileStore, parseClearanceProfileJson, clearanceProfileToJson,
   CLEAR_ERR_NOT_FOUND,
 } from '../lib/clearanceProfile'
 
+const EMPTY_LIST = []
+
 export default function useClearanceProfiles(storage = defaultStorage) {
   const store = useMemo(() => createClearanceProfileStore(storage), [storage])
 
-  const [profiles, setProfiles] = useState(() => store.list())
-  const [activeId, setActiveId] = useState(() => store.activeId())
-
-  const available = storage !== nullStorage
+  // Depo ilk render'da OKUNMAZ — gerekçe `useDfmProfiles`'taki uzun notta:
+  // araç sayfaları prerender'lanıyor ve ilk render sunucudakiyle birebir
+  // aynı olmak zorunda.
+  const [profiles, setProfiles] = useState(EMPTY_LIST)
+  const [activeId, setActiveId] = useState(null)
+  const [available, setAvailable] = useState(true)
 
   const refresh = useCallback(() => {
     setProfiles(store.list())
     setActiveId(store.activeId())
   }, [store])
+
+  useEffect(() => {
+    refresh()
+    setAvailable(storage !== nullStorage)
+  }, [refresh, storage])
 
   const selectActive = useCallback((id) => {
     const res = store.setActive(id)
