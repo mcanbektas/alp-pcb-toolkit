@@ -104,6 +104,10 @@ export default function Project() {
   }))
 
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
+  // Firma da ad gibi profilden önerilir ve düzenlenebilir — ReportDialog'daki
+  // aynı desen. Eskiden bu ekranda hiç görünmüyordu: firmayı sunucu kendi
+  // kaydından okuyordu, yani kullanıcı belgede ne yazacağını göremiyordu.
+  const [company, setCompany] = useState(user?.company ?? '')
   const [reportBusy, setReportBusy] = useState(null) // null | 'pdf' | 'xlsx'
   const [reportError, setReportError] = useState(null)
   // Belge dili — arayüz dilinden ayrı, başlangıcı arayüz dili.
@@ -115,12 +119,22 @@ export default function Project() {
   // olamaz" çıkıyordu; SPA içinde gezinerek gelindiğinde ad zaten yüklü olduğu
   // için sorun görünmüyordu. ReportDialog'daki düzeltmenin aynısı: ad geldiğinde
   // alan BİR KEZ doldurulur ve kullanıcının yazdığı değer ezilmez.
+  //
+  // Firma kendi bayrağıyla doldurulur: profili boş olan kullanıcıda
+  // `user.company` hiç gelmez ve ortak bayrak ad geldiğinde yanardı.
   const filledFromUser = useRef(false)
   useEffect(() => {
     if (filledFromUser.current || !user?.displayName) return
     filledFromUser.current = true
     setPreparedBy((current) => (current === '' ? user.displayName : current))
   }, [user?.displayName])
+
+  const companyFilled = useRef(false)
+  useEffect(() => {
+    if (companyFilled.current || !user?.company) return
+    companyFilled.current = true
+    setCompany((current) => (current === '' ? user.company : current))
+  }, [user?.company])
 
   useEffect(() => {
     if (!isAuthenticated) return undefined
@@ -191,7 +205,11 @@ export default function Project() {
   // Rapor bölümleri artık istemciye hiç gelmiyor (proje detayı yalnızca
   // önizleme satırlarını taşır), bu yüzden yükü sunucu kuruyor: gövdede
   // belgenin künyesi gider, bölümleri sunucu kaydedilmiş hesaplardan toplar.
-  // Firma adını da sunucu kendi kaydından okur.
+  //
+  // Firma da künyenin parçasıdır ve GÖVDEDE gider. Eskiden sunucu onu kendi
+  // kaydından okuyordu; kullanıcı belgede ne yazacağını göremiyor, tek
+  // seferlik başka bir firma adı da veremiyordu. Alan boş bırakılırsa sunucu
+  // yine profildeki değere düşer.
   async function downloadReport(format) {
     setReportError(null)
 
@@ -206,6 +224,11 @@ export default function Project() {
     const res = await api.postBlob(path, {
       title: reportText(docLang).reportTitle,
       preparedBy: preparedBy.trim(),
+      // Alan boşaltıldıysa BOŞ DİZE gider, `null` değil. Sunucuda ikisi ayrı
+      // anlam taşır: boş dize "bu belgeye firma yazma", `null` (alan hiç
+      // gönderilmemiş) "profildekini kullan". Boşaltmayı `null`a çevirseydik
+      // firmayı kaldırmak isteyen kullanıcı sessizce profildekini alırdı.
+      company: company.trim(),
       date: reportDateStamp(),
       // Bölümleri sunucu kendi kaydından toplar ama çerçeve metnini
       // toplayamaz: sunucuda kullanıcı metni yok. Belgenin başlıkları bu
@@ -319,6 +342,14 @@ export default function Project() {
           <span className="field-row">
             <input type="text" value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} />
           </span>
+        </label>
+
+        <label className="field">
+          <span className="field-label">{pt.companyLabel}</span>
+          <span className="field-row">
+            <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} />
+          </span>
+          <span className="field-hint">{pt.companyHint}</span>
         </label>
 
         {/* Belge dili arayüz dilinden AYRI bir seçim — bkz. ReportDialog'daki

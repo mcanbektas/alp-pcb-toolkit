@@ -28,6 +28,9 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
   const { showNotice } = useNotice()
 
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
+  // Firma da ad gibi profilden önerilir ve düzenlenebilir. Boş bırakılabilir:
+  // yükte `null`a düşer, belge yalnızca adı taşır.
+  const [company, setCompany] = useState(user?.company ?? '')
 
   // Belge dili — arayüz dilinden AYRI tutulur. Başlangıç değeri arayüz dilidir
   // (olağan durum), ama kullanıcı değiştirince `useLang()` değişmez: Türkçe
@@ -45,12 +48,24 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
   //
   // Ad geldiğinde alan BİR KEZ doldurulur ve kullanıcının yazdığı değer
   // ezilmez: koşul hem tek seferlik bayrağa hem alanın hâlâ boş olmasına bakar.
+  //
+  // Firma aynı gerekçeyle aynı anda doldurulur. Kendi bayrağı VAR: profili
+  // boş olan kullanıcıda `user.company` hiç gelmez ve ortak bir bayrak
+  // kullanılsaydı ad geldiğinde bayrak yanar, firma sonradan tanımlansa bile
+  // bir daha doldurulmazdı.
   const filledFromUser = useRef(false)
   useEffect(() => {
     if (filledFromUser.current || !user?.displayName) return
     filledFromUser.current = true
     setPreparedBy((current) => (current === '' ? user.displayName : current))
   }, [user?.displayName])
+
+  const companyFilled = useRef(false)
+  useEffect(() => {
+    if (companyFilled.current || !user?.company) return
+    companyFilled.current = true
+    setCompany((current) => (current === '' ? user.company : current))
+  }, [user?.company])
   const [busy, setBusy] = useState(null) // null | 'pdf' | 'xlsx'
   const [error, setError] = useState(null)
 
@@ -94,7 +109,10 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
     const built = buildReportPayload({
       title: reportText(docLang).reportTitle,
       preparedBy,
-      company: user?.company,
+      // Profilden değil ALANDAN okunur: kullanıcı tek seferlik başka bir firma
+      // yazdıysa belgeye o gitmeli. `buildReportPayload` boş dizeyi `null`a
+      // çevirir.
+      company,
       date: reportDateStamp(),
       // Belgenin çerçeve metni yükle birlikte gider — sunucu kendi sözlüğünü
       // taşımaz (bkz. reportText.js'teki reportLabels notu).
@@ -132,6 +150,14 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
         <span className="field-row">
           <input type="text" value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} />
         </span>
+      </label>
+
+      <label className="field">
+        <span className="field-label">{text.companyLabel}</span>
+        <span className="field-row">
+          <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} />
+        </span>
+        <span className="field-hint">{text.companyHint}</span>
       </label>
 
       {/* Belge dili arayüz dilinden AYRI bir seçimdir: Türkçe çalışıp

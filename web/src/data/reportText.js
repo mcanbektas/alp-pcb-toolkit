@@ -22,6 +22,17 @@ export function reportText(lang) {
     },
     heading: t({ tr: 'Rapor al', en: 'Get a report' }),
     preparedByLabel: t({ tr: 'Hazırlayan', en: 'Prepared by' }),
+    // Firma alanı profilden DOLU gelir ve düzenlenebilir. Eskiden hiç
+    // gösterilmiyordu, yalnızca profilden sessizce yüke ekleniyordu: kullanıcı
+    // belgede hangi firmanın yazacağını indirme anında GÖREMİYORDU ve tek
+    // seferlik başka bir ad kullanmanın yolu yoktu.
+    companyLabel: t({ tr: 'Firma (opsiyonel)', en: 'Company (optional)' }),
+    // Düzenlemenin kapsamı belirsiz kalmasın: bu alan profili değiştirmez.
+    // Kalıcı değişiklik Hesabım ekranının işidir.
+    companyHint: t({
+      tr: 'Profilinden geldi. Burada değiştirmek yalnızca bu belgeyi etkiler.',
+      en: 'Taken from your profile. Editing here affects this document only.',
+    }),
     // Düğme seçilen dili kendi üstünde taşır: seçici yukarıda kalıyor ve
     // indirmeden önce son bakılan yer düğmedir. `name` çağıranın seçtiği dilin
     // ARAYÜZ dilindeki adıdır (bkz. docLangNames).

@@ -106,6 +106,15 @@ export function getText(lang) {
 
       reportHeading: t({ tr: 'Proje raporu', en: 'Project report' }),
       preparedByLabel: t({ tr: 'Hazırlayan', en: 'Prepared by' }),
+      // Firma profilden dolu gelir ve düzenlenebilir; düzenleme profili
+      // değiştirmez, yalnız o belgeyi etkiler. Metin ReportDialog'dakiyle aynı
+      // olmak zorunda değil ama aynı sözü vermeli — iki rapor yüzeyi arasında
+      // kural ayrışmasın.
+      companyLabel: t({ tr: 'Firma (opsiyonel)', en: 'Company (optional)' }),
+      companyHint: t({
+        tr: 'Profilinden geldi. Burada değiştirmek yalnızca bu belgeyi etkiler.',
+        en: 'Taken from your profile. Editing here affects this document only.',
+      }),
       pdfButton: t({ tr: 'PDF indir', en: 'Download PDF' }),
       xlsxButton: t({ tr: 'Excel indir', en: 'Download Excel' }),
       working: t({ tr: 'Hazırlanıyor…', en: 'Preparing…' }),

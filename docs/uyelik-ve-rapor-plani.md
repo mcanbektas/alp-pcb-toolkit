@@ -1146,7 +1146,8 @@ Düşüş **%97**. Satır içi SVG istemciye artık hiç ulaşmıyor: yanıtta `
   kopyası kalsaydı ekran ile sunucu zamanla ayrışırdı. `restoreForm`/`engineStatus` yerinde.
 - **Yeni uç:** `POST /api/projects/{id}/report/{pdf,xlsx}`. İstemci rapor bölümlerini artık
   alamadığı için yükü sunucu kuruyor; gövdede yalnız `{title, preparedBy, date}` gidiyor,
-  firma adı kullanıcı kaydından okunuyor. Bölüm toplama kodu `/api/reports/{id}/download`
+  firma adı kullanıcı kaydından okunuyor (§27 ile değişti: firma da gövdede gidiyor).
+  Bölüm toplama kodu `/api/reports/{id}/download`
   ile ortak (`ProjectPayload`) — iki yol aynı projeden farklı belge üretemez.
   Mevcut `POST /api/reports/{pdf,xlsx}` sözleşmesi ("yükü istemci kurar") değişmedi; araç
   ekranı canlı SVG'yi hâlâ o an yakalayıp gönderiyor.
@@ -1529,3 +1530,62 @@ tarayıcıda `/hesabim` 10/10 — logo paneli yok, sayfada "logo" kelimesi geçm
 yok, e-posta salt okunur, ad ve firma düzenlenebilir, firma kaydedilip yenilemede geri geldi,
 kalınlık paneli yerinde, konsol hatası yok. İki rapor yolu da çalışıyor: tek seferlik PDF
 239 KB, proje raporu 228 KB, ikisinde de logo 1372×314 (§24'teki tam çözünürlük).
+
+## 27. Firma adı indirme kartında — görünür ve tek seferlik düzenlenebilir
+
+Firma adı belgenin künyesinde yazıyordu ama **indirme anında hiçbir yerde
+görünmüyordu**: araç ekranında istemci onu sessizce profilden yüke ekliyordu
+(`ReportDialog` → `company: user?.company`), proje raporunda ise sunucu kendi
+kaydından okuyordu. Sonuç: kullanıcı belgede hangi firmanın yazacağını
+göremiyor, tek seferlik başka bir ad da veremiyordu. "Hazırlayan" alanı en
+başından beri hem görünür hem düzenlenebilirdi; firma o simetriyi taşımıyordu.
+
+### Elenen seçenek — onay kartı
+
+Önce "hazır kişi ve firma bilgilerini kullanmak istiyor musunuz?" diye soran
+bir evet/hayır adımı düşünüldü. Yapılmadı: herkese bir tık ekler, kimseye tık
+kazandırmaz — "evet" diyen zaten bugünkü akışı yaşıyor, "hayır" diyen bugün de
+alanı düzenleyebiliyordu. Onay adımı yıkıcı işlemlere aittir; rapor indirmek
+yıkıcı değil. Sorunun cevabı zaten arayüzde verilebilir: **önceden dolu,
+düzenlenebilir alan**. Beğenen dokunmaz, beğenmeyen üstüne yazar.
+
+### Yapılan
+
+- İki rapor yüzeyinde de (`ReportDialog`, `Project.jsx`) "Firma (opsiyonel)"
+  alanı var; profilden dolu gelir, ipucu satırı düzenlemenin **yalnız o
+  belgeyi** etkilediğini söyler. Kalıcı değişiklik Hesabım ekranının işi.
+- Doldurma "Hazırlayan"la aynı tek seferlik desendir ama **kendi bayrağıyla**:
+  ortak bayrak kullanılsaydı profili boş olan kullanıcıda ad geldiği anda
+  bayrak yanar, firma sonradan tanımlansa bile bir daha doldurulmazdı.
+- `ProjectReportRequest` `Company` alanı kazandı. **Üç durum ayrı anlam taşır**
+  ve karışırsa kusur sessizdir — belge üretilir, yalnız künyesi yanlış olur:
+
+  | Gövde | Anlam |
+  |---|---|
+  | alan yok (`null`) | profildeki firma yazılır (eski istemciler, olağan yol) |
+  | boş dize | o belgede firma **yazılmaz** — kullanıcı alanı bilerek boşalttı |
+  | dolu | tek seferlik o değer yazılır, profil **değişmez** |
+
+  Boşaltmayı `null` saysaydık firmayı kaldırmak isteyen kullanıcı sessizce
+  profildekini alırdı. `ProjectPayload` profili YALNIZCA `null` geldiğinde
+  sorgular; künyeyi taşıyan istekte gereksiz tur atmaz.
+- Geçmişten indirme (`/api/reports/{id}/download`) firmayı `null` geçer, yani
+  bugünkü profil yazılır: kütükte firma saklanmıyor (`Report` yalnız başlık ve
+  hazırlayanı taşır), o günkü tek seferlik düzenleme geri getirilemez.
+  Geçmişten indirme zaten yeniden üretimdir — uydurulmuş bir değer yazmaktansa
+  bugünkü profil doğrudur.
+- Uzunluk sınırı `ApplicationUser.CompanyMaxLength` (120) olarak alana taşındı.
+  Eskiden `AuthEndpoints` içinde `private const`tu; artık üç yer aynı kaynaktan
+  okuyor (profil güncelleme, proje raporu ucu, `Validate(ReportPayload)`).
+  Rapor yolu daha önce firmayı hiç doğrulamıyordu — profile sığmayan bir ad
+  rapor üzerinden belgeye kaçabilirdi.
+
+### Doğrulama
+
+- `Alp.Api.Tests/ProjectReportCompanyTests.cs` — üç durumun tamamı, profilin
+  ezilmediği ve boş dizenin dizgiciye `null` olarak geçtiği (boş künye satırı
+  bırakmasın diye). 111 sunucu testi yeşil.
+- Tarayıcıda uçtan uca: rapor kartı `[Hazırlayan: Alp Test]` ve
+  `[Firma (opsiyonel): ALP PCB Ltd.]` ile dolu geliyor; tek seferlik ad girilip
+  indirilen Excel'in `sharedStrings.xml`inde o ad **var**, alan boşaltılarak
+  indirilende **yok**; profil her iki durumda da değişmedi.
