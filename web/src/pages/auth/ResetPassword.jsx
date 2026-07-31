@@ -22,7 +22,7 @@ export default function ResetPassword() {
   if (!email || !token) {
     return (
       <section className="panel auth-panel">
-        <h2>{text.resetPassword.title}</h2>
+        <h1>{text.resetPassword.title}</h1>
         <p className="field-hint danger">{text.resetPassword.invalidLink}</p>
         <p className="auth-panel-foot">
           <LangLink to="/parola-unuttum">{text.forgotPassword.title}</LangLink>
@@ -47,7 +47,7 @@ export default function ResetPassword() {
   if (done) {
     return (
       <section className="panel auth-panel">
-        <h2>{text.resetPassword.title}</h2>
+        <h1>{text.resetPassword.title}</h1>
         <p>{text.resetPassword.success}</p>
         <p className="auth-panel-foot">
           <LangLink to="/giris">{text.resetPassword.loginLink}</LangLink>
@@ -58,7 +58,7 @@ export default function ResetPassword() {
 
   return (
     <section className="panel auth-panel">
-      <h2>{text.resetPassword.title}</h2>
+      <h1>{text.resetPassword.title}</h1>
       <form onSubmit={onSubmit}>
         <AuthField
           label={text.field.newPassword}

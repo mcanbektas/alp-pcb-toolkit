@@ -33,7 +33,7 @@ export default function Register() {
   if (done) {
     return (
       <section className="panel auth-panel">
-        <h2>{text.register.title}</h2>
+        <h1>{text.register.title}</h1>
         <p>{text.register.success}</p>
         <p className="auth-panel-foot">
           <LangLink to="/giris">{text.register.loginLink}</LangLink>
@@ -44,7 +44,7 @@ export default function Register() {
 
   return (
     <section className="panel auth-panel">
-      <h2>{text.register.title}</h2>
+      <h1>{text.register.title}</h1>
       <form onSubmit={onSubmit}>
         <AuthField
           label={text.field.displayName}

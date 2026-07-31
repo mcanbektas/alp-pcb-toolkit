@@ -34,7 +34,7 @@ export default function ConfirmEmail() {
   if (!userId || !token) {
     return (
       <section className="panel auth-panel">
-        <h2>{text.confirmEmail.title}</h2>
+        <h1>{text.confirmEmail.title}</h1>
         <p className="field-hint danger">{text.confirmEmail.invalidLink}</p>
       </section>
     )
@@ -42,7 +42,7 @@ export default function ConfirmEmail() {
 
   return (
     <section className="panel auth-panel">
-      <h2>{text.confirmEmail.title}</h2>
+      <h1>{text.confirmEmail.title}</h1>
       {status === STATUS_PENDING && <p>{text.confirmEmail.pending}</p>}
       {status === STATUS_OK && (
         <>

@@ -393,6 +393,7 @@ a:hover { text-decoration: underline; }
    Onay kartının başlığı da aynı kimliği taşır; kural kopyalanmaz, seçiciye
    eklenir. */
 .panel h2,
+.auth-panel h1,
 .confirm-dialog h2 {
   font-family: var(--font-mono);
   font-size: 0.68rem; font-weight: 600; letter-spacing: 0.13em;
@@ -406,8 +407,9 @@ a:hover { text-decoration: underline; }
    Modal yok: bu, o ekranların tek görsel deseni. */
 .auth-panel { max-width: 400px; margin: 44px auto; padding: 26px; }
 /* Panel başlığı kimliği korunur, yalnızca ağırlık kazanır: burada başlık bir
-   bölüm etiketi değil, sayfanın kendisi. */
-.auth-panel h2 { font-size: 0.82rem; color: var(--text); }
+   bölüm etiketi değil, sayfanın kendisi — bu yüzden işaret de `h1`. Görünüm
+   `h2` günündekiyle birebir aynı; değişen yalnız başlık düzeyi. */
+.auth-panel h1 { font-size: 0.82rem; color: var(--text); }
 .auth-panel .field { margin-bottom: 16px; }
 .auth-panel .field-row input { font-size: 0.95rem; padding: 10px 12px; }
 

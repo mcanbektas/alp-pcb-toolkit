@@ -411,6 +411,7 @@ a:hover { text-decoration: underline; }
    kural kopyalanmaz, seçiciye eklenir (kartın yatay iç boşluğu da bu yüzden
    panelinkiyle aynı: negatif kenar boşluğu ancak öyle şeride oturuyor). */
 .panel h2,
+.auth-panel h1,
 .confirm-dialog h2 {
   font-family: var(--font-mono);
   font-size: 0.67rem; font-weight: 600; letter-spacing: 0.16em;
@@ -429,8 +430,9 @@ a:hover { text-decoration: underline; }
    Modal yok: bu, o ekranların tek görsel deseni. */
 .auth-panel { max-width: 400px; margin: 44px auto; }
 /* Panel başlığı kimliği korunur, yalnızca ağırlık kazanır: burada başlık bir
-   bölüm etiketi değil, sayfanın kendisi. */
-.auth-panel h2 { font-size: 0.82rem; color: var(--text); }
+   bölüm etiketi değil, sayfanın kendisi — bu yüzden işaret de `h1`. Görünüm
+   `h2` günündekiyle birebir aynı; değişen yalnız başlık düzeyi. */
+.auth-panel h1 { font-size: 0.82rem; color: var(--text); }
 .auth-panel .field { margin-bottom: 16px; }
 .auth-panel .field-row input { font-size: 0.95rem; padding: 9px 12px; }
 

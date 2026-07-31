@@ -366,6 +366,7 @@ a:hover { text-decoration: underline; }
 /* Onay kartının başlığı da panel başlığı kimliğini taşır (mono, aralıklı,
    büyük harf) — kural kopyalanmaz, seçiciye eklenir. */
 .panel h2,
+.auth-panel h1,
 .confirm-dialog h2 {
   font-family: var(--font-mono);
   font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em;
@@ -380,8 +381,9 @@ a:hover { text-decoration: underline; }
 .auth-panel { max-width: 400px; margin: 44px auto; padding: 24px; }
 /* Tek başına duran bir sayfanın başlığı — panel başlığı kimliği (mono, aralıklı,
    büyük harf) korunur, yalnızca ağırlık kazanır: burada başlık bir bölüm
-   etiketi değil, sayfanın kendisi. */
-.auth-panel h2 { font-size: 0.82rem; color: var(--text); margin-bottom: 20px; }
+   etiketi değil, sayfanın kendisi — bu yüzden işaret de `h1`. Görünüm `h2`
+   günündekiyle birebir aynı. */
+.auth-panel h1 { font-size: 0.82rem; color: var(--text); margin-bottom: 20px; }
 .auth-panel .field { margin-bottom: 16px; }
 .auth-panel .field-row input { font-size: 0.95rem; padding: 10px 12px; }
 

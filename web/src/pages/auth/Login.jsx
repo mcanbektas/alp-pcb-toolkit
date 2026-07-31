@@ -44,7 +44,7 @@ export default function Login() {
 
   return (
     <section className="panel auth-panel">
-      <h2>{text.login.title}</h2>
+      <h1>{text.login.title}</h1>
       <form onSubmit={onSubmit}>
         <AuthField
           label={text.field.email}

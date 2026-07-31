@@ -34,7 +34,7 @@ export default function ForgotPassword() {
   if (done) {
     return (
       <section className="panel auth-panel">
-        <h2>{text.forgotPassword.title}</h2>
+        <h1>{text.forgotPassword.title}</h1>
         <p>{text.forgotPassword.success}</p>
         <p className="auth-panel-foot">
           <LangLink to="/giris">{text.forgotPassword.backToLogin}</LangLink>
@@ -45,7 +45,7 @@ export default function ForgotPassword() {
 
   return (
     <section className="panel auth-panel">
-      <h2>{text.forgotPassword.title}</h2>
+      <h1>{text.forgotPassword.title}</h1>
       <p>{text.forgotPassword.intro}</p>
       <form onSubmit={onSubmit}>
         <AuthField
