@@ -142,4 +142,19 @@ describe('TimingCrystal report.js', () => {
       }
     }
   })
+
+  // Bkz. ResistorCode'daki aynı test — İngilizce yol da yürünmeli.
+  it('İngilizce metinle bölüm İngilizce kurulur', () => {
+    const en = getText('en')
+    const f = { ...INITIAL_FORM, tool: TOOL_RC }
+    const r = compute(TOOL_RC, MODE_ANALYSIS, f, en.fieldLabels)
+    const s = buildSweep(r)
+    const section = buildReportSection({ mode: MODE_ANALYSIS, f, r, s, text: en })
+    expect(section.toolName).toBe(en.title)
+    expect(section.mode).toBe(en.toolLabel[TOOL_RC])
+    for (const row of [...section.inputs, ...section.results]) {
+      expect(row.label, JSON.stringify(row)).toBeTruthy()
+      expect(row.value, JSON.stringify(row)).not.toBeUndefined()
+    }
+  })
 })

@@ -38,4 +38,17 @@ describe('LengthConverter report.js', () => {
       expect(row.value, JSON.stringify(row)).not.toBeUndefined()
     }
   })
+
+  // Bkz. ResistorCode'daki aynı test — İngilizce yol da yürünmeli.
+  it('İngilizce metinle bölüm İngilizce kurulur', () => {
+    const en = getText('en')
+    const f = INITIAL_FORM
+    const r = compute(f, en.fieldLabels)
+    const section = buildReportSection({ f, r, text: en })
+    expect(section.toolName).toBe(en.title)
+    for (const row of [...section.inputs, ...section.results]) {
+      expect(row.label, JSON.stringify(row)).toBeTruthy()
+      expect(row.value, JSON.stringify(row)).not.toBeUndefined()
+    }
+  })
 })

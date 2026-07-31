@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
 import Toast from './components/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import { NoticeProvider, useNotice } from './hooks/useNotice'
@@ -121,6 +121,21 @@ function LangSwitch() {
 function LoadingNote() {
   const { lang } = useLang()
   return <p className="empty-note">{commonText(lang).loadingTool}</p>
+}
+
+// Sekme başlığı rota ve dille birlikte değişir. Tek sabit <title> ile 29
+// hesap ekranının hepsi sekmede aynı adı taşıyordu — iki araç açan kullanıcı
+// sekmeleri ayırt edemiyordu, tarayıcı geçmişi de tek satır görünüyordu.
+// Araç adları categories.js'ten okunur (tek kaynak) — ekran başına başlık
+// kodu yazılmaz, yeni araç eklendiğinde burası kendiliğinden kapsar.
+function TitleSync() {
+  const { lang } = useLang()
+  const location = useLocation()
+  useEffect(() => {
+    const tool = CATEGORIES.flatMap((c) => c.tools).find((t) => t.path === location.pathname)
+    document.title = tool ? `${pick(tool.name, lang)} — ALP PCB Toolkit` : 'ALP PCB Toolkit'
+  }, [location.pathname, lang])
+  return null
 }
 
 // Bilinmeyen yol. Route listesinde `path="*"` yoktu: kırık bir bağlantı
@@ -271,6 +286,7 @@ export default function App() {
           söker ve kart hiç görünmezdi. */}
       <NoticeProvider>
         <BrowserRouter>
+          <TitleSync />
           <AuthProvider>
             <Layout>
               {/* Hata sınırı Suspense'in DIŞINDA: chunk indirme hatası
