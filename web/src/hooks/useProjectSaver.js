@@ -48,16 +48,22 @@ export default function useProjectSaver({ enabled }) {
     let targetId = projectId
     let targetName = projects.find((p) => p.id === projectId)?.name ?? ''
 
+    // Hata kodu ve durum SAKLANMADAN geçirilir: api.js sözleşmesi { error,
+    // detail } taşır, burada yutulursa bileşen ağ kopması ile doğrulama
+    // hatasını ayırt edemez ve hepsine aynı genel cümleyi basar (basıyordu).
     if (newName) {
       const createRes = await api.post('/api/projects', { name: newName })
-      if (!createRes.ok) { setBusy(false); return { ok: false } }
+      if (!createRes.ok) {
+        setBusy(false)
+        return { ok: false, error: createRes.error, status: createRes.status }
+      }
       targetId = createRes.data.id
       targetName = createRes.data.name
     }
 
     const res = await api.post(`/api/projects/${targetId}/calculations`, body)
     setBusy(false)
-    if (!res.ok) return { ok: false }
+    if (!res.ok) return { ok: false, error: res.error, status: res.status }
 
     setProjects((prev) => (
       prev.some((p) => p.id === targetId) ? prev : [...prev, { id: targetId, name: targetName }]
@@ -70,7 +76,7 @@ export default function useProjectSaver({ enabled }) {
     setBusy(true)
     const res = await api.patch(`/api/calculations/${id}`, body)
     setBusy(false)
-    return { ok: res.ok }
+    return res.ok ? { ok: true } : { ok: false, error: res.error, status: res.status }
   }, [api])
 
   return { projects, loadingList, listError, busy, create, update }

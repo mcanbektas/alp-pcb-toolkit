@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import Toast from './components/Toast'
+import ErrorBoundary from './components/ErrorBoundary'
 import { NoticeProvider, useNotice } from './hooks/useNotice'
 import { LangProvider, useLang } from './hooks/useLang'
 import { AuthProvider, useAuth } from './hooks/useAuth'
@@ -120,6 +121,20 @@ function LangSwitch() {
 function LoadingNote() {
   const { lang } = useLang()
   return <p className="empty-note">{commonText(lang).loadingTool}</p>
+}
+
+// Bilinmeyen yol. Route listesinde `path="*"` yoktu: kırık bir bağlantı
+// başlıkla altbilgi arasında sessiz BOŞ bir ana alan bırakıyordu.
+function NotFound() {
+  const { lang } = useLang()
+  const ui = commonText(lang)
+  return (
+    <div className="tool-header">
+      <h1>{ui.notFoundTitle}</h1>
+      <p>{ui.notFoundNote}</p>
+      <Link className="backlink" to="/">{ui.backHome}</Link>
+    </div>
+  )
 }
 
 // Başlıktaki hesap alanı — LangSwitch ile aynı düğme biçimini kullanır, yeni
@@ -258,8 +273,12 @@ export default function App() {
         <BrowserRouter>
           <AuthProvider>
             <Layout>
-              <Suspense fallback={<LoadingNote />}>
-                <Routes>
+              {/* Hata sınırı Suspense'in DIŞINDA: chunk indirme hatası
+                  Suspense'i değil en yakın boundary'yi bulur — içeride
+                  olsaydı asılı fallback yine kurtarılamazdı. */}
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingNote />}>
+                  <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/kategori/:slug" element={<CategoryPage />} />
                   <Route path="/giris" element={<Login />} />
@@ -299,8 +318,10 @@ export default function App() {
                   <Route path="/arac/bga-breakout" element={<BgaBreakout />} />
                   <Route path="/arac/stack-up-planlayici" element={<StackupPlanner />} />
                   <Route path="/arac/thermal-relief" element={<ThermalRelief />} />
-                </Routes>
-              </Suspense>
+                  <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
             </Layout>
           </AuthProvider>
         </BrowserRouter>

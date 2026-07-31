@@ -40,6 +40,12 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
   // "uçuştaki" yenileme sözü paylaşılır.
   let refreshing = null
 
+  // Asılı kalan bir soket eskiden HİÇ reddedilmiyordu: `busy` sonsuza dek
+  // true kalıyor, Kaydet/Rapor düğmeleri çıkışsız kilitleniyordu. Süre rapor
+  // üretimini (sunucuda PDF dizgisi) rahat karşılayacak kadar cömert; dolunca
+  // istek diğer ağ hatalarıyla aynı yola düşer (API_ERR_NETWORK).
+  const REQUEST_TIMEOUT_MS = 60_000
+
   async function fetchRaw(method, path, body, token) {
     // `FormData` gövdesinde Content-Type ELLE KONMAZ: tarayıcı sınır dizesini
     // (boundary) kendisi üretip başlığa ekler, biz yazarsak sınır kaybolur ve
@@ -50,6 +56,7 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
       return await fetch(`${baseUrl}${path}`, {
         method,
         credentials: 'include',
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         headers: {
           ...(body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -57,7 +64,7 @@ export function createApiClient({ baseUrl, getAccessToken, setAccessToken, onSes
         body: body === undefined ? undefined : (isForm ? body : JSON.stringify(body)),
       })
     } catch {
-      return null // ağ hatası — çağıran taraf null'ı API_ERR_NETWORK'e çevirir
+      return null // ağ hatası / zaman aşımı — çağıran taraf null'ı API_ERR_NETWORK'e çevirir
     }
   }
 

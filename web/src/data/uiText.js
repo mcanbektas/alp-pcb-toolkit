@@ -55,6 +55,21 @@ export function commonText(lang) {
       en: 'The chart needs valid input.',
     }),
     loadingTool: t({ tr: 'Araç yükleniyor…', en: 'Loading tool…' }),
+    // Hata sınırı (ErrorBoundary.jsx) — tembel yüklenen bir ekran parçası
+    // çöktüğünde ya da bayat dağıtımda chunk indirilemediğinde gösterilir.
+    // "Yeniden dene" sayfayı TAM yeniler: bayat index.html ancak öyle tazelenir.
+    errorBoundaryNote: t({
+      tr: 'Sayfa yüklenirken bir sorun oluştu. Bağlantınızı kontrol edip yeniden deneyin.',
+      en: 'Something went wrong while loading the page. Check your connection and try again.',
+    }),
+    errorBoundaryRetry: t({ tr: 'Yeniden dene', en: 'Try again' }),
+    // 404 — bilinmeyen yol. Eskiden başlıkla altbilgi arasında BOŞ bir ana
+    // alan kalıyordu; kullanıcı kırık bağlantıyı arıza sanıyordu.
+    notFoundTitle: t({ tr: 'Sayfa bulunamadı', en: 'Page not found' }),
+    notFoundNote: t({
+      tr: 'Aradığınız adres taşınmış ya da hiç var olmamış olabilir.',
+      en: 'The address you are looking for may have moved or never existed.',
+    }),
     thousandsNote: (fields) => t({
       tr: `Binlik ayırıcı belirsiz; ondalık için nokta veya virgül kullanın. Etkilenen alan: ${fields.join(', ')}.`,
       en: `Ambiguous thousands separator; use a point or comma for decimals. Affected field${fields.length === 1 ? '' : 's'}: ${fields.join(', ')}.`,

@@ -40,6 +40,17 @@ export function saveToProjectText(lang) {
       tr: 'Kaydedilemedi. Lütfen tekrar deneyin.',
       en: 'Could not save. Please try again.',
     }),
+    // Hata nedenine göre ayrışan cümleler — üçü aynı "tekrar deneyin"e
+    // düşünce ağ kopması ile oturum süresi dolması ayırt edilemiyordu ve
+    // tekrar denemek ikisinde de boşunaydı.
+    networkError: t({
+      tr: 'Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.',
+      en: 'Could not reach the server. Check your connection and try again.',
+    }),
+    authError: t({
+      tr: 'Oturum süresi doldu. Yeniden giriş yapıp tekrar deneyin.',
+      en: 'Your session has expired. Sign in again and retry.',
+    }),
 
     // ---- Bağlı kayıt (ekran kaydedilmiş bir hesaba bağlıyken) ----
     // Ekran bir kayda bağlıysa "Kaydet" yeni satır AÇMAZ, mevcut satırın

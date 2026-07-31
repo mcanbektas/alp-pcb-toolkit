@@ -30,10 +30,21 @@ import {
   LINK_ANONYMOUS, LINK_BROKEN, LINK_ERROR, LINK_LOADING, LINK_MISMATCH, LINK_NOT_FOUND, LINK_READY,
 } from '../hooks/useSavedCalculation'
 import { saveToProjectText } from '../data/saveToProjectText'
+import { API_ERR_NETWORK } from '../lib/api'
 import { serializeSvgElement } from '../lib/svgInline'
 import { REPORT_SCHEMA_VERSION } from '../lib/reportPayload'
 import { ENGINE_VERSION } from '../lib/engineVersion'
 import { ENGINE_STALE } from '../lib/savedCalculation'
+
+// Kaydetme hatası → cümle. Hook `{ error, status }` kodunu olduğu gibi
+// geçirir (api.js sözleşmesi); cümleye çeviren tek yer burasıdır. Ağ kopması
+// ve süresi dolan oturum tekrar denemekle düzelmez — genel "tekrar deneyin"
+// cümlesinden bilerek ayrışırlar.
+function saveErrorText(res, st) {
+  if (res.error === API_ERR_NETWORK) return st.networkError
+  if (res.status === 401) return st.authError
+  return st.genericError
+}
 
 // Bağ durumu → panelin üstündeki not. Kod → metin çevirisi tek yerde durur;
 // `useSavedCalculation` cümle taşımaz, yalnızca kod döndürür.
@@ -170,7 +181,7 @@ export default function SaveToProject({
     })
 
     if (!res.ok) {
-      setFeedback({ level: 'warn', text: st.genericError })
+      setFeedback({ level: 'warn', text: saveErrorText(res, st) })
       return
     }
 
@@ -191,7 +202,7 @@ export default function SaveToProject({
     const res = await update({ id: boundId, body: calculationBody() })
     setFeedback(res.ok
       ? { level: 'ok', text: st.updatedNote }
-      : { level: 'warn', text: st.genericError })
+      : { level: 'warn', text: saveErrorText(res, st) })
   }
 
   return (
