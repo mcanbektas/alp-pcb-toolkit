@@ -20,16 +20,6 @@ export function reportText(lang) {
       tr: t({ tr: 'Türkçe', en: 'Turkish' }),
       en: t({ tr: 'İngilizce', en: 'English' }),
     },
-    // Yalnızca PROJE raporunda gösterilir. Bölümler artık kayıtta her iki
-    // dilde durur, ama bu değişiklikten ÖNCE kaydedilmiş hesaplar tek dille
-    // yazılmıştı ve onlar kendi dillerinde çıkar. Sessiz kalmak yerine
-    // yazılır — kullanıcı tek bir Türkçe bölümü arıza sanmasın.
-    docLangPartial: t({
-      tr: 'Bu değişiklikten önce kaydedilmiş hesaplar tek dille yazılmıştı; onlar '
-        + 'kendi dillerinde çıkar. Hesabı açıp yeniden kaydetmek iki dilli hâle getirir.',
-      en: 'Calculations saved before this change were written in a single language and come '
-        + 'out in that language. Opening one and saving it again makes it bilingual.',
-    }),
     heading: t({ tr: 'Rapor al', en: 'Get a report' }),
     preparedByLabel: t({ tr: 'Hazırlayan', en: 'Prepared by' }),
     // Düğme seçilen dili kendi üstünde taşır: seçici yukarıda kalıyor ve

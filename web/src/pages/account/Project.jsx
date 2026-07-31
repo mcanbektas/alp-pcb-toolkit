@@ -329,7 +329,6 @@ export default function Project() {
             onChange={setDocLang}
           />
           <span className="field-hint center">{rt.docLangNote(rt.docLangNames[docLang])}</span>
-          <span className="field-hint">{rt.docLangPartial}</span>
         </div>
 
         {reportError && <p className="field-hint danger">{reportError}</p>}
