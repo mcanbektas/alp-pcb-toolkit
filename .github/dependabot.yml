@@ -1,0 +1,38 @@
+# Bağımlılık güncellemeleri. Dört ekosistem de izlenir; hiçbiri izlenmiyordu —
+# React/Vite `^` ile sabitlenmiş ve hiç denetlenmiyordu, NuGet paketleri de
+# öyle. Haftalık tempo: günlük PR seli tek kişilik projede gürültü olur.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Küçük sürüm ve yama güncellemeleri tek PR'da toplanır — teker teker
+      # gelmesi gereken yalnızca major sıçramalardır.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: nuget
+    directory: /api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directories:
+      - /api
+      - /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

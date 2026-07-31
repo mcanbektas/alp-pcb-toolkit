@@ -29,8 +29,9 @@ env:
 
 jobs:
   # İmaj derlemeden önce ayrı bir kapı: web imajı testleri kendi içinde de
-  # koşar (web/Dockerfile), ama api tarafının derlenip derlenmediği yalnızca
-  # burada görülür ve hatalı imaj hiç üretilmez.
+  # koşar (web/Dockerfile), api testleri de BURADA koşar. Eskiden yalnızca
+  # `dotnet build` vardı — kırmızı xunit takımıyla `latest` imajı ghcr.io'ya
+  # itilebiliyordu; ci.yml ayrı bir iş akışı olduğu için bunu engellemiyordu.
   test:
     name: Testler
     runs-on: ubuntu-latest
@@ -48,7 +49,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - run: dotnet build api/Alp.Api.sln -c Release
+      - run: dotnet test api/Alp.Api.sln -c Release
 
   images:
     name: ${{ matrix.name }} imajı
@@ -94,3 +95,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+      # Yayınlanan imaj bilinen açıklara karşı taranır. Yalnızca CRITICAL/HIGH
+      # ve DÜZELTMESİ ÇIKMIŞ bulgular işi kırar: düzeltmesi olmayan bir taban
+      # imaj CVE'si her push'u kırmızıya boyar ve tarama gürültüye dönüşürdü.
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:sha-${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
