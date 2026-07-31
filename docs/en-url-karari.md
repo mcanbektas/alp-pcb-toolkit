@@ -283,3 +283,12 @@ Bugünkü hâl kırık değil, yalnız tek dilli: bağlantı çalışır, sayfa 
   geriye HİÇBİR ayrışma kalmadı. Dil kaynaklı ayrışma sınıfı zaten ortadan
   kalkmıştı (§3), ölçüm bunu doğruladı.
 - 1966 birim testi + 18 tarayıcı + 5 çevrimdışı testi yeşil.
+- nginx üzerinden (docker yığını ayakta, `http://localhost:8080`) ayrıca
+  doğrulandı: TR ve EN araç/kategori sayfaları 200 ve **yönlendirmesiz**,
+  `/en` → `dist/en.html`, rota başına `<title>` + `<html lang>` + canonical +
+  üç `hreflang` satırı, sitemap 76 url, `no-store` ve CSP başlıkları yerinde.
+- **Elle doğrulanan tek madde — rapor dili yakalama.** `useLangCapture`
+  oturum gerektirdiği için e2e kapsamı dışında (tarayıcı testleri bilerek
+  yalnız anonim akışları kapsıyor). Giriş yapılıp aynı araçtan iki dilde
+  rapor indirildi: biri Türkçe, biri İngilizce çıktı ve ekran kendi dilinde
+  kaldı — yani geçici geçersiz kılma da geri alma da çalışıyor (§3).
