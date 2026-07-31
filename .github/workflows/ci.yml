@@ -1,9 +1,12 @@
 name: CI
 
-# Her dalda ve her PR'da koşar. Dağıtım iş akışı (deploy.yml) yalnızca
-# main'e push'ta çalışır ve imaj derler — testler burada.
+# main'e push'ta ve her PR'da koşar. Eskiden `push` dalsızdı: PR açık bir
+# dala itilen her commit hem push hem pull_request tetikleyicisiyle AYNI
+# testleri iki kez koşuyordu. PR'sız yan dallar artık CI görmez — kural zaten
+# PR üzerinden merge; doğrudan main push'u da (bu depoda olağan yol) kapsanır.
 on:
   push:
+    branches: [main]
   pull_request:
 
 concurrency:

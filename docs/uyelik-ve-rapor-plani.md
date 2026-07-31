@@ -1,6 +1,6 @@
 # Üyelik ve Rapor Altyapısı — Uygulama Planı
 
-**Durum:** taslak, onay bekliyor
+**Durum:** uygulandı — fazlar üretim kodunda; belge tarihsel referans olarak durur (2026-07-31)
 **Tarih:** 2026-07-29
 **Kapsam:** kullanıcı hesabı, proje kaydı, PDF rapor, Excel dışa aktarma
 
