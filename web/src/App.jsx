@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import Toast from './components/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import LangLink from './components/LangLink'
+import TraceMotif from './components/TraceMotif'
 import { NoticeProvider, useNotice } from './hooks/useNotice'
 import { LangProvider, useLang } from './hooks/useLang'
 import { AuthProvider, useAuth } from './hooks/useAuth'
@@ -291,10 +292,9 @@ function Layout({ children }) {
           <AccountArea />
           <LangSwitch />
         </div>
-        <svg className="trace-motif" viewBox="0 0 1200 26" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M0 13 H760 L784 5 H1080" fill="none" stroke="var(--accent-dim)" strokeWidth="2" />
-          <circle cx="1092" cy="5" r="4.5" fill="var(--accent)" />
-        </svg>
+        {/* Rampanın yeri ölçülerek bulunur — sağdaki grubun genişliği dile ve
+            oturum durumuna göre değişiyor. Bkz. components/TraceMotif.jsx. */}
+        <TraceMotif />
       </header>
       <main className="container">{children}</main>
       <footer className="site-footer">

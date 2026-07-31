@@ -166,14 +166,24 @@ a:hover { text-decoration: underline; }
    ikisine birden uygulanırdı ve serbest alanı ikiye bölerdi, iki grup arasında
    istenmeyen bir boşluk açardı. İkincisinin kendi auto margin'i burada
    sıfırlanır ki grup tek parça hâlinde sağa yaslı dursun. */
-.lang-switch + .lang-switch { margin-left: 0; }
-/* `.trace-motif` SVG'si `.site-header`in tam genişliğinde çizilir, bu satır
-   ise `.container`in max-width kutusuna hapsolur — bu yüzden çizginin ucu
-   (viewBox x=1092/1200, yaklaşık %91) ile bu grup aynı hizada durmuyordu.
-   SVG'ye ya da kutunun boyutuna dokunmadan, yalnızca kenar boşluğuyla grup
-   çizginin ucuna denk gelecek noktaya kaydırılır. */
+/* Negatif kenar boşluğu, kapsayıcının 14px `gap`ini kısmen geri alır: dil
+   düğmeleri hesap alanına YAKLAŞIR, iki grup tek küme gibi okunur. Değer
+   `gap`ten büyük yapılmaz — o zaman gruplar birbirine girer. */
+.lang-switch + .lang-switch { margin-left: -4px; }
+/* Dil düğmeleri başlıktaki devre yolu motifinin UCUNA hizalanır: `EN`in sağ
+   kenarı, çizginin bittiği noktayla aynı dikeyde durur.
+
+   Motif `.site-header` genişliğinde çizilir ve `preserveAspectRatio="none"`
+   taşır, yani viewBox'taki x=1080 her zaman genişliğin %90'ıdır (yol
+   `M0 13 H760 L784 5 H1080` ile biter; x=1092'deki noktacık ayrı bir
+   öğedir ve hizanın referansı DEĞİLDİR — eski kural onu baz alıyordu).
+
+   Sağdan %10, bu grubun içinde durduğu `.container`in sağ iç kenarından
+   ölçülür; aradaki fark kadar kenar boşluğu verilir. Sayılar bu temanın
+   kendi `.container` değerleridir (1400px / 22px) — dördüne aynı
+   sayılarla kopyalanamaz, ikisinde yanlış hizaya yol açıyordu. */
 .site-header .lang-switch:last-child {
-  margin-right: calc(9vw - max(20px, (100vw - 1360px) / 2 + 20px) + 8px);
+  margin-right: calc(10vw - max(22px, (100vw - 1400px) / 2 + 22px));
 }
 .lang-switch button, .lang-switch a, .lang-switch .header-user {
   font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em;
