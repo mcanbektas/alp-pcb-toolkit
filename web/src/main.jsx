@@ -1,5 +1,6 @@
 import React from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
+import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 // Yazı tipleri temadan bağımsızdır (dört tema da aynı üç aileyi kullanır), bu
 // yüzden tema anahtarından ayrı bir dosyada durur ve ondan ÖNCE yüklenir.
@@ -37,3 +38,16 @@ if (container.hasChildNodes() && !window.location.search) {
 } else {
   createRoot(container).render(tree)
 }
+
+// Service worker — site internetsiz de tam çalışsın diye (bütün hesap
+// motorları zaten tarayıcıda; sunucu yalnız üyelik ve rapor için).
+// Yapılandırma `vite.config.js`te, kararlar `docs/pwa-karari.md`de.
+//
+// Kayıt React ağacının DIŞINDA ve render'dan SONRA: sanal modül yalnız
+// tarayıcı derlemesinde çözülür, ağacın içine girseydi prerender'ın Node
+// paketi (`vite build --ssr`) onu çözemez ve derleme kırılırdı.
+//
+// `immediate: true` sayfanın `load` olayını beklemez. Hesap ekranları ilk
+// boyamadan sonra ağ kullanmıyor, yani kaydı geciktirmenin kazancı yok;
+// ilk ziyaretini çevrimdışına hazır bitirmek daha değerli.
+registerSW({ immediate: true })

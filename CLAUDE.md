@@ -99,6 +99,25 @@ Bilinmesi gereken üç şey:
 Yeni araç eklendiğinde ek bir adım YOKTUR: rota da başlık da `src/data/categories.js`ten
 türer, prerender ve sitemap kendiliğinden kapsar.
 
+### PWA / çevrimdışı
+
+Site service worker ile ağsız da tam çalışır — bütün hesap motorları zaten tarayıcıda.
+`vite-plugin-pwa` (Workbox, `generateSW`) `vite build` adımında `sw.js` +
+`manifest.webmanifest` üretir; yapılandırma `vite.config.js`te, kararlar
+**`docs/pwa-karari.md`**de.
+
+- **Kabuk network-first, varlıklar precache.** JS/CSS precache'e girer (çevrimdışı
+  çalışmanın şartı), prerender'lı HTML girmez (bayat kabuk riski), `woff2` girmez
+  (`unicode-range` zaten gerekeni indiriyor — runtime cache-first). `/api/` NetworkOnly.
+- **`spa-fallback.html` precache'e elle eklenir** (`additionalManifestEntries`): onu
+  `vite build` değil, sonraki prerender adımı üretir. Ağ yokken bilinmeyen bir rota
+  açılırsa bu boş kabuk döner ve React aracı yine çizer.
+- **Service worker kaydı React ağacının dışındadır** (`main.jsx` sonu). `virtual:pwa-*`
+  modülleri yalnız tarayıcı derlemesinde çözülür; ağacın içine girerse prerender'ın Node
+  paketi (`vite build --ssr`) kırılır. Eklenti o derlemede `disable: isSsrBuild` ile kapalıdır.
+- **İkonlar teknik borç**: `public/icon-{192,512}.png` 64 px favicon'dan büyütüldü.
+  Gerçek marka varlığı geldiğinde değiştirilmeli.
+
 ### Dağıtım (Faz 8)
 
 Yığın `deploy/` altındadır: `nginx` (statik `web/dist` + `/api` ters vekili) + `api` +
