@@ -178,7 +178,10 @@ soyut portu bilir.
      aynı `useState` beş ekrana kopyalanırdı.
    - **Dili doğrudan `useLang()`'den okuyan istisnalar** — `EpsEffFields`, `RowList`,
      `LineChart`, `NumberField`, `ProfilePanel`, `DfmChecks`, `DfmSummaryBox`,
-     `AuthField`. Ortak kural: bileşenin **kendi çerçeve metni** her ekranda
+     `AuthField`, `ResultPanel` ("Sonuç" başlığı + binlik ayırıcı uyarısı; `aria-live`
+     tek buradadır), `Commentary` ("Mühendislik yorumu" başlığı + MARK işaret seti),
+     `ErrorBoundary` (chunk hatası notu + yeniden dene düğmesi).
+     Ortak kural: bileşenin **kendi çerçeve metni** her ekranda
      birebir aynıysa (εeff blok etiketleri, "… birimi" / "… sil" ekran okuyucu adları,
      "Veri tablosu", boş grafik notu) o metin `commonText(lang)`'ten okunur; prop olarak
      geçirmek aynı iki dilli sözlüğü yirmi beş ekrana kopyalamak olurdu. **Ekrana özgü olan**
@@ -470,6 +473,11 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   `.result-table` içerir; sağ panel kullanılan denklemleri `.formula` bloğunda gösterir.
   Düzen kırılımları `src/themes/*.css` içindeki `.tool-grid` media query'lerinde tanımlı — yeni
   araç için grid yazmaya gerek yok.
+  Ortak iskelet artık bileşendedir ve elle yazılmaz: başlık `ToolHeader`, orta panel
+  `ResultPanel` (geçersiz girdi kapısı + `aria-live` buradadır), yorum listesi `Commentary`
+  (`{ key?, level, text }` dizisi alır). `ResultPanel` children'ı ekranda `{r.ok && (…)}`
+  kapısıyla sarılır — children JSX'i panel çizilmese de kurulur, ok-dışı durumda sonuç
+  alanları okunurken patlardı.
 - **Renkler her zaman tema değişkenlerinden gelecek.** JSX veya CSS içine
   literal renk (`#4ade80`, `rgb(...)`, `green`) yazma; `var(--accent)`, `var(--muted)`,
   `var(--warn)`, `var(--danger)` vb. kullan. Yeni bir renk gerekiyorsa önce ilgili tema dosyasının

@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
+import ToolHeader from '../../../components/ToolHeader'
+import ResultPanel from '../../../components/ResultPanel'
+import Commentary from '../../../components/Commentary'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
@@ -20,7 +23,6 @@ import {
 import { getText } from './text'
 import { buildReportSection } from './report'
 
-const MARK = { ok: '✓', warn: '!', danger: '×' }
 const DIM_UNITS = ['mm', 'µm', 'mil']
 
 export default function DiffPair() {
@@ -66,10 +68,7 @@ export default function DiffPair() {
     <>
       <Link className="backlink" to="/kategori/empedans">{text.backlink}</Link>
 
-      <div className="tool-header">
-        <h1>{text.title}</h1>
-        <p>{text.intro}</p>
-      </div>
+      <ToolHeader title={text.title} intro={text.intro} />
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
@@ -153,16 +152,10 @@ export default function DiffPair() {
         </section>
 
         {/* ---------- Orta: Ana sonuç ---------- */}
-        <section className="panel">
-          <h2>{ui.result}</h2>
-
-          {!r.ok ? (
-            r.ambiguous ? (
-              <p className="empty-note warn">{ui.thousandsNote(r.ambiguous)}</p>
-            ) : (
-              <p className="empty-note">{text.reasonText(r.reason)}</p>
-            )
-          ) : (
+        {/* İç `r.ok &&` kapısı gerekli: children JSX'i ResultPanel çizmese de
+            burada kurulur — bkz. TraceWidth'teki aynı not. */}
+        <ResultPanel r={r} reason={text.reasonText}>
+          {r.ok && (
             <>
               <div className="big-result">
                 <div className="label">
@@ -236,18 +229,10 @@ export default function DiffPair() {
                 </tbody>
               </table>
 
-              <h2 className="section">{ui.commentary}</h2>
-              <ul className="commentary">
-                {notes.map((n) => (
-                  <li key={n.text} className={n.level}>
-                    <span className="mark" aria-hidden="true">{MARK[n.level]}</span>
-                    <span>{n.text}</span>
-                  </li>
-                ))}
-              </ul>
+              <Commentary items={notes} />
             </>
           )}
-        </section>
+        </ResultPanel>
 
         {/* ---------- Sağ: Teknik detay ---------- */}
         <section className="panel panel-detail">

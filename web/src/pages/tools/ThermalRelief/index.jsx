@@ -4,6 +4,8 @@ import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import RowList from '../../../components/RowList'
+import ToolHeader from '../../../components/ToolHeader'
+import Commentary from '../../../components/Commentary'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
@@ -36,8 +38,6 @@ import {
 } from './model'
 import { getText } from './text'
 import { buildReportSection } from './report'
-
-const MARK = { ok: '✓', warn: '!', danger: '×', unknown: '·' }
 
 // Uzunluklar SI (m) tutulur, ekranda mm yazılır. Yuvarlama yalnızca burada.
 const asMm = (v) => (v === null || v === undefined || !Number.isFinite(v) ? '—' : `${fmt(v * 1e3, 4)} mm`)
@@ -191,10 +191,7 @@ export default function ThermalRelief() {
     <>
       <Link className="backlink" to="/kategori/uretim-dfm">{text.backlink}</Link>
 
-      <div className="tool-header">
-        <h1>{text.title}</h1>
-        <p>{text.intro}</p>
-      </div>
+      <ToolHeader title={text.title} intro={text.intro} />
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
@@ -457,15 +454,7 @@ export default function ThermalRelief() {
               {!fab.hasProfile && <p className="empty-note warn">{dfm.noProfileNote}</p>}
               {fab.hasProfile && <p className="method-note">{dfm.fabOnlyNote}</p>}
 
-              <h2 className="section">{ui.commentary}</h2>
-              <ul className="commentary">
-                {notes.map((n) => (
-                  <li key={n.text} className={n.level}>
-                    <span className="mark" aria-hidden="true">{MARK[n.level]}</span>
-                    <span>{n.text}</span>
-                  </li>
-                ))}
-              </ul>
+              <Commentary items={notes} />
             </>
           )}
         </section>

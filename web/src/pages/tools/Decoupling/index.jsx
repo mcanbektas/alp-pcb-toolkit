@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import NumberField from '../../../components/NumberField'
 import Segmented from '../../../components/Segmented'
 import RowList from '../../../components/RowList'
+import ToolHeader from '../../../components/ToolHeader'
+import Commentary from '../../../components/Commentary'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
@@ -19,8 +21,6 @@ import {
 } from './model'
 import { getText } from './text'
 import { buildReportSection } from './report'
-
-const MARK = { ok: '✓', warn: '!', danger: '×' }
 
 export default function Decoupling() {
   const [mode, setMode] = useState(MODE_MIN)
@@ -87,10 +87,7 @@ export default function Decoupling() {
     <>
       <Link className="backlink" to="/kategori/guc-termal">{text.backlink}</Link>
 
-      <div className="tool-header">
-        <h1>{text.title}</h1>
-        <p>{text.intro}</p>
-      </div>
+      <ToolHeader title={text.title} intro={text.intro} />
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
@@ -203,15 +200,7 @@ export default function Decoupling() {
                 </tbody>
               </table>
 
-              <h2 className="section">{ui.commentary}</h2>
-              <ul className="commentary">
-                {notes.map((n) => (
-                  <li key={n.text} className={n.level}>
-                    <span className="mark" aria-hidden="true">{MARK[n.level]}</span>
-                    <span>{n.text}</span>
-                  </li>
-                ))}
-              </ul>
+              <Commentary items={notes} />
             </>
           ) : (
             <>
@@ -332,15 +321,7 @@ export default function Decoupling() {
                 </tbody>
               </table>
 
-              <h2 className="section">{ui.commentary}</h2>
-              <ul className="commentary">
-                {notes.map((n) => (
-                  <li key={n.text} className={n.level}>
-                    <span className="mark" aria-hidden="true">{MARK[n.level]}</span>
-                    <span>{n.text}</span>
-                  </li>
-                ))}
-              </ul>
+              <Commentary items={notes} />
             </>
           )}
         </section>

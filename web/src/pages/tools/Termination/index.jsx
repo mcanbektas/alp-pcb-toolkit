@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
+import ToolHeader from '../../../components/ToolHeader'
 import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../components/LineChart'
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
@@ -98,10 +99,7 @@ export default function Termination() {
     <>
       <Link className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</Link>
 
-      <div className="tool-header">
-        <h1>{text.title}</h1>
-        <p>{text.intro}</p>
-      </div>
+      <ToolHeader title={text.title} intro={text.intro} />
 
       <div className="tool-grid">
         {/* ---------- Sol: Girdiler ---------- */}
