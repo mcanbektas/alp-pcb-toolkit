@@ -407,6 +407,16 @@ Bu sınıftan bir hata (`text.table.pctOfSupply is not a function`) bir ekranı 
   `N_kullanıcı` → `N_user`. Alt simgede Türkçe sözcük bırakılmaz.
 - **Çevrilmeyenler:** kod yorumları, değişken/dosya adları, birim sembolleri, E serisi adları
   ve kullanıcının kendi girdiği veri (örn. kaydedilmiş bir DFM profilinin adı).
+- **Kimlik postaları bu kuralın dışındadır: metin SUNUCUDA durur.** Doğrulama, parola
+  sıfırlama ve kayıt denemesi postalarının konusu ve gövdesi iki dilli olarak
+  `api/Alp.Api/Auth/AuthEmailText.cs`tedir; istemciden gelen tek şey **dil kodudur**
+  (`lang` alanı — `RegisterRequest`, `ForgotPasswordRequest`, `ResendConfirmationRequest`;
+  verilmezse Türkçe). Rapor çerçevesindeki gibi metni yükle taşımak burada kimlik avı
+  yüzeyi açardı: gövdeyi istemci belirlerse uç, bizim alan adımızdan çıkan ve markamızı
+  taşıyan serbest metni istenen adrese POSTALAYAN bir araca döner. Postadaki bağlantı
+  yolları da orada, `routes.js`in ikinci kopyası olarak durur; kopyanın ayrışması kırık
+  doğrulama bağlantısı demek ve `web/src/lib/authMailPaths.guard.test.js` bunu bekler.
+  Karar ve elenen seçenekler: `docs/eposta-dili-karari.md`.
 
 **Bilinçli sapma — kalınlık kayıtları kaldırıldı (2026-07-30).** Spec §4.3'ün "kayıtlı
 bakır kalınlığı" özelliği (adlandırılmış kayıt, listele/geri yükle/sil, girişte hesaba

@@ -243,18 +243,19 @@ karşılıkları.
 - **Hesap motorları, `text.js` sözlükleri, rapor üretimi.** Bu iş yalnız
   adresleme katmanına dokundu; çeviri zaten tamamdı.
 
-## 8. Bilinen sınır — e-posta bağlantıları TR
+## 8. Bilinen sınır — e-posta bağlantıları TR (KAPANDI)
 
-`api/Alp.Api/Auth/AuthEndpoints.cs` doğrulama ve parola sıfırlama
-bağlantılarını `{FrontendBaseUrl}/e-posta-dogrula` ve `/parola-sifirla`
-olarak üretir. EN arayüzden kayıt olan kullanıcı TR sayfaya düşer.
+Bu brif bittiğinde `api/Alp.Api/Auth/AuthEndpoints.cs` doğrulama ve parola
+sıfırlama bağlantılarını `{FrontendBaseUrl}/e-posta-dogrula` ve
+`/parola-sifirla` olarak üretiyordu; EN arayüzden kayıt olan kullanıcı TR
+sayfaya düşüyordu. Burada düzeltilmedi çünkü doğru düzeltme yalnız yol
+çevirisi değildi: postanın gövdesi de tek dilliydi, yani kullanıcının dilinin
+istekle birlikte sunucuya taşınması gerekiyordu.
 
-Düzeltilmedi çünkü doğru düzeltme yalnız yol çevirisi değil: e-postanın
-gövdesi de tek dillidir, yani kullanıcının dilinin kayıt isteğiyle birlikte
-sunucuya taşınması ve `IEmailSender` tarafının iki dilli olması gerekir. O
-iş bu brifin kapsamı değil; **e-posta akışının iki dillileştirilmesi ayrı
-bir iş olarak planlanmalı** (bkz. `docs/brifler/README.md` → açık bulgular).
-Bugünkü hâl kırık değil, yalnız tek dilli: bağlantı çalışır, sayfa TR açılır.
+**Ayrı bir iş olarak yapıldı ve kapandı: `docs/eposta-dili-karari.md`.** Dil
+istek gövdesinde `lang` alanıyla taşınır, metin sunucuda iki dilli bir
+sözlükte durur (kimlik avı yüzeyi açmamak için bilinçli kural istisnası) ve
+yol tablosunun istemciyle ayrışmasını bir bekçi test engeller.
 
 ## 9. Doğrulama
 

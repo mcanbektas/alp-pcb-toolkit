@@ -13,9 +13,9 @@ kendine yeterlidir: bağlam, kapsam, dokunulacak dosyalar, doğrulama.
 3. İş bitince commit + push zaten brifin doğrulama adımında; sonraki
    brife geç.
 
-**Taze oturum buradan başlar: `10-kalan-isler.md`.** 1-5 ve 7 bitti; kalan
-her şey (erişilebilirlik kusurları, e-posta dili, sunucu günü, iki büyük
-tasarım brifi) orada sıralı ve kendi model/effort satırıyla duruyor.
+**Taze oturum buradan başlar: `10-kalan-isler.md`.** 1-5 ve 7 bitti; o brifin
+A (Segmented adları), B (auth `h1`) ve C (e-posta dili) bölümleri de bitti.
+Kalan: D (sunucu günü — engelli), E (rapor snapshot) ve F (2B alan çözücü).
 
 Genel kural (bu turda doğrulandı): **spec net + iş mekanikse Sonnet
 yeter; tasarım kararı ve denetim pahalı modelde kalır.** Oturum pahalı
@@ -39,30 +39,29 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 1-5 ve 7 sunucusuz yapıldı. 6 sunucu gününe bağlı. 8-9 büyük/ertelenmiş —
 briflerinde yalnız karar çerçevesi var, ayrıntılı spec o gün yazılır.
 
-## Açık bulgular — hepsi artık `10-kalan-isler.md`'de spec'li
+## Açık bulgular — A, B ve C KAPANDI (2026-07-31)
 
-Aşağıdakiler kayıt olarak duruyor; yapılacak iş hâline getirilmiş biçimleri
-`10-kalan-isler.md` bölüm A (Segmented), B (auth `h1`) ve C (e-posta dili).
+Üçü de `10-kalan-isler.md`'de spec'liydi; üçü de aynı gün yapıldı. Hepsi
+build'den, tip denetiminden ve birim testlerinden kaçan kusurlardı — bu yüzden
+her biri kendi **bekçi testiyle** kapandı, yoksa bir sonraki ekranda sessizce
+geri gelirlerdi.
 
-Kapsamı kendi briflerini aşan bulgular. Hepsi build'den, birim testlerinden
-ve tip denetiminden kaçar — yani kırıldıklarında hiçbir kapı ötmez.
-
-- **`Segmented`e hiçbir ekranda `label` geçilmiyor** — 24 dosyadaki 31
-  örneğin hepsi (sayım 2026-07-31'de yeniden yapıldı). Bileşen `label`ı `aria-label`a koyuyor ama prop hiç
-  kullanılmamış, yani mod seçici grubu ekran okuyucuya ADSIZ duyuruluyor
-  ("radio group", hangi grup belli değil). Düzeltmesi 24 dosya + `text.js`
-  başına yeni iki dilli metin demek. Spec: `10-kalan-isler.md` bölüm A.
-- **E-posta akışı tek dilli** (Brif 07'de çıktı, kapsamı aşıyordu).
-  `api/Alp.Api/Auth/AuthEndpoints.cs` doğrulama ve parola sıfırlama bağlantılarını
-  `{FrontendBaseUrl}/e-posta-dogrula` ve `/parola-sifirla` olarak üretir; postanın
-  gövdesi de Türkçedir. İngilizce arayüzden kayıt olan kullanıcı Türkçe posta alır
-  ve Türkçe sayfaya düşer. Kırık değil, tek dilli. Düzeltmesi yalnız yol çevirisi
-  değil: kullanıcının dili kayıt isteğiyle sunucuya taşınmalı ve `IEmailSender`
-  tarafı iki dilli olmalı — ayrı bir iş olarak planlanmalı.
-- **Auth ekranlarında `h1` yok** (`pages/auth/*`), başlık `h2` ile kuruluyor.
-  Araç ekranları `h1` kullanıyor. Sayfa başına tek `h1` beklentisi bozuk;
-  auth sayfaları indekslenmediği için SEO etkisi yok, erişilebilirlik
-  etkisi var.
+- ✓ **`Segmented`e hiçbir ekranda `label` geçilmiyordu** — 31 çağrının hepsi
+  ekran okuyucuya adsız duyuruluyordu. Hepsine kendi `text.js`inden iki dilli
+  ad verildi. Bekçi: `components/segmentedLabel.guard.test.js` (eksik `label`,
+  çıplak dize ve aynı dosyada tekrarlanan ad).
+- ✓ **Auth ekranlarında `h1` yoktu** (`pages/auth/*`), başlık `h2` ile
+  kuruluyordu. Beş ekranın on dalı da `h1` oldu; görünüm dört temada
+  `.auth-panel h1` ile birebir korundu. Bekçi:
+  `pages/auth/authHeading.guard.test.js` (panel sayısı = `h1` sayısı, dört
+  temada kural var).
+- ✓ **E-posta akışı tek dilliydi** (Brif 07'de çıkmıştı). Dil istek gövdesinde
+  `lang` alanıyla taşınıyor; konu, gövde ve bağlantı yolu iki dilli
+  (`api/Alp.Api/Auth/AuthEmailText.cs`). Metin bilinçli olarak SUNUCUDA
+  bırakıldı — gövdeyi istemci belirlerse kimlik avı yüzeyi açılır. Karar:
+  `docs/eposta-dili-karari.md`. Bekçi: `lib/authMailPaths.guard.test.js`
+  (sunucudaki yol tablosu `routes.js` ile ayrışamaz) + sunucu tarafında
+  `AuthEmailLanguageTests.cs`.
 
 Düzeltilen bir kusur ise brif 05 kapsamında kaldı: başlıktaki "Giriş yap"
 bağlantısına `role="group"` konmuştu ve tek bağlantının `link` rolünü
@@ -87,7 +86,7 @@ Brif 07'den sonra aynı gün yapılanlar (git log `b48dcd7`..):
 - Rapor künyesindeki firma alanı görünür ve tek seferlik düzenlenebilir
   (`docs/uyelik-ve-rapor-plani.md` §27)
 
-Güncel test sayısı: **111 sunucu + 1966 web + 18 tarayıcı + 5 çevrimdışı.**
+Güncel test sayısı: **121 sunucu + 1977 web + 18 tarayıcı + 5 çevrimdışı.**
 Bilinçli yapılmayanlar: Termination'ın sonuç paneli (hata dalı ekstra
 içerik çiziyor), RequireAuth yönlendirmesi (mevcut anonim mesajlar
 bilinçli tasarım), ohm.js induktans çifti (API simetrisi).

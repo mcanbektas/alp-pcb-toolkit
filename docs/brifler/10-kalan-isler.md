@@ -37,9 +37,12 @@ Docker yığını (8080) günlük iş için gerekmez; yalnız derlenmiş çıkt�
 
 ---
 
-# A. `Segmented` ekran okuyucuya ADSIZ duyuruluyor
+# A. `Segmented` ekran okuyucuya ADSIZ duyuruluyor — ✓ BİTTİ (2026-07-31)
 
 **Model/effort:** Sonnet 5, medium. Spec net, iş mekanik ama geniş.
+
+31 çağrının hepsi kendi `text.js`inden iki dilli ad aldı; bekçi:
+`components/segmentedLabel.guard.test.js`. Aşağısı yapılan işin kaydıdır.
 
 ## Sorun
 
@@ -74,9 +77,12 @@ eksikliği `aria-label={undefined}` olarak sessizce geçer.
 
 ---
 
-# B. Auth ekranlarında `h1` yok
+# B. Auth ekranlarında `h1` yok — ✓ BİTTİ (2026-07-31)
 
 **Model/effort:** Haiku 4.5, low. Beş dosya, tek kural.
+
+On dalın hepsi `h1` oldu, görünüm dört temada korundu; bekçi:
+`pages/auth/authHeading.guard.test.js`.
 
 ## Sorun
 
@@ -103,9 +109,13 @@ bulamıyor.
 
 ---
 
-# C. E-posta akışı tek dilli
+# C. E-posta akışı tek dilli — ✓ BİTTİ (2026-07-31)
 
 **Model/effort:** Opus 5, medium. Sözleşme değişikliği + iki taraf.
+
+Karar `docs/eposta-dili-karari.md`'de; dil istek gövdesinde `lang` alanıyla
+taşınıyor, metin sunucuda iki dilli sözlükte (bilinçli kural istisnası).
+Bekçiler: `lib/authMailPaths.guard.test.js` + `AuthEmailLanguageTests.cs`.
 
 ## Sorun
 
@@ -196,9 +206,6 @@ UCUZLATILAMAZ — yanlış sayısal sonuç sessizce yanlış mühendislik karar�
 
 ## Sıra önerisi
 
-`A` → `B` → `C` sunucusuz yapılır ve birbirinden bağımsızdır; üçü de tek
-oturumda bitebilir. `D` sunucuya, `E` ve `F` ayrı ve büyük kararlara bağlı.
-
-`A` ve `B` erişilebilirlik kusurları ve ikisi de bugünkü kod tabanında
-**görünmeyen** hatalar — bu yüzden ikisi de kendi bekçi testiyle kapanır,
-yoksa bir sonraki ekranda sessizce geri gelirler.
+`A` → `B` → `C` sunucusuz yapıldı ve tek oturumda bitti (2026-07-31); üçü de
+kendi bekçi testiyle kapandı. **Kalan: `D` sunucuya, `E` ve `F` ayrı ve büyük
+kararlara bağlı.**

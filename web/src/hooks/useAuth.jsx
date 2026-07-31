@@ -10,6 +10,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react'
 import { createApiClient } from '../lib/api'
+import { useLang } from './useLang'
 
 const AuthContext = createContext(null)
 
@@ -20,6 +21,12 @@ export const AUTH_ANONYMOUS = 'anonymous'
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export function AuthProvider({ children }) {
+  // Kimlik postalarının dili buradan geçer: sağlayıcı `LangProvider`ın
+  // İÇİNDEDİR, yani o an görülen arayüz dilini okuyabilir. Ekran başına
+  // geçirilseydi bir ekranın unutması sessizce Türkçe postaya düşerdi
+  // (docs/eposta-dili-karari.md §1). Sunucuya yalnız DİL KODU gider, metin
+  // değil — gövdeyi istemci belirlese kimlik avı yüzeyi açılırdı (§2).
+  const { lang } = useLang()
   const [status, setStatus] = useState(AUTH_LOADING)
   const [user, setUser] = useState(null)
   const tokenRef = useRef(null)
@@ -88,8 +95,8 @@ export function AuthProvider({ children }) {
   }, [api, loadMe])
 
   const register = useCallback((email, password, displayName) => (
-    api.post('/api/auth/register', { email, password, displayName }, { auth: false })
-  ), [api])
+    api.post('/api/auth/register', { email, password, displayName, lang }, { auth: false })
+  ), [api, lang])
 
   const logout = useCallback(async () => {
     await api.post('/api/auth/logout', undefined, { auth: false })
@@ -99,8 +106,8 @@ export function AuthProvider({ children }) {
   }, [api])
 
   const forgotPassword = useCallback((email) => (
-    api.post('/api/auth/forgot-password', { email }, { auth: false })
-  ), [api])
+    api.post('/api/auth/forgot-password', { email, lang }, { auth: false })
+  ), [api, lang])
 
   const resetPassword = useCallback((email, token, newPassword) => (
     api.post('/api/auth/reset-password', { email, token, newPassword }, { auth: false })
