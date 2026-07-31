@@ -27,7 +27,7 @@ ENV VITE_SITE_URL=$VITE_SITE_URL
 RUN npm run build
 
 # ---- sunum ----
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.31-alpine AS runtime
 
 # İmaj tek başına da çalışsın diye TLS'siz yapılandırma gömülür; üretimde
 # deploy/docker-compose.prod.yml bunun üstüne nginx.prod.conf'u bağlar.
