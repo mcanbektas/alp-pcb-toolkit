@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
@@ -75,7 +75,7 @@ export default function Junction() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/guc-termal">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/guc-termal">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

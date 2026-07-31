@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import Segmented from '../../../components/Segmented'
 import ToolHeader from '../../../components/ToolHeader'
@@ -65,7 +65,7 @@ export default function ComplexConverter() {
   return (
     <>
       {/* 1) BAŞLIK */}
-      <Link className="backlink" to="/kategori/donusturucular">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/donusturucular">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

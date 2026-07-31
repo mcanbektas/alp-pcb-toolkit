@@ -8,7 +8,7 @@
 // gösterilir — kullanıcı hangi hesapta olduğunu görmeli.
 
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
@@ -112,7 +112,7 @@ export default function Account() {
         </div>
         <div className="panel">
           <p className="empty-note">
-            {at.loginRequired} <Link to="/giris">{at.loginLink}</Link>
+            {at.loginRequired} <LangLink to="/giris">{at.loginLink}</LangLink>
           </p>
         </div>
       </>

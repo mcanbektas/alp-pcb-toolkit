@@ -12,7 +12,10 @@ tarayıcıda çalışır — hiçbir hesap sunucuya gitmez. Backend yalnızca ü
 kaydı ve rapor indirme için vardır; oturum açılmamışken bütün araçlar tam çalışır.
 
 **Arayüz iki dillidir (tr / en), varsayılan Türkçe. Kod yorumları Türkçedir ve çevrilmez.**
-Ayrıntı: aşağıdaki "Dil (tr / en)" bölümü.
+**URL de iki dillidir**: Türkçe yol kanoniktir (`/arac/gerilim-bolucu`), İngilizce sürüm
+`/en` öneki ve İngilizce segmentlerle yaşar (`/en/tool/voltage-divider`). Dil URL'den
+okunur, `localStorage`'dan değil. Ayrıntı: aşağıdaki "Dil (tr / en)" bölümü ve
+`docs/en-url-karari.md`.
 
 ## Komutlar
 
@@ -31,7 +34,8 @@ React bileşeni testi yazılmaz** (`vite.config.js` → `test.include` yalnız
 
 Tarayıcı testleri ayrı ve yine dar: **Playwright, yalnız anonim akışlar** (`web/e2e/`,
 `npm run test:e2e` — vite dev sunucusuna karşı). Kapsanan şey birim testlerinin
-göremediği zincir: form → hesap → panel, `<html lang>` geçişi ve kalıcılığı, `radiogroup`
+göremediği zincir: form → hesap → panel, dil ağacı (`/en/...` adresleri, `<html lang>`,
+`LangLink` çevirisi, `?hesap=` bağının dil geçişinde korunması), `radiogroup`
 klavye modeli, bilinmeyen yol, anonim kullanıcının rapor/kaydet yüzeyinde ne gördüğü.
 **Oturumlu akışlar bilerek dışarıda**: doğrulama postası `ConsoleEmailSender` günlüğüne
 düşüyor ve e2e'den temiz okunamıyor, teste özel bir uç ise açılmıyor (güvenlik yüzeyi).
@@ -83,15 +87,21 @@ HTML kabuğu dönmeyen yapılandırmada sayfa yenilendiğinde 404 alınır. Kar�
 ```
 vite build                                   → dist/ (boş kabuk + hash'li varlıklar)
 vite build --ssr scripts/prerender/…         → .prerender/ (Node paketi, depoya girmez)
-node scripts/build-prerender.mjs             → 38 sayfa + spa-fallback.html
-node scripts/build-sitemap.mjs               → dist/sitemap.xml
+node scripts/build-prerender.mjs             → 76 sayfa + spa-fallback.html
+node scripts/build-sitemap.mjs               → dist/sitemap.xml (76 url)
 ```
 
 Site saf SPA'ydı ve JS koşturmayan bot her sayfada boş `<div id="root">` görüyordu.
-Artık `/`, 8 kategori ve `path`i olan 29 araç derleme sonrası `react-dom/server` ile
-render edilip `dist/<yol>.html` olarak yazılıyor; `<title>` de rota başına yazılıyor
-(`TitleSync` ile aynı kaynak ve kalıp). Kararların tamamı ve elenen seçenekler:
-**`docs/prerender-karari.md`**.
+Artık `/`, 8 kategori ve `path`i olan 29 araç — **her biri iki dilde** — derleme sonrası
+`react-dom/server` ile render edilip `dist/<yol>.html` olarak yazılıyor; `<title>` ve
+`<html lang>` de rota başına yazılıyor (`TitleSync` ile aynı kaynak ve kalıp). Her sayfa
+kendi `canonical` ve karşılıklı `hreflang` kümesini taşır (`tr`, `en`, `x-default` = tr).
+Kararların tamamı ve elenen seçenekler: **`docs/prerender-karari.md`** (yöntem, hydration,
+nginx) ve **`docs/en-url-karari.md`** (dil boyutu).
+
+Rota listesi `src/lib/routes.js` → `indexablePages()`ten gelir ve sitemap üreteci AYNI
+listeyi okur — iki liste ayrışamaz. `VITE_SITE_URL` verilmezse hem sitemap hem `hreflang`
+placeholder alan adı taşır ve `scripts/site-url.mjs` konsola uyarı basar.
 
 Bilinmesi gereken üç şey:
 
@@ -99,20 +109,23 @@ Bilinmesi gereken üç şey:
   (router'ın içi) ayrı export edilir. Tarayıcı `BrowserRouter`, prerender `StaticRouter`
   sarar. Sağlayıcı sırası tek yerdedir; bozulursa iki yol farklı ağaç kurar.
 - **İlk render tarayıcıya özgü hiçbir şey okumaz.** `hydrateRoot` kullanılıyor ve
-  prerender'lı HTML ile ilk client render'ı birebir aynı olmak zorunda. Bu yüzden
-  `LangProvider` ilk render'da her zaman `DEFAULT_LANG`'tır ve profil hook'ları
-  (`useDfmProfiles`, `useClearanceProfiles`, `useSavedStackups`) depoyu **mount'tan
-  sonra** okur. **Yeni bir hook ilk render'da `localStorage`'a bakarsa dört DFM
+  prerender'lı HTML ile ilk client render'ı birebir aynı olmak zorunda. Bu yüzden profil
+  hook'ları (`useDfmProfiles`, `useClearanceProfiles`, `useSavedStackups`) depoyu
+  **mount'tan sonra** okur. **Yeni bir hook ilk render'da `localStorage`'a bakarsa dört DFM
   ekranında olan olur: hydration ayrışır ve React bütün ekranı sessizce yeniden çizer.**
   Bu build'den ve testten kaçar — ölçmenin yolu `docs/prerender-karari.md` §8'dedir.
+  Dil bu listede DEĞİLDİR: URL'den okunduğu için prerender ile tarayıcı aynı girdiden
+  aynı ağacı kurar (`docs/en-url-karari.md` §3).
 - **`dist/index.html` artık boş kabuk değil, ana sayfadır.** SPA geri düşüşü
   `spa-fallback.html`'dir. nginx zinciri
   `try_files $uri $uri.html $uri/index.html /spa-fallback.html /index.html` ve her
   parçasının gerekçesi ölçülmüştür (301 yönlendirmesi, kök isteği, no-store) — sadeleştirmeden
   önce `docs/prerender-karari.md` §6 okunur.
 
-Yeni araç eklendiğinde ek bir adım YOKTUR: rota da başlık da `src/data/categories.js`ten
-türer, prerender ve sitemap kendiliğinden kapsar.
+Yeni araç eklendiğinde prerender/sitemap için ek adım YOKTUR: rota da başlık da
+`src/data/categories.js`ten türer (iki dilde), prerender ve sitemap kendiliğinden kapsar.
+Katalog kaydına `slugEn` yazmak ve ekranı `App.jsx` → `TOOL_SCREENS`e eklemek yeter —
+ikisi de testle denetlenir (`pages/tools/toolKeys.test.js`).
 
 ### PWA / çevrimdışı
 
@@ -126,7 +139,8 @@ Site service worker ile ağsız da tam çalışır — bütün hesap motorları 
   (`unicode-range` zaten gerekeni indiriyor — runtime cache-first). `/api/` NetworkOnly.
 - **`spa-fallback.html` precache'e elle eklenir** (`additionalManifestEntries`): onu
   `vite build` değil, sonraki prerender adımı üretir. Ağ yokken bilinmeyen bir rota
-  açılırsa bu boş kabuk döner ve React aracı yine çizer.
+  açılırsa bu boş kabuk döner ve React aracı yine çizer — dil URL'den okunduğu için
+  İngilizce rota çevrimdışında da İngilizce çizilir, ikinci bir kabuk gerekmez.
 - **Service worker kaydı React ağacının dışındadır** (`main.jsx` sonu). `virtual:pwa-*`
   modülleri yalnız tarayıcı derlemesinde çözülür; ağacın içine girerse prerender'ın Node
   paketi (`vite build --ssr`) kırılır. Eklenti o derlemede `disable: isSsrBuild` ile kapalıdır.
@@ -206,6 +220,11 @@ soyut portu bilir.
      çalışır — aralıkta kök yoksa çözücü yine hata döner, asla tahmin üretmez.
    - `storage.js` — kalıcı depolama **portu** (`read`/`write`/`remove`). `browserStorage`,
      `memoryStorage`, `nullStorage` uygulamaları burada.
+   - `routes.js` — iki dilli yol sözlüğü: `langFromPath`, `toolPath`, `categoryPath`,
+     `staticPath`, `translatePath`, `indexablePages`. Kaynak `categories.js` + statik rota
+     tablosu. **Kaynak kodda her zaman KANONİK (tr) yol yazılır**, çeviri render anında
+     `components/LangLink.jsx` ile yapılır — ekranlara `lang === 'en' ? … : …` koşulu
+     dağılmaz. Prerender ve sitemap üreteçleri de bu modülü okur.
    - `statusChip.js` — durum çipinin tek kaynağı. `worstLevel(levels)` en kötü seviyeyi,
      `statusChip(worst, count, ui)` `{cls, text}` döndürür. **İki tarihsel söz varlığını
      köprüler**: genel araçlar `'ok'|'warn'|'danger'`, DFM araçları
@@ -229,7 +248,13 @@ soyut portu bilir.
      ihtiyaç duymazlar ve uç girdide `Infinity` döndürmek yerine aralık hata kodu verirler.
 2. **`src/components/`** — sunum bileşenleri (`NumberField`, `SelectField`, `Segmented`,
    `TextField`, `RowList`, `Schematic`, `LineChart`, `Formula`, `ProfilePanel`, `DfmChecks`,
-   `DfmSummaryBox`, `AuthField`, `Toast`). State tutmaz, hesap yapmaz.
+   `DfmSummaryBox`, `AuthField`, `Toast`, `LangLink`). State tutmaz, hesap yapmaz.
+   - `LangLink` — `react-router`ın `Link`ini sarar ve `to`yu geçerli dile çevirir
+     (`lib/routes.js` → `translatePath`). **Uygulama içi her bağlantı bunu kullanır**;
+     düz `Link` yalnızca yolu zaten geçerli dilde üreten beş yerde kalır (`Home`,
+     `CategoryPage`, `App.jsx` altbilgisi, `CalculationList`). Yeni bir ekran düz `Link`
+     yazarsa İngilizce ağaçtaki kullanıcı o bağlantıda sessizce Türkçeye düşer ve bu
+     build'den de testlerin geri kalanından da kaçar.
    - `Toast` — kısa süreli bildirim ("Çıkış yapıldı"). Modal değildir (bkz. §11 kararı) ve
      hiçbir şeyin önünü kapatmaz. Metni **prop olarak** alır, `useLang()`'e bakmaz: gösterdiği
      cümle çerçeve metni değil, çağıranın metnidir — bu yüzden dili doğrudan okuyan bileşenler
@@ -285,6 +310,10 @@ soyut portu bilir.
 `src/data/categories.js` tek kaynak: 8 kategori ve araç listesi. Bir aracın `path` alanı varsa
 aktif, yoksa "yakında" olarak gösterilir — `Home.jsx` ve `CategoryPage.jsx` bu alana bakar.
 `title` / `desc` / `name` alanları `{ tr, en }` sözlüğüdür; ekran tarafı `pick()` ile çözer.
+`path` Türkçe (kanonik) yolun kendisidir; İngilizce yol `slugEn`den türer
+(`/en/tool/<slugEn>`, `/en/category/<slugEn>`). **`path` varken `slugEn` eksik olamaz** —
+eksikse o aracın İngilizce sayfası hiç üretilmez ve Türkçe sayfa var olmayan bir alternatife
+`hreflang` verir; `pages/tools/toolKeys.test.js` bunu denetler.
 
 ### Dil (tr / en)
 
@@ -302,12 +331,26 @@ Bu sınıftan bir hata (`text.table.pctOfSupply is not a function`) bir ekranı 
 `schematic.jsx` içindeki `text` prop'unun kök nesne değil, `index.jsx`'in geçirdiği alt nesne
 (genelde `text.schematic`) olduğunu unutma.
 
-- **`src/lib/i18n.js`** — saf: `LANGS`, `DEFAULT_LANG` (`'tr'`), `readLang`/`writeLang`
-  (depolama portu üzerinden) ve `pick(dict, lang)`. Çeviri eksikse İngilizceye değil
-  **Türkçeye** düşer; eksik çeviri boş kutu değil, okunabilir metin olarak görünür.
-- **`src/hooks/useLang.jsx`** — `LangProvider` + `useLang()`. Somut depolama yalnızca burada
-  bağlanır. Seçim `localStorage`'da tutulur; erişilemezse `nullStorage`'a düşer — dil o oturum
-  boyunca çalışır, yalnızca kalıcı olmaz.
+- **`src/lib/i18n.js`** — saf: `LANGS`, `DEFAULT_LANG` (`'tr'`), `isLang` ve
+  `pick(dict, lang)`. Çeviri eksikse İngilizceye değil **Türkçeye** düşer; eksik çeviri
+  boş kutu değil, okunabilir metin olarak görünür.
+- **Dil URL'DEN okunur, depodan değil.** `/arac/gerilim-bolucu` Türkçe sayfadır,
+  `/en/tool/voltage-divider` İngilizce. `readLang`/`writeLang` ve `localStorage` anahtarı
+  KALDIRILDI: URL ile depo iki ayrı kaynak demekti ve kanonik olarak Türkçe bildirilen bir
+  adres kullanıcıya İngilizce içerik gösterebiliyordu. Kalıcılık artık bağlantının
+  kendisindedir. Gerekçe ve elenen seçenekler: `docs/en-url-karari.md` §3.
+- **`src/hooks/useLang.jsx`** — `LangProvider` + `useLang()`. Sağlayıcı `useLocation()`
+  okur, yani **yönlendiricinin İÇİNDEDİR** (`AppRoutes`ın en dışı); `AppProviders` yalnız
+  `NoticeProvider` taşır. `<html lang>` etkisi de buradadır.
+- **Dil geçişi gezinmedir.** `LangSwitch` düğme değil `<Link>` basar ve karşılık gelen
+  adrese gider (`translatePath`, sorgu/`#` korunur). Bot İngilizce sürümü bu bağlantıdan
+  keşfeder; seçili dil `aria-current="page"` ile işaretlenir.
+- **Tek istisna `useLangCapture`**: rapor başka bir dilde istendiğinde ekran iki
+  `flushSync` arasında geçici olarak çevrilir. Adres çubuğuna DOKUNULMAZ (gezinme yok,
+  form durumu ve `?hesap=` bağı yerinde kalmalı); sağlayıcıdaki `setLangOverride` kullanılır
+  ve geri alma `null` yazar — "doğru dil" ikinci bir yerde saklanmaz.
+- **Bağlantı kuralı testle korunuyor**: `src/pages/langLink.guard.test.js` düz `Link`
+  içe aktaran dosyaları ve kaynağa çıplak yazılmış `/en/...` yollarını yakalar.
 - **`<html lang>` dille birlikte değişir ve bu şart.** `text-transform: uppercase` sayfanın
   dilini kullanır: `lang="tr"` altında "i" harfi "İ" olur, İngilizce metin büyütülünce "VIA"
   yerine "VİA" çıkar. Dil düğmelerinin kendi adı da kendi dilinde yazılır (`lang={code}`),
@@ -430,6 +473,11 @@ ki kayıt bağlantısı paylaşılabilsin ve sayfa yenilendiğinde kaybolmasın.
 - Bağlıyken "Kaydet" yerine **"Kaydı güncelle"** çıkar ve mevcut satırın üzerine yazar.
   Kopya kayıt böylece oluşmaz. Kopya isteyen "Yeni kayıt olarak ekle" ile bağı koparır.
 
+Sorgu parametresinin adı **iki dil ağacında da Türkçedir** (`/en/tool/voltage-divider?hesap=7`)
+ve çevrilmez: çevrilseydi bugüne kadar paylaşılmış her kayıt bağlantısı İngilizce ağaçta
+sessizce bağsız açılırdı — hata vermeden, boş formla. Aynı gerekçe `?token=`/`?email=` gibi
+auth parametreleri için de geçerlidir (`docs/en-url-karari.md` §2).
+
 Ekran bunu tek satırla alır: `useSavedCalculation({ toolKey, initialForm, patch, setMode })`
 ve dönen nesne `<SaveToProject saved={saved} />` ile geçirilir. `setMode` yalnızca modu
 **ayrı state'te** tutan ekranlarda verilir; modu form alanında tutanlarda (`f.mode`,
@@ -453,10 +501,12 @@ tamamlama; eksik olduğunu söyle ve sor.
 2. `src/pages/tools/<Ad>/` klasörünü dört dosyayla kur: `model.js`, `text.js`,
    `schematic.jsx`, `index.jsx`. `text.js` doğduğu anda iki dillidir — tek dille yazılıp
    sonra çevrilmez.
-3. `src/App.jsx` içine `const Ad = lazy(() => import('./pages/tools/Ad'))` ve
-   `<Route path="/arac/<slug>" element={<Ad />} />` ekle — ekranlar tembel yüklenir.
-4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<slug>'` ver; `name` alanı
-   `{ tr, en }` sözlüğüdür ve ekranın `h1` başlığıyla birebir aynı kalır.
+3. `src/App.jsx` içine `const Ad = lazy(() => import('./pages/tools/Ad'))` ekle ve
+   `TOOL_SCREENS` eşlemesine `'<id>': Ad` satırını koy — **rota YOLU yazılmaz**, iki dilde
+   de katalogdan üretilir.
+4. `src/data/categories.js` içindeki ilgili araca `path: '/arac/<tr-slug>'` ve
+   `slugEn: '<en-slug>'` ver; `name` alanı `{ tr, en }` sözlüğüdür ve ekranın `h1`
+   başlığıyla birebir aynı kalır. `slugEn` yalnız küçük harf, rakam ve tire içerir.
 5. `docs/spec.md` §13'te karşılığı varsa testi aynı commit'te yaz.
 6. `report.js` + `report.test.js` yaz, ekrana `<ReportDialog>` ve `<SaveToProject>` ekle.
    `SaveToProject`'in `toolKey`'i 4. adımdaki `id` ile **birebir aynı** olmalı; kaydı geri

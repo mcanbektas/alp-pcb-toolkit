@@ -74,6 +74,10 @@ Manifest tek dil taşır (`lang: 'tr'`, `DEFAULT_LANG`) — arayüz iki dilli am
 manifest çalışma zamanında dile göre değişmez. Açıklama metni `index.html`in
 `description` etiketiyle aynı cümledir.
 
+Brif 07 İngilizce URL ağacını açtıktan sonra da böyle kaldı (`start_url: '/'`):
+ayrı bir EN manifest'i ikinci bir YÜKLENEBİLİR UYGULAMA KİMLİĞİ demek olurdu ve
+istenmiyor. Karar: `docs/en-url-karari.md` §7.
+
 **İkonlar teknik borçtur.** Depodaki tek kaynak 64 px `favicon.png`; 192 ve
 512 px sürümler ondan `sips` ile büyütüldü, yani kenarları yumuşak. Brif bu
 yolu öngörüyordu ve başka kaynak yok (SVG ya da yüksek çözünürlüklü kare

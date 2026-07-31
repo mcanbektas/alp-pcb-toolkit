@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import AuthField from '../../components/AuthField'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
@@ -37,7 +37,7 @@ export default function ForgotPassword() {
         <h2>{text.forgotPassword.title}</h2>
         <p>{text.forgotPassword.success}</p>
         <p className="auth-panel-foot">
-          <Link to="/giris">{text.forgotPassword.backToLogin}</Link>
+          <LangLink to="/giris">{text.forgotPassword.backToLogin}</LangLink>
         </p>
       </section>
     )
@@ -61,7 +61,7 @@ export default function ForgotPassword() {
         </button>
       </form>
       <p className="auth-panel-foot">
-        <Link to="/giris">{text.forgotPassword.backToLogin}</Link>
+        <LangLink to="/giris">{text.forgotPassword.backToLogin}</LangLink>
       </p>
     </section>
   )

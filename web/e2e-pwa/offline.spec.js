@@ -62,6 +62,22 @@ test('çevrimdışıyken hiç ziyaret edilmemiş araç da açılır', async ({ p
   await expect(page.locator('section.panel[aria-live] .big-result')).toBeVisible()
 })
 
+test('çevrimdışıyken İngilizce adres de doğru dilde açılır', async ({ page, context }) => {
+  // Geri düşüş kabuğu (`spa-fallback.html`) TEK dosyadır ve `lang="tr"` doğar.
+  // Dil URL'den okunduğu için (docs/en-url-karari.md §3) ağsız gelen bir
+  // İngilizce rota yine İngilizce çizilmeli — ikinci bir kabuk üretmeye gerek
+  // kalmamasının şartı budur.
+  await page.goto('/')
+  await serviceWorkerHazir(page)
+
+  await context.setOffline(true)
+  await page.goto('/en/tool/voltage-divider')
+
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page.locator('h1')).toHaveText(/voltage divider/i)
+  await expect(page.locator('section.panel[aria-live] .big-result')).toBeVisible()
+})
+
 test('service worker API isteklerini önbelleğe almaz', async ({ page, context }) => {
   // Aynı zamanda bu dosyanın NEGATİF KONTROLÜ: `setOffline` gerçekten ağı
   // kesiyorsa, service worker'ın dokunmadığı bir istek çevrimdışında

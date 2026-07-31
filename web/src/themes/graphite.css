@@ -187,7 +187,10 @@ a:hover { text-decoration: underline; }
    ve boyutunu taşır ama imleç/kenarlık davranışını almaz. */
 .lang-switch .header-user { cursor: default; }
 .lang-switch button:hover, .lang-switch a:hover { border-color: var(--line); }
-.lang-switch button[aria-pressed="true"] {
+/* Seçili dil: düğme değil BAĞLANTI (App.jsx → LangSwitch, dil geçişi artık
+   gezinmedir). Eski `aria-pressed` seçicisi hesap alanındaki düğmeler için
+   duruyor. */
+.lang-switch button[aria-pressed="true"], .lang-switch a[aria-current="page"] {
   background: var(--raised); border-color: var(--line);
 }
 

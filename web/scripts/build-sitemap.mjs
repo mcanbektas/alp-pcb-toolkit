@@ -1,63 +1,58 @@
 #!/usr/bin/env node
 // sitemap.xml üreteci — elle XML YAZILMAZ, rotalar tek kaynaktan
-// (`src/data/categories.js`) türer: ana sayfa + her kategori sayfası +
-// `path` alanı olan (aktif) araçlar.
+// (`src/lib/routes.js` → `indexablePages()`) türer: ana sayfa + her kategori
+// sayfası + `path` alanı olan (aktif) araçlar, HER İKİ DİLDE.
 //
-// Alan adı henüz alınmadı. `VITE_SITE_URL` ortam değişkeni verilmezse
-// placeholder yazılır ve konsola uyarı basılır; alan adı alınınca değişken
-// `deploy/.env`'e eklenir (bkz. `deploy/README.md`).
+// Prerender üreteciyle AYNI listeyi okur (`build-prerender.mjs`); ayrı liste
+// tutulsaydı sitemap'te olup prerender'lanmamış (ya da tersi) sayfalar
+// oluşurdu.
+//
+// Her `<url>` kendi `xhtml:link` alternatiflerini taşır. Küme karşılıklıdır:
+// Türkçe kayıt da kendini listeler, aksi hâlde arama motoru kümeyi yok sayar.
+// Ayrıntı: `docs/en-url-karari.md` §6.
+//
+// Alan adı henüz alınmadı — `VITE_SITE_URL` yoksa placeholder ve uyarı
+// (`scripts/site-url.mjs`).
 //
 // Kullanım: `vite build` SONRASINDA koşar (`npm run build`), `dist/`in
 // üzerine yazar — bkz. `package.json` → `"build"`.
 
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { CATEGORIES } from '../src/data/categories.js'
+import { LANGS } from '../src/lib/i18n.js'
+import { indexablePages } from '../src/lib/routes.js'
+import { siteUrl } from './site-url.mjs'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const webDir = path.resolve(scriptDir, '..')
 const DIST_FILE = path.join(webDir, 'dist', 'sitemap.xml')
 
-const PLACEHOLDER_SITE_URL = 'https://alp-pcb-toolkit.example'
-
-function siteUrl() {
-  const fromEnv = process.env.VITE_SITE_URL
-  if (fromEnv) return fromEnv.replace(/\/+$/, '')
-  console.warn(
-    `build-sitemap: VITE_SITE_URL tanımlı değil, placeholder alan adıyla üretiliyor `
-    + `(${PLACEHOLDER_SITE_URL}). Alan adı alınınca deploy/.env'e VITE_SITE_URL eklenir.`,
-  )
-  return PLACEHOLDER_SITE_URL
-}
-
-// `/` + her kategori sayfası + `path`i olan (aktif) her araç. "Yakında"
-// araçların (path yok) henüz gerçek bir sayfası olmadığı için listeye girmez.
-function routes() {
-  const list = ['/']
-  for (const category of CATEGORIES) {
-    list.push(`/kategori/${category.slug}`)
-    for (const tool of category.tools) {
-      if (tool.path) list.push(tool.path)
-    }
-  }
-  return list
-}
-
 const xmlEscape = (value) => value.replace(/&/g, '&amp;')
 
-function buildXml(base, routePaths) {
-  const urls = routePaths.map((p) => `  <url><loc>${xmlEscape(base + p)}</loc></url>`).join('\n')
+function buildXml(base) {
+  const entries = []
+  for (const page of indexablePages()) {
+    const alternates = LANGS
+      .map((lang) => '    <xhtml:link rel="alternate" '
+        + `hreflang="${lang}" href="${xmlEscape(base + page[lang])}" />`)
+      .join('\n')
+    for (const lang of LANGS) {
+      entries.push(`  <url>\n    <loc>${xmlEscape(base + page[lang])}</loc>\n${alternates}\n  </url>`)
+    }
+  }
   return '<?xml version="1.0" encoding="UTF-8"?>\n'
-    + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
+    + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+    + '        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+    + `${entries.join('\n')}\n</urlset>\n`
 }
 
 async function main() {
   const base = siteUrl()
-  const routePaths = routes()
-  await writeFile(DIST_FILE, buildXml(base, routePaths))
-  console.log(`sitemap.xml yazıldı — ${routePaths.length} url (${path.relative(webDir, DIST_FILE)}).`)
+  const xml = buildXml(base)
+  await writeFile(DIST_FILE, xml)
+  const count = (xml.match(/<loc>/g) ?? []).length
+  console.log(`sitemap.xml yazıldı — ${count} url (${path.relative(webDir, DIST_FILE)}).`)
 }
 
 await main()

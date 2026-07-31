@@ -6,7 +6,7 @@
 // burada, sayfanın kendisinde yapılır.
 
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -84,7 +84,7 @@ export default function Projects() {
     }
   }
 
-  // Çöp kutusu düğmesi yalnızca projeyi seçer, silmez. Düğme <Link>'in kardeşi
+  // Çöp kutusu düğmesi yalnızca projeyi seçer, silmez. Düğme <LangLink>'in kardeşi
   // ve kartın üstünde durduğu için varsayılan davranış burada durdurulur —
   // yoksa tıklama karta gider ve proje detayı açılır.
   function askDelete(e, project) {
@@ -122,11 +122,11 @@ export default function Projects() {
   if (!isAuthenticated) {
     return (
       <>
-        <Link className="backlink" to="/">{ui.backHome}</Link>
+        <LangLink className="backlink" to="/">{ui.backHome}</LangLink>
         <h1 className="page-title">{pt.title}</h1>
         <div className="panel">
           <p className="empty-note">
-            {pt.loginRequired} <Link to="/giris">{pt.loginLink}</Link>
+            {pt.loginRequired} <LangLink to="/giris">{pt.loginLink}</LangLink>
           </p>
         </div>
       </>
@@ -135,7 +135,7 @@ export default function Projects() {
 
   return (
     <>
-      <Link className="backlink" to="/">{ui.backHome}</Link>
+      <LangLink className="backlink" to="/">{ui.backHome}</LangLink>
       <h1 className="page-title">{pt.title}</h1>
       <p className="page-sub">{pt.intro}</p>
 
@@ -195,19 +195,19 @@ export default function Projects() {
       ) : (
         <section className="card-grid">
           {projects.map((p) => (
-            // Home.jsx/CategoryPage.jsx'teki .cat-card deseni: <Link> yalnızca
+            // Home.jsx/CategoryPage.jsx'teki .cat-card deseni: <LangLink> yalnızca
             // sunum içeriği taşır, hiçbir interaktif eleman içermez (HTML5
             // içerik modeli <a> içinde interaktif içeriğe izin vermez). Silme
             // düğmesi bu yüzden Link'in dışında, kendisiyle kardeş konumdadır.
             <div key={p.id} className="card-cell">
-              <Link to={`/proje/${p.id}`} className="cat-card">
+              <LangLink to={`/proje/${p.id}`} className="cat-card">
                 <h2>{p.name}</h2>
                 <p className="desc">{p.description || pt.noDescription}</p>
                 <div className="meta">
                   <span className="chip on">{pt.calcCount(p.calculationCount)}</span>
                   <span>{pt.updatedLabel(reportDateTimeStamp(new Date(p.updatedAt)))}</span>
                 </div>
-              </Link>
+              </LangLink>
               <button
                 type="button"
                 className="card-del"

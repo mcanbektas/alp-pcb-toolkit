@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import ToolHeader from '../../../components/ToolHeader'
@@ -150,7 +150,7 @@ export default function BgaBreakout() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/uretim-dfm">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/uretim-dfm">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { CATEGORIES } from '../data/categories'
 import { commonText } from '../data/uiText'
 import { pick } from '../lib/i18n'
+import { categoryPath } from '../lib/routes'
 import { useLang } from '../hooks/useLang'
 
 // Kahraman bölümünün metni de `pick()` ile çözülür: doğrudan `DICT[lang]`
@@ -33,7 +34,7 @@ export default function Home() {
         {CATEGORIES.map((c) => {
           const active = c.tools.filter((t) => t.path).length
           return (
-            <Link key={c.slug} to={`/kategori/${c.slug}`} className="cat-card">
+            <Link key={c.slug} to={categoryPath(c, lang)} className="cat-card">
               <h2>{pick(c.title, lang)}</h2>
               <p className="desc">{pick(c.desc, lang)}</p>
               <div className="meta">

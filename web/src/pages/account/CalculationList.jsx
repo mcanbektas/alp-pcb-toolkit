@@ -15,6 +15,9 @@
 // etiket/değer/birim dizeleridir; ham bölüm (ve içindeki satır içi SVG)
 // istemciye hiç gelmez.
 
+// `LangLink` DEĞİL düz `Link`: `openHref` çağıran taraftan (Project.jsx →
+// toolLinkFor) zaten geçerli dilin yolu olarak gelir, çevrilecek kanonik bir
+// yol yok.
 import { Link } from 'react-router-dom'
 import { reportDateTimeStamp } from '../../data/reportText'
 

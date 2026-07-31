@@ -19,7 +19,7 @@
 //     yüzden bitti; kopya isteyen "Yeni kayıt olarak ekle" ile bağı bilerek
 //     koparır.
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from './LangLink'
 import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
 import useProjectSaver from '../hooks/useProjectSaver'
@@ -110,7 +110,7 @@ export default function SaveToProject({
         <h2 className="section">{st.heading}</h2>
         {linkNote && <p className="field-hint danger">{linkNote.text}</p>}
         <p className="empty-note">
-          {st.loginRequired} <Link to="/giris">{st.loginLink}</Link>
+          {st.loginRequired} <LangLink to="/giris">{st.loginLink}</LangLink>
         </p>
       </div>
     )
@@ -221,7 +221,7 @@ export default function SaveToProject({
         <>
           <p className="empty-note">
             {st.boundNote(saved.projectName)}{' '}
-            <Link to={`/proje/${saved.projectId}`}>{st.openProjectLink}</Link>
+            <LangLink to={`/proje/${saved.projectId}`}>{st.openProjectLink}</LangLink>
           </p>
 
           {saved.engine === ENGINE_STALE && <p className="field-hint danger">{st.staleNote}</p>}

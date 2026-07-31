@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import EpsEffFields, { epsEffRows } from '../../../components/EpsEffFields'
@@ -67,7 +67,7 @@ export default function CriticalLength() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

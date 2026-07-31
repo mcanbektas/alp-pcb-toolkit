@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import AuthField from '../../components/AuthField'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
@@ -24,7 +25,7 @@ export default function ResetPassword() {
         <h2>{text.resetPassword.title}</h2>
         <p className="field-hint danger">{text.resetPassword.invalidLink}</p>
         <p className="auth-panel-foot">
-          <Link to="/parola-unuttum">{text.forgotPassword.title}</Link>
+          <LangLink to="/parola-unuttum">{text.forgotPassword.title}</LangLink>
         </p>
       </section>
     )
@@ -49,7 +50,7 @@ export default function ResetPassword() {
         <h2>{text.resetPassword.title}</h2>
         <p>{text.resetPassword.success}</p>
         <p className="auth-panel-foot">
-          <Link to="/giris">{text.resetPassword.loginLink}</Link>
+          <LangLink to="/giris">{text.resetPassword.loginLink}</LangLink>
         </p>
       </section>
     )

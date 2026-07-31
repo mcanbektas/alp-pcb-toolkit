@@ -1,7 +1,13 @@
-# Brif 07 — İngilizce URL'ler + hreflang (ERTELENDİ — tasarım brifi)
+# Brif 07 — İngilizce URL'ler + hreflang (✓ BİTTİ — 2026-07-31)
 
 **Model/effort:** Opus 5, high (tasarım). Uygulama sonra Sonnet'e
 bölünür. BU BRİF SPEC DEĞİL — o gün önce tasarım dokümanı yazılır.
+
+> **Sonuç: `docs/en-url-karari.md`.** Aşağıdaki dört sorunun cevabı orada.
+> Özet: URL şeması `/en/tool/<en-slug>`; eski Türkçe yollar kanonik kaldı
+> (301 yok); dil kaynağı YALNIZ URL oldu ve `localStorage` kaldırıldı;
+> prerender 38 → 76 sayfa, her sayfa canonical + karşılıklı hreflang taşıyor.
+> Uygulama Sonnet'e bölünmedi — kapsam tek oturumda bitti.
 
 ## Neden riskli
 

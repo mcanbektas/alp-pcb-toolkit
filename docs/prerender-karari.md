@@ -67,6 +67,9 @@ aynı olmasıdır. İki yerde ayrışıyordu, ikisi de kapatıldı:
    Karşılığı EN kullanıcısında bir karelik TR görüntüsüdür — ama o kare
    prerender'la zaten kaçınılmazdı (sunucu ziyaretçinin dilini bilmiyor),
    bu değişiklik yalnızca React'e "beklenen" diyor.
+   **Bu madde Brif 07'de geri alındı** (`docs/en-url-karari.md` §3): dil
+   URL'den okunduğu için sunucu ziyaretçinin dilini artık BİLİYOR, ayrışma
+   kaynağı ortadan kalktı ve `LangProvider`ın bu kuralına gerek kalmadı.
 2. **Sorgu dizesi.** Prerender çıktısı sorgusuz üretilir; `?hesap=<id>` ile
    açılan araç ekranı ise ilk render'da `LINK_LOADING` durumundadır
    (`useSavedCalculation`). Sorgu taşıyan istekte `hydrateRoot` yerine
@@ -81,6 +84,13 @@ kullanılır.
 Brifin kararı korundu: yalnız `tr` prerender'lanır. EN sürümü ayrı URL'ler
 ister ve `hreflang` ile birlikte **Brif 07**'nin (EN URL'ler) işidir. Tek
 URL'e iki dil basmak, botun hangisini indeksleyeceğini belirsiz bırakırdı.
+
+> **GÜNCELLEME (Brif 07, aynı gün — `docs/en-url-karari.md`).** Bu madde
+> aşıldı: İngilizce URL ağacı açıldı ve prerender 38 → **76 sayfa** oldu.
+> Dil artık URL'den okunuyor, `localStorage`'dan değil. Aşağıdaki §2.1'de
+> kabul edilen "EN kullanıcısında bir karelik TR" takası da bu yüzden
+> ORTADAN KALKTI — bu belgenin geri kalanı (yöntem, nginx, hydration ölçümü)
+> aynen geçerlidir.
 
 ## 4. Kapsam — hangi rotalar
 

@@ -15,9 +15,13 @@
 // eski hâline döndürür. Hepsi tek bir olay işleyicisinin içinde, tek karede.
 //
 // İki uyarı, ikisi de bilinçli:
-//   - `setLang` seçimi depolamaya da yazar; bu yüzden geçici çevirme iki
-//     yazma yapar. Son değer her zaman kullanıcının seçimidir, çünkü geri
-//     alma `finally` içindedir — okuma sırasında hata çıksa bile dil geri
+//   - Çevirme ADRES ÇUBUĞUNA DOKUNMAZ. Dil normalde URL'den okunur
+//     (docs/en-url-karari.md §3) ama burada gezinme YOKTUR: kullanıcı bir
+//     rapor indiriyor, form durumu ve `?hesap=` bağı yerinde kalmalı. Bu
+//     yüzden `LangProvider` geçici bir geçersiz kılma taşır
+//     (`setLangOverride`) ve geri alma `null` yazar — yani her zaman URL'in
+//     dili geri gelir, ikinci bir "doğru dil" değişkeni tutulmaz.
+//   - Geri alma `finally` içindedir: okuma sırasında hata çıksa bile dil geri
 //     döner.
 //   - `flushSync` render/lifecycle İÇİNDE çağrılamaz. Buradaki kullanım her
 //     zaman bir olay işleyicisinden (indirme/kaydetme düğmesi) gelir.
@@ -26,18 +30,18 @@ import { flushSync } from 'react-dom'
 import { useLang } from './useLang'
 
 export default function useLangCapture() {
-  const { lang, setLang } = useLang()
+  const { lang, setLangOverride } = useLang()
 
   // `read` SENKRON olmalı: dil geri alınmadan önce okumanın bitmesi gerekiyor.
   // İçinde `await` olan bir okuma, dil çoktan geri dönmüşken çalışırdı.
   return useCallback((target, read) => {
     if (target === lang) return read()
 
-    flushSync(() => setLang(target))
+    flushSync(() => setLangOverride(target))
     try {
       return read()
     } finally {
-      flushSync(() => setLang(lang))
+      flushSync(() => setLangOverride(null))
     }
-  }, [lang, setLang])
+  }, [lang, setLangOverride])
 }

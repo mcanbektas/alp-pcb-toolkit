@@ -2,12 +2,17 @@ import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 're
 import { Suspense, lazy, useEffect } from 'react'
 import Toast from './components/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
+import LangLink from './components/LangLink'
 import { NoticeProvider, useNotice } from './hooks/useNotice'
 import { LangProvider, useLang } from './hooks/useLang'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { commonText } from './data/uiText'
 import { authText } from './data/authText'
 import { LANGS, LANG_LABEL, pick } from './lib/i18n'
+import {
+  categoryFromPath, categoryPath, categoryRoutePattern, staticPath, toolFromPath, toolPath,
+  translatePath,
+} from './lib/routes'
 import logo from './assets/logo.png'
 import { CATEGORIES } from './data/categories'
 import Home from './pages/Home'
@@ -51,6 +56,46 @@ const BgaBreakout = lazy(() => import('./pages/tools/BgaBreakout'))
 const StackupPlanner = lazy(() => import('./pages/tools/StackupPlanner'))
 const ThermalRelief = lazy(() => import('./pages/tools/ThermalRelief'))
 
+// Araç `id`'sinden ekrana eşleme. Rota YOLLARI burada YAZILMAZ — onlar
+// `data/categories.js`ten türer (`toolPath`) ve iki dilde de kendiliğinden
+// üretilir. Yol da elle yazılsaydı iki dille birlikte 58 satır olurdu ve
+// ikinci kopya ilk gün ayrışırdı.
+//
+// Katalogda aktif olup burada karşılığı olmayan bir araç ROTASIZ kalır —
+// build hatası vermez, kullanıcı 404 görür. `pages/tools/toolKeys.test.js`
+// bu eşlemenin katalogla tam örtüştüğünü denetler.
+const TOOL_SCREENS = {
+  'trace-width': TraceWidth,
+  'power-plane': PowerPlane,
+  'cu-converter': CopperConverter,
+  'via-props': ViaProperties,
+  'thermal-via': ThermalVia,
+  'single-ended': SingleEnded,
+  'diff-pair': DiffPair,
+  'prop-delay': PropDelay,
+  'critical-length': CriticalLength,
+  skew: Skew,
+  crosstalk: Crosstalk,
+  termination: Termination,
+  pdn: Pdn,
+  decoupling: Decoupling,
+  junction: Junction,
+  'resistor-code': ResistorCode,
+  divider: VoltageDivider,
+  'led-ohm-rlc': LedOhmRlc,
+  'rc-crystal': TimingCrystal,
+  'length-conv': LengthConverter,
+  'awg-conv': AwgConverter,
+  'freq-conv': FrequencyConverter,
+  'db-conv': DecibelConverter,
+  'temp-conv': TemperatureConverter,
+  'complex-conv': ComplexConverter,
+  'clearance-creepage-padstack': ClearanceCreepagePadstack,
+  'bga-breakout': BgaBreakout,
+  'stackup-planner': StackupPlanner,
+  'thermal-relief': ThermalRelief,
+}
+
 // Hesap sayfaları (Projelerim listesi + proje detayı) da tembel yüklenir —
 // araç ekranlarıyla aynı gerekçe: ilk boyamada yalnızca girişte gereken kod.
 const Projects = lazy(() => import('./pages/account/Projects'))
@@ -92,19 +137,29 @@ const LANG_SWITCH = {
   en: 'Interface language',
 }
 
+// Dil geçişi DÜĞME DEĞİL BAĞLANTIDIR: her dilin kendi URL'i var ve geçiş
+// artık gezinmedir. İki kazanç, ikisi de bilinçli:
+//   - JS koşturmayan bot İngilizce sürümü buradan KEŞFEDER. `hreflang` bir
+//     ipucudur; taranabilir bağlantı doğrudan yoldur.
+//   - Semantik doğru. Seçili dilin bağlantısı o anki sayfanın kendisini
+//     gösterdiği için `aria-current="page"` ile işaretlenir; `aria-pressed`
+//     kalktı — o, düğme sözlüğüne aitti.
+// Bkz. docs/en-url-karari.md §3.
 function LangSwitch() {
-  const { lang, setLang } = useLang()
+  const { lang } = useLang()
+  const { pathname, search, hash } = useLocation()
   return (
-    // Düğme listesi `LANGS`'ten türetilir: dizi burada yeniden yazılırsa
-    // `isLang()` ile sessizce ayrışır ve seçilemeyen bir düğme kalırdı.
+    // Bağlantı listesi `LANGS`'ten türetilir: dizi burada yeniden yazılırsa
+    // `isLang()` ile sessizce ayrışır ve seçilemeyen bir dil kalırdı.
     <div className="lang-switch" role="group" aria-label={pick(LANG_SWITCH, lang)}>
       {LANGS.map((code) => (
-        <button
+        <Link
           key={code}
-          type="button"
-          onClick={() => setLang(code)}
-          aria-pressed={lang === code}
-          // Düğmenin kendi adı her zaman kendi dilinde yazılır: kullanıcı
+          // Karşılık gelen adres AYNI SAYFANIN öteki dilidir; sorgu ve `#`
+          // korunur, yani `?hesap=<id>` bağı dil değiştirince kopmaz.
+          to={translatePath(`${pathname}${search}${hash}`, code)}
+          aria-current={lang === code ? 'page' : undefined}
+          // Bağlantının kendi adı her zaman kendi dilinde yazılır: kullanıcı
           // anlamadığı bir dildeyken çıkışı bulabilsin. Aynı gerekçeyle
           // ipucu metni de dilin kendi adıdır (endonim), seçili dile göre
           // değişmez — bu yüzden `pick` değil, doğrudan kod ile okunur.
@@ -112,7 +167,7 @@ function LangSwitch() {
           title={LANG_LABEL[code] ?? code}
         >
           {code.toUpperCase()}
-        </button>
+        </Link>
       ))}
     </div>
   )
@@ -123,17 +178,27 @@ function LoadingNote() {
   return <p className="empty-note">{commonText(lang).loadingTool}</p>
 }
 
+const TITLE_SUFFIX = 'ALP PCB Toolkit'
+
 // Sekme başlığı rota ve dille birlikte değişir. Tek sabit <title> ile 29
 // hesap ekranının hepsi sekmede aynı adı taşıyordu — iki araç açan kullanıcı
 // sekmeleri ayırt edemiyordu, tarayıcı geçmişi de tek satır görünüyordu.
-// Araç adları categories.js'ten okunur (tek kaynak) — ekran başına başlık
-// kodu yazılmaz, yeni araç eklendiğinde burası kendiliğinden kapsar.
+// Adlar categories.js'ten okunur (tek kaynak) — ekran başına başlık kodu
+// yazılmaz, yeni araç eklendiğinde burası kendiliğinden kapsar. Yolu iki
+// dilde de tanır (`toolFromPath`/`categoryFromPath`).
+//
+// KATEGORİ sayfaları da başlık alır. Almıyorlardı ve bu bir kusurdu:
+// prerender doğru başlığı yazıyor, tarayıcıda TitleSync onu jenerik
+// "ALP PCB Toolkit"e GERİ ÇEVİRİYORDU — kullanıcının gördüğü başlık botun
+// gördüğünden farklıydı. (docs/en-url-karari.md §5)
 function TitleSync() {
   const { lang } = useLang()
   const location = useLocation()
   useEffect(() => {
-    const tool = CATEGORIES.flatMap((c) => c.tools).find((t) => t.path === location.pathname)
-    document.title = tool ? `${pick(tool.name, lang)} — ALP PCB Toolkit` : 'ALP PCB Toolkit'
+    const tool = toolFromPath(location.pathname)
+    const category = tool ? null : categoryFromPath(location.pathname)
+    const name = tool ? pick(tool.name, lang) : (category && pick(category.title, lang))
+    document.title = name ? `${name} — ${TITLE_SUFFIX}` : TITLE_SUFFIX
   }, [location.pathname, lang])
   return null
 }
@@ -147,7 +212,7 @@ function NotFound() {
     <div className="tool-header">
       <h1>{ui.notFoundTitle}</h1>
       <p>{ui.notFoundNote}</p>
-      <Link className="backlink" to="/">{ui.backHome}</Link>
+      <LangLink className="backlink" to="/">{ui.backHome}</LangLink>
     </div>
   )
 }
@@ -168,10 +233,12 @@ function AccountArea() {
   // giriş ekranına düşer — ikisi de "çıktım" geri bildirimi vermez.
   // Bildirim yönlendirmeden ÖNCE kurulur; sağlayıcı yönlendirmenin üstünde
   // durduğu için sayfa değişse de kart yaşar.
+  // Ana sayfa hedefi de dile göredir: İngilizce ağaçtan çıkan kullanıcı
+  // `/en`e döner, Türkçe sayfaya düşmez.
   async function onLogout() {
     await logout()
     showNotice(text.header.signedOut)
-    navigate('/')
+    navigate(staticPath('home', lang))
   }
 
   if (isLoading) return null
@@ -179,8 +246,8 @@ function AccountArea() {
   if (isAuthenticated) {
     return (
       <div className="lang-switch" role="group">
-        <Link to="/projelerim">{text.header.projects}</Link>
-        <Link to="/hesabim">{text.header.account}</Link>
+        <LangLink to="/projelerim">{text.header.projects}</LangLink>
+        <LangLink to="/hesabim">{text.header.account}</LangLink>
         <span className="header-user">{user.displayName}</span>
         <button type="button" onClick={onLogout}>{text.header.logout}</button>
       </div>
@@ -192,9 +259,9 @@ function AccountArea() {
   // değil adsız bir grup olarak duyuruyor, klavye kullanıcısı da nereye
   // gittiğini duymuyordu. Sınıf yalnızca görünüm içindir. (e2e/rapor-anonim)
   return (
-    <Link to="/giris" className="lang-switch">
+    <LangLink to="/giris" className="lang-switch">
       {text.header.loginLink}
-    </Link>
+    </LangLink>
   )
 }
 
@@ -217,9 +284,9 @@ function Layout({ children }) {
       />
       <header className="site-header">
         <div className="container">
-          <Link to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>
+          <LangLink to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>
             <img src={logo} alt="ALP PCB Toolkit" />
-          </Link>
+          </LangLink>
           <span className="tagline">{pick(TAGLINE, lang)}</span>
           <AccountArea />
           <LangSwitch />
@@ -234,9 +301,9 @@ function Layout({ children }) {
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <Link to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>
+              <LangLink to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>
                 <img src={logo} alt="ALP PCB Toolkit" />
-              </Link>
+              </LangLink>
               <span className="tagline">{pick(TAGLINE, lang)}</span>
             </div>
 
@@ -245,7 +312,9 @@ function Layout({ children }) {
               <ul>
                 {CATEGORIES.map((c) => (
                   <li key={c.slug}>
-                    <Link to={`/kategori/${c.slug}`}>{pick(c.title, lang)}</Link>
+                    {/* Kanonik yol yerine doğrudan `categoryPath` — zaten
+                        katalog kaydı elde, çeviriyi yeniden aramaya gerek yok. */}
+                    <Link to={categoryPath(c, lang)}>{pick(c.title, lang)}</Link>
                   </li>
                 ))}
               </ul>
@@ -254,8 +323,8 @@ function Layout({ children }) {
             <nav className="footer-col">
               <h2>{pick(FOOTER_ACCOUNT, lang)}</h2>
               <ul>
-                <li><Link to="/projelerim">{authText(lang).header.projects}</Link></li>
-                <li><Link to="/hesabim">{authText(lang).header.account}</Link></li>
+                <li><LangLink to="/projelerim">{authText(lang).header.projects}</LangLink></li>
+                <li><LangLink to="/hesabim">{authText(lang).header.account}</LangLink></li>
               </ul>
             </nav>
 
@@ -282,6 +351,51 @@ function Layout({ children }) {
   )
 }
 
+// Rota tablosu KATALOGDAN üretilir, hem de iki dilde. Statik sayfalar
+// `lib/routes.js`teki sözlükten, araçlar `TOOL_SCREENS` × `categories.js`ten
+// gelir; elle yazılan tek şey araç → ekran eşlemesidir.
+//
+// Sıra önemlidir: araç ve kategori yolları `:slug` kalıbından ÖNCE gelmez —
+// React Router v6 en özgül eşleşmeyi kendisi seçer, ama kategori kalıbı ile
+// araç yolları farklı segmentlerde olduğu için çakışma zaten yok.
+function langRoutes(lang) {
+  const routes = [
+    <Route key={`${lang}:home`} path={staticPath('home', lang)} element={<Home />} />,
+    <Route key={`${lang}:category`} path={categoryRoutePattern(lang)} element={<CategoryPage />} />,
+    <Route key={`${lang}:login`} path={staticPath('login', lang)} element={<Login />} />,
+    <Route key={`${lang}:register`} path={staticPath('register', lang)} element={<Register />} />,
+    <Route
+      key={`${lang}:forgotPassword`}
+      path={staticPath('forgotPassword', lang)}
+      element={<ForgotPassword />}
+    />,
+    <Route
+      key={`${lang}:resetPassword`}
+      path={staticPath('resetPassword', lang)}
+      element={<ResetPassword />}
+    />,
+    <Route
+      key={`${lang}:confirmEmail`}
+      path={staticPath('confirmEmail', lang)}
+      element={<ConfirmEmail />}
+    />,
+    <Route key={`${lang}:projects`} path={staticPath('projects', lang)} element={<Projects />} />,
+    <Route key={`${lang}:account`} path={staticPath('account', lang)} element={<Account />} />,
+    <Route key={`${lang}:project`} path={staticPath('project', lang)} element={<Project />} />,
+  ]
+
+  for (const category of CATEGORIES) {
+    for (const tool of category.tools) {
+      const Screen = tool.path ? TOOL_SCREENS[tool.id] : null
+      if (!Screen) continue
+      routes.push(
+        <Route key={`${lang}:${tool.id}`} path={toolPath(tool, lang)} element={<Screen />} />,
+      )
+    }
+  }
+  return routes
+}
+
 // Yönlendiricinin ÜSTÜNDEKİ sağlayıcılar. Ayrı durmalarının nedeni prerender:
 // tarayıcıda `BrowserRouter`, derleme sonrası prerender'da `StaticRouter`
 // kullanılır (`scripts/prerender/entry-server.jsx`), ama her iki durumda da
@@ -291,19 +405,19 @@ function Layout({ children }) {
 // NoticeProvider yönlendiricinin ÜSTÜNDE: çıkışta önce bildirim kurulup sonra
 // sayfa değiştiriliyor, sağlayıcı içeride olsaydı yönlendirme onu söker ve
 // kart hiç görünmezdi.
+//
+// LangProvider ARTIK BURADA DEĞİL: dil URL'den okunuyor (`useLocation`), yani
+// yönlendiricinin içinde olmak zorunda. Yeri `AppRoutes`ın en dışıdır ve iki
+// giriş noktası da `AppRoutes`ı paylaştığı için sıra yine tek yerde tanımlı.
 export function AppProviders({ children }) {
-  return (
-    <LangProvider>
-      <NoticeProvider>{children}</NoticeProvider>
-    </LangProvider>
-  )
+  return <NoticeProvider>{children}</NoticeProvider>
 }
 
 // Yönlendiricinin İÇİNDEKİ ağaç. Router'ı kendisi kurmaz: çağıran taraf
 // (tarayıcı ya da prerender) hangi yönlendiriciyi saracağına karar verir.
 export function AppRoutes() {
   return (
-    <>
+    <LangProvider>
       <TitleSync />
       <AuthProvider>
         <Layout>
@@ -313,52 +427,14 @@ export function AppRoutes() {
           <ErrorBoundary>
             <Suspense fallback={<LoadingNote />}>
               <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/kategori/:slug" element={<CategoryPage />} />
-                  <Route path="/giris" element={<Login />} />
-                  <Route path="/kayit" element={<Register />} />
-                  <Route path="/parola-unuttum" element={<ForgotPassword />} />
-                  <Route path="/parola-sifirla" element={<ResetPassword />} />
-                  <Route path="/e-posta-dogrula" element={<ConfirmEmail />} />
-                  <Route path="/projelerim" element={<Projects />} />
-                  <Route path="/hesabim" element={<Account />} />
-                  <Route path="/proje/:id" element={<Project />} />
-                  <Route path="/arac/trace-width" element={<TraceWidth />} />
-                  <Route path="/arac/gerilim-bolucu" element={<VoltageDivider />} />
-                  <Route path="/arac/direnc-kodu" element={<ResistorCode />} />
-                  <Route path="/arac/led-ohm-rlc" element={<LedOhmRlc />} />
-                  <Route path="/arac/rc-kristal" element={<TimingCrystal />} />
-                  <Route path="/arac/guc-duzlemi" element={<PowerPlane />} />
-                  <Route path="/arac/bakir-donusturucu" element={<CopperConverter />} />
-                  <Route path="/arac/via-ozellikleri" element={<ViaProperties />} />
-                  <Route path="/arac/termal-via" element={<ThermalVia />} />
-                  <Route path="/arac/tek-uclu-empedans" element={<SingleEnded />} />
-                  <Route path="/arac/diferansiyel-cift" element={<DiffPair />} />
-                  <Route path="/arac/yayilma-gecikmesi" element={<PropDelay />} />
-                  <Route path="/arac/kritik-hat-uzunlugu" element={<CriticalLength />} />
-                  <Route path="/arac/skew" element={<Skew />} />
-                  <Route path="/arac/crosstalk" element={<Crosstalk />} />
-                  <Route path="/arac/terminasyon" element={<Termination />} />
-                  <Route path="/arac/pdn-hedef-empedans" element={<Pdn />} />
-                  <Route path="/arac/decoupling" element={<Decoupling />} />
-                  <Route path="/arac/junction-sicakligi" element={<Junction />} />
-                  <Route path="/arac/uzunluk-donusturucu" element={<LengthConverter />} />
-                  <Route path="/arac/awg-donusturucu" element={<AwgConverter />} />
-                  <Route path="/arac/frekans-periyot" element={<FrequencyConverter />} />
-                  <Route path="/arac/db-kazanc" element={<DecibelConverter />} />
-                  <Route path="/arac/sicaklik-donusturucu" element={<TemperatureConverter />} />
-                  <Route path="/arac/kompleks-sayi" element={<ComplexConverter />} />
-                  <Route path="/arac/clearance-creepage-padstack" element={<ClearanceCreepagePadstack />} />
-                  <Route path="/arac/bga-breakout" element={<BgaBreakout />} />
-                  <Route path="/arac/stack-up-planlayici" element={<StackupPlanner />} />
-                  <Route path="/arac/thermal-relief" element={<ThermalRelief />} />
-                  <Route path="*" element={<NotFound />} />
+                {LANGS.flatMap((lang) => langRoutes(lang))}
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
         </Layout>
       </AuthProvider>
-    </>
+    </LangProvider>
   )
 }
 

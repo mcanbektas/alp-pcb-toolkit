@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
@@ -199,7 +199,7 @@ export default function ClearanceCreepagePadstack() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/uretim-dfm">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/uretim-dfm">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

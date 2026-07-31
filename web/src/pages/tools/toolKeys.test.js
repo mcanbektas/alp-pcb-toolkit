@@ -64,3 +64,62 @@ describe('araç anahtarları', () => {
     expect(duplicates).toEqual([])
   })
 })
+
+// İki dilli URL ağacının katalog tarafı. `path` varken `slugEn` eksikse o
+// aracın İngilizce sayfası hiç üretilmez ve Türkçe sayfa VAR OLMAYAN bir
+// alternatife hreflang verir — build de test de sessiz kalırdı.
+describe('İngilizce slug\'lar', () => {
+  const activeTools = CATEGORIES.flatMap((c) => c.tools).filter((t) => t.path)
+
+  it('aktif her aracın slugEn alanı vardır', () => {
+    const missing = activeTools.filter((t) => !t.slugEn).map((t) => t.id)
+    expect(missing).toEqual([])
+  })
+
+  it('her kategorinin slugEn alanı vardır', () => {
+    const missing = CATEGORIES.filter((c) => !c.slugEn).map((c) => c.slug)
+    expect(missing).toEqual([])
+  })
+
+  it.each([
+    ['araç', () => activeTools.map((t) => t.slugEn)],
+    ['kategori', () => CATEGORIES.map((c) => c.slugEn)],
+  ])('%s slugEn değerleri benzersiz ve URL güvenlidir', (_ad, get) => {
+    const slugs = get()
+    expect(new Set(slugs).size).toBe(slugs.length)
+    // Büyük harf, boşluk, Türkçe karakter ve eğik çizgi URL'de ya kaçışlanır
+    // ya da yolu ikiye böler; ikisi de sessiz kırılma demek.
+    for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+  })
+})
+
+// Rota tablosu artık katalogdan üretiliyor (`App.jsx` → langRoutes) ve elle
+// tutulan tek şey araç `id` → ekran eşlemesi. Katalogda aktif olup eşlemede
+// olmayan araç ROTASIZ kalır: build hatası yok, kullanıcı 404 görür.
+//
+// `App.jsx` metin olarak okunur — bileşen testi değil, dfmTextPaths.test.js
+// ile aynı teknik.
+describe('TOOL_SCREENS eşlemesi', () => {
+  const appSource = readFileSync(join(here, '..', '..', 'App.jsx'), 'utf8')
+  const block = appSource.match(/const TOOL_SCREENS = \{([\s\S]*?)\n\}/)?.[1] ?? ''
+  const mapped = new Set(
+    [...block.matchAll(/^\s*'?([a-z0-9-]+)'?\s*:/gm)].map((m) => m[1]),
+  )
+
+  it('eşleme okunabildi', () => {
+    expect(mapped.size).toBeGreaterThanOrEqual(29)
+  })
+
+  it('katalogdaki her aktif aracın rotası üretilir', () => {
+    const orphans = CATEGORIES
+      .flatMap((c) => c.tools)
+      .filter((t) => t.path && !mapped.has(t.id))
+      .map((t) => t.id)
+    expect(orphans).toEqual([])
+  })
+
+  it('eşlemede katalogda olmayan anahtar yoktur', () => {
+    const known = new Set(CATEGORIES.flatMap((c) => c.tools).map((t) => t.id))
+    expect([...mapped].filter((id) => !known.has(id))).toEqual([])
+  })
+})

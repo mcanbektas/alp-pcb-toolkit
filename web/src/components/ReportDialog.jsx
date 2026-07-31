@@ -4,7 +4,7 @@
 // çalışmaya devam eder (§6.5).
 
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from './LangLink'
 import { useAuth } from '../hooks/useAuth'
 import { useLang } from '../hooks/useLang'
 import { useNotice } from '../hooks/useNotice'
@@ -61,7 +61,7 @@ export default function ReportDialog({ section, schematicRef, chartRef }) {
       <div className="panel">
         <h2 className="section">{text.heading}</h2>
         <p className="empty-note">
-          {text.loginRequired} <Link to="/giris">{text.loginLink}</Link>
+          {text.loginRequired} <LangLink to="/giris">{text.loginLink}</LangLink>
         </p>
       </div>
     )

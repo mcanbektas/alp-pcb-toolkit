@@ -27,11 +27,11 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 | 4 | 04-pwa-offline.md | Opus 5 | medium | ✓ bitti (2026-07-31) — karar: `docs/pwa-karari.md` |
 | 5 | 05-playwright-e2e.md | Sonnet 5 | medium | ✓ bitti (2026-07-31) — 16 e2e + 4 çevrimdışı |
 | 6 | 06-sunucu-gunu.md | Sonnet 5 | medium | Sunucu ALINDIĞINDA |
-| 7 | 07-en-urller.md | Opus 5 | high | Tasarım riski yüksek — ucuzlatma |
+| 7 | 07-en-urller.md | Opus 5 | high | ✓ bitti (2026-07-31) — karar: `docs/en-url-karari.md` |
 | 8 | 08-rapor-snapshot.md | Opus 5 | medium | Saklama kararını yeniden açar |
 | 9 | 09-alan-cozucu.md | Fable/Opus 5 | high/max | Sayısal doğruluk — ucuzlatılamaz |
 
-1-5 sunucusuz yapılır. 6 sunucu gününe bağlı. 7-9 büyük/ertelenmiş —
+1-5 ve 7 sunucusuz yapıldı. 6 sunucu gününe bağlı. 8-9 büyük/ertelenmiş —
 briflerinde yalnız karar çerçevesi var, ayrıntılı spec o gün yazılır.
 
 ## Açık bulgular (brif dışı, düzeltilmedi)
@@ -44,6 +44,13 @@ kusuru. İkisi de build'den, birim testlerinden ve tip denetiminden kaçar.
   kullanılmamış, yani mod seçici grubu ekran okuyucuya ADSIZ duyuruluyor
   ("radio group", hangi grup belli değil). Düzeltmesi 23 ekran + `text.js`
   başına yeni iki dilli metin demek; ayrı bir iş olarak planlanmalı.
+- **E-posta akışı tek dilli** (Brif 07'de çıktı, kapsamı aşıyordu).
+  `api/Alp.Api/Auth/AuthEndpoints.cs` doğrulama ve parola sıfırlama bağlantılarını
+  `{FrontendBaseUrl}/e-posta-dogrula` ve `/parola-sifirla` olarak üretir; postanın
+  gövdesi de Türkçedir. İngilizce arayüzden kayıt olan kullanıcı Türkçe posta alır
+  ve Türkçe sayfaya düşer. Kırık değil, tek dilli. Düzeltmesi yalnız yol çevirisi
+  değil: kullanıcının dili kayıt isteğiyle sunucuya taşınmalı ve `IEmailSender`
+  tarafı iki dilli olmalı — ayrı bir iş olarak planlanmalı.
 - **Auth ekranlarında `h1` yok** (`pages/auth/*`), başlık `h2` ile kuruluyor.
   Araç ekranları `h1` kullanıyor. Sayfa başına tek `h1` beklentisi bozuk;
   auth sayfaları indekslenmediği için SEO etkisi yok, erişilebilirlik

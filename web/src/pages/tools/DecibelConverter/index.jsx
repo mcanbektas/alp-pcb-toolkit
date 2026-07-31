@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
@@ -70,7 +70,7 @@ export default function DecibelConverter() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/donusturucular">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/donusturucular">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { authText } from '../../data/authText'
@@ -47,7 +48,7 @@ export default function ConfirmEmail() {
         <>
           <p>{text.confirmEmail.success}</p>
           <p className="auth-panel-foot">
-            <Link to="/giris">{text.confirmEmail.loginLink}</Link>
+            <LangLink to="/giris">{text.confirmEmail.loginLink}</LangLink>
           </p>
         </>
       )}

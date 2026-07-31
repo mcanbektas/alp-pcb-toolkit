@@ -9,30 +9,21 @@
 // "i" harfini "İ" yapar, çünkü Türkçede noktalı büyük harf ayrı bir harftir.
 // İngilizce metin Türkçe etiket altında büyütülünce "VIA" yerine "VİA" çıkar.
 // Bu yüzden dil değiştiğinde <html lang> de değişir.
+//
+// DİL ARTIK URL'DEN OKUNUR, depodan değil (`lib/routes.js` → langFromPath).
+// Eski `readLang`/`writeLang` çifti ve `localStorage` anahtarı KALDIRILDI:
+// URL ile depo iki ayrı kaynak demekti ve kanonik olarak TR bildirilen bir
+// adres kullanıcıya EN içerik gösterebiliyordu. Gerekçe: docs/en-url-karari.md
+// §3. Kalıcılık artık bağlantının kendisindedir — `/en/...` yer imi de,
+// paylaşılan bağlantı da dilini taşır.
 
 export const LANGS = ['tr', 'en']
 export const DEFAULT_LANG = 'tr'
 
 export const LANG_LABEL = { tr: 'Türkçe', en: 'English' }
 
-const STORAGE_KEY = 'alp-pcb-lang'
-
 export function isLang(value) {
   return LANGS.includes(value)
-}
-
-/**
- * Saklanan dili okur. Geçersiz veya eksikse varsayılana düşer — kullanıcının
- * eski/bozuk bir değeri arayüzü boş bırakmasın.
- */
-export function readLang(storage) {
-  const stored = storage?.read?.(STORAGE_KEY)
-  return isLang(stored) ? stored : DEFAULT_LANG
-}
-
-export function writeLang(storage, lang) {
-  if (!isLang(lang)) return { error: 'lang' }
-  return storage?.write?.(STORAGE_KEY, lang) ?? { ok: true }
 }
 
 /**

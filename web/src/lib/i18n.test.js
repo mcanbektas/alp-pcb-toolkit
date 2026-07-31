@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import {
-  LANGS, DEFAULT_LANG, LANG_LABEL,
-  isLang, readLang, writeLang, pick,
+  LANGS, DEFAULT_LANG, LANG_LABEL, isLang, pick,
 } from './i18n'
-import { memoryStorage, nullStorage } from './storage'
 
-// i18n.js iki dilli arayüzün çekirdeğidir: 25 ekranın tamamı `pick()` üzerinden
+// i18n.js iki dilli arayüzün çekirdeğidir: 29 ekranın tamamı `pick()` üzerinden
 // metin çözer. Buradaki tek kritik değişmez, eksik çevirinin İngilizceye ya da
 // boşluğa değil TÜRKÇEye düşmesidir.
+//
+// `readLang`/`writeLang` testleri KALDIRILDI: dil artık depodan değil URL'den
+// okunuyor (`routes.js` → `langFromPath`, `routes.test.js`). Gerekçe:
+// docs/en-url-karari.md §3.
 
 describe('LANGS / DEFAULT_LANG', () => {
   it('iki dil vardır ve varsayılan Türkçedir', () => {
@@ -86,72 +88,5 @@ describe('pick — dil seçimi', () => {
   ])('%s ile patlamaz', (_ad, dict) => {
     expect(() => pick(dict, 'en')).not.toThrow()
     expect(pick(dict, 'en')).toBeUndefined()
-  })
-})
-
-describe('readLang', () => {
-  it('saklanan geçerli dili döner', () => {
-    const store = memoryStorage()
-    writeLang(store, 'en')
-    expect(readLang(store)).toBe('en')
-  })
-
-  it('depo boşsa varsayılana düşer', () => {
-    expect(readLang(memoryStorage())).toBe(DEFAULT_LANG)
-  })
-
-  it.each([
-    ['bozuk değer', 'de'],
-    ['boş dize', ''],
-    ['eski büyük harf değer', 'TR'],
-    ['JSON kalıntısı', '{"lang":"en"}'],
-  ])('%s varsayılana düşer', (_ad, stored) => {
-    // Depolama anahtarı i18n.js'in içindedir; teste kopyalamak yerine önce
-    // geçerli bir yazma yapılıp anahtar depodan okunur.
-    const store = memoryStorage()
-    writeLang(store, 'en')
-    const [key] = Object.keys(store._dump())
-    store.write(key, stored)
-    expect(readLang(store)).toBe(DEFAULT_LANG)
-  })
-
-  it.each([
-    ['erişilemeyen depo', nullStorage],
-    ['depo yok', undefined],
-    ['eksik sözleşme', {}],
-  ])('%s ile patlamaz, varsayılana düşer', (_ad, store) => {
-    expect(() => readLang(store)).not.toThrow()
-    expect(readLang(store)).toBe(DEFAULT_LANG)
-  })
-})
-
-describe('writeLang', () => {
-  it('yazdığını geri okur', () => {
-    const store = memoryStorage()
-    for (const code of LANGS) {
-      expect(writeLang(store, code)).toEqual({ ok: true })
-      expect(readLang(store)).toBe(code)
-    }
-  })
-
-  it('geçersiz dili yazmaz, hata kodu döner', () => {
-    const store = memoryStorage()
-    writeLang(store, 'en')
-    expect(writeLang(store, 'de')).toEqual({ error: 'lang' })
-    // Saklanan geçerli seçim bozulmadı
-    expect(readLang(store)).toBe('en')
-  })
-
-  it('erişilemeyen depoda hata kodu döner, patlamaz', () => {
-    expect(() => writeLang(nullStorage, 'en')).not.toThrow()
-    expect(writeLang(nullStorage, 'en').error).toBeTruthy()
-  })
-
-  it.each([
-    ['depo yok', undefined],
-    ['eksik sözleşme', {}],
-  ])('%s ile patlamaz', (_ad, store) => {
-    expect(() => writeLang(store, 'en')).not.toThrow()
-    expect(writeLang(store, 'en')).toEqual({ ok: true })
   })
 })

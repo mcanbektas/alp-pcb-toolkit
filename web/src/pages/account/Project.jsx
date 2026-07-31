@@ -7,7 +7,8 @@
 // toplar. Böylece SVG dizesinin JSX'e basılabileceği bir yol kalmıyor.
 
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
@@ -22,6 +23,7 @@ import { downloadBlob } from '../../lib/api'
 import { pick } from '../../lib/i18n'
 import { ENGINE_VERSION } from '../../lib/engineVersion'
 import { CALC_PARAM, ENGINE_STALE, engineStatus } from '../../lib/savedCalculation'
+import { toolPath } from '../../lib/routes'
 import { findTool } from '../../data/categories'
 import { getText } from './text'
 import CalculationList from './CalculationList'
@@ -48,10 +50,14 @@ function sortByDate(calculations) {
 // Kaydı kendi araç ekranında açan yol. Anahtar `categories.js`'te yoksa
 // (araç kaldırılmış ya da anahtar ayrışmış) `null` döner ve "Aç" gösterilmez —
 // var olmayan bir yola götüren düğme koymaktansa hiç koymamak doğru.
-function toolLinkFor(calc) {
+//
+// Yol geçerli dilde üretilir; sorgu parametresi (`hesap`) İKİ DİLDE DE aynı
+// adı taşır — çevrilseydi bugüne kadar paylaşılmış her kayıt bağlantısı
+// İngilizce ağaçta sessizce bağsız açılırdı (docs/en-url-karari.md §2).
+function toolLinkFor(calc, lang) {
   const tool = findTool(calc.toolKey)
   if (!tool?.path) return null
-  return `${tool.path}?${CALC_PARAM}=${encodeURIComponent(calc.id)}`
+  return `${toolPath(tool, lang)}?${CALC_PARAM}=${encodeURIComponent(calc.id)}`
 }
 
 export default function Project() {
@@ -94,7 +100,7 @@ export default function Project() {
     preview: calc.preview ?? [],
     mode: calc.previewMode ?? null,
     stale: engineStatus(calc.engineVersion, ENGINE_VERSION) === ENGINE_STALE,
-    openHref: toolLinkFor(calc),
+    openHref: toolLinkFor(calc, lang),
   }))
 
   const [preparedBy, setPreparedBy] = useState(user?.displayName ?? '')
@@ -230,10 +236,10 @@ export default function Project() {
   if (!isAuthenticated) {
     return (
       <>
-        <Link className="backlink" to="/projelerim">{pt.backlink}</Link>
+        <LangLink className="backlink" to="/projelerim">{pt.backlink}</LangLink>
         <div className="panel">
           <p className="empty-note">
-            {pt.loginRequired} <Link to="/giris">{pt.loginLink}</Link>
+            {pt.loginRequired} <LangLink to="/giris">{pt.loginLink}</LangLink>
           </p>
         </div>
       </>
@@ -243,7 +249,7 @@ export default function Project() {
   if (loading) {
     return (
       <>
-        <Link className="backlink" to="/projelerim">{pt.backlink}</Link>
+        <LangLink className="backlink" to="/projelerim">{pt.backlink}</LangLink>
         <p className="empty-note">{pt.loading}</p>
       </>
     )
@@ -252,7 +258,7 @@ export default function Project() {
   if (notFound) {
     return (
       <>
-        <Link className="backlink" to="/projelerim">{pt.backlink}</Link>
+        <LangLink className="backlink" to="/projelerim">{pt.backlink}</LangLink>
         <h1 className="page-title">{pt.notFound}</h1>
       </>
     )
@@ -261,7 +267,7 @@ export default function Project() {
   if (loadError || !project) {
     return (
       <>
-        <Link className="backlink" to="/projelerim">{pt.backlink}</Link>
+        <LangLink className="backlink" to="/projelerim">{pt.backlink}</LangLink>
         <p className="empty-note warn">{pt.loadError}</p>
       </>
     )
@@ -269,7 +275,7 @@ export default function Project() {
 
   return (
     <>
-      <Link className="backlink" to="/projelerim">{pt.backlink}</Link>
+      <LangLink className="backlink" to="/projelerim">{pt.backlink}</LangLink>
       <h1 className="page-title">{project.name}</h1>
 
       <section className="panel">

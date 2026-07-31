@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import Segmented from '../../../components/Segmented'
 import EpsEffFields, { epsEffRows } from '../../../components/EpsEffFields'
@@ -64,7 +64,7 @@ export default function Skew() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/sinyal-butunlugu">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

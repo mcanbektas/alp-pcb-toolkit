@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import TextField from '../../../components/TextField'
@@ -65,7 +65,7 @@ export default function LedOhmRlc() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/komponent">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/komponent">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

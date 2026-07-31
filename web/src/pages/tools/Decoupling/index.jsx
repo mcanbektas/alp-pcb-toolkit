@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import Segmented from '../../../components/Segmented'
 import RowList from '../../../components/RowList'
@@ -86,7 +86,7 @@ export default function Decoupling() {
 
   return (
     <>
-      <Link className="backlink" to="/kategori/guc-termal">{text.backlink}</Link>
+      <LangLink className="backlink" to="/kategori/guc-termal">{text.backlink}</LangLink>
 
       <ToolHeader title={text.title} intro={text.intro} />
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import AuthField from '../../components/AuthField'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
@@ -36,7 +36,7 @@ export default function Register() {
         <h2>{text.register.title}</h2>
         <p>{text.register.success}</p>
         <p className="auth-panel-foot">
-          <Link to="/giris">{text.register.loginLink}</Link>
+          <LangLink to="/giris">{text.register.loginLink}</LangLink>
         </p>
       </section>
     )
@@ -73,7 +73,7 @@ export default function Register() {
         </button>
       </form>
       <p className="auth-panel-foot">
-        {text.register.loginPrompt} <Link to="/giris">{text.register.loginLink}</Link>
+        {text.register.loginPrompt} <LangLink to="/giris">{text.register.loginLink}</LangLink>
       </p>
     </section>
   )

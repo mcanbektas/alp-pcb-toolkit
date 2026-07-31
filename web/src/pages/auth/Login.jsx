@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import LangLink from '../../components/LangLink'
 import AuthField from '../../components/AuthField'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useRememberedEmail } from '../../hooks/useRememberedEmail'
 import { authText, authErrorText } from '../../data/authText'
+import { staticPath } from '../../lib/routes'
 
 export default function Login() {
   const { lang } = useLang()
@@ -32,7 +34,9 @@ export default function Login() {
       // adres bir dahaki sefere hazır beklemesin.
       if (remember) rememberEmail(email)
       else forgetEmail()
-      navigate('/')
+      // Ana sayfa hedefi dile göredir: İngilizce ağaçtan giriş yapan
+      // kullanıcı `/en`e döner, Türkçe sayfaya düşmez.
+      navigate(staticPath('home', lang))
     } else {
       setError(authErrorText(res, lang))
     }
@@ -68,7 +72,7 @@ export default function Login() {
             />
             {text.login.remember}
           </label>
-          <Link to="/parola-unuttum">{text.login.forgotLink}</Link>
+          <LangLink to="/parola-unuttum">{text.login.forgotLink}</LangLink>
         </div>
         <p className="field-hint">{text.login.rememberHint}</p>
         {/* Hangi alanın hatalı olduğu bilinçli olarak belirsiz — sunucu bunu
@@ -80,7 +84,7 @@ export default function Login() {
         </button>
       </form>
       <p className="auth-panel-foot">
-        {text.login.registerPrompt} <Link to="/kayit">{text.login.registerLink}</Link>
+        {text.login.registerPrompt} <LangLink to="/kayit">{text.login.registerLink}</LangLink>
       </p>
     </section>
   )

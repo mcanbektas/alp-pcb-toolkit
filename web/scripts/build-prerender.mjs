@@ -10,20 +10,26 @@
 // bağımlılığı yok (react-dom zaten var), headless tarayıcı yok. Ayrıntılı
 // gerekçe ve elenen seçenekler: `docs/prerender-karari.md`.
 //
-// Rotalar `src/data/categories.js`ten türer — sitemap üreteciyle AYNI kaynak
-// (`build-sitemap.mjs`), yani iki liste ayrışamaz. Yalnız VARSAYILAN DİL (tr)
-// üretilir; İngilizce sürüm ayrı URL'ler gerektirir ve Brif 07'nin işidir.
+// İKİ DİL. Sayfalar hem Türkçe hem İngilizce URL ağacında üretilir
+// (`/arac/gerilim-bolucu` ve `/en/tool/voltage-divider`) ve her sayfa kendi
+// `canonical` + karşılıklı `hreflang` kümesini taşır. Dil URL'den okunduğu
+// için render tarafında ek bir ayar yoktur: `StaticRouter` yolu alır,
+// `LangProvider` dili o yoldan çıkarır. Kararlar: `docs/en-url-karari.md`.
+//
+// Rotalar `src/lib/routes.js` → `indexablePages()`ten türer — sitemap
+// üreteciyle AYNI kaynak (`build-sitemap.mjs`), yani iki liste ayrışamaz.
 //
 // Oturum gerektiren sayfalar (giriş, kayıt, /projelerim, /hesabim, /proje/:id)
-// bilerek prerender EDİLMEZ: indekslenmeleri istenmez, içerikleri de
-// kullanıcıya özeldir.
+// ve `/en/...` karşılıkları bilerek prerender EDİLMEZ: indekslenmeleri
+// istenmez, içerikleri de kullanıcıya özeldir.
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { CATEGORIES } from '../src/data/categories.js'
-import { pick } from '../src/lib/i18n.js'
+import { LANGS, pick } from '../src/lib/i18n.js'
+import { indexablePages } from '../src/lib/routes.js'
+import { siteUrl } from './site-url.mjs'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const webDir = path.resolve(scriptDir, '..')
@@ -39,34 +45,39 @@ const FALLBACK_FILE = path.join(DIST_DIR, 'spa-fallback.html')
 // ve tarayıcıya servis edilen dosyalar arasına girerdi.
 const SERVER_ENTRY = path.join(webDir, '.prerender', 'entry-server.js')
 
-// Prerender varsayılan dilde üretilir; sekme başlığı da o dilde yazılır.
-// `App.jsx` → TitleSync tarayıcıda aynı kalıbı kurar, ikisi ayrışmamalı.
-const LANG = 'tr'
 const TITLE_SUFFIX = 'ALP PCB Toolkit'
+// Varsayılan dil `hreflang="x-default"` sürümüdür: dil seçmemiş ziyaretçiye
+// gösterilecek olan Türkçe sayfadır.
+const DEFAULT_HREFLANG = 'tr'
 
-// Prerender edilecek rotalar. Araç adları başlık için de gerektiğinden
-// katalog kaydı rotayla birlikte taşınır.
-function routes() {
-  const list = [{ url: '/', title: TITLE_SUFFIX, description: null }]
-  for (const category of CATEGORIES) {
-    list.push({
-      url: `/kategori/${category.slug}`,
-      title: `${pick(category.title, LANG)} — ${TITLE_SUFFIX}`,
-      // Kategori açıklaması katalogda ZATEN var; uydurma değil, tek kaynak.
-      // Araç sayfaları için karşılığı yoktur ve uydurulmaz — kabuktaki genel
-      // açıklama korunur, gövdedeki tanıtım paragrafı zaten prerender'lıdır.
-      description: pick(category.desc, LANG),
-    })
-    for (const tool of category.tools) {
-      if (!tool.path) continue
+// Prerender edilecek rotalar: her indekslenebilir sayfa × her dil.
+// Sayfa kaydı iki dilin adresini de taşıdığı için hreflang kümesi de burada
+// kurulur — TR sayfa da kendini listeler, aksi hâlde küme geçersizdir.
+function routes(base) {
+  const list = []
+  for (const page of indexablePages()) {
+    const alternates = LANGS.map((lang) => ({ lang, href: base + page[lang] }))
+    for (const lang of LANGS) {
       list.push({
-        url: tool.path,
-        title: `${pick(tool.name, LANG)} — ${TITLE_SUFFIX}`,
-        description: null,
+        url: page[lang],
+        lang,
+        title: pageTitle(page, lang),
+        description: page.kind === 'category' ? pick(page.category.desc, lang) : null,
+        canonical: base + page[lang],
+        alternates,
+        xDefault: base + page[DEFAULT_HREFLANG],
       })
     }
   }
   return list
+}
+
+// Sekme başlığı rotanın dilinde yazılır. `App.jsx` → TitleSync tarayıcıda
+// aynı kalıbı ve aynı kaynağı kullanır, ikisi ayrışmamalı.
+function pageTitle(page, lang) {
+  if (page.kind === 'category') return `${pick(page.category.title, lang)} — ${TITLE_SUFFIX}`
+  if (page.kind === 'tool') return `${pick(page.tool.name, lang)} — ${TITLE_SUFFIX}`
+  return TITLE_SUFFIX
 }
 
 // HTML öznitelik değeri olarak güvenli hâle getirir. Katalog metni bizim
@@ -88,7 +99,7 @@ const textEscape = (value) => value
 // olarak bu dize vardır. Bulunamazsa sessizce meta'sız/gövdesiz bir sayfa
 // yazmak yerine hata verilir — sessiz geçen bir eşleşme hatası, bütün
 // prerender'ı işe yaramaz hâle getirir ve bunu kimse fark etmez.
-function injectShell(shell, { html, title, description }) {
+function injectShell(shell, route, html) {
   const ROOT_MARKER = '<div id="root"></div>'
   if (!shell.includes(ROOT_MARKER)) {
     throw new Error(`kabukta '${ROOT_MARKER}' bulunamadı — dist/index.html beklenen biçimde değil`)
@@ -96,27 +107,53 @@ function injectShell(shell, { html, title, description }) {
 
   let out = shell.replace(ROOT_MARKER, `<div id="root">${html}</div>`)
 
-  // Sekme başlığı rota başına yazılır. Tek sabit başlıkla 38 sayfa aynı adla
+  // <html lang> rotanın dilidir. Kozmetik değil: `text-transform: uppercase`
+  // sayfanın dilini kullanır ve `lang="tr"` altında İngilizce "via" sözcüğü
+  // büyütülünce "VİA" çıkar. JS koşturmayan botun ve ilk boyamanın gördüğü
+  // değer BUDUR — tarayıcıdaki `LangProvider` etkisi ondan sonra gelir.
+  const langRe = /<html\s+lang="[^"]*"/
+  if (!langRe.test(out)) {
+    throw new Error('kabukta <html lang="…"> yok — dist/index.html beklenen biçimde değil')
+  }
+  out = out.replace(langRe, `<html lang="${route.lang}"`)
+
+  // Sekme başlığı rota başına yazılır. Tek sabit başlıkla 76 sayfa aynı adla
   // indekslenirdi; TitleSync bunu tarayıcıda düzeltiyor ama JS koşturmayan
   // bot düzeltilmemiş hâli görür — prerender'ın asıl kazancı burada.
-  const titleTag = `<title>${textEscape(title)}</title>`
+  const titleTag = `<title>${textEscape(route.title)}</title>`
   if (!/<title>[^<]*<\/title>/.test(out)) {
     throw new Error('kabukta <title> etiketi yok — dist/index.html beklenen biçimde değil')
   }
   out = out.replace(/<title>[^<]*<\/title>/, titleTag)
 
-  if (description) {
+  if (route.description) {
     const metaRe = /<meta\s+name="description"[\s\S]*?\/>/
     if (!metaRe.test(out)) {
       throw new Error('kabukta description meta etiketi yok — dist/index.html beklenen biçimde değil')
     }
-    out = out.replace(metaRe, `<meta name="description" content="${attrEscape(description)}" />`)
+    out = out.replace(metaRe, `<meta name="description" content="${attrEscape(route.description)}" />`)
   }
 
-  return out
+  // canonical + hreflang. Küme KARŞILIKLI olmak zorundadır: her sayfa hem
+  // kendini hem öteki dili listeler, yoksa arama motoru kümeyi yok sayar.
+  // `x-default` varsayılan dile (tr) işaret eder.
+  const links = [
+    `<link rel="canonical" href="${attrEscape(route.canonical)}" />`,
+    ...route.alternates.map(
+      ({ lang, href }) => `<link rel="alternate" hreflang="${lang}" href="${attrEscape(href)}" />`,
+    ),
+    `<link rel="alternate" hreflang="x-default" href="${attrEscape(route.xDefault)}" />`,
+  ].join('\n    ')
+
+  if (!out.includes('</head>')) {
+    throw new Error('kabukta </head> yok — dist/index.html beklenen biçimde değil')
+  }
+  return out.replace('</head>', `  ${links}\n  </head>`)
 }
 
-// `/arac/trace-width` → `dist/arac/trace-width.html`.
+// `/arac/trace-width` → `dist/arac/trace-width.html`,
+// `/en/tool/trace-width` → `dist/en/tool/trace-width.html`,
+// `/en` → `dist/en.html`.
 // Kök rota kabuğun kendisinin (`dist/index.html`) üzerine yazar.
 //
 // `<yol>/index.html` DEĞİL, ölçülerek değiştirildi: dizin biçiminde nginx
@@ -148,11 +185,11 @@ async function main() {
     return
   }
 
-  const list = routes()
+  const list = routes(siteUrl())
   const started = Date.now()
 
   // Rotalar SIRAYLA render edilir. Paralel koşmak Node'da aynı React
-  // ağacını eşzamanlı kurardı; 38 rota zaten saniyeler sürüyor, kazanç
+  // ağacını eşzamanlı kurardı; 76 rota zaten yarım saniye sürüyor, kazanç
   // belirsizliğe değmez.
   for (const route of list) {
     let html
@@ -168,10 +205,10 @@ async function main() {
     // eslint-disable-next-line no-await-in-loop
     await mkdir(path.dirname(file), { recursive: true })
     // eslint-disable-next-line no-await-in-loop
-    await writeFile(file, injectShell(shell, { html, title: route.title, description: route.description }))
+    await writeFile(file, injectShell(shell, route, html))
   }
 
-  console.log(`prerender: ${list.length} sayfa + spa-fallback.html yazıldı `
+  console.log(`prerender: ${list.length} sayfa (${LANGS.join('/')}) + spa-fallback.html yazıldı `
     + `— ${((Date.now() - started) / 1000).toFixed(1)} sn.`)
 }
 
