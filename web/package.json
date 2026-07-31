@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "stack": "node scripts/dev-stack.mjs",
+    "stack:docker": "docker compose -f ../deploy/docker-compose.yml up -d --build",
+    "stack:docker:down": "docker compose -f ../deploy/docker-compose.yml down",
     "build": "vite build && vite build --ssr scripts/prerender/entry-server.jsx --outDir .prerender && node scripts/build-prerender.mjs && node scripts/build-sitemap.mjs",
     "preview": "vite preview",
     "test": "vitest run",

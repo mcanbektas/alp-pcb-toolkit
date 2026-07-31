@@ -24,15 +24,27 @@ formdan mı yoksa kaynağı belirsiz bir yaklaşımdan mı geliyor, ekranda yaza
 
 ## Geliştirme
 
+Günlük iş **tek adrestir: <http://localhost:3000>**. Tek komut hem API'yi hem web'i
+başlatır ve birlikte söndürür:
+
 ```bash
 cd web
 npm install
-npm run dev         # http://localhost:3000  (vite.config.js: port 3000, strictPort)
-npm run build       # dist/
+npm run stack       # API (5289) + web (3000) → http://localhost:3000
+```
+
+API portu 5289'dur ve `web/vite.config.js`teki proxy hedefiyle aynı olmak zorundadır;
+ayrıştıklarında uygulama açılır ama `/api` istekleri sessizce 404 döner.
+
+```bash
+cd web
+npm run dev         # yalnız web (vite.config.js: port 3000, strictPort)
+npm run build       # dist/ — vite build + prerender (76 sayfa) + sitemap
 npm run preview
 
 npm test            # vitest run — saf hesap fonksiyonları + rapor bölümleri + metin bekçileri
 npm run test:watch
+npm run test:e2e    # playwright — anonim akışlar, dil ağacı, klavye modeli
 npm run fonts       # src/fonts.css'i yeniden üretir (bkz. "Yazı tipleri")
 ```
 
@@ -40,13 +52,19 @@ npm run fonts       # src/fonts.css'i yeniden üretir (bkz. "Yazı tipleri")
 cd api
 dotnet build Alp.Api.sln
 dotnet test Alp.Api.sln               # xunit — sunucu kuralları, bkz. aşağıdaki not
-dotnet run --project Alp.Api          # http://localhost:5000, uçlar /api altında
+dotnet run --project Alp.Api          # http://localhost:5289, uçlar /api altında
 ```
+
+Docker yığını günlük iş için **gerekmez**. Yalnız derlenmiş çıktıyı doğrulamak için
+kaldırılır — prerender'lı HTML, nginx `try_files` zinciri, `canonical`/`hreflang` ve
+service worker ancak orada görünür:
 
 ```bash
 cd deploy
 cp .env.example .env                  # en az POSTGRES_PASSWORD ve JWT_KEY doldurulur
-docker compose up -d --build          # http://localhost:8080 (nginx + api + postgres)
+cd ../web
+npm run stack:docker                  # http://localhost:8080 (nginx + api + postgres)
+npm run stack:docker:down
 ```
 
 Linter kurulu değildir. Test kapsamı bilinçli olarak dardır: **saf fonksiyonlar test edilir,

@@ -21,12 +21,27 @@ okunur, `localStorage`'dan değil. Ayrıntı: aşağıdaki "Dil (tr / en)" böl�
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000  (vite.config.js: port 3000, strictPort)
+npm run stack    # GÜNLÜK İŞ: API (5289) + web (3000) birlikte → http://localhost:3000
+npm run dev      # yalnız web (vite.config.js: port 3000, strictPort)
 npm run build    # dist/ — vite build + SSR paketi + prerender + sitemap (aşağıya bkz.)
 npm run preview
 npm test         # vitest run — yalnızca src/lib/ altındaki saf hesap fonksiyonları
 npm run test:watch
 ```
+
+**Tek adres: `http://localhost:3000`.** Üç yüzey vardı — vite (3000), dotnet (5289) ve
+docker yığını (8080) — ve ikisi aynı uygulamayı farklı biçimde servis ediyordu; hangisinin
+açık olduğunu hatırlamak iş çıkarıyordu. `npm run stack` ikisini birlikte başlatır ve
+BİRLİKTE söndürür (biri düşerse öteki de kapanır, yarım yığın kalıp bir dahaki sefere
+"port kullanımda" hatası vermez). Yeni bağımlılık eklemez: `web/scripts/dev-stack.mjs`.
+
+**API portu 5289'dur ve tek yerde değişmez**: `api/…/Properties/launchSettings.json` ile
+`web/vite.config.js`teki proxy hedefi aynı olmak zorunda. Ayrıştıklarında uygulama açılır
+ama `/api` istekleri sessizce 404 döner — giriş de rapor da çalışmaz, hata mesajı çıkmaz.
+
+Docker yığını (8080) günlük iş için GEREKMEZ; yalnız DERLENMİŞ çıktıyı doğrulamak için
+kaldırılır — prerender'lı HTML, nginx `try_files` zinciri, canonical/hreflang ve service
+worker ancak orada görünür. `npm run stack:docker` / `npm run stack:docker:down`.
 
 Linter kurulu değil. Vitest kapsamı bilinçli olarak dar: **saf fonksiyonlar test edilir,
 React bileşeni testi yazılmaz** (`vite.config.js` → `test.include` yalnız
