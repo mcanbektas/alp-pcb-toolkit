@@ -11,7 +11,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { commonText } from '../../data/uiText'
-import { reportDateStamp } from '../../data/reportText'
+import { reportDateTimeStamp } from '../../data/reportText'
 import { getText } from './text'
 
 export default function Projects() {
@@ -205,7 +205,7 @@ export default function Projects() {
                 <p className="desc">{p.description || pt.noDescription}</p>
                 <div className="meta">
                   <span className="chip on">{pt.calcCount(p.calculationCount)}</span>
-                  <span>{pt.updatedLabel(reportDateStamp(new Date(p.updatedAt)))}</span>
+                  <span>{pt.updatedLabel(reportDateTimeStamp(new Date(p.updatedAt)))}</span>
                 </div>
               </Link>
               <button

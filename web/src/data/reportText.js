@@ -165,3 +165,11 @@ export function reportDateStamp(date = new Date()) {
   const p = (n) => String(n).padStart(2, '0')
   return `${p(date.getDate())}.${p(date.getMonth() + 1)}.${date.getFullYear()}`
 }
+
+// dd.MM.yyyy HH:mm — kayıt listelerinde kullanılır: aynı gün içinde birden çok
+// kayıt olduğunda yalnız tarih hangisinin güncel olduğunu söylemiyordu. Rapor
+// başlığı `reportDateStamp`'te kalır; belge tarihinde saat istenmedi.
+export function reportDateTimeStamp(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0')
+  return `${reportDateStamp(date)} ${p(date.getHours())}:${p(date.getMinutes())}`
+}

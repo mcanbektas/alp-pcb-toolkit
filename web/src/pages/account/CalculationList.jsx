@@ -16,7 +16,7 @@
 // istemciye hiç gelmez.
 
 import { Link } from 'react-router-dom'
-import { reportDateStamp } from '../../data/reportText'
+import { reportDateTimeStamp } from '../../data/reportText'
 
 export default function CalculationList({ rows, pt, calcStatus, onDelete }) {
   return (
@@ -34,7 +34,7 @@ export default function CalculationList({ rows, pt, calcStatus, onDelete }) {
               <span className="name">
                 {label}
                 {mode && <span className="sub"> · {mode}</span>}
-                <span className="sub"> — {reportDateStamp(new Date(calc.updatedAt))}</span>
+                <span className="sub"> — <strong>{reportDateTimeStamp(new Date(calc.updatedAt))}</strong></span>
                 {preview.map((row, ri) => (
                   // Etiket benzersiz olmak zorunda değil — anahtar sırayla kurulur.
                   // eslint-disable-next-line react/no-array-index-key

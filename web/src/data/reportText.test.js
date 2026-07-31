@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { reportDateStamp, reportErrorText, REPORT_ERR_TOO_LARGE } from './reportText'
+import { reportDateStamp, reportDateTimeStamp, reportErrorText, REPORT_ERR_TOO_LARGE } from './reportText'
 import { API_ERR_NETWORK } from '../lib/api'
 
 describe('reportDateStamp', () => {
@@ -9,6 +9,16 @@ describe('reportDateStamp', () => {
 
   it('tek haneli gün/ay sıfırla dolgulanır', () => {
     expect(reportDateStamp(new Date(2026, 0, 5))).toBe('05.01.2026')
+  })
+})
+
+describe('reportDateTimeStamp', () => {
+  it('tarihe saat:dakika ekler, sıfır dolgulu', () => {
+    expect(reportDateTimeStamp(new Date(2026, 6, 29, 14, 5))).toBe('29.07.2026 14:05')
+  })
+
+  it('gece yarısı 00:00 olarak görünür, atlanmaz', () => {
+    expect(reportDateTimeStamp(new Date(2026, 0, 5, 0, 0))).toBe('05.01.2026 00:00')
   })
 })
 
