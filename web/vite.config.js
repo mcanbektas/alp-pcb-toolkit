@@ -109,6 +109,14 @@ export default defineConfig(({ isSsrBuild }) => ({
       },
     }),
   ],
+  // Vitest yalnızca `src/` altındaki saf fonksiyon testlerini koşar. Sınır
+  // AÇIKÇA yazılmalı: varsayılan desen `**/*.{test,spec}.*` olduğu için
+  // `e2e/` altındaki Playwright dosyalarını da toplar ve onlar vitest içinde
+  // koşturulunca `test.describe` bulunamadı diye patlar.
+  test: {
+    include: ['src/**/*.test.{js,jsx}'],
+  },
+
   // Kendi sunucumuzda barındırılır (GitHub Pages değil): kök '/'den servis
   // edilir, BrowserRouter kullanılır. docs/uyelik-ve-rapor-plani.md §6.2
   base: '/',

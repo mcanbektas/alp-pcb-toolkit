@@ -25,7 +25,7 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 | 2 | 02-sitemap-robots.md | Haiku 4.5 | low | ✓ bitti (2026-07-31) |
 | 3 | 03-prerender.md | Opus 5 | medium | ✓ bitti (2026-07-31) — karar: `docs/prerender-karari.md` |
 | 4 | 04-pwa-offline.md | Opus 5 | medium | ✓ bitti (2026-07-31) — karar: `docs/pwa-karari.md` |
-| 5 | 05-playwright-e2e.md | Sonnet 5 | medium | Yalnız anonim akışlar |
+| 5 | 05-playwright-e2e.md | Sonnet 5 | medium | ✓ bitti (2026-07-31) — 16 e2e + 4 çevrimdışı |
 | 6 | 06-sunucu-gunu.md | Sonnet 5 | medium | Sunucu ALINDIĞINDA |
 | 7 | 07-en-urller.md | Opus 5 | high | Tasarım riski yüksek — ucuzlatma |
 | 8 | 08-rapor-snapshot.md | Opus 5 | medium | Saklama kararını yeniden açar |
@@ -33,6 +33,25 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 
 1-5 sunucusuz yapılır. 6 sunucu gününe bağlı. 7-9 büyük/ertelenmiş —
 briflerinde yalnız karar çerçevesi var, ayrıntılı spec o gün yazılır.
+
+## Açık bulgular (brif dışı, düzeltilmedi)
+
+Tarayıcı testleri yazılırken çıkan, kapsamı brifleri aşan iki erişilebilirlik
+kusuru. İkisi de build'den, birim testlerinden ve tip denetiminden kaçar.
+
+- **`Segmented`e hiçbir ekranda `label` geçilmiyor** — 23 ekrandaki 28
+  örneğin hepsi. Bileşen `label`ı `aria-label`a koyuyor ama prop hiç
+  kullanılmamış, yani mod seçici grubu ekran okuyucuya ADSIZ duyuruluyor
+  ("radio group", hangi grup belli değil). Düzeltmesi 23 ekran + `text.js`
+  başına yeni iki dilli metin demek; ayrı bir iş olarak planlanmalı.
+- **Auth ekranlarında `h1` yok** (`pages/auth/*`), başlık `h2` ile kuruluyor.
+  Araç ekranları `h1` kullanıyor. Sayfa başına tek `h1` beklentisi bozuk;
+  auth sayfaları indekslenmediği için SEO etkisi yok, erişilebilirlik
+  etkisi var.
+
+Düzeltilen bir kusur ise brif 05 kapsamında kaldı: başlıktaki "Giriş yap"
+bağlantısına `role="group"` konmuştu ve tek bağlantının `link` rolünü
+eziyordu (oturumlu daldan kopyalanmış). `App.jsx`te kaldırıldı.
 
 ## Bitmiş işler (tekrar açma)
 

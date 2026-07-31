@@ -25,9 +25,24 @@ npm test         # vitest run — yalnızca src/lib/ altındaki saf hesap fonksi
 npm run test:watch
 ```
 
-Linter kurulu değil. Test kapsamı bilinçli olarak dar: **saf fonksiyonlar test edilir,
-React bileşeni testi yazılmaz** — arayüz doğrulaması `npm run build` + tarayıcıda elle
-kontrol ile yapılır. Yeni bir test/lint aracı eklemek istersen önce sor.
+Linter kurulu değil. Vitest kapsamı bilinçli olarak dar: **saf fonksiyonlar test edilir,
+React bileşeni testi yazılmaz** (`vite.config.js` → `test.include` yalnız
+`src/**/*.test.{js,jsx}`). Yeni bir test/lint aracı eklemek istersen önce sor.
+
+Tarayıcı testleri ayrı ve yine dar: **Playwright, yalnız anonim akışlar** (`web/e2e/`,
+`npm run test:e2e` — vite dev sunucusuna karşı). Kapsanan şey birim testlerinin
+göremediği zincir: form → hesap → panel, `<html lang>` geçişi ve kalıcılığı, `radiogroup`
+klavye modeli, bilinmeyen yol, anonim kullanıcının rapor/kaydet yüzeyinde ne gördüğü.
+**Oturumlu akışlar bilerek dışarıda**: doğrulama postası `ConsoleEmailSender` günlüğüne
+düşüyor ve e2e'den temiz okunamıyor, teste özel bir uç ise açılmıyor (güvenlik yüzeyi).
+
+Çevrimdışı (service worker) testleri ayrı bir koşumdur: `npm run test:e2e:pwa`
+(`web/e2e-pwa/`, `playwright.pwa.config.js`). Ayrı olmalarının nedeni `npm run dev`in
+service worker üretmemesi — bu testler `npm run build` + `vite preview` ister. İçlerinde
+bir **negatif kontrol** vardır (`/api/health` çevrimdışında başarısız olmalı); o test
+düşerse geri kalanların yeşilliği anlamsızdır, çünkü ağ hiç kesilmemiş demektir.
+
+CI'da e2e job'ı henüz yok — süreyi şişirmesin diye sunucu gününe bırakıldı.
 
 Sunucu tarafının kendi testleri var (`api/Alp.Api.Tests`, xunit): `dotnet test Alp.Api.sln`.
 Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG kapısı, proje-hesap sahipliği. Uçlar HTTP

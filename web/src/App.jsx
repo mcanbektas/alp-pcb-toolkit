@@ -187,8 +187,12 @@ function AccountArea() {
     )
   }
 
+  // `role="group"` YOK: yukarıdaki oturumlu daldan kopyalanmıştı ve tek bir
+  // bağlantının `link` rolünü eziyordu — ekran okuyucu bunu bağlantı olarak
+  // değil adsız bir grup olarak duyuruyor, klavye kullanıcısı da nereye
+  // gittiğini duymuyordu. Sınıf yalnızca görünüm içindir. (e2e/rapor-anonim)
   return (
-    <Link to="/giris" className="lang-switch" role="group">
+    <Link to="/giris" className="lang-switch">
       {text.header.loginLink}
     </Link>
   )

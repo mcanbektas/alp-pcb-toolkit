@@ -3,6 +3,9 @@ dist
 # Prerender'ın sunucu paketi (`vite build --ssr`). Yalnız derleme sırasında,
 # Node'da koşar; `dist/` gibi üretilmiş çıktıdır ve depoya girmez.
 .prerender
+# Playwright'ın koşum çıktıları (iz, ekran görüntüsü, HTML rapor).
+test-results
+playwright-report
 .DS_Store
 *.local
 
