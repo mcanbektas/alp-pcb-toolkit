@@ -123,8 +123,8 @@ export function authText(lang) {
       loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
       logout: t({ tr: 'Çıkış yap', en: 'Sign out' }),
       signedOut: t({ tr: 'Çıkış yapıldı.', en: 'Signed out.' }),
-      projects: t({ tr: 'Projelerim', en: 'My projects' }),
-      account: t({ tr: 'Hesabım', en: 'My account' }),
+      projects: t({ tr: 'Projelerim', en: 'Projects' }),
+      account: t({ tr: 'Hesabım', en: 'Account' }),
     },
 
     field: {

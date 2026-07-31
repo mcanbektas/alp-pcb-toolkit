@@ -10,7 +10,7 @@ export function getText(lang) {
 
   return {
     projects: {
-      title: t({ tr: 'Projelerim', en: 'My projects' }),
+      title: t({ tr: 'Projelerim', en: 'Projects' }),
       intro: t({
         tr: 'Kaydedilen hesapları proje altında topla; her projeden tek bir rapor indir.',
         en: 'Group saved calculations under a project; download a single report per project.',
@@ -59,7 +59,7 @@ export function getText(lang) {
     },
 
     project: {
-      backlink: t({ tr: '← Projelerim', en: '← My projects' }),
+      backlink: t({ tr: '← Projelerim', en: '← Projects' }),
       loginRequired: t({
         tr: 'Proje detayını görmek için giriş yapmalısın.',
         en: 'Sign in to see project details.',
@@ -117,7 +117,7 @@ export function getText(lang) {
     },
 
     account: {
-      title: t({ tr: 'Hesabım', en: 'My account' }),
+      title: t({ tr: 'Hesabım', en: 'Account' }),
       intro: t({
         tr: 'Raporlarda görünen ad ve firma burada durur.',
         en: 'The name and company that appear on reports live here.',
