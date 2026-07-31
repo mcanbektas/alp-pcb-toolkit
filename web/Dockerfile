@@ -15,6 +15,15 @@ RUN npm test
 # VITE_API_BASE_URL verilmez: useAuth.jsx boş tabanı aynı köken sayar, yani
 # /api istekleri nginx'in kendisine gider. Ayrı alan adına taşınırsa burada
 # --build-arg ile geçilir.
+#
+# VITE_SITE_URL ise DERLEME zamanında gerekir ve çalışma zamanında verilemez:
+# sitemap.xml'in URL'leri ile 76 sayfanın <head>'indeki canonical/hreflang
+# etiketleri bu adresten üretilip statik dosyalara YAZILIR. Verilmezse
+# placeholder alan adı yazılır ve derleme uyarı basar (scripts/site-url.mjs).
+# Compose bunu deploy/.env'den geçirir; değeri değişince imaj yeniden
+# derlenmelidir (`--build`), yeniden başlatmak yetmez.
+ARG VITE_SITE_URL
+ENV VITE_SITE_URL=$VITE_SITE_URL
 RUN npm run build
 
 # ---- sunum ----
