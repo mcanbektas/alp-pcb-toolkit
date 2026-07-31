@@ -22,7 +22,7 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 | # | Brif | Oturum modeli | Effort | Not |
 |---|------|--------------|--------|-----|
 | 1 | 01-onizleme-kolonu.md | Sonnet 5 | high | ✓ bitti (2026-07-31) |
-| 2 | 02-sitemap-robots.md | Haiku 4.5 | low | Şablon işi |
+| 2 | 02-sitemap-robots.md | Haiku 4.5 | low | ✓ bitti (2026-07-31) |
 | 3 | 03-prerender.md | Opus 5 | medium | Karar 1 sayfa, uygulama Sonnet ajanlarına |
 | 4 | 04-pwa-offline.md | Opus 5 | medium | Cache stratejisi kararı kritik |
 | 5 | 05-playwright-e2e.md | Sonnet 5 | medium | Yalnız anonim akışlar |

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemap satırı TAM url ister (bu dosya statik, göreli yazılamaz) ve alan
+# adı henüz yok — alan adı alınınca buraya elle eklenir. Bkz. deploy/README.md.
