@@ -86,7 +86,7 @@ Brif 07'den sonra aynı gün yapılanlar (git log `b48dcd7`..):
 - Rapor künyesindeki firma alanı görünür ve tek seferlik düzenlenebilir
   (`docs/uyelik-ve-rapor-plani.md` §27)
 
-Güncel test sayısı: **133 sunucu + 1977 web + 18 tarayıcı + 5 çevrimdışı.**
+Güncel test sayısı: **136 sunucu + 1977 web + 18 tarayıcı + 5 çevrimdışı.**
 Bilinçli yapılmayanlar: Termination'ın sonuç paneli (hata dalı ekstra
 içerik çiziyor), RequireAuth yönlendirmesi (mevcut anonim mesajlar
 bilinçli tasarım), ohm.js induktans çifti (API simetrisi).

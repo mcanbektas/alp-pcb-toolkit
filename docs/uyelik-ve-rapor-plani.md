@@ -1629,7 +1629,7 @@ vermeyen bir çelişkidir.
 
 ### Doğrulama
 
-- `Alp.Api.Tests/ReportSnapshotTests.cs` (12 test): donmuş içerik, yeni raporun
+- `Alp.Api.Tests/ReportSnapshotTests.cs` (15 test): donmuş içerik, yeni raporun
   yeni sayıyı vermesi, öbür dilde indirme, dedup, kullanıcı sınırında dedup,
   silinmiş proje, snapshot'sız eski davranış, firma donması, kota geriletmesi,
   sahipsiz blob toplama ve kullanılan blob'un korunması. 133 sunucu testi yeşil.
