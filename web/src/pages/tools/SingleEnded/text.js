@@ -82,6 +82,16 @@ export function getText(lang) {
     modeAnalysis: t({ tr: 'Analiz — empedansı bul', en: 'Analysis — find impedance' }),
     modeSynthesis: t({ tr: 'Sentez — genişliği bul', en: 'Synthesis — find width' }),
 
+    xsectionLabel: {
+      rect: t({ tr: 'Dikdörtgen', en: 'Rectangular' }),
+      trap: t({ tr: 'Trapez (aşındırma)', en: 'Trapezoidal (etch)' }),
+    },
+    coverLabel: {
+      air: t({ tr: 'Hava (yüzey microstrip)', en: 'Air (surface microstrip)' }),
+      mask: t({ tr: 'Solder mask', en: 'Solder mask' }),
+      embedded: t({ tr: 'Gömülü (embedded) microstrip', en: 'Embedded microstrip' }),
+    },
+
     structLabel,
 
     methodNote: t({
@@ -167,6 +177,27 @@ export function getText(lang) {
           en: 'Typically 4.2–4.5 for FR-4; the real value varies with frequency',
         }),
       },
+      xsection: { label: t({ tr: 'Bakır kesiti', en: 'Copper cross-section' }) },
+      dTop: {
+        label: t({ tr: 'Üst kenar daralması (ΔW)', en: 'Top-edge narrowing (ΔW)' }),
+        hint: t({
+          tr: 'Taban W, üst kenar W − ΔW; aşındırma yamuğu. Yalnız çözücü modeller',
+          en: 'Foot W, top edge W − ΔW; the etch trapezoid. Modelled only by the solver',
+        }),
+      },
+      coverType: { label: t({ tr: 'Üst dielektrik', en: 'Top dielectric' }) },
+      maskT: { label: t({ tr: 'Mask kalınlığı', en: 'Mask thickness' }) },
+      maskEpsR: {
+        label: t({ tr: 'Mask dielektrik sabiti', en: 'Mask dielectric constant' }),
+        hint: t({ tr: 'Tipik 3.3–4.0', en: 'Typically 3.3–4.0' }),
+      },
+      coverH: {
+        label: t({ tr: 'Örtü yüksekliği (H üstünden)', en: 'Cover height (above H)' }),
+        hint: t({
+          tr: 'Hat kalınlığından büyük olmalı — hat tümüyle gömülü; aynı εr varsayılır',
+          en: 'Must exceed the copper thickness — the trace is fully buried; the same εr is assumed',
+        }),
+      },
       tolCheck: t({ tr: 'Tolerans analizi (worst-case)', en: 'Tolerance analysis (worst-case)' }),
       tolW: { label: t({ tr: 'Genişlik toleransı (±)', en: 'Width tolerance (±)' }) },
       tolH: {
@@ -189,6 +220,10 @@ export function getText(lang) {
       tolH: t({ tr: 'Dielektrik toleransı', en: 'Dielectric tolerance' }),
       tolT: t({ tr: 'Bakır kalınlığı toleransı', en: 'Copper thickness tolerance' }),
       tolEps: t({ tr: 'εr toleransı', en: 'εr tolerance' }),
+      dTop: t({ tr: 'Üst kenar daralması (ΔW)', en: 'Top-edge narrowing (ΔW)' }),
+      maskT: t({ tr: 'Mask kalınlığı', en: 'Mask thickness' }),
+      maskEpsR: t({ tr: 'Mask dielektrik sabiti', en: 'Mask dielectric constant' }),
+      coverH: t({ tr: 'Örtü yüksekliği (H üstünden)', en: 'Cover height (above H)' }),
     },
 
     bigResultWidth: t({ tr: 'Gereken hat genişliği', en: 'Required trace width' }),
@@ -384,9 +419,13 @@ thickness is real geometry.`,
           + 'geometry require a two- or three-dimensional field solution.',
       }),
       t({
-        tr: 'Solder mask, çoklu dielektrik ve trapez bakır kesiti modelde yoktur.',
-        en: 'Solder mask, multiple dielectrics and a trapezoidal copper cross-section are not in '
-          + 'the model.',
+        tr: 'Solder mask, gömülü örtü ve trapez bakır kesiti KAPALI FORMDA yoktur; microstrip\'te '
+          + 'bu üçünü yalnız alan çözücü rotası modeller ("Bakır kesiti" ve "Üst dielektrik" '
+          + 'seçenekleri). Seçildiklerinde esas sonuç çözücü satırıdır.',
+        en: 'Solder mask, an embedded cover and a trapezoidal copper cross-section are not in the '
+          + 'CLOSED FORM; on microstrip only the field-solver route models these three (the '
+          + '“Copper cross-section” and “Top dielectric” options). When selected, the '
+          + 'authoritative result is the solver row.',
       }),
       t({
         tr: 'Dielektrik sabiti frekanstan bağımsız kabul edilir. Gerçek Dk frekansla düşer; '
@@ -629,13 +668,32 @@ thickness is real geometry.`,
               en: 'Copper thickness was entered as zero. Real copper lowers the impedance by a few ohms; entering the thickness gives a more realistic result.',
             }),
         })
-        out.push({
-          level: 'warn',
-          text: t({
-            tr: 'Solder mask modelde yoktur. Mask kaplı microstrip empedansı tipik olarak birkaç ohm daha düşüktür.',
-            en: 'Solder mask is not in the model. A mask-covered microstrip impedance is typically a few ohms lower.',
-          }),
-        })
+        if (r.coverType === 'air') {
+          out.push({
+            level: 'warn',
+            text: t({
+              tr: 'Solder mask bu hesapta yok (üst dielektrik: hava). Mask kaplı microstrip empedansı tipik olarak birkaç ohm daha düşüktür; mask varsa "Üst dielektrik" seçeneğinden ekleyin — çözücü modeller.',
+              en: 'Solder mask is not in this calculation (top dielectric: air). A mask-covered microstrip impedance is typically a few ohms lower; if there is a mask, add it via the “Top dielectric” option — the solver models it.',
+            }),
+          })
+        }
+
+        // F3 geometri ayrıntıları: yalnız çözücü modeller; kapalı form ana
+        // sayı dikdörtgen/açık-yüzey varsayımıyla kalır
+        if (r.dTop > 0 || r.coverType !== 'air') {
+          out.push({
+            level: 'warn',
+            text: fsOk
+              ? t({
+                tr: 'Seçilen geometri ayrıntıları (trapez kesit / üst dielektrik) yalnız alan çözücüde modellenir. Ana sayı olan kapalı form dikdörtgen kesit ve açık yüzey varsayar — "kapalı formdan fark" satırındaki sapma bundan beklenir ve bu geometri için ESAS sonuç çözücü satırıdır.',
+                en: 'The selected geometry details (trapezoidal cross-section / top dielectric) are modelled only in the field solver. The main number, the closed form, assumes a rectangular cross-section and an open surface — the deviation in the “difference from closed form” row is expected, and for this geometry the AUTHORITATIVE result is the solver row.',
+              })
+              : t({
+                tr: 'Seçilen geometri ayrıntıları (trapez kesit / üst dielektrik) yalnız alan çözücüde modellenir ve çözücü sonucu henüz yok. Ekrandaki kapalı form sayısı bu ayrıntıları İÇERMEZ.',
+                en: 'The selected geometry details (trapezoidal cross-section / top dielectric) are modelled only in the field solver, and there is no solver result yet. The closed-form number on screen does NOT include them.',
+              }),
+          })
+        }
       }
 
       if (r.structure === STRUCT_STRIPLINE) {

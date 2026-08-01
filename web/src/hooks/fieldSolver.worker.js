@@ -24,9 +24,16 @@ function solve(params) {
   if (kind === 'gcpw-width') {
     return fieldSolveGcpwWidthForZ0({ S, H: height, t, epsR, target })
   }
-  return structure === 'stripline'
-    ? fieldStripline({ W, b: height, t, epsR })
-    : fieldMicrostrip({ W, H: height, t, epsR })
+  if (structure === 'stripline') {
+    return fieldStripline({ W, b: height, t, epsR })
+  }
+  // F3 geometri ayrıntıları yalnız microstrip'te (trapez / mask / gömülü)
+  const cover = params.coverType === 'mask'
+    ? { type: 'mask', t: params.maskT, epsR: params.maskEpsR }
+    : params.coverType === 'embedded'
+      ? { type: 'embedded', h: params.coverH }
+      : null
+  return fieldMicrostrip({ W, H: height, t, epsR, dTop: params.dTop || 0, cover })
 }
 
 self.onmessage = (e) => {

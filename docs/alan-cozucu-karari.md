@@ -382,14 +382,52 @@ rotadır: "aralığı sabitle → genişliği bul" F2'nin kuplajsız tohum + tek
 seferlik doğrulama rotasında kaldı (hızlı, senkron tohum); "genişliği
 sabitle → aralığı bul" çözücü içinde kök aramadır.
 
-## 17. F3'te bilerek dışarıda kalanlar
+## 17. Geometri genişletmeleri: trapez, solder mask, gömülü microstrip (brif F3.2)
 
-- **Geometri genişletmeleri** (trapez kesit, solder mask, embedded
-  microstrip) — brif F3.2'nin diğer yarısı; ayrı iş olarak ele alınacak,
-  her biri ölçümle ve bu dosyaya yazılarak.
+Üçü de `fieldMicrostrip`'e seçenek olarak girdi ve üçü de eksene hizalı
+bölgelerle kurulur — malzeme sınırları yine ızgara çizgilerine oturur,
+§2'deki harmonik ortalama maddesi F3'te de devreye girmedi:
+
+- **Trapez kesit (`dTop`):** taban W, üst W−dTop. Yamuk, kalınlığı N basamağa
+  bölünmüş eksene hizalı dikdörtgen iletkenler olarak çözülür; basamak
+  kenarları ve katman sınırları ızgara işaretidir. N yoğunlukla ölçeklenir
+  (kaba/ince farklı N) — basamaklama hatası böylece E_Z'ye GİRER, gizlenmez.
+  Ölçüm: alan taban köşelerinde yoğunlaştığı için yamuk "ortalama genişlik"
+  sezgisinden çok TABAN genişliğine yakın davranır (W=0.4, dTop=0.08 mm:
+  yamuk 48.59 Ω; taban dikdörtgeni 47.45, ortalama-genişlik dikdörtgeni
+  50.36). Test bu yüzden sezgisel eşdeğere değil, kesin kapsama sandviçine
+  bağlandı: Z(taban-dikdörtgen) < Z(yamuk) < Z(üst-dikdörtgen).
+- **Solder mask (`cover: { type:'mask', t, epsR }`):** yüzeyde tm kalınlığında
+  şerit + hat zarfının tm payıyla kaplanması (kenar duvarlar ve üst); trapezde
+  aşındırılmış köşeler de zarf içinde kaldığı için mask ile dolar — konformal
+  kaplama yaklaşımı. Sınama çapası: εr=1 mask, maskesizle < %0.5 örtüşür.
+  Yön testleri: mask Z₀'ı düşürür, kalınlaştıkça etki tekdüze büyür.
+- **Gömülü microstrip (`cover: { type:'embedded', h }`):** dielektrik hat
+  üstünde h'ye kadar devam eder (aynı εr — üretimde tipik laminasyon; ayrı
+  örtü εr'si istenirse küçük ek), üstü hava. h > t şart (hat tümüyle gömülü).
+  Limit testi: derin gömmede εeff homojen sınıra yaklaşır ama aşmaz
+  (h = 10·H'de εeff > 0.9·εr, < εr).
+
+**Ekran kapsamı (kayıtlı karar):** seçenekler yalnız `SingleEnded`
+microstrip'te ("Bakır kesiti", "Üst dielektrik") ve yalnız ÇÖZÜCÜ rotasına
+biner. Kapalı form ana sayı dikdörtgen/açık-yüzey varsayımıyla kalır; seçenek
+aktifken ekran "kapalı formdan fark" sapmasının beklendiğini ve esas sonucun
+çözücü satırı olduğunu söyler. Bayat geçerlilik maddesi ("solder mask ve
+trapez modelde yoktur") kapalı forma daraltılarak düzeltildi. Çift ve gcpw'ye
+taşınmaları istenirse ayrı iş — kuruluma seçenek geçirmek yeter, ekran/metin
+işi baskın.
+
+## 18. F3'te bilerek dışarıda kalanlar
+
 - **Çözücü tabanlı parametrik tarama grafiği** — durum §14'teki gibi.
 - **§7.6 TAM çok iletkenli rota (FFT'li dalga biçimi)** — brifin kendi
   sınırı: F3 kapsamı değil, istenirse ayrı brif.
 - **Skew farklı-katman εeff,N için çözücü kaynağı** — N hattı ayrı bir
   geometri; ikinci bir çözücü bağı gerektirir. Elle giriş duruyor; istenirse
   küçük bir ek.
+- **Geometri seçeneklerinin çifte/gcpw'ye taşınması ve mask/gömülü için ayrı
+  örtü εr'si** — §17'deki kapsam kararı; istenirse küçük ekler.
+- **Trapez/mask/gömülü sentez etkileşimi** — sentez kök araması kapalı form
+  tohumuyla dikdörtgen varsayar; geometri ayrıntıları yalnız analiz
+  rotasında. Solver-in-loop genişlik sentezine seçenek geçirmek istenirse
+  küçük bir ek (aynı kurulum fonksiyonu).

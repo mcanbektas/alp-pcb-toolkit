@@ -22,12 +22,15 @@ export default function useFieldSolver(params) {
   const workerRef = useRef(null)
   const jobRef = useRef(0)
 
-  // Nesne kimliği her render'da değişir; efekt yalnız değerlere bakar
+  // Nesne kimliği her render'da değişir; efekt yalnız değerlere bakar.
+  // Kuyruk: F3 geometri ayrıntıları (yalnız 'single' microstrip işi okur).
   const key = params
     ? [
         params.kind ?? 'single', params.structure,
         params.W ?? 0, params.S ?? 0, params.height, params.t, params.epsR,
         params.target ?? 0,
+        params.dTop ?? 0, params.coverType ?? 'air',
+        params.maskT ?? 0, params.maskEpsR ?? 0, params.coverH ?? 0,
       ].join('|')
     : null
 
@@ -55,13 +58,17 @@ export default function useFieldSolver(params) {
     }
     worker.addEventListener('message', onMessage)
 
-    const [kind, structure, W, S, height, t, epsR, target] = key.split('|')
+    const [
+      kind, structure, W, S, height, t, epsR, target,
+      dTop, coverType, maskT, maskEpsR, coverH,
+    ] = key.split('|')
     const timer = setTimeout(() => {
       worker.postMessage({
         id,
         params: {
           kind, structure,
           W: +W, S: +S, height: +height, t: +t, epsR: +epsR, target: +target,
+          dTop: +dTop, coverType, maskT: +maskT, maskEpsR: +maskEpsR, coverH: +coverH,
         },
       })
     }, DEBOUNCE_MS)

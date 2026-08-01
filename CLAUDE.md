@@ -693,7 +693,10 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   Skew'e (`lib/epsEff.js` → `EPS_SOLVER`, odd mod — diferansiyel işaretin yayıldığı mod)
   akar; solver-in-loop sentez ölçümle açıldı (`fieldSolveSpacingForZdiff`,
   `fieldSolveGcpwWidthForZ0` — kök arama çözücünün içinde, worker iş türleri
-  `pair-spacing`/`gcpw-width`, yalnız gereken uyarım + ılık başlangıç kısaltmalarıyla).
+  `pair-spacing`/`gcpw-width`, yalnız gereken uyarım + ılık başlangıç kısaltmalarıyla);
+  microstrip'te geometri genişletmeleri eklendi (`dTop` trapez kesit, `cover` solder
+  mask / gömülü örtü — yalnız çözücü rotası modeller, kapalı form dikdörtgen/açık-yüzey
+  varsayımıyla kalır ve ekran bunu söyler; ayrıntı karar dosyası §17).
   Çözücü satırları raporlara da girer; indirme anında çözüm bitmemişse satır rapora
   girmez, sayı uydurulmaz. Çözücü sonucu `convergence.coarsePct` (E_Z, spec §6.3) taşır ve
   E_Z ≥ %1 iken warn'suz gösterilmez.

@@ -319,6 +319,105 @@ describe('grounded CPW (F2, spec §6.7 — yalnız çözücüyle sunulur)', () =
 })
 
 // ---------------------------------------------------------------------------
+// F3 — geometri genişletmeleri (trapez, solder mask, gömülü microstrip)
+
+describe('geometri genişletmeleri — trapez kesit (F3)', () => {
+  const g = { W: 0.4e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 }
+
+  it('üst kenar daraldıkça metal azalır, Z₀ tekdüze yükselir', () => {
+    const z = [0, 0.1, 0.3].map((f) => {
+      const r = fieldMicrostrip({ ...g, dTop: f * g.W })
+      expect(r.error).toBeUndefined()
+      return r.Z0
+    })
+    expect(z[1]).toBeGreaterThan(z[0])
+    expect(z[2]).toBeGreaterThan(z[1])
+  })
+
+  it('kapsama sandviçi: taban-dikdörtgeni ile üst-dikdörtgeni arasında kalır', () => {
+    // Kesin fizik çapası: W genişliğindeki dikdörtgen yamuğu KAPSAR (daha çok
+    // metal → düşük Z), W−dTop genişliğindeki dikdörtgen yamuğun İÇİNDEdir
+    // (daha az metal → yüksek Z). Kapasite kapsamayla monotondur.
+    const dTop = 0.2 * g.W
+    const trap = fieldMicrostrip({ ...g, dTop })
+    const foot = fieldMicrostrip(g)
+    const top = fieldMicrostrip({ ...g, W: g.W - dTop })
+    expect(trap.Z0).toBeGreaterThan(foot.Z0)
+    expect(trap.Z0).toBeLessThan(top.Z0)
+    expect(trap.trapezoid).toBe(true)
+    // Ölçüm karar dosyasına: alan taban köşelerinde yoğunlaştığı için yamuk,
+    // "ortalama genişlik" sezgisinden çok taban genişliğine yakın davranır
+  })
+
+  it('geçersiz girdi { error } döner', () => {
+    expect(fieldMicrostrip({ ...g, dTop: g.W }).error).toBe(FS_ERR_INVALID)
+    expect(fieldMicrostrip({ ...g, t: 0, dTop: 0.1 * g.W }).error).toBe(FS_ERR_INVALID)
+    expect(fieldMicrostrip({ ...g, dTop: -1e-6 }).error).toBe(FS_ERR_INVALID)
+  })
+})
+
+describe('geometri genişletmeleri — solder mask (F3)', () => {
+  const g = { W: 0.4e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 }
+  const mask = { type: 'mask', t: 25e-6, epsR: 3.8 }
+
+  it('mask dielektrik ekler: Z₀ düşer, εeff yükselir', () => {
+    const bare = fieldMicrostrip(g)
+    const withMask = fieldMicrostrip({ ...g, cover: mask })
+    expect(withMask.error).toBeUndefined()
+    expect(withMask.Z0).toBeLessThan(bare.Z0)
+    expect(withMask.epsEff).toBeGreaterThan(bare.epsEff)
+    expect(withMask.coverType).toBe('mask')
+  })
+
+  it('mask kalınlaştıkça etki tekdüze büyür', () => {
+    const z = [10e-6, 25e-6, 50e-6].map((tm) => {
+      const r = fieldMicrostrip({ ...g, cover: { ...mask, t: tm } })
+      expect(r.error).toBeUndefined()
+      return r.Z0
+    })
+    expect(z[1]).toBeLessThan(z[0])
+    expect(z[2]).toBeLessThan(z[1])
+  })
+
+  it('εr = 1 mask, maskesiz sonuçla örtüşür (< %0.5 — sınama çapası)', () => {
+    const bare = fieldMicrostrip(g)
+    const airMask = fieldMicrostrip({ ...g, cover: { ...mask, epsR: 1 } })
+    expect(100 * relErr(airMask.Z0, bare.Z0)).toBeLessThan(0.5)
+  })
+
+  it('geçersiz girdi { error } döner', () => {
+    expect(fieldMicrostrip({ ...g, cover: { type: 'mask', t: 0, epsR: 3.8 } }).error).toBe(FS_ERR_INVALID)
+    expect(fieldMicrostrip({ ...g, cover: { type: 'mask', t: 25e-6, epsR: 0.5 } }).error).toBe(FS_ERR_INVALID)
+    expect(fieldMicrostrip({ ...g, cover: { type: 'yok' } }).error).toBe(FS_ERR_INVALID)
+  })
+})
+
+describe('geometri genişletmeleri — gömülü microstrip (F3)', () => {
+  const g = { W: 0.4e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 }
+
+  it('gömme dielektrik ekler: Z₀ düşer, εeff yükselir; örtü kalınlaştıkça artar', () => {
+    const bare = fieldMicrostrip(g)
+    const shallow = fieldMicrostrip({ ...g, cover: { type: 'embedded', h: 80e-6 } })
+    const deep = fieldMicrostrip({ ...g, cover: { type: 'embedded', h: 0.4e-3 } })
+    expect(shallow.error).toBeUndefined()
+    expect(shallow.Z0).toBeLessThan(bare.Z0)
+    expect(shallow.epsEff).toBeGreaterThan(bare.epsEff)
+    expect(deep.epsEff).toBeGreaterThan(shallow.epsEff)
+  })
+
+  it('derin gömmede εeff homojen limite (εr) yaklaşır ama aşamaz', () => {
+    const deep = fieldMicrostrip({ ...g, cover: { type: 'embedded', h: 2e-3 } })
+    expect(deep.error).toBeUndefined()
+    expect(deep.epsEff).toBeGreaterThan(0.9 * g.epsR)
+    expect(deep.epsEff).toBeLessThan(g.epsR)
+  })
+
+  it('örtü hat kalınlığını aşmıyorsa geçersizdir (hat gömülü değil)', () => {
+    expect(fieldMicrostrip({ ...g, cover: { type: 'embedded', h: 30e-6 } }).error).toBe(FS_ERR_INVALID)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // F3 — solver-in-loop sentez (karar #10 ölçümle açıldı)
 
 describe('solver-in-loop sentez — hedef Z_diff için aralık (F3)', () => {

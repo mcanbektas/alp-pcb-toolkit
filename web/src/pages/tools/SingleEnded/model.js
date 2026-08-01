@@ -22,6 +22,18 @@ export const STRUCTURES = [STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, STRU
 export const MODE_ANALYSIS = 'ana'
 export const MODE_SYNTHESIS = 'syn'
 
+// F3 geometri genişletmeleri — yalnız microstrip'te ve yalnız ÇÖZÜCÜ
+// rotasında: kapalı form bu ayrıntıları modellemez, ana sayı (kapalı form)
+// dikdörtgen/açık-yüzey varsayımıyla kalır ve arayüz bunu söyler.
+export const XSECTION_RECT = 'rect'
+export const XSECTION_TRAP = 'trap'
+export const XSECTIONS = [XSECTION_RECT, XSECTION_TRAP]
+
+export const COVER_AIR = 'air'
+export const COVER_MASK = 'mask'
+export const COVER_EMBEDDED = 'embedded'
+export const COVERS = [COVER_AIR, COVER_MASK, COVER_EMBEDDED]
+
 export const REASON_INCOMPLETE = 'incomplete'
 export const REASON_NO_SOLUTION = IMP_ERR_NO_SOLUTION
 
@@ -39,6 +51,14 @@ export const INITIAL_FORM = {
 
   tol: false,
   tolW: '10', tolH: '10', tolT: '10', tolEps: '3',
+
+  // F3 geometri ayrıntıları (microstrip, yalnız çözücü rotası)
+  xsection: XSECTION_RECT,
+  dTop: '40', dTopu: 'µm',
+  coverType: COVER_AIR,
+  maskT: '25', maskTu: 'µm',
+  maskEpsR: '3.8',
+  coverH: '80', coverHu: 'µm',
 }
 
 const PLAIN = { '': 1 }
@@ -71,6 +91,18 @@ export function formFields(f, mode, labels = {}) {
     ]),
     when(structure === STRUCT_CPW || structure === STRUCT_GCPW, [
       { key: 'S', label: L('S'), unitKey: 'Su', table: DIM, min: 0 },
+    ]),
+    // Geometri ayrıntıları yalnız microstrip'te sorulur ve yalnız çözücüye
+    // gider; kapalı form dikdörtgen/açık-yüzey varsayımıyla kalır.
+    when(structure === STRUCT_MICROSTRIP && f.xsection === XSECTION_TRAP, [
+      { key: 'dTop', label: L('dTop'), unitKey: 'dTopu', table: DIM, min: 0 },
+    ]),
+    when(structure === STRUCT_MICROSTRIP && f.coverType === COVER_MASK, [
+      { key: 'maskT', label: L('maskT'), unitKey: 'maskTu', table: DIM, min: 0 },
+      { key: 'maskEpsR', label: L('maskEpsR'), unit: '', table: PLAIN, min: 1 },
+    ]),
+    when(structure === STRUCT_MICROSTRIP && f.coverType === COVER_EMBEDDED, [
+      { key: 'coverH', label: L('coverH'), unitKey: 'coverHu', table: DIM, min: 0 },
     ]),
     // CPW/GCPW ekranı tolerans kontrolünü ve alanlarını hiç göstermez
     // (compute()'un kendi koşuluyla aynı), yoksa form state'inde f.tol=true
@@ -160,11 +192,26 @@ export function compute(mode, f, labels = {}) {
     tolerance,
     // ps/mm — sinyal bütünlüğü ekranlarıyla aynı birim
     tpdPsPerMm: r.tpd * 1e9,
+    // Geometri ayrıntısı bayrakları — ekran yorumu ve etiketleri için
+    dTop: structure === STRUCT_MICROSTRIP && f.xsection === XSECTION_TRAP ? v.dTop : 0,
+    coverType: structure === STRUCT_MICROSTRIP ? f.coverType : COVER_AIR,
     // İdeal CPW alan çözücü doğrulaması taşımaz (F1 kararı: yapı kataloğunda
-    // ayrı; grounded CPW ayrı seçenek). Diğer yapılar tek uçlu işi taşır.
+    // ayrı; grounded CPW ayrı seçenek). Diğer yapılar tek uçlu işi taşır;
+    // microstrip'te F3 geometri ayrıntıları da işe biner (yalnız çözücü).
     solverParams: structure === STRUCT_CPW
       ? null
-      : { kind: 'single', structure, W, S: 0, height, t: v.t, epsR: v.epsR },
+      : {
+        kind: 'single', structure, W, S: 0, height, t: v.t, epsR: v.epsR,
+        ...(structure === STRUCT_MICROSTRIP
+          ? {
+            dTop: f.xsection === XSECTION_TRAP ? v.dTop : 0,
+            coverType: f.coverType,
+            maskT: f.coverType === COVER_MASK ? v.maskT : 0,
+            maskEpsR: f.coverType === COVER_MASK ? v.maskEpsR : 0,
+            coverH: f.coverType === COVER_EMBEDDED ? v.coverH : 0,
+          }
+          : {}),
+      },
   }
 }
 

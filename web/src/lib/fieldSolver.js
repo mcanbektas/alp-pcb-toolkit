@@ -500,24 +500,56 @@ function solveTwoDensities(buildSpec, density, extra) {
  * Bakır kalınlığı GERÇEK geometri olarak çözülür (kapalı formun t
  * düzeltmesi değil): hat, [H, H+t] arasında dikdörtgen iletkendir.
  *
- * @param {number} W  hat genişliği (m)
+ * F3 geometri genişletmeleri (hepsi eksene hizalı bölgelerle kurulur;
+ * malzeme sınırları yine ızgara çizgilerine oturur, harmonik ortalama
+ * maddesi devreye girmez — bkz. karar dosyası §2 ve §18):
+ *
+ * - `dTop` — trapez kesit (aşındırma): taban genişliği W, üst genişlik
+ *   W − dTop. Yamuk, kalınlığı yoğunlukla ölçeklenen N basamağa bölünür;
+ *   her basamak eksene hizalı dikdörtgen iletkendir. Basamak sayısı iki
+ *   yoğunlukta farklıdır, dolayısıyla basamaklama hatası E_Z'ye GİRER.
+ * - `cover: { type: 'mask', t, epsR }` — solder mask: yüzeyde tm kalınlığında
+ *   şerit + hat zarfının (kenar duvarlar dahil) tm payıyla kaplanması.
+ *   Aşındırılmış köşeler de mask ile dolar (konformal kaplama yaklaşımı).
+ * - `cover: { type: 'embedded', h }` — gömülü microstrip: dielektrik hat
+ *   üstünde h yüksekliğine kadar devam eder (aynı εr), üstü hava. h > t şart.
+ *
+ * @param {number} W  hat TABAN genişliği (m)
  * @param {number} H  dielektrik yüksekliği (m)
  * @param {number} t  bakır kalınlığı (m); 0 → sıfır kalınlıklı iletken çizgisi
  * @param {number} epsR
  */
 export function fieldMicrostrip({
   W, H, t = 0, epsR,
+  dTop = 0,
+  cover = null,
   density = FS_DENSITY_DEFAULT,
   wallFactor = FS_WALL_FACTOR_OPEN,
 }) {
   if (!(W > 0) || !(H > 0) || !(t >= 0) || !(epsR >= 1)) {
     return { error: FS_ERR_INVALID }
   }
+  // Trapez ancak gerçek kalınlıkla anlamlı; üst genişlik pozitif kalmalı
+  if (!(dTop >= 0) || dTop >= W || (dTop > 0 && !(t > 0))) {
+    return { error: FS_ERR_INVALID }
+  }
+  const mask = cover && cover.type === 'mask' ? cover : null
+  const embedded = cover && cover.type === 'embedded' ? cover : null
+  if (cover && !mask && !embedded) return { error: FS_ERR_INVALID }
+  if (mask && (!(mask.t > 0) || !(mask.epsR >= 1))) return { error: FS_ERR_INVALID }
+  if (embedded && !(embedded.h > t)) return { error: FS_ERR_INVALID }
 
-  const margin = wallFactor * Math.max(H + t, W)
+  // Dikey ölçü: yapı + üst dielektriğin taşıdığı ek yükseklik
+  const coverExtra = mask ? mask.t : embedded ? embedded.h - t : 0
+  const margin = wallFactor * Math.max(H + t + coverExtra, W)
   const halfX = W / 2 + margin
-  const top = H + t + margin
-  const minFeature = Math.min(W, H, t > 0 ? t : Infinity)
+  const top = H + t + coverExtra + margin
+  const minFeature = Math.min(
+    W, H,
+    t > 0 ? t : Infinity,
+    mask ? mask.t : Infinity,
+    embedded ? embedded.h - t : Infinity,
+  )
 
   const buildSpec = (d) => {
     const hFine = minFeature / d
@@ -527,23 +559,81 @@ export function fieldMicrostrip({
     // büyükse sönüm bölgesi kaba örneklenir ve hata yoğunluktan bağımsız
     // bir platoya takılır (ölçümü karar dosyasında).
     const hWall = margin / 3
+
+    // Trapez basamakları: sayı yoğunlukla ölçeklenir ki basamaklama hatası
+    // iki yoğunluk arasında değişsin ve E_Z'ye yansısın
+    const steps = dTop > 0 ? Math.max(3, Math.min(6, Math.round(d / 1.5))) : 1
+    const halfAt = (frac) => W / 2 - (dTop / 2) * frac // frac: 0 taban → 1 üst
+    const conductors = []
+    if (t > 0 && dTop > 0) {
+      for (let k = 0; k < steps; k++) {
+        const hw = halfAt((k + 0.5) / steps)
+        conductors.push({
+          x1: -hw, x2: hw,
+          y1: H + (t * k) / steps, y2: H + (t * (k + 1)) / steps,
+          V: 1,
+        })
+      }
+    } else {
+      conductors.push({ x1: -W / 2, x2: W / 2, y1: H, y2: H + t, V: 1 })
+    }
+
     const yMarks = [
       { pos: 0, h: H / d }, // referans düzlem: alan düzgün, ölçek H
       { pos: H, h: hEdge },
       { pos: top, h: hWall },
     ]
     if (t > 0) yMarks.push({ pos: H + t, h: hEdge })
+    if (t > 0 && dTop > 0) {
+      // Basamak sınırları ızgara çizgisine oturmalı (malzeme sınırı kuralı)
+      for (let k = 1; k < steps; k++) {
+        yMarks.push({ pos: H + (t * k) / steps, h: t / steps / 2 })
+      }
+    }
+    if (mask) {
+      yMarks.push({ pos: H + mask.t, h: hFine })
+      yMarks.push({ pos: H + t + mask.t, h: hFine })
+    }
+    if (embedded) yMarks.push({ pos: H + embedded.h, h: hFine })
+
+    const xMarks = [
+      { pos: -halfX, h: hWall },
+      { pos: -W / 2, h: hEdge },
+      { pos: W / 2, h: hEdge },
+      { pos: halfX, h: hWall },
+    ]
+    if (t > 0 && dTop > 0) {
+      // Basamak kenarları: en üst köşe tekilliği hEdge, aradakiler hFine
+      for (let k = 0; k < steps; k++) {
+        const hw = halfAt((k + 0.5) / steps)
+        const h = k === steps - 1 ? hEdge : hFine
+        xMarks.push({ pos: -hw, h }, { pos: hw, h })
+      }
+    }
+    if (mask) {
+      xMarks.push({ pos: -(W / 2 + mask.t), h: hFine }, { pos: W / 2 + mask.t, h: hFine })
+    }
+
+    // Mask bölgesi: yüzey şeridi + hat zarfı (kenar duvarlar ve üst; trapezde
+    // aşındırılmış köşeler de zarfın içindedir → mask dolar). İletken
+    // hücrelerinin ε'si enerjiye girmez (ΔV = 0), ayrıca dışlamak gerekmez.
+    const epsAt = (xc, yc) => {
+      if (yc < H) return epsR
+      if (embedded) return yc < H + embedded.h ? epsR : 1
+      if (mask) {
+        if (yc < H + mask.t) return mask.epsR
+        if (Math.abs(xc) <= W / 2 + mask.t && yc < H + t + mask.t) return mask.epsR
+        return 1
+      }
+      return 1
+    }
+
     return {
-      xMarks: [
-        { pos: -halfX, h: hWall },
-        { pos: -W / 2, h: hEdge },
-        { pos: W / 2, h: hEdge },
-        { pos: halfX, h: hWall },
-      ],
+      xMarks,
       yMarks,
       hMax: margin / 3,
-      epsAt: (xc, yc) => (yc < H ? epsR : 1),
-      conductors: [{ x1: -W / 2, x2: W / 2, y1: H, y2: H + t, V: 1 }],
+      epsAt,
+      conductors,
       // Alt duvar referans düzlemin kendisidir; kutu topraklıdır (karar #7)
       box: { left: true, right: true, top: true, bottom: true },
       grow: growFor(d),
@@ -554,6 +644,8 @@ export function fieldMicrostrip({
   return solveTwoDensities(buildSpec, density, {
     structure: 'microstrip',
     thicknessIncluded: t > 0,
+    trapezoid: dTop > 0,
+    coverType: mask ? 'mask' : embedded ? 'embedded' : 'air',
   })
 }
 

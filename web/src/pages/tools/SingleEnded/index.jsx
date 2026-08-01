@@ -19,6 +19,7 @@ import { fmt, fmtEng, fmtRes, fmtPct } from '../../../lib/num'
 import ImpedanceSchematic from './schematic'
 import {
   INITIAL_FORM, STRUCTURES, STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, STRUCT_GCPW,
+  XSECTIONS, XSECTION_TRAP, COVERS, COVER_MASK, COVER_EMBEDDED,
   MODE_ANALYSIS, MODE_SYNTHESIS, compute, buildSweep,
 } from './model'
 import { getText } from './text'
@@ -162,6 +163,56 @@ export default function SingleEnded() {
             units={['']} unit="" onUnit={() => {}}
             hint={text.fields.epsR.hint}
           />
+
+          {/* F3 geometri ayrıntıları — yalnız microstrip, yalnız çözücü
+              rotasına biner; kapalı form dikdörtgen/açık-yüzey varsayımıyla
+              kalır ve etiketleri bunu söyler */}
+          {f.structure === STRUCT_MICROSTRIP && (
+            <>
+              <SelectField
+                label={text.fields.xsection.label}
+                value={f.xsection} onChange={set('xsection')}
+                options={XSECTIONS.map((x) => ({ value: x, label: text.xsectionLabel[x] }))}
+              />
+              {f.xsection === XSECTION_TRAP && (
+                <NumberField
+                  label={text.fields.dTop.label}
+                  value={f.dTop} onChange={set('dTop')}
+                  units={DIM_UNITS} unit={f.dTopu} onUnit={set('dTopu')}
+                  hint={text.fields.dTop.hint}
+                />
+              )}
+
+              <SelectField
+                label={text.fields.coverType.label}
+                value={f.coverType} onChange={set('coverType')}
+                options={COVERS.map((x) => ({ value: x, label: text.coverLabel[x] }))}
+              />
+              {f.coverType === COVER_MASK && (
+                <>
+                  <NumberField
+                    label={text.fields.maskT.label}
+                    value={f.maskT} onChange={set('maskT')}
+                    units={DIM_UNITS} unit={f.maskTu} onUnit={set('maskTu')}
+                  />
+                  <NumberField
+                    label={text.fields.maskEpsR.label}
+                    value={f.maskEpsR} onChange={set('maskEpsR')}
+                    units={['']} unit="" onUnit={() => {}}
+                    hint={text.fields.maskEpsR.hint}
+                  />
+                </>
+              )}
+              {f.coverType === COVER_EMBEDDED && (
+                <NumberField
+                  label={text.fields.coverH.label}
+                  value={f.coverH} onChange={set('coverH')}
+                  units={DIM_UNITS} unit={f.coverHu} onUnit={set('coverHu')}
+                  hint={text.fields.coverH.hint}
+                />
+              )}
+            </>
+          )}
 
           {f.structure !== STRUCT_CPW && f.structure !== STRUCT_GCPW && (
             <>
