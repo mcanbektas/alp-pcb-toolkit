@@ -71,6 +71,18 @@ Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG
 `docs/uyelik-ve-rapor-plani.md` §25. **Yeni bir uç yazarken kuralını da test et** — sahiplik,
 sınır ve tür doğrulaması için desen bu sınıflarda hazırdır.
 
+**Rapor DOSYASI saklanmaz, rapor BÖLÜMLERİ saklanır.** PDF/XLSX baytları hiçbir yere
+yazılmaz (gerekçe: tek kullanıcı günde ~290 MB üretebiliyor); ama geçmişten indirme de
+projenin güncel hâlini basmaz — üretim anındaki bölüm kayıtlarının ham kopyası
+`SectionBlobs` + `ReportSnapshotSections` tablolarında **içerik adresli** olarak donar
+(`Alp.Api/Reports/ReportSnapshot.cs`). Böylece belge yine dizgi anında üretilir, dil hâlâ
+indirme isteğinden seçilir ve dizgi düzeltmeleri geçmişe de uygular; donan şey içeriktir.
+Künyenin donan parçaları `Reports` tablosundadır (`Company`, `SchemaVersion`). Manifesti
+olmayan rapor (göç öncesi kayıtlar, kotayla geriletilenler) eski davranışa düşer ve bu
+ayrım `GET /api/reports` → `hasSnapshot` ile dışarı verilir. Kota
+(`App:SnapshotQuotaBytes`, varsayılan 100 MB) raporu REDDETMEZ, en eski snapshot'ları
+düşürür. Karar ve elenen seçenekler: `docs/rapor-snapshot-karari.md`.
+
 Saf sayılan ve bu yüzden test edilen üç yer: `src/lib/`, ekranların `report.js` dosyaları
 ve ekranların `text.js` sözlükleri. Sonuncusu `dfmTextPaths.test.js`'te kaynak dosyaları
 metin olarak okuyup metin yollarını yürüterek denetlenir — bileşen render edilmez.

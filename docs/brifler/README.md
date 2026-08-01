@@ -13,9 +13,9 @@ kendine yeterlidir: bağlam, kapsam, dokunulacak dosyalar, doğrulama.
 3. İş bitince commit + push zaten brifin doğrulama adımında; sonraki
    brife geç.
 
-**Taze oturum buradan başlar: `10-kalan-isler.md`.** 1-5 ve 7 bitti; o brifin
-A (Segmented adları), B (auth `h1`) ve C (e-posta dili) bölümleri de bitti.
-Kalan: D (sunucu günü — engelli), E (rapor snapshot) ve F (2B alan çözücü).
+**Taze oturum buradan başlar: `10-kalan-isler.md`.** 1-5, 7 ve 8 bitti; o brifin
+A (Segmented adları), B (auth `h1`), C (e-posta dili) ve E (rapor snapshot)
+bölümleri de bitti. Kalan: D (sunucu günü — engelli) ve F (2B alan çözücü).
 
 Genel kural (bu turda doğrulandı): **spec net + iş mekanikse Sonnet
 yeter; tasarım kararı ve denetim pahalı modelde kalır.** Oturum pahalı
@@ -32,7 +32,7 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 | 5 | 05-playwright-e2e.md | Sonnet 5 | medium | ✓ bitti (2026-07-31) — 16 e2e + 4 çevrimdışı |
 | 6 | 06-sunucu-gunu.md | Sonnet 5 | medium | Sunucu ALINDIĞINDA |
 | 7 | 07-en-urller.md | Opus 5 | high | ✓ bitti (2026-07-31) — karar: `docs/en-url-karari.md` |
-| 8 | 08-rapor-snapshot.md | Opus 5 | medium | Saklama kararını yeniden açar |
+| 8 | 08-rapor-snapshot.md | Opus 5 | medium | ✓ bitti (2026-08-01) — karar: `docs/rapor-snapshot-karari.md` |
 | 9 | 09-alan-cozucu.md | Fable/Opus 5 | high/max | Sayısal doğruluk — ucuzlatılamaz |
 | 10 | **10-kalan-isler.md** | bölüm başına | bölüm başına | **TAZE OTURUMUN GİRİŞ NOKTASI** — kalan her şey burada sıralı |
 
@@ -86,7 +86,7 @@ Brif 07'den sonra aynı gün yapılanlar (git log `b48dcd7`..):
 - Rapor künyesindeki firma alanı görünür ve tek seferlik düzenlenebilir
   (`docs/uyelik-ve-rapor-plani.md` §27)
 
-Güncel test sayısı: **121 sunucu + 1977 web + 18 tarayıcı + 5 çevrimdışı.**
+Güncel test sayısı: **133 sunucu + 1977 web + 18 tarayıcı + 5 çevrimdışı.**
 Bilinçli yapılmayanlar: Termination'ın sonuç paneli (hata dalı ekstra
 içerik çiziyor), RequireAuth yönlendirmesi (mevcut anonim mesajlar
 bilinçli tasarım), ohm.js induktans çifti (API simetrisi).

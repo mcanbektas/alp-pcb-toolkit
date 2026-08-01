@@ -181,9 +181,14 @@ gerçek alan adına çekilmelidir** — bugün placeholder ve sitemap ile 76 say
 
 ---
 
-# E. Brif 08 — Rapor anlık görüntüsü (tasarım brifi)
+# E. Brif 08 — Rapor anlık görüntüsü — ✓ BİTTİ (2026-08-01)
 
 **Model/effort:** Opus 5, medium. `docs/brifler/08-rapor-snapshot.md`.
+
+Karar `docs/rapor-snapshot-karari.md`'de: belge baytları değil, üretimdeki
+bölümlerin içerik-adresli kopyası donuyor. Künyedeki firma da donuyor (§27
+boşluğu kapandı). Sunucu tarafı bitti; **istemcide rapor geçmişi ekranı yok**,
+ayrım `GET /api/reports` → `hasSnapshot` ile yayımlandı.
 
 Mevcut "saklamama" kararının gerekçesi güçlü; onu deviren gerekçe de yazılı
 olmalı. Karar yazılmadan kod yazılmaz.
@@ -207,5 +212,5 @@ UCUZLATILAMAZ — yanlış sayısal sonuç sessizce yanlış mühendislik karar�
 ## Sıra önerisi
 
 `A` → `B` → `C` sunucusuz yapıldı ve tek oturumda bitti (2026-07-31); üçü de
-kendi bekçi testiyle kapandı. **Kalan: `D` sunucuya, `E` ve `F` ayrı ve büyük
-kararlara bağlı.**
+kendi bekçi testiyle kapandı. `E` ertesi gün bitti (2026-08-01).
+**Kalan: `D` sunucuya bağlı, `F` ayrı ve en büyük iş.**

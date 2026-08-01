@@ -1589,3 +1589,52 @@ düzenlenebilir alan**. Beğenen dokunmaz, beğenmeyen üstüne yazar.
   `[Firma (opsiyonel): ALP PCB Ltd.]` ile dolu geliyor; tek seferlik ad girilip
   indirilen Excel'in `sharedStrings.xml`inde o ad **var**, alan boşaltılarak
   indirilende **yok**; profil her iki durumda da değişmedi.
+
+## 28. Rapor anlık görüntüsü — geçmişten indirme artık O GÜNKÜ içeriği basıyor
+
+**Tarih:** 2026-08-01 · **Karar:** `docs/rapor-snapshot-karari.md` · **Brif:** 08 / 10-E
+
+Geçmişten indirme kayıttan yeniden üretiyordu ve projenin GÜNCEL hâlini
+basıyordu: 12 Mart'ta basılan rapor, hesap 20 Mart'ta değiştiğinde 25 Mart'ta
+indirildiğinde yeni sayıyı gösteriyor ama üstünde 12 Mart tarihini taşıyordu.
+Aynı tarihi taşıyan iki farklı nüsha, mühendislik kütüğünde hata mesajı
+vermeyen bir çelişkidir.
+
+- **Saklanan şey belge değil, BÖLÜMLERDİR.** PDF/XLSX baytları hâlâ hiçbir yere
+  yazılmaz (290 MB/gün gerekçesi duruyor); dondurulan, üretimde kullanılan
+  `ReportJson` dizelerinin ham kopyasıdır. Böylece indirme anında dil hâlâ
+  seçilebilir ve dizgi düzeltmeleri (ör. boyutsuz SVG kapısı) geçmiş raporlara
+  da uygulanır.
+- **İçerik adresli depo.** `SectionBlobs` anahtarı `(UserId, Hash)`;
+  `ReportSnapshotSections` rapor başına manifesttir. On hesaplı bir projede tek
+  hesap değişip yeni rapor basıldığında dokuz bölüm için tek bayt yazılmaz;
+  PDF ve XLSX'i art arda indirmek de içeriği ikinci kez yazmaz.
+- **Künye de donar.** `Reports` tablosuna `Company` ve `SchemaVersion` eklendi;
+  §27'deki "geçmişten indirme bugünkü profili yazıyor" sınırı kapandı.
+  Snapshot'lı raporda `Company = null` "o gün firma yazılmadı" demektir ve
+  profile DÜŞÜLMEZ; snapshot'sız (eski) raporda eski davranış sürer.
+- **Kota reddetmez, geriletir.** `App:SnapshotQuotaBytes` (varsayılan 100 MB)
+  aşıldığında en eski snapshot'lar düşürülür ve o raporlar "güncelden üret"
+  davranışına geriler; kütük satırı hiç silinmez. En yeni rapor asla
+  düşürülmez. Kota üretim isteğinin içinde uygulanır;
+  `ReportSnapshotCleanupService` sahipsiz blob toplama ve güvenlik ağıdır.
+- **Silinen proje artık engel değil.** Snapshot taşıyan rapor projesi silinmiş
+  olsa da indirilebilir (`REPORT_NOT_REPRODUCIBLE(no-project)` yalnız
+  snapshot'sız kayıtlarda kalır). Tek araçlık raporlar da artık geri gelir —
+  saklama kararının "kabul edilen sınırı" kalktı.
+- **`GET /api/reports` artık `hasSnapshot` taşıyor**: aynı listede iki farklı
+  indirme davranışı var ve hangisinin geçerli olduğu belgeden anlaşılmıyor.
+  **İstemcide rapor geçmişi ekranı henüz yok** (bu uç hiçbir ekrandan
+  çağrılmıyor); etiket o ekran yazıldığında bu alandan okunacak.
+
+### Doğrulama
+
+- `Alp.Api.Tests/ReportSnapshotTests.cs` (12 test): donmuş içerik, yeni raporun
+  yeni sayıyı vermesi, öbür dilde indirme, dedup, kullanıcı sınırında dedup,
+  silinmiş proje, snapshot'sız eski davranış, firma donması, kota geriletmesi,
+  sahipsiz blob toplama ve kullanılan blob'un korunması. 133 sunucu testi yeşil.
+- Yerelde uçtan uca (5290, gerçek Postgres): rapor basıldı, hesap `0.8 → 1.2 →
+  9.99` değiştirildi, geçmişten indirilen XLSX'in hücresinde hâlâ `1.2` var;
+  PDF'te değişen tek şey `/CreationDate` (6 bayt), içerik aynı. `hasSnapshot`
+  yeni raporda `true`, eski kayıtlarda `false` ve o kayıtlar bugünkü 409
+  sözleşmesini sürdürüyor.
