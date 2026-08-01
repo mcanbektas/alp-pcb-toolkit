@@ -18,7 +18,7 @@ import { fmt, fmtEng, fmtRes, fmtPct } from '../../../lib/num'
 import DiffPairSchematic from './schematic'
 import {
   INITIAL_FORM, STRUCTURES, STRUCT_MICROSTRIP,
-  MODE_ANALYSIS, MODE_SYNTHESIS, compute,
+  MODE_ANALYSIS, MODE_SYNTHESIS, FIXED_OPTIONS, FIX_WIDTH, FIX_SPACING, compute,
 } from './model'
 import { getText } from './text'
 import { buildReportSection } from './report'
@@ -70,6 +70,11 @@ export default function DiffPair() {
     ? (100 * (fs.Zdiff - r.target)) / r.target
     : null
 
+  // W sabit sentezde S çözücüden gelir; gösterim (şematik dahil) o değeri
+  // kullanır. Çözüm sürerken S bilinmez ve basılmaz.
+  const sFinal = r.ok ? (r.S ?? (fs ? fs.S : null)) : null
+  const rDisplay = r.ok && r.S == null && sFinal != null ? { ...r, S: sFinal } : r
+
   return (
     <>
       <LangLink className="backlink" to="/kategori/empedans">{text.backlink}</LangLink>
@@ -81,7 +86,7 @@ export default function DiffPair() {
         <section className="panel">
           <h2>{ui.inputs}</h2>
 
-          <DiffPairSchematic ref={schematicRef} r={r} form={f} text={text.schematic} />
+          <DiffPairSchematic ref={schematicRef} r={rDisplay} form={f} text={text.schematic} />
 
           <Segmented
             label={text.modeGroup}
@@ -101,6 +106,11 @@ export default function DiffPair() {
 
           {mode === MODE_SYNTHESIS && (
             <>
+              <SelectField
+                label={text.fields.fixed.label}
+                value={f.fixed} onChange={set('fixed')}
+                options={FIXED_OPTIONS.map((x) => ({ value: x, label: text.fixedLabel[x] }))}
+              />
               <NumberField
                 label={text.fields.target.label}
                 value={f.target} onChange={set('target')}
@@ -115,20 +125,22 @@ export default function DiffPair() {
             </>
           )}
 
-          {mode === MODE_ANALYSIS && (
+          {(mode === MODE_ANALYSIS || f.fixed === FIX_WIDTH) && (
             <NumberField
-              label={text.fields.W.label}
+              label={mode === MODE_SYNTHESIS ? text.fields.WFixed.label : text.fields.W.label}
               value={f.W} onChange={set('W')}
               units={DIM_UNITS} unit={f.Wu} onUnit={set('Wu')}
             />
           )}
 
-          <NumberField
-            label={text.fields.S.label}
-            value={f.S} onChange={set('S')}
-            units={DIM_UNITS} unit={f.Su} onUnit={set('Su')}
-            hint={mode === MODE_SYNTHESIS ? text.fields.SFixedHint : text.fields.S.hint}
-          />
+          {(mode === MODE_ANALYSIS || f.fixed === FIX_SPACING) && (
+            <NumberField
+              label={mode === MODE_SYNTHESIS ? text.fields.SFixed.label : text.fields.S.label}
+              value={f.S} onChange={set('S')}
+              units={DIM_UNITS} unit={f.Su} onUnit={set('Su')}
+              hint={mode === MODE_SYNTHESIS ? text.fields.SFixedHint : text.fields.S.hint}
+            />
+          )}
 
           <NumberField
             label={f.structure === STRUCT_MICROSTRIP
@@ -159,11 +171,15 @@ export default function DiffPair() {
             <>
               <div className="big-result">
                 <div className="label">
-                  {r.mode === MODE_SYNTHESIS ? text.bigResultWidth : text.bigResultZdiff}
+                  {r.mode === MODE_SYNTHESIS
+                    ? r.solvedFor === 'S' ? text.bigResultSpacing : text.bigResultWidth
+                    : text.bigResultZdiff}
                 </div>
                 <div className="value">
                   {r.mode === MODE_SYNTHESIS
-                    ? fmtEng(r.W, 'm', 4)
+                    ? r.solvedFor === 'S'
+                      ? (fs ? fmtEng(fs.S, 'm', 4) : text.bigResultPending)
+                      : fmtEng(r.W, 'm', 4)
                     : fs ? fmtRes(fs.Zdiff, 4) : text.bigResultPending}
                 </div>
                 <div className="alt">
@@ -234,13 +250,18 @@ export default function DiffPair() {
                     <td>{text.table.twiceZ0}</td>
                     <td>{fmtRes(2 * r.Z0, 5)}</td>
                   </tr>
-                  <tr>
-                    <td>{text.table.ratio}</td>
-                    <td>{fmt(r.ratio, 4)}</td>
-                  </tr>
+                  {sFinal != null && (
+                    <tr>
+                      <td>{text.table.ratio}</td>
+                      <td>{fmt(sFinal / r.H, 4)}</td>
+                    </tr>
+                  )}
                   <tr>
                     <td>{text.table.geometry}</td>
-                    <td>{fmtEng(r.W, 'm', 4)} · {fmtEng(r.S, 'm', 4)}</td>
+                    <td>
+                      {fmtEng(r.W, 'm', 4)} ·{' '}
+                      {sFinal != null ? fmtEng(sFinal, 'm', 4) : text.bigResultPending}
+                    </td>
                   </tr>
                   {fs && (
                     <tr>
@@ -276,11 +297,14 @@ export default function DiffPair() {
                   )}
                 </li>
               )}
-              {r.mode === MODE_SYNTHESIS && (
+              {r.mode === MODE_SYNTHESIS && r.solvedFor === 'W' && (
                 <li>{text.detail.solved(r.solvedBy)}</li>
               )}
-              {r.mode === MODE_SYNTHESIS && (
-                <li>{text.detail.spacingSynthesis}</li>
+              {r.mode === MODE_SYNTHESIS && r.solvedFor === 'S' && fs && (
+                <li>{text.detail.solvedSpacing(fs.solvedBy, fs.search.evals)}</li>
+              )}
+              {r.mode === MODE_SYNTHESIS && r.solvedFor === 'S' && !fs && (
+                <li>{text.detail.spacingPending}</li>
               )}
               <li>{text.detail.infiniteSolutions}</li>
               <li>{text.detail.noRounding}</li>

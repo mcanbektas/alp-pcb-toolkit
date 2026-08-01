@@ -117,7 +117,10 @@ function Gcpw({ r, text }) {
 
       {r.ok && (
         <>
-          <text className="sch-value" x={cx} y={34} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
+          {/* gcpw sentezinde W çözücüden gelir; çözüm sürerken basılmaz */}
+          {r.W != null && (
+            <text className="sch-value" x={cx} y={34} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
+          )}
           <text className="sch-value" x={cx} y={104} textAnchor="middle">S = {fmtEng(r.S, 'm', 3)}</text>
         </>
       )}

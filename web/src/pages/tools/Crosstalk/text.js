@@ -1,12 +1,13 @@
 // Crosstalk kestirimi ekranının kullanıcıya görünen metinleri — iki dilli (tr/en).
 // Hata kodları ve bulgu seviyeleri burada dile çevrilir; model.js metin bilmez.
 
-import { fmt, fmtEng } from '../../../lib/num'
+import { fmt, fmtEng, fmtRes, fmtPct } from '../../../lib/num'
 import { pick } from '../../../lib/i18n'
 import { commonText } from '../../../data/uiText'
 import { EPS_GEOMETRY, EPS_STRUCT_STRIPLINE } from '../../../lib/epsEff'
 import {
   REASON_EPS, REASON_GEOMETRY, REASON_COUPLING, REASON_CROSSTALK,
+  FEXT_STRUCT_MICROSTRIP, FEXT_STRUCT_STRIPLINE,
 } from './model'
 
 // NEXT ve FEXT yüzdesi eşikleri MÜHENDİSLİK YORUMUDUR — docs/spec.md bu sayıları
@@ -117,16 +118,35 @@ export function getText(lang) {
       epsOdd: {
         label: t({ tr: 'Odd mod εeff', en: 'Odd-mode εeff' }),
         hint: t({
-          tr: 'Alan çözücüden ya da üretici yığın raporundan',
-          en: 'From a field solver or the fabricator stack-up report',
+          tr: 'Alan çözücüden ya da üretici yığın raporundan; diferansiyel çift ekranı da iki modal değeri veriyor',
+          en: 'From a field solver or the fabricator stack-up report; the differential pair screen also reports the two modal values',
         }),
       },
       epsEven: { label: t({ tr: 'Even mod εeff', en: 'Even-mode εeff' }) },
+      fextStructure: { label: t({ tr: 'Çiftin yapısı', en: 'Pair structure' }) },
+      fextH: {
+        label: t({ tr: 'Referans düzlem mesafesi (H)', en: 'Reference plane distance (H)' }),
+      },
+      fextT: { label: t({ tr: 'Bakır kalınlığı (t)', en: 'Copper thickness (t)' }) },
+      fextEpsR: { label: t({ tr: 'Dielektrik sabiti (εr)', en: 'Dielectric constant (εr)' }) },
     },
     fextHeading: t({ tr: 'Far-end crosstalk', en: 'Far-end crosstalk' }),
     fextModeGroup: t({ tr: 'FEXT hesabı', en: 'FEXT computation' }),
     fextOff: t({ tr: 'FEXT hesaplama', en: 'Do not compute FEXT' }),
     fextOn: t({ tr: 'FEXT hesapla — modal εeff gir', en: 'Compute FEXT — enter modal εeff' }),
+    fextSolver: t({ tr: 'FEXT hesapla — çözücüden', en: 'Compute FEXT — from the solver' }),
+    fextStructLabel: {
+      [FEXT_STRUCT_MICROSTRIP]: 'Edge-coupled microstrip',
+      [FEXT_STRUCT_STRIPLINE]: 'Edge-coupled stripline',
+    },
+    fextSolverHint: t({
+      tr: 'W ve S yukarıdaki kuplaj alanlarından alınır; 2B alan çözücü çiftin modal εeff değerlerini bu yığından hesaplar',
+      en: 'W and S are taken from the coupling fields above; the 2D field solver computes the pair’s modal εeff values from this stack-up',
+    }),
+    fextPendingShort: t({
+      tr: 'FEXT: alan çözücü hesaplıyor…',
+      en: 'FEXT: the field solver is computing…',
+    }),
 
     // Hata mesajında alan adı olarak görünen etiketler; model.js'e verilir.
     fieldLabels: {
@@ -147,6 +167,9 @@ export function getText(lang) {
       epsW: t({ tr: 'Hat genişliği (W)', en: 'Trace width (W)' }),
       epsH: t({ tr: 'Dielektrik yüksekliği (H)', en: 'Dielectric height (H)' }),
       epsT: t({ tr: 'Bakır kalınlığı (t)', en: 'Copper thickness (t)' }),
+      fextH: t({ tr: 'Referans düzlem mesafesi (H)', en: 'Reference plane distance (H)' }),
+      fextT: t({ tr: 'Bakır kalınlığı (t)', en: 'Copper thickness (t)' }),
+      fextEpsR: t({ tr: 'Dielektrik sabiti (εr)', en: 'Dielectric constant (εr)' }),
     },
 
     thresholdNote,
@@ -155,16 +178,18 @@ export function getText(lang) {
       tr: 'Kestirim modu — bu sonuç çok iletkenli iletim hattı çözümünden GELMEZ. O çözüm kapasitans '
         + 'matrisini 2B alan çözücüden alır, endüktans matrisini L = μ₀ε₀·C₀⁻¹ ile, iletkenlik '
         + 'matrisini G ≈ ω·tanδ·C ile kurar; aggressor sinyalini FFT ile frekans alanına taşır, her '
-        + 'frekansta e^(−Mℓ) çözer ve IFFT ile NEXT/FEXT dalga biçimini üretir. Alan çözücü olmadığı '
-        + 'için bu adımların hiçbiri yapılmıyor. Buradaki sayı bir dalga biçimi değil, kaba bir tepe '
-        + 'değer kestirimidir.',
+        + 'frekansta e^(−Mℓ) çözer ve IFFT ile NEXT/FEXT dalga biçimini üretir. Alan çözücü artık '
+        + 'kapasitans matrisini ve modal εeff değerlerini veriyor; FFT\'li dalga biçimi rotası ise '
+        + 'bu ekranın kapsamı dışında kaldı, uygulanmadı. Buradaki sayı bir dalga biçimi değil, '
+        + 'kaba bir tepe değer kestirimidir.',
       en: 'Estimation mode — this result does NOT come from a multiconductor transmission-line '
         + 'solution. That solution takes the capacitance matrix from a 2-D field solver, builds the '
         + 'inductance matrix with L = μ₀ε₀·C₀⁻¹ and the conductance matrix with G ≈ ω·tanδ·C; it '
         + 'moves the aggressor signal into the frequency domain with an FFT, solves e^(−Mℓ) at each '
-        + 'frequency and produces the NEXT/FEXT waveform with an IFFT. Without a field solver none '
-        + 'of these steps is performed. The number here is not a waveform but a rough peak-value '
-        + 'estimate.',
+        + 'frequency and produces the NEXT/FEXT waveform with an IFFT. The field solver now provides '
+        + 'the capacitance matrix and the modal εeff values; the FFT waveform route, however, '
+        + 'remains outside this screen’s scope and was not implemented. The number here is not a '
+        + 'waveform but a rough peak-value estimate.',
     }),
 
     sourceNote: t({
@@ -191,14 +216,15 @@ export function getText(lang) {
     }),
 
     modalEpsHint: t({
-      tr: 'Bu iki değer diferansiyel çift ekranından ALINAMAZ: o ekran tek bir εeff kullanır, iki modu '
-        + 'aynı hızda kabul eder ve bu varsayım altında FEXT özdeş olarak sıfır çıkar — microstrip\'te '
-        + 'bu YANLIŞTIR. Değerler 2B alan çözücüden ya da üretici yığın raporundan gelmelidir. '
-        + 'Her iki değer de 1\'den küçük olamaz.',
-      en: 'These two values CANNOT be taken from the differential pair screen: that screen uses a '
-        + 'single εeff, assumes both modes travel at the same speed, and under that assumption FEXT '
-        + 'comes out identically zero — on microstrip this is WRONG. The values must come from a '
-        + '2-D field solver or the fabricator stack-up report. Neither value can be less than 1.',
+      tr: 'FEXT modal hız farkına bağlıdır ve Z_odd/Z_even değerlerinden türetilemez. Modal εeff '
+        + 'değerleri 2B alan çözücüden gelir: "çözücüden" seçeneği çift geometrisini burada çözer; '
+        + '"elle gir" seçeneğine değerler diferansiyel çift ekranının odd/even εeff satırlarından '
+        + 'ya da üretici yığın raporundan taşınır. Her iki değer de 1\'den küçük olamaz.',
+      en: 'FEXT depends on the modal velocity difference and cannot be derived from the '
+        + 'Z_odd/Z_even values. The modal εeff values come from a 2-D field solver: the “from the '
+        + 'solver” option solves the pair geometry right here; for the “enter manually” option the '
+        + 'values are carried from the odd/even εeff rows of the differential pair screen or from '
+        + 'the fabricator stack-up report. Neither value can be less than 1.',
     }),
 
     bigLabel: t({ tr: 'Near-end crosstalk tepe gerilimi', en: 'Near-end crosstalk peak voltage' }),
@@ -244,6 +270,17 @@ export function getText(lang) {
       homogeneousYes: t({ tr: 'evet — FEXT sıfır', en: 'yes — FEXT is zero' }),
       reason: t({ tr: 'Neden', en: 'Reason' }),
       reasonNoModal: t({ tr: 'modal εeff girilmedi', en: 'modal εeff not entered' }),
+      reasonPending: t({ tr: 'alan çözücü hesaplıyor…', en: 'the field solver is computing…' }),
+      reasonSolverError: t({
+        tr: 'alan çözücü bu geometride sonuç veremedi',
+        en: 'the field solver could not produce a result for this geometry',
+      }),
+      modalSource: t({ tr: 'Modal εeff kaynağı', en: 'Modal εeff source' }),
+      fextEz: t({ tr: 'Çözücü yakınsama farkı E_Z', en: 'Solver convergence difference E_Z' }),
+      solverZ: t({
+        tr: 'Çözücünün aynı çift için Z_odd · Z_even değeri',
+        en: 'The solver’s Z_odd · Z_even for the same pair',
+      }),
       methodHead: t({ tr: 'Yöntem', en: 'Method' }),
       multiconductor: t({
         tr: 'Çok iletkenli model uygulandı mı',
@@ -351,13 +388,31 @@ export function getText(lang) {
 
       // --- FEXT ---
       if (!r.fext.available) {
-        out.push({
-          level: 'warn',
-          text: t({
-            tr: 'Far-end crosstalk HESAPLANMADI: odd ve even mod εeff değerleri girilmedi. FEXT modal hız farkına bağlıdır ve bu fark Z_odd/Z_even değerlerinden türetilemez. Diferansiyel çift ekranı tek bir εeff kullanır, iki modu aynı hızda kabul eder; o varsayım altında FEXT özdeş olarak sıfır çıkar ve microstrip\'te bu yanlıştır. Doğru değerler 2B alan çözücüden ya da üretici yığın raporundan gelir. Uydurulmuş bir sayı göstermek yerine boş bırakıldı.',
-            en: 'Far-end crosstalk was NOT computed: the odd- and even-mode εeff values were not entered. FEXT depends on the modal velocity difference, and that difference cannot be derived from the Z_odd/Z_even values. The differential pair screen uses a single εeff and treats both modes as travelling at the same speed; under that assumption FEXT comes out identically zero, and on microstrip that is wrong. The correct values come from a 2-D field solver or the fabricator stack-up report. Rather than show a fabricated number, this was left blank.',
-          }),
-        })
+        if (r.fextPending) {
+          out.push({
+            level: 'warn',
+            text: t({
+              tr: 'Far-end crosstalk henüz hesaplanmadı: alan çözücü çiftin modal εeff değerlerini çözüyor. Sonuç çözüm bitince gelir; sayı uydurulmaz.',
+              en: 'Far-end crosstalk has not been computed yet: the field solver is solving the pair’s modal εeff values. The result appears when it finishes; no number is invented.',
+            }),
+          })
+        } else if (r.fextSolverError) {
+          out.push({
+            level: 'warn',
+            text: t({
+              tr: 'Far-end crosstalk hesaplanamadı: alan çözücü bu çift geometrisinde sonuç veremedi. Geometri değerlerini kontrol edin; uydurulmuş bir sayı göstermek yerine boş bırakıldı.',
+              en: 'Far-end crosstalk could not be computed: the field solver could not produce a result for this pair geometry. Check the geometry values; rather than show a fabricated number, this was left blank.',
+            }),
+          })
+        } else {
+          out.push({
+            level: 'warn',
+            text: t({
+              tr: 'Far-end crosstalk HESAPLANMADI: odd ve even mod εeff değerleri girilmedi. FEXT modal hız farkına bağlıdır ve bu fark Z_odd/Z_even değerlerinden türetilemez. Değerler "çözücüden" seçeneğiyle burada hesaplatılabilir, diferansiyel çift ekranının modal εeff satırlarından ya da üretici yığın raporundan taşınabilir. Uydurulmuş bir sayı göstermek yerine boş bırakıldı.',
+              en: 'Far-end crosstalk was NOT computed: the odd- and even-mode εeff values were not entered. FEXT depends on the modal velocity difference, and that difference cannot be derived from the Z_odd/Z_even values. The values can be computed right here with the “from the solver” option, or carried from the modal εeff rows of the differential pair screen or the fabricator stack-up report. Rather than show a fabricated number, this was left blank.',
+            }),
+          })
+        }
       } else if (r.fext.homogeneous) {
         out.push({
           level: 'ok',
@@ -385,6 +440,37 @@ export function getText(lang) {
         }
       }
 
+      // Modal değerler çözücüden geldiyse: kaynak notu, E_Z ve girilen
+      // Z_odd/Z_even ile tutarlılık karşılaştırması (F3.1)
+      if (r.solverPair) {
+        const ez = r.solverPair.convergence.coarsePct
+        out.push({
+          level: ez >= 1 ? 'warn' : 'ok',
+          text: t({
+            tr: `Modal εeff değerleri 2B alan çözücüden geldi (${r.solverPair.model}); yakınsama farkı E_Z = ${pct(fmt(ez, 2))}.${ez >= 1 ? ' Mesh bu geometri için yetersiz — FEXT sonucu bu hâliyle karar dayanağı yapılmamalıdır.' : ''}`,
+            en: `The modal εeff values came from the 2-D field solver (${r.solverPair.model}); convergence difference E_Z = ${pct(fmt(ez, 2))}.${ez >= 1 ? ' The mesh is insufficient for this geometry — do not base a decision on this FEXT result as it stands.' : ''}`,
+          }),
+        })
+
+        // Aynı çift için çözücünün bulduğu Z'ler girilenlerden belirgin
+        // sapıyorsa girilen K_b de o kadar şüphelidir — kullanıcıya söylenir.
+        const devOdd = (100 * (r.Zodd - r.solverPair.Zodd)) / r.solverPair.Zodd
+        const devEven = (100 * (r.Zeven - r.solverPair.Zeven)) / r.solverPair.Zeven
+        const maxDev = Math.max(Math.abs(devOdd), Math.abs(devEven))
+        out.push({
+          level: maxDev > 10 ? 'warn' : 'ok',
+          text: maxDev > 10
+            ? t({
+              tr: `Girilen Z_odd/Z_even (${fmtRes(r.Zodd, 4)} / ${fmtRes(r.Zeven, 4)}), çözücünün aynı çift için bulduğu değerlerden (${fmtRes(r.solverPair.Zodd, 4)} / ${fmtRes(r.solverPair.Zeven, 4)}) ${pct(fmtPct(maxDev))} kadar sapıyor. NEXT katsayısı K_b girilen değerlerden hesaplanır — girilenler bu geometriye aitse gözden geçirin.`,
+              en: `The entered Z_odd/Z_even (${fmtRes(r.Zodd, 4)} / ${fmtRes(r.Zeven, 4)}) deviate by ${pct(fmtPct(maxDev))} from the values the solver found for the same pair (${fmtRes(r.solverPair.Zodd, 4)} / ${fmtRes(r.solverPair.Zeven, 4)}). The NEXT coefficient K_b is computed from the entered values — if they are meant to describe this geometry, review them.`,
+            })
+            : t({
+              tr: `Girilen Z_odd/Z_even, çözücünün aynı çift için bulduğu değerlerle uyumlu (en büyük sapma ${pct(fmtPct(maxDev))}).`,
+              en: `The entered Z_odd/Z_even agree with the values the solver found for the same pair (largest deviation ${pct(fmtPct(maxDev))}).`,
+            }),
+        })
+      }
+
       // --- Yöntem ve kaynak ---
       out.push({
         level: 'warn',
@@ -405,8 +491,8 @@ export function getText(lang) {
       out.push({
         level: 'warn',
         text: t({
-          tr: `Z_even = ${fmt(r.Zeven, 4)} Ω ve Z_odd = ${fmt(r.Zodd, 4)} Ω elle girildi. Bu değerler diferansiyel çift ekranından geliyorsa onlar da ampirik bir kuplaj katsayısından türemiştir; belirsizlik buradaki NEXT sonucuna doğrudan geçer.`,
-          en: `Z_even = ${fmt(r.Zeven, 4)} Ω and Z_odd = ${fmt(r.Zodd, 4)} Ω were entered manually. If these values come from the differential pair screen, they too derive from an empirical coupling coefficient; that uncertainty passes directly into the NEXT result here.`,
+          tr: `Z_even = ${fmt(r.Zeven, 4)} Ω ve Z_odd = ${fmt(r.Zodd, 4)} Ω elle girildi; doğrulukları girene aittir. En sağlam kaynak diferansiyel çift ekranının alan çözücü sonucu ya da üretici ölçümüdür — girilen değerlerin belirsizliği K_b üzerinden NEXT sonucuna doğrudan geçer.`,
+          en: `Z_even = ${fmt(r.Zeven, 4)} Ω and Z_odd = ${fmt(r.Zodd, 4)} Ω were entered manually; their accuracy is the responsibility of whoever entered them. The soundest source is the differential pair screen’s field-solver result or a fabricator measurement — the uncertainty of the entered values passes directly into the NEXT result through K_b.`,
         }),
       })
 
@@ -531,8 +617,8 @@ Multiconductor line solution
           en: 'Known deviation — the multiconductor line solution was not applied.',
         }),
         text: t({
-          tr: 'O çözüm kapasitans matrisini 2B alan çözücüden alır, endüktans matrisini L = μ₀ε₀·C₀⁻¹, iletkenlik matrisini G ≈ ω·tanδ·C ile kurar; aggressor sinyalini FFT ile frekans alanına taşır, her frekansta e^(−Mℓ) çözer, IFFT ile zaman alanına döner. Alan çözücü olmadığı için bu adımların hiçbiri yapılmadı. Bu ekran dalga biçimi üretmez.',
-          en: 'That solution takes the capacitance matrix from a 2-D field solver, builds the inductance matrix with L = μ₀ε₀·C₀⁻¹ and the conductance matrix with G ≈ ω·tanδ·C; it moves the aggressor signal into the frequency domain with an FFT, solves e^(−Mℓ) at each frequency and returns to the time domain with an IFFT. Without a field solver none of these steps was performed. This screen does not produce a waveform.',
+          tr: 'O çözüm kapasitans matrisini 2B alan çözücüden alır, endüktans matrisini L = μ₀ε₀·C₀⁻¹, iletkenlik matrisini G ≈ ω·tanδ·C ile kurar; aggressor sinyalini FFT ile frekans alanına taşır, her frekansta e^(−Mℓ) çözer, IFFT ile zaman alanına döner. Alan çözücü kapasitans matrisini artık veriyor; FFT\'li dalga biçimi rotası ise bu ekranın kapsamı dışında kaldı ve uygulanmadı — istenirse ayrı bir iştir. Bu ekran dalga biçimi üretmez.',
+          en: 'That solution takes the capacitance matrix from a 2-D field solver, builds the inductance matrix with L = μ₀ε₀·C₀⁻¹ and the conductance matrix with G ≈ ω·tanδ·C; it moves the aggressor signal into the frequency domain with an FFT, solves e^(−Mℓ) at each frequency and returns to the time domain with an IFFT. The field solver now provides the capacitance matrix; the FFT waveform route, however, remained outside this screen’s scope and was not implemented — it is separate work if wanted. This screen does not produce a waveform.',
         }),
       },
       {
@@ -573,14 +659,14 @@ Multiconductor line solution
       },
       {
         text: t({
-          tr: 'Z_even ve Z_odd kullanıcıdan gelir. Diferansiyel çift ekranından alındıysa o değerler de ampirik bir kuplaj katsayısından türemiştir; belirsizlik buraya doğrudan geçer.',
-          en: 'Z_even and Z_odd come from the user. If taken from the differential pair screen, those values too derive from an empirical coupling coefficient; that uncertainty passes directly into this screen.',
+          tr: 'Z_even ve Z_odd kullanıcıdan gelir; en sağlam kaynak diferansiyel çift ekranının alan çözücü sonucu ya da üretici ölçümüdür. FEXT çözücüden hesaplatıldığında ekran, girilen Z\'leri çözücünün aynı çift için bulduklarıyla karşılaştırır ve belirgin sapmayı uyarı olarak gösterir.',
+          en: 'Z_even and Z_odd come from the user; the soundest source is the differential pair screen’s field-solver result or a fabricator measurement. When FEXT is computed from the solver, the screen compares the entered Zs with what the solver found for the same pair and shows a significant deviation as a warning.',
         }),
       },
       {
         text: t({
-          tr: 'Far-end crosstalk modal hız farkına bağlıdır ve Z_odd/Z_even değerlerinden türetilemez. Tek bir εeff kullanan bir model iki modu aynı hızda kabul eder ve FEXT katsayısı K_f = −½·t\'_pd·(C_m/C − L_m/L) özdeş olarak sıfır çıkar; microstrip\'te bu yanlıştır. Bu yüzden modal εeff girilmezse sayı üretilmez.',
-          en: 'Far-end crosstalk depends on the modal velocity difference and cannot be derived from the Z_odd/Z_even values. A model that uses a single εeff treats both modes as travelling at the same speed, and the FEXT coefficient K_f = −½·t\'_pd·(C_m/C − L_m/L) comes out identically zero; on microstrip this is wrong. That is why no number is produced when the modal εeff values are not entered.',
+          tr: 'Far-end crosstalk modal hız farkına bağlıdır ve Z_odd/Z_even değerlerinden türetilemez. Tek bir εeff kullanan bir model iki modu aynı hızda kabul eder ve FEXT katsayısı K_f = −½·t\'_pd·(C_m/C − L_m/L) özdeş olarak sıfır çıkar; microstrip\'te bu yanlıştır. Bu yüzden modal εeff\'ler girilmeden ya da çözücüden hesaplatılmadan sayı üretilmez.',
+          en: 'Far-end crosstalk depends on the modal velocity difference and cannot be derived from the Z_odd/Z_even values. A model that uses a single εeff treats both modes as travelling at the same speed, and the FEXT coefficient K_f = −½·t\'_pd·(C_m/C − L_m/L) comes out identically zero; on microstrip this is wrong. That is why no number is produced until the modal εeff values are entered or computed from the solver.',
         }),
       },
       {

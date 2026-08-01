@@ -67,3 +67,44 @@ test('diferansiyel çift ekranında Z_diff worker üzerinden gelir', async ({ pa
   await expect(zoddCell).toHaveText(/\d+(\.\d+)?\s+Ω$/)
   await expect(resultPanel(page).getByText('Yakınsama farkı E_Z', { exact: true })).toBeVisible()
 })
+
+// F3: W sabit sentezde kök arama çözücünün içinde koşar; S worker'dan düşer
+test('diferansiyel çift sentezi aralığı çözücü içinde arar', async ({ page }) => {
+  await page.goto('/arac/diferansiyel-cift')
+  await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
+
+  await page.getByRole('radio', { name: /Sentez/ }).click()
+  await page.getByLabel('Neyi sabitliyorsunuz').selectOption({ index: 1 }) // genişliği sabitle
+
+  // Kök arama ~saniyeler sürer; sonuç uzunluk birimi taşır (µm/mm)
+  await expect(resultPanel(page).locator('.big-result .value')).toHaveText(/\d+(\.\d+)?\s+(µm|mm)$/, {
+    timeout: 30000,
+  })
+  await expect(resultPanel(page).getByText('Yakınsama farkı E_Z', { exact: true })).toBeVisible()
+})
+
+// F3: Crosstalk FEXT modal εeff'leri çözücüden alabilir
+test('crosstalk ekranında FEXT çözücüden hesaplanır', async ({ page }) => {
+  await page.goto('/arac/crosstalk')
+  await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
+
+  await page.getByRole('radio', { name: /çözücüden/ }).click()
+  // Modal εeff satırı çözüm bitince düşer
+  await expect(resultPanel(page).getByText('Odd · even mod εeff', { exact: true })).toBeVisible({
+    timeout: 20000,
+  })
+  await expect(resultPanel(page).getByText('Çözücü yakınsama farkı E_Z', { exact: true })).toBeVisible()
+})
+
+// F3: Skew εeff kaynağı olarak çift çözücüsünü kullanabilir (odd mod)
+test('skew ekranında εeff çözücüden gelir', async ({ page }) => {
+  await page.goto('/arac/skew')
+  await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
+
+  await page.getByRole('radio', { name: /Alan çözücüden/ }).click()
+  // Önce bekleme durumu, sonra sonuç: skew değeri zaman birimi taşır
+  await expect(resultPanel(page).locator('.big-result .value')).toHaveText(/\d+(\.\d+)?\s+\ws$/, {
+    timeout: 20000,
+  })
+  await expect(resultPanel(page).getByText('Modal εeff — odd · even', { exact: true })).toBeVisible()
+})

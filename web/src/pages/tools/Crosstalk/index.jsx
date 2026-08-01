@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
+import SelectField from '../../../components/SelectField'
 import Segmented from '../../../components/Segmented'
 import EpsEffFields, { epsEffRows } from '../../../components/EpsEffFields'
 import ToolHeader from '../../../components/ToolHeader'
@@ -10,6 +11,7 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import useFieldSolver from '../../../hooks/useFieldSolver'
 import { statusChip, worstLevel, countAtLevel } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
@@ -17,9 +19,9 @@ import { commonText } from '../../../data/uiText'
 import { fmt, fmtEng, fmtRes } from '../../../lib/num'
 import CrosstalkSchematic from './schematic'
 import {
-  INITIAL_FORM, FEXT_OFF, FEXT_ON,
+  INITIAL_FORM, FEXT_OFF, FEXT_ON, FEXT_SOLVER, FEXT_STRUCTURES,
   DIM_UNITS, LEN_UNITS, TIME_UNITS, VOLT_UNITS,
-  compute, buildSweep,
+  compute, buildSweep, fextSolverJob,
 } from './model'
 import { getText } from './text'
 import { buildReportSection } from './report'
@@ -37,7 +39,13 @@ export default function Crosstalk() {
   const text = useMemo(() => getText(lang), [lang])
   const ui = useMemo(() => commonText(lang), [lang])
 
-  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
+  // FEXT kaynağı "çözücüden" seçilirse modal εeff'ler worker'dan gelir
+  // (brif 09 F3.1); NEXT tarafı senkron kalır, yalnız FEXT bloğu bekler.
+  const solver = useFieldSolver(useMemo(() => fextSolverJob(f, text.fieldLabels), [f, text]))
+  const r = useMemo(
+    () => compute(f, text.fieldLabels, solver.status === 'done' ? solver.result : null),
+    [f, text, solver],
+  )
   const s = useMemo(() => buildSweep(r), [r])
   const notes = useMemo(() => text.commentary(r), [r, text])
 
@@ -127,10 +135,11 @@ export default function Crosstalk() {
             options={[
               { value: FEXT_OFF, label: text.fextOff },
               { value: FEXT_ON, label: text.fextOn },
+              { value: FEXT_SOLVER, label: text.fextSolver },
             ]}
           />
 
-          {f.fextMode === FEXT_ON ? (
+          {f.fextMode === FEXT_ON && (
             <>
               <NumberField
                 label={text.fields.epsOdd.label}
@@ -145,7 +154,35 @@ export default function Crosstalk() {
                 hint={text.modalEpsHint}
               />
             </>
-          ) : (
+          )}
+
+          {f.fextMode === FEXT_SOLVER && (
+            <>
+              <SelectField
+                label={text.fields.fextStructure.label}
+                value={f.fextStructure} onChange={set('fextStructure')}
+                options={FEXT_STRUCTURES.map((x) => ({ value: x, label: text.fextStructLabel[x] }))}
+              />
+              <NumberField
+                label={text.fields.fextH.label}
+                value={f.fextH} onChange={set('fextH')}
+                units={DIM_UNITS} unit={f.fextHu} onUnit={set('fextHu')}
+                hint={text.fextSolverHint}
+              />
+              <NumberField
+                label={text.fields.fextT.label}
+                value={f.fextT} onChange={set('fextT')}
+                units={DIM_UNITS} unit={f.fextTu} onUnit={set('fextTu')}
+              />
+              <NumberField
+                label={text.fields.fextEpsR.label}
+                value={f.fextEpsR} onChange={set('fextEpsR')}
+                units={['']} unit="" onUnit={() => {}}
+              />
+            </>
+          )}
+
+          {f.fextMode === FEXT_OFF && (
             <p className="empty-note">{text.modalEpsHint}</p>
           )}
         </section>
@@ -163,7 +200,7 @@ export default function Crosstalk() {
                   {text.bigAltPct(fmt(r.nextPct, 4))} &nbsp;·&nbsp;{' '}
                   {r.fext.available
                     ? text.fextShort(fmtEng(r.fext.Vfext, 'V', 4), fmt(r.fext.fextPct, 3))
-                    : text.fextMissingShort}
+                    : r.fextPending ? text.fextPendingShort : text.fextMissingShort}
                 </div>
               </div>
 
@@ -247,6 +284,22 @@ export default function Crosstalk() {
                         <td>{text.table.modalEps}</td>
                         <td>{fmt(r.fext.epsEffOdd, 4)} · {fmt(r.fext.epsEffEven, 4)}</td>
                       </tr>
+                      {r.solverPair && (
+                        <>
+                          <tr>
+                            <td>{text.table.modalSource}</td>
+                            <td>{r.solverPair.model}</td>
+                          </tr>
+                          <tr>
+                            <td>{text.table.fextEz}</td>
+                            <td>{text.pct(fmt(r.solverPair.convergence.coarsePct, 2))}</td>
+                          </tr>
+                          <tr>
+                            <td>{text.table.solverZ}</td>
+                            <td>{fmtRes(r.solverPair.Zodd, 4)} · {fmtRes(r.solverPair.Zeven, 4)}</td>
+                          </tr>
+                        </>
+                      )}
                       <tr>
                         <td>{text.table.modalDelayDiff}</td>
                         <td>{fmtEng(r.fext.modalDelayDiff, 's', 5)}</td>
@@ -272,7 +325,13 @@ export default function Crosstalk() {
                       </tr>
                       <tr>
                         <td>{text.table.reason}</td>
-                        <td>{text.table.reasonNoModal}</td>
+                        <td>
+                          {r.fextPending
+                            ? text.table.reasonPending
+                            : r.fextSolverError
+                              ? text.table.reasonSolverError
+                              : text.table.reasonNoModal}
+                        </td>
                       </tr>
                     </>
                   )}

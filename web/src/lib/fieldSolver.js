@@ -21,11 +21,16 @@
 // Girişler SI: metre, Ω, s. Kapasiteler F/m.
 
 import { C0, EPS0 } from './units'
-import { METHOD_FIELD_SOLVER } from './impedance'
+import { METHOD_FIELD_SOLVER, microstrip, stripline } from './impedance'
+import { brent } from './solve'
 
 export const FS_ERR_INVALID = 'invalid'
 export const FS_ERR_NO_CONVERGENCE = 'fs-no-convergence'
 export const FS_ERR_GRID = 'fs-grid-too-large'
+// Sentez: hedef, fiziksel arama aralığında elde edilemiyor. Değer bilerek
+// impedance.js'in IMP_ERR_NO_SOLUTION koduyla aynı — ekranların mevcut
+// "no-solution" nedeni iki motor için de çalışır.
+export const FS_ERR_NO_SOLUTION = 'no-solution'
 
 // §6.3 yakınsama eşikleri: E_Z < 0.2 yüksek, 0.2–1 kabul edilebilir,
 // ≥ 1 mesh yetersiz → sonuç warn durumuyla gösterilir, sessizce basılmaz.
@@ -642,11 +647,10 @@ export function fieldStripline({
  * @param {number} t  bakır kalınlığı (m)
  * @param {number} epsR
  */
-export function fieldDifferentialPair({
-  structure = 'microstrip', W, S, H, t = 0, epsR,
-  density = FS_DENSITY_DEFAULT,
-  wallFactor = null,
-}) {
+// Çift geometrisinin doğrulaması ve ızgara kurulumu — hem tam analiz
+// (fieldDifferentialPair) hem sentez kök araması (fieldSolveSpacingForZdiff)
+// aynı kurulumdan geçer; iki kopya ayrışamaz.
+function pairSpec({ structure = 'microstrip', W, S, H, t = 0, epsR, wallFactor = null }) {
   if (!(W > 0) || !(S > 0) || !(H > 0) || !(t >= 0) || !(epsR >= 1)) {
     return { error: FS_ERR_INVALID }
   }
@@ -707,6 +711,18 @@ export function fieldDifferentialPair({
     }
   }
 
+  return { buildSpec }
+}
+
+export function fieldDifferentialPair({
+  structure = 'microstrip', W, S, H, t = 0, epsR,
+  density = FS_DENSITY_DEFAULT,
+  wallFactor = null,
+}) {
+  const built = pairSpec({ structure, W, S, H, t, epsR, wallFactor })
+  if (built.error) return built
+  const { buildSpec } = built
+
   const even = runTwoDensities(buildSpec(false), density)
   if (even.error) return even
   const odd = runTwoDensities(buildSpec(true), density)
@@ -748,6 +764,145 @@ export function fieldDifferentialPair({
   }
 }
 
+// --- Solver-in-loop sentez (brif 09 F3, karar #10'un ölçüm şartıyla) ---
+//
+// Kök arama her adımda TAM analiz koşturmaz; iki kısaltma bütçeyi taşınır
+// kılar (ölçümleri karar dosyasında):
+//   1. Yalnız İNCE yoğunlukta, yalnız GEREKEN uyarım çözülür. Hedef büyüklük
+//      Z_diff = 2·Z_odd olduğundan aralık aramasında even mod hiç çözülmez;
+//      iki-yoğunluk yakınsaması da aranmaz — E_Z'yi zaten kapanış analizi
+//      raporlar. İnce yoğunlukta arandığı için kök, kapanışın rapor ettiği
+//      sayının kendi ızgarasında bulunur; kapanış Z_diff'i hedefe kök
+//      toleransı içinde oturur.
+//   2. Her değerlendirme bir önceki adımın potansiyel alanıyla tohumlanır
+//      (seedFromCoarse ızgaralar farklı olsa da bilinear aktarır); ardışık
+//      S adayları birbirine yakın olduğundan CG yineleme sayısı düşer.
+// Arama bitince bulunan geometri TEK SEFER tam analizden geçirilir; ekrana
+// giden zarf bu kapanış analizidir ve E_Z'siz sonuç yine basılmaz.
+
+// Tek yoğunluklu, tohumlu değerlendirme döngüsü kuran yardımcı: F(x) çağrısı
+// başına bir analyzeGrid (dielektrik + vakum) koşar, sayacı ve tohumu taşır.
+function seededEvaluator(buildSpecAt, dFine) {
+  const state = { evals: 0, seed: null }
+  const evaluate = (x) => {
+    const built = buildSpecAt(x)
+    if (built.error) return NaN
+    const spec = built.buildSpec(dFine)
+    if (state.seed) spec.seed = state.seed
+    const r = analyzeGrid(spec)
+    state.evals += 1
+    if (r.error) return NaN
+    state.seed = {
+      diel: { xs: r.grids.xs, ys: r.grids.ys, pot: r.grids.potD },
+      vac: { xs: r.grids.xs, ys: r.grids.ys, pot: r.grids.potV },
+    }
+    return r.Z0
+  }
+  return { evaluate, state }
+}
+
+const fineDensity = (density) => {
+  const dCoarse = Math.max(2, Math.round(density))
+  return Math.max(dCoarse + 2, Math.round(dCoarse * 1.5))
+}
+
+// Monotonluğu kullanan yönlü kök arama. Genel expandBracket iki yöne birden
+// genişler ve uçlardan Brent, iki ucu da baştan değerlendirir; F'nin her
+// çağrısı ~yüzlerce ms'lik bir alan çözümü olduğu ve EN PAHALI çağrılar tam da
+// uçlarda (çok ince ızgara / çok büyük alan) yaşadığı için ikisi de ölçümde
+// elendi (genel yol ~20 s, uçlardan Brent ~8 s — karar dosyası F3). Burada
+// monotonluk fiziktir (Z_diff aralıkla artar, gcpw Z₀ genişlikle düşer):
+// x0'dan yalnız kökün olduğu yöne 1.8 çarpanıyla yürünür — değerlendirmeler
+// çözüme yakın, ucuz ızgaralarda kalır ve ılık-başlangıç tohumu işe yarar —
+// köşeli aralık bulununca Brent o dar aralıkta koşar. Aralık dışına taşmak
+// "hedef fiziksel aralıkta yok" demektir; tahmin üretilmez.
+function directedRoot(F, { x0, lo, hi, tol, increasing }) {
+  let a = Math.min(Math.max(x0, lo), hi)
+  let fa = F(a)
+  if (!Number.isFinite(fa)) return { error: FS_ERR_NO_SOLUTION }
+  if (fa === 0) return { value: a, iterations: 0, method: 'brent' }
+
+  // F artan ve F(a) < 0 ise kök sağda; azalanla tersi
+  const dir = (fa < 0) === increasing ? +1 : -1
+  const factor = 1.8
+  let b = a
+  let fb = fa
+  for (let i = 0; i < 40; i++) {
+    a = b
+    fa = fb
+    b = dir > 0 ? b * factor : b / factor
+    if (b > hi * (1 + 1e-12) || b < lo * (1 - 1e-12)) return { error: FS_ERR_NO_SOLUTION }
+    fb = F(b)
+    if (!Number.isFinite(fb)) return { error: FS_ERR_NO_SOLUTION }
+    if (fa * fb <= 0) {
+      const solved = brent(F, Math.min(a, b), Math.max(a, b), { tol })
+      return solved.error ? { error: FS_ERR_NO_SOLUTION } : solved
+    }
+  }
+  return { error: FS_ERR_NO_SOLUTION }
+}
+
+/**
+ * Hedef diferansiyel empedans için hat aralığı — W sabit, S aranır
+ * (spec §6.8.2'nin F(S) dalı, çözücüyle).
+ */
+export function fieldSolveSpacingForZdiff({
+  structure = 'microstrip', W, H, t = 0, epsR, target,
+  density = FS_DENSITY_DEFAULT,
+}) {
+  if (!(target > 0)) return { error: FS_ERR_INVALID }
+  // Geometrinin S'ten bağımsız kısmını erkenden doğrula
+  const probe = pairSpec({ structure, W, S: H, H, t, epsR })
+  if (probe.error) return probe
+
+  // Ucuz ön kontrol: Z_diff, S ile artar ve kuplajsız 2·Z₀ platosuna doyar.
+  // Kapalı form tek uçlu Z₀ platoyu ~%2 içinde verir; belirgin payla üstündeki
+  // hedef tek bir alan çözümü koşmadan reddedilir.
+  const single = structure === 'stripline'
+    ? stripline({ W, b: H, epsR })
+    : microstrip({ W, H, t, epsR })
+  if (!single.error && target > 2 * single.Z0 * 1.08) {
+    return { error: FS_ERR_NO_SOLUTION }
+  }
+
+  const dFine = fineDensity(density)
+
+  // Genel yardımcı buildSpec(d) bekler; çiftte uyarım da seçilir.
+  // Sarmalayıcı: yalnız odd mod (Z_diff = 2·Z_odd).
+  const { evaluate: evalOdd, state: st } = seededEvaluator(
+    (S) => {
+      const built = pairSpec({ structure, W, S, H, t, epsR })
+      if (built.error) return built
+      return { buildSpec: (d) => built.buildSpec(true)(d) }
+    },
+    dFine,
+  )
+  const F = (S) => {
+    const Zodd = evalOdd(S)
+    return Number.isFinite(Zodd) ? 2 * Zodd - target : NaN
+  }
+
+  // Arama aralığı fiziksel olarak anlamlı bölgeye kapatılır: S < H/100
+  // üretilemeyecek kadar sıkı (ve ızgarayı aşırı inceltiyor), S > 20·H'de
+  // kuplaj sönmüş, Z_diff kuplajsız 2·Z₀ platosundadır — platoda kök yoktur.
+  // Kök toleransı ızgara çözünürlüğünün altındadır (µm-altı hassasiyet
+  // fiziksel olarak anlamsız).
+  const solved = directedRoot(F, {
+    x0: H, lo: H / 100, hi: H * 20, tol: H * 1e-3, increasing: true,
+  })
+  if (solved.error) return solved
+
+  const pair = fieldDifferentialPair({ structure, W, S: solved.value, H, t, epsR, density })
+  if (pair.error) return pair
+
+  return {
+    S: solved.value,
+    solvedBy: solved.method,
+    search: { evals: st.evals, iterations: solved.iterations, density: dFine },
+    ...pair,
+  }
+}
+
 /**
  * Grounded coplanar waveguide — orta hat, iki yanda coplanar toprak ve altta
  * referans düzlemi. Spec §6.7: bu yapı KAPALI FORMLA SUNULMAZ, yalnız alan
@@ -770,11 +925,9 @@ export function fieldDifferentialPair({
  * @param {number} t  bakır kalınlığı (m)
  * @param {number} epsR
  */
-export function fieldGroundedCpw({
-  W, S, H, t = 0, epsR,
-  density = FS_DENSITY_DEFAULT,
-  wallFactor = FS_WALL_FACTOR_OPEN,
-}) {
+// Grounded CPW ızgara kurulumu — tam analiz ve genişlik sentezi aynı
+// kurulumdan geçer (pairSpec ile aynı gerekçe).
+function gcpwSpec({ W, S, H, t = 0, epsR, wallFactor = FS_WALL_FACTOR_OPEN }) {
   if (!(W > 0) || !(S > 0) || !(H > 0) || !(t >= 0) || !(epsR >= 1)) {
     return { error: FS_ERR_INVALID }
   }
@@ -816,7 +969,18 @@ export function fieldGroundedCpw({
     }
   }
 
-  const r = solveTwoDensities(buildSpec, density, {
+  return { buildSpec }
+}
+
+export function fieldGroundedCpw({
+  W, S, H, t = 0, epsR,
+  density = FS_DENSITY_DEFAULT,
+  wallFactor = FS_WALL_FACTOR_OPEN,
+}) {
+  const built = gcpwSpec({ W, S, H, t, epsR, wallFactor })
+  if (built.error) return built
+
+  const r = solveTwoDensities(built.buildSpec, density, {
     structure: 'gcpw',
     groundedBelow: true,
     thicknessIncluded: t > 0,
@@ -831,6 +995,49 @@ export function fieldGroundedCpw({
     Cvac: 2 * r.Cvac,
     Z0: r.Z0 / 2,
     mesh: { ...r.mesh, coarse: { ...r.mesh.coarse, Z0: r.mesh.coarse.Z0 / 2 } },
+  }
+}
+
+/**
+ * Hedef Z₀ için grounded CPW hat genişliği — S sabit, W aranır. Yapının
+ * kapalı formu olmadığı için tek sentez yolu budur (F2'de reddediliyordu,
+ * F3 ölçümle açtı). Arama kısaltmaları fieldSolveSpacingForZdiff ile aynı;
+ * yarım alan Z'si arama içinde de /2 düzeltmesiyle okunur.
+ */
+export function fieldSolveGcpwWidthForZ0({
+  S, H, t = 0, epsR, target,
+  density = FS_DENSITY_DEFAULT,
+}) {
+  if (!(target > 0)) return { error: FS_ERR_INVALID }
+  const probe = gcpwSpec({ W: H, S, H, t, epsR })
+  if (probe.error) return probe
+
+  const dFine = fineDensity(density)
+  const { evaluate, state: st } = seededEvaluator(
+    (W) => gcpwSpec({ W, S, H, t, epsR }),
+    dFine,
+  )
+  const F = (W) => {
+    const Zhalf = evaluate(W)
+    return Number.isFinite(Zhalf) ? Zhalf / 2 - target : NaN
+  }
+
+  // Aralık gerekçesi fieldSolveSpacingForZdiff ile aynı: W < H/50 üretim
+  // dışı ve ızgarayı aşırı inceltiyor, W > 30·H'de hat çok geniş ve Z₀
+  // paralel plaka limitine inmiş durumda. Z₀ genişlikle DÜŞER.
+  const solved = directedRoot(F, {
+    x0: H, lo: H / 50, hi: H * 30, tol: H * 1e-3, increasing: false,
+  })
+  if (solved.error) return solved
+
+  const full = fieldGroundedCpw({ W: solved.value, S, H, t, epsR, density })
+  if (full.error) return full
+
+  return {
+    W: solved.value,
+    solvedBy: solved.method,
+    search: { evals: st.evals, iterations: solved.iterations, density: dFine },
+    ...full,
   }
 }
 

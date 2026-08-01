@@ -682,22 +682,26 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   `{ Z0, epsEff, method }` döndürür ve `method` alanı `'closed-form'` | `'field-solver'`
   değerini taşır; arayüz `method`'a bakarak etiketi yazar. Kapalı form sonucu daima
   **"hızlı denklem modu"** etiketiyle ve geçerlilik sınırlarıyla birlikte gösterilir.
-  **Alan çözücünün F1 + F2 fazları yazıldı** (`lib/fieldSolver.js` — 2B FDM; kararlar ve
+  **Alan çözücünün F1–F3 fazları yazıldı** (`lib/fieldSolver.js` — 2B FDM; kararlar ve
   ölçümler `docs/alan-cozucu-karari.md`): saf ve senkron motor, Web Worker bağı
   `hooks/useFieldSolver.js`'te. F1: tek uçlu microstrip/stripline — `SingleEnded` ana sayıyı
   kapalı formdan basar, çözücü satırı ayrıca gelir. F2: diferansiyel çift
   (`fieldDifferentialPair` — spec §6.8.1 kapasitans matrisi rotası, even/odd uyarımlı yarım
   alan) ve grounded CPW (`fieldGroundedCpw`); bu ikisinde sayının TEK kaynağı çözücüdür ve
   sonuç worker'dan asenkron düşer — o ana kadar ekran "hesaplanıyor…" ve varsa kapalı form
-  tek uçlu tabanı gösterir. Çözücü satırları raporlara da girer; indirme anında çözüm
-  bitmemişse satır rapora girmez, sayı uydurulmaz. Çözücü sonucu `convergence.coarsePct`
-  (E_Z, spec §6.3) taşır ve E_Z ≥ %1 iken warn'suz gösterilmez. Sinyal bütünlüğü beslemesi
-  ve solver-in-loop sentez F3'te.
+  tek uçlu tabanı gösterir. F3: modal εeff'ler Crosstalk'a (FEXT kaynağı "çözücüden") ve
+  Skew'e (`lib/epsEff.js` → `EPS_SOLVER`, odd mod — diferansiyel işaretin yayıldığı mod)
+  akar; solver-in-loop sentez ölçümle açıldı (`fieldSolveSpacingForZdiff`,
+  `fieldSolveGcpwWidthForZ0` — kök arama çözücünün içinde, worker iş türleri
+  `pair-spacing`/`gcpw-width`, yalnız gereken uyarım + ılık başlangıç kısaltmalarıyla).
+  Çözücü satırları raporlara da girer; indirme anında çözüm bitmemişse satır rapora
+  girmez, sayı uydurulmaz. Çözücü sonucu `convergence.coarsePct` (E_Z, spec §6.3) taşır ve
+  E_Z ≥ %1 iken warn'suz gösterilmez.
 
 - **İdeal CPW denklemi grounded CPW sonucu olarak sunulmaz** (`docs/spec.md` §6.7). Grounded
   CPW, `SingleEnded` ekranında ayrı yapı seçeneğidir ve YALNIZ alan çözücüyle hesaplanır —
-  kapalı form dalı yazılmadı, yazılmayacak. Bu yapıda sentez de yoktur
-  (`REASON_SOLVER_ONLY`); solver-in-loop F3'te ölçümle açılır.
+  kapalı form dalı yazılmadı, yazılmayacak. Sentezi de çözücüyledir: kök arama çözücünün
+  içinde koşar (F3, `fieldSolveGcpwWidthForZ0`); kapalı form tohumu yoktur.
 
 - **Diferansiyel çift F2'de spec rotasına geçti; eski ampirik kuplaj SÖKÜLDÜ.** Spec
   §6.8.1'in Maxwell kapasitans matrisi rotası (`C_odd = C₁₁ − C₁₂`, `C_even = C₁₁ + C₁₂`,
@@ -707,12 +711,12 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   `couplingFactor`/`COUPLING`/`METHOD_EMPIRICAL`/`differentialPair`/`solveSpacingForZdiff`
   silindi — geri getirilmez, `COUPLING_SOURCE_NOTE` da çözücü sonuçlarında basılmaz.
   DiffPair ekranında çiftin sayıları çözücüden (asenkron) gelir; kapalı form yalnız tek uçlu
-  tabanı verir (Z₀ ve "kuplajsız 2·Z₀" referansı, `singleMethod` etiketiyle). Sentez F2'de
-  "aralık sabit → genişlik" ile sınırlıdır: kuplajsız kapalı form tohumu (hedef Z₀ =
-  Z_diff/2) + çözücünün tek seferlik doğrulaması, hedeften gerçek sapma çözücüden okunur;
-  "genişlik sabit → aralık" F3'ün solver-in-loop işidir. Ekranın parametrik grafiği de
-  söküldü (eğri ampirik motordan çiziliyordu). Gerekçeler ve ölçümler:
-  `docs/alan-cozucu-karari.md` §8–§9. **Yeni ampirik formül eklenmez** kuralı aynen
+  tabanı verir (Z₀ ve "kuplajsız 2·Z₀" referansı, `singleMethod` etiketiyle). Sentez iki
+  ayrı rotadır: "aralık sabit → genişlik" kuplajsız kapalı form tohumu (hedef Z₀ =
+  Z_diff/2) + çözücünün tek seferlik doğrulaması; "genişlik sabit → aralık" F3'te açıldı ve
+  kök arama ÇÖZÜCÜNÜN İÇİNDE koşar (`fieldSolveSpacingForZdiff`, worker'da). Ekranın
+  parametrik grafiği söküldü (eğri ampirik motordan çiziliyordu). Gerekçeler ve ölçümler:
+  `docs/alan-cozucu-karari.md` §8–§9, §16. **Yeni ampirik formül eklenmez** kuralı aynen
   geçerli — kaynağı spec'te olmayan bir denklem, kapalı formdan gelmiş gibi sunulamaz.
 
 - **Bilinen sapma — crosstalk kestirimi.** `signalIntegrity.js` `crosstalk()` de spec'i
@@ -734,9 +738,11 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   genelde baskın crosstalk olduğu için bu sıfır yanlıştır. Bu yüzden `signalIntegrity.js`
   FEXT'i `Z_odd`/`Z_even`'den türetmez: kullanıcı odd ve even mod εeff değerlerini elle
   girerse hesaplar, girmezse `SI_ERR_NO_FEXT` döndürür. Kapalı formdan geliyormuş gibi
-  sunulan yanlış bir sayı, sonuç vermemekten kötüdür. F2'den beri modal εeff'leri alan
-  çözücü veriyor (DiffPair ekranı ikisini de gösterir); kullanıcı bunları Crosstalk ekranına
-  elle taşıyabilir, otomatik akış brif 09 F3 kapsamıdır.
+  sunulan yanlış bir sayı, sonuç vermemekten kötüdür. F3'ten beri akış bağlı: Crosstalk'ta
+  FEXT kaynağı "çözücüden" seçilirse modal εeff'ler çift geometrisinden worker'da
+  hesaplanır (ekran ayrıca girilen Z_odd/Z_even'i çözücünün bulduklarıyla karşılaştırıp
+  > %10 sapmayı uyarır); Skew'de εeff kaynağı `EPS_SOLVER` odd mod değerini kullanır.
+  Elle giriş rotası da duruyor (üretici raporu için).
 
 ## Sonuç sunumu
 

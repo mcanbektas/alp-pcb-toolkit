@@ -6,9 +6,10 @@
 // mount'tan sonra gelir ve o ana kadar senkron sonuç (varsa) ekranda kalır.
 //
 // params null ise (geçersiz form, desteklenmeyen yapı) kanca 'idle' döner.
-// params: { kind: 'single' | 'pair' | 'gcpw',
+// params: { kind: 'single' | 'pair' | 'gcpw' | 'pair-spacing' | 'gcpw-width',
 //           structure: 'microstrip' | 'stripline' | 'gcpw',
-//           W, S, height, t, epsR } — SI. S yalnız pair/gcpw işlerinde okunur.
+//           W, S, height, t, epsR, target } — SI. S yalnız pair/gcpw
+// analizlerinde, target yalnız sentez işlerinde okunur.
 
 import { useEffect, useRef, useState } from 'react'
 
@@ -25,7 +26,8 @@ export default function useFieldSolver(params) {
   const key = params
     ? [
         params.kind ?? 'single', params.structure,
-        params.W, params.S ?? 0, params.height, params.t, params.epsR,
+        params.W ?? 0, params.S ?? 0, params.height, params.t, params.epsR,
+        params.target ?? 0,
       ].join('|')
     : null
 
@@ -53,11 +55,14 @@ export default function useFieldSolver(params) {
     }
     worker.addEventListener('message', onMessage)
 
-    const [kind, structure, W, S, height, t, epsR] = key.split('|')
+    const [kind, structure, W, S, height, t, epsR, target] = key.split('|')
     const timer = setTimeout(() => {
       worker.postMessage({
         id,
-        params: { kind, structure, W: +W, S: +S, height: +height, t: +t, epsR: +epsR },
+        params: {
+          kind, structure,
+          W: +W, S: +S, height: +height, t: +t, epsR: +epsR, target: +target,
+        },
       })
     }, DEBOUNCE_MS)
 

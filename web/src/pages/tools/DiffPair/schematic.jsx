@@ -91,9 +91,12 @@ const DiffPairSchematic = forwardRef(function DiffPairSchematic({ r, form, text 
           <text className="sch-value" x={leftX + half} y={wValueY} textAnchor="middle">
             {fmtEng(r.W, 'm', 3)}
           </text>
-          <text className="sch-value" x={cx} y={sValueY} textAnchor="middle">
-            {fmtEng(r.S, 'm', 3)}
-          </text>
+          {/* W sabit sentezde S çözücüden gelir; çözüm sürerken basılmaz */}
+          {r.S != null && (
+            <text className="sch-value" x={cx} y={sValueY} textAnchor="middle">
+              {fmtEng(r.S, 'm', 3)}
+            </text>
+          )}
           <text className="sch-value" x={hTextX} y={hValueY} textAnchor="end">
             {fmtEng(r.H, 'm', 3)}
           </text>

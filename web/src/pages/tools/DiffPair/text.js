@@ -13,7 +13,9 @@ import {
   FS_CONVERGENCE_GOOD_PCT, FS_CONVERGENCE_WARN_PCT,
   FS_ERR_NO_CONVERGENCE, FS_ERR_GRID,
 } from '../../../lib/fieldSolver'
-import { STRUCT_MICROSTRIP, STRUCT_STRIPLINE, REASON_NO_SOLUTION } from './model'
+import {
+  STRUCT_MICROSTRIP, STRUCT_STRIPLINE, FIX_WIDTH, FIX_SPACING, REASON_NO_SOLUTION,
+} from './model'
 
 export function getText(lang) {
   const t = (dict) => pick(dict, lang)
@@ -57,17 +59,29 @@ export function getText(lang) {
     intro: t({
       tr: 'Kenar bağlı diferansiyel çift için odd, even, diferansiyel ve common mod '
         + 'empedanslarını 2B alan çözücüyle (Maxwell kapasitans matrisi rotası) hesaplar; hedef '
-        + 'diferansiyel empedans için hat genişliğini kapalı form tohumuyla bulup çözücüyle '
-        + 'doğrular.',
+        + 'diferansiyel empedans için aralık sabitken genişliği kapalı form tohumu + çözücü '
+        + 'doğrulamasıyla, genişlik sabitken aralığı çözücü içindeki kök aramayla bulur.',
       en: 'Computes the odd, even, differential and common mode impedances for an edge-coupled '
-        + 'differential pair with a 2D field solver (Maxwell capacitance-matrix route); finds the '
-        + 'trace width for a target differential impedance from a closed-form seed and verifies '
-        + 'it with the solver.',
+        + 'differential pair with a 2D field solver (Maxwell capacitance-matrix route); for a '
+        + 'target differential impedance it finds the width (spacing fixed) from a closed-form '
+        + 'seed with solver verification, and the spacing (width fixed) with a root search '
+        + 'inside the solver.',
     }),
 
     modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
     modeAnalysis: t({ tr: 'Analiz — empedansı bul', en: 'Analysis — find impedance' }),
-    modeSynthesis: t({ tr: 'Sentez — genişliği bul', en: 'Synthesis — find width' }),
+    modeSynthesis: t({ tr: 'Sentez — geometriyi bul', en: 'Synthesis — find geometry' }),
+
+    fixedLabel: {
+      [FIX_SPACING]: t({
+        tr: 'Aralığı sabitle, genişliği bul',
+        en: 'Fix the spacing, find the width',
+      }),
+      [FIX_WIDTH]: t({
+        tr: 'Genişliği sabitle, aralığı bul (çözücüyle)',
+        en: 'Fix the width, find the spacing (with the solver)',
+      }),
+    },
 
     structLabel: {
       [STRUCT_MICROSTRIP]: 'Edge-coupled microstrip',
@@ -99,6 +113,9 @@ export function getText(lang) {
 
     fields: {
       structure: { label: t({ tr: 'Yapı', en: 'Structure' }) },
+      fixed: { label: t({ tr: 'Neyi sabitliyorsunuz', en: 'What are you fixing' }) },
+      WFixed: { label: t({ tr: 'Sabit hat genişliği (W)', en: 'Fixed trace width (W)' }) },
+      SFixed: { label: t({ tr: 'Sabit hat aralığı (S)', en: 'Fixed trace spacing (S)' }) },
       target: {
         label: t({ tr: 'Hedef diferansiyel empedans', en: 'Target differential impedance' }),
         hint: t({
@@ -134,6 +151,7 @@ export function getText(lang) {
     },
 
     bigResultWidth: t({ tr: 'Gereken hat genişliği', en: 'Required trace width' }),
+    bigResultSpacing: t({ tr: 'Gereken hat aralığı', en: 'Required trace spacing' }),
     bigResultZdiff: t({ tr: 'Diferansiyel empedans', en: 'Differential impedance' }),
     bigResultPending: t({ tr: 'hesaplanıyor…', en: 'computing…' }),
     targetWord: t({ tr: 'hedef', en: 'target' }),
@@ -234,19 +252,26 @@ Single-ended base — closed form:
           + `with the ${solvedBy} method; the real Z_diff and the deviation from the target are `
           + 'read from the field solver.',
       }),
-      spacingSynthesis: t({
-        tr: 'Aralık (S) sentezi bu fazda yok: aralığa bağlı senkron model kalmadı ve çözücünün '
-          + 'kök döngüsüne girmesi ayrı bir faza bırakıldı. Aralığı elle değiştirip çözücü '
-          + 'sonucunu izleyin.',
-        en: 'Spacing (S) synthesis is not in this phase: no synchronous spacing-dependent model '
-          + 'remains, and putting the solver inside the root loop is deferred to a later phase. '
-          + 'Adjust the spacing manually and watch the solver result.',
+      solvedSpacing: (solvedBy, evals) => t({
+        tr: `Aralık, kök arama ÇÖZÜCÜNÜN İÇİNDE koşturularak bulundu (${solvedBy}; ${evals} alan `
+          + 'çözümü değerlendirmesi, yalnız odd mod, ince yoğunluk). Kapanışta bulunan geometri '
+          + 'tam analizden geçirildi — tablodaki sayılar o kapanış analizidir.',
+        en: `The spacing was found by running the root search INSIDE the solver (${solvedBy}; `
+          + `${evals} field-solution evaluations, odd mode only, fine density). The geometry `
+          + 'found was then put through a full analysis — the numbers in the table are that '
+          + 'closing analysis.',
+      }),
+      spacingPending: t({
+        tr: 'Aralık aranıyor: kök arama çözücünün içinde koşuyor (her adım bir alan çözümü). '
+          + 'Sonuç çözüm bitince gelir.',
+        en: 'The spacing is being searched: the root search runs inside the solver (each step is '
+          + 'a field solution). The result appears when it finishes.',
       }),
       infiniteSolutions: t({
         tr: 'Tek bir hedef empedans hem W hem S bilinmiyorsa sonsuz çözüm üretir; bu yüzden '
-          + 'aralık sabitlenir.',
+          + 'biri sabitlenir.',
         en: 'A single target impedance yields infinitely many solutions when both W and S are '
-          + 'unknown; that is why the spacing is fixed.',
+          + 'unknown; that is why one of them is fixed.',
       }),
       noRounding: t({
         tr: 'Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.',
@@ -391,16 +416,19 @@ Single-ended base — closed form:
         if (r.mode === 'syn') {
           const errPct = (100 * (fs.Zdiff - r.target)) / r.target
           const within = Math.abs(errPct) <= r.acceptPct
+          const found = r.solvedFor === 'S'
+            ? t({ tr: `Aralık ${fmtEng(fs.S, 'm', 4)}`, en: `The spacing was found as ${fmtEng(fs.S, 'm', 4)}` })
+            : t({ tr: `Genişlik ${fmtEng(r.W, 'm', 4)}`, en: `The width was found as ${fmtEng(r.W, 'm', 4)}` })
           out.push({
             level: within ? 'ok' : 'danger',
             text: within
               ? t({
-                tr: `Genişlik ${fmtEng(r.W, 'm', 4)} bulundu; çözücüye göre Z_diff = ${fmtRes(fs.Zdiff, 4)}, hedeften sapma ${pct(fmtPct(errPct))} — kabul sınırı ±${pct(fmt(r.acceptPct, 3))} içinde.`,
-                en: `The width was found as ${fmtEng(r.W, 'm', 4)}; per the solver Z_diff = ${fmtRes(fs.Zdiff, 4)}, deviating ${pct(fmtPct(errPct))} from the target — within the ±${pct(fmt(r.acceptPct, 3))} acceptance limit.`,
+                tr: `${found} bulundu; çözücüye göre Z_diff = ${fmtRes(fs.Zdiff, 4)}, hedeften sapma ${pct(fmtPct(errPct))} — kabul sınırı ±${pct(fmt(r.acceptPct, 3))} içinde.`,
+                en: `${found}; per the solver Z_diff = ${fmtRes(fs.Zdiff, 4)}, deviating ${pct(fmtPct(errPct))} from the target — within the ±${pct(fmt(r.acceptPct, 3))} acceptance limit.`,
               })
               : t({
-                tr: `Bulunan genişlikte çözücü Z_diff = ${fmtRes(fs.Zdiff, 4)} ölçüyor; hedeften sapma ${pct(fmtPct(errPct))}, kabul sınırı ±${pct(fmt(r.acceptPct, 3))} DIŞINDA. Tohum kuplajı bilmez — genişliği veya aralığı elle ayarlayıp çözücü satırını izleyin.`,
-                en: `At the width found, the solver measures Z_diff = ${fmtRes(fs.Zdiff, 4)}; the deviation from the target is ${pct(fmtPct(errPct))}, OUTSIDE the ±${pct(fmt(r.acceptPct, 3))} acceptance limit. The seed knows nothing about coupling — adjust the width or spacing manually and watch the solver row.`,
+                tr: `${found} bulundu ama çözücü Z_diff = ${fmtRes(fs.Zdiff, 4)} ölçüyor; hedeften sapma ${pct(fmtPct(errPct))}, kabul sınırı ±${pct(fmt(r.acceptPct, 3))} DIŞINDA. ${r.solvedFor === 'S' ? 'Hedef bu geometriyle sınırda olabilir; genişliği veya yığını gözden geçirin.' : 'Tohum kuplajı bilmez — genişliği veya aralığı elle ayarlayıp çözücü satırını izleyin.'}`,
+                en: `${found}, but the solver measures Z_diff = ${fmtRes(fs.Zdiff, 4)}; the deviation from the target is ${pct(fmtPct(errPct))}, OUTSIDE the ±${pct(fmt(r.acceptPct, 3))} acceptance limit. ${r.solvedFor === 'S' ? 'The target may be marginal for this geometry; review the width or the stack-up.' : 'The seed knows nothing about coupling — adjust the width or spacing manually and watch the solver row.'}`,
               }),
           })
         }
@@ -426,12 +454,22 @@ Single-ended base — closed form:
         })
       }
 
-      if (r.mode === 'syn') {
+      if (r.mode === 'syn' && r.solvedFor === 'W') {
         out.push({
           level: 'ok',
           text: t({
             tr: `Tohum genişlik kuplajsız varsayımla (hedef Z₀ = Z_diff/2) sınırlandırılmış aramayla bulundu (${r.solvedBy}); gerçek Z_diff çözücüden okunur.`,
             en: `The seed width was found with a bounded search under the uncoupled assumption (target Z₀ = Z_diff/2) (${r.solvedBy}); the real Z_diff is read from the solver.`,
+          }),
+        })
+      }
+
+      if (r.mode === 'syn' && r.solvedFor === 'S') {
+        out.push({
+          level: 'ok',
+          text: t({
+            tr: 'Aralık sentezi çözücünün İÇİNDE kök aramayla yapılıyor: her adım gerçek bir alan çözümüdür, ampirik ara model yoktur. Arama ince ızgara yoğunluğunda koşar; kapanışta bulunan geometri tam analizden geçirilir.',
+            en: 'The spacing synthesis is done with a root search INSIDE the solver: every step is a real field solution, with no empirical intermediate model. The search runs at the fine grid density; the geometry found is then put through a full analysis.',
           }),
         })
       }

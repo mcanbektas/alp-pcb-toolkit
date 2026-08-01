@@ -1,15 +1,16 @@
-# 2B alan çözücüsü kararı — 2026-08-01 (F1 + F2)
+# 2B alan çözücüsü kararı — 2026-08-01 (F1 + F2 + F3)
 
-Brif 09'un F1 ve F2 oturumları. F1 kapsamı: çekirdek elektrostatik çözücü
+Brif 09'un üç oturumu. F1 kapsamı: çekirdek elektrostatik çözücü
 (`web/src/lib/fieldSolver.js`), tek uçlu microstrip (gerçek bakır kalınlığıyla)
 ve simetrik/asimetrik stripline; doğrulama rejiminin F1 kalemleri;
 `SingleEnded` ekranına worker üzerinden bağ. F2 kapsamı (§8'den itibaren):
 diferansiyel even/odd matris rotası, ampirik kuplajın sökümü, grounded CPW ve
-raporlara çözücü satırları. Sinyal bütünlüğü beslemesi F3'te.
+raporlara çözücü satırları. F3 kapsamı (§15'ten itibaren): modal εeff'lerin
+Crosstalk ve Skew'e akışı, solver-in-loop sentez.
 
 Bu dosya brifle verilen ön kararları, oturumlarda yapılan ölçümleri ve ölçümün
 DEVİRDİĞİ kararları (F1: doğrusal çözücü SOR → PCG; F2: grounded CPW tam alan
-→ yarım alan) kaydeder.
+→ yarım alan; F3: sentez kök arama stratejisi iki kez) kaydeder.
 
 ## 1. Ön kararlar (brifle verildi, uygulandı)
 
@@ -286,10 +287,109 @@ Tavana pay ~3×. WASM tartışması yine açılmadı (karar #2 duruyor).
 ## 14. F2'de bilerek dışarıda kalanlar
 
 - **Aralık (S) sentezi ve solver-in-loop** — F3, ölçümle (karar #10; §9.3).
+  *(F3'te açıldı — §16.)*
 - **Çözücü tabanlı parametrik tarama grafiği** — F3 adayı, bütçe ölçümüyle (§9.2).
 - **Modal εeff'lerin Crosstalk/Skew'e otomatik akışı** — F3.1; çözücü değerleri
   veriyor, kullanıcı şimdilik elle taşıyor (ekran yorumu yol gösteriyor).
+  *(F3'te kapandı — §15.)*
 - **Asimetrik diferansiyel stripline, coplanar diferansiyel çift** — F3.2
   geometri genişletmeleri; çift F2'de simetrik (`(b−t)/2` yerleşimi) çözülür.
 - **Yarım alan optimizasyonu tek uçlu yapılara uygulanmadı** — tek uçlu
   microstrip/stripline simetrik ama F1 ölçümleri bütçede; dokunulmadı.
+
+---
+
+# F3 — sinyal bütünlüğü beslemesi ve solver-in-loop sentez (2026-08-01)
+
+## 15. Modal εeff'ler Crosstalk ve Skew'e akıyor (brif F3.1)
+
+`SI_ERR_NO_FEXT` dalı gerçek girdisini buldu; kullanıcı modal εeff'i elle
+girmek zorunda değil. İki ekran iki farklı noktadan bağlandı, ikisinde de
+çözücü worker'da koşar ve sonuç gelene kadar ekran "hesaplanıyor" durumunu
+gösterir — sayı uydurulmaz:
+
+- **Crosstalk — FEXT kaynağı üç durumlu oldu** (`off` / `elle` / `çözücüden`).
+  Çözücü seçeneği yeni geometri ekranı açmaz: W ve S zaten ekranda (3W
+  kontrolünün girdileri — kestirim ile çözücü AYNI çifti görür), yalnız düşey
+  yığın (yapı, H, t, εr) eklenir. `fieldDifferentialPair` zarfından
+  `epsEffOdd/Even` FEXT'e akar; E_Z ve model etiketi tabloya/rapora girer.
+  **Tutarlılık bekçisi:** çözücü aynı çift için Z_odd/Z_even de bulduğundan,
+  kullanıcının K_b için elle girdiği Z'lerle karşılaştırılır; > %10 sapma
+  uyarı üretir (varsayılan form değerleri kasıtlı olarak bu uyarıyı tetikler —
+  58/45 girilmişken çözücü 72.6/62.0 ölçer, kullanıcı tutarsızlığı görür).
+- **Skew — εeff kaynağına üçüncü seçenek: "alan çözücüden (çift)".**
+  `lib/epsEff.js`'e `EPS_SOLVER` kaynağı eklendi; ortak bileşen
+  (`EpsEffFields`) bu kaynağı yalnız `solver` prop'u geçen ekranda sunar —
+  useFieldSolver bağını kurmayan ekran bu kaynağı gösteremez. Kullanılan
+  değer ODD mod εeff'idir: diferansiyel işaret odd modda yayılır; even değeri,
+  Z_odd/Z_even ve E_Z zarfta taşınır ve sonuç satırlarında görünür
+  (`epsEffRows` EPS_SOLVER dalı). `resolveEpsEff` çözücü SONUCUNU parametre
+  alır, kendisi çözmez (saf katman senkron kalır); sonuç yokken
+  `{ pending: true }` döner ve ekran `REASON_EPS_PENDING` gösterir.
+- **Bayat metinler düzeltildi.** F2 öncesinden kalan "bu değerler diferansiyel
+  çift ekranından ALINAMAZ" ve "alan çözücü olmadığı için hiçbir adımı
+  yapılamıyor" iddiaları artık yanlıştı; Crosstalk metinleri çözücünün var
+  olduğu, uygulanmayan kısmın yalnız FFT'li çok iletkenli dalga biçimi rotası
+  olduğu gerçeğine göre yeniden yazıldı. §7.6'nın TAM rotası F3.1'in de
+  kapsamı değil — istenirse ayrı brif (brifin kendi sınırı).
+
+## 16. Solver-in-loop sentez (brif F3.2; karar #10 ölçümle açıldı)
+
+İki sentez, kök aramayı ÇÖZÜCÜNÜN İÇİNDE koşturur (worker'da):
+`fieldSolveSpacingForZdiff` (DiffPair "genişliği sabitle → aralığı bul") ve
+`fieldSolveGcpwWidthForZ0` (grounded CPW sentezi — F2'nin `REASON_SOLVER_ONLY`
+reddi kalktı). İki kısaltma bütçeyi taşınır kıldı:
+
+1. **Yalnız gereken uyarım, yalnız ince yoğunluk.** Z_diff = 2·Z_odd
+   olduğundan aramada even mod hiç çözülmez; iki-yoğunluk yakınsaması da
+   aranmaz. Arama İNCE yoğunlukta koşar: kök, kapanış analizinin kendi
+   ızgarasında bulunur ve kapanış Z'si hedefe kök toleransı içinde oturur
+   (ölçüldü: Zdiff = 100.00 / Z0 = 50.00 — sapma < %0.001).
+2. **Ilık başlangıç:** her değerlendirme bir önceki adayın potansiyel
+   alanıyla tohumlanır (`seedFromCoarse` farklı ızgaralar arasında bilinear
+   aktarır); ardışık adaylar yakın olduğundan CG yinelemesi düşer.
+
+**Ölçüm iki kez karar devirdi.** İlk kurulum `solveBounded`/`expandBracket`
+idi: ulaşılamayan hedefte aralık, adımı ~yüzlerce ms'lik alan çözümü olan
+F ile adım adım yürünüyordu — ~20 s (ELENDİ). İkinci kurulum aralığın iki
+ucundan Brent'ti: en pahalı değerlendirmeler tam da uçlarda (çok ince ızgara /
+çok büyük alan) yaşadığından mutlu yol bile ~8 s'ye çıktı (ELENDİ). Kalan yol
+`directedRoot`: monotonluk fiziktir (Z_diff aralıkla artar, gcpw Z₀ genişlikle
+düşer); x0'dan yalnız kökün olduğu yöne 1.8 çarpanıyla yürünür, köşeleme
+bulununca Brent dar aralıkta koşar. Çift tarafında ayrıca ücretsiz ön kontrol:
+Z_diff kuplajsız 2·Z₀ platosuna doyar ve kapalı form tek uçlu Z₀ platoyu ~%2
+içinde verir — hedef 2·Z₀·1.08 üstündeyse tek alan çözümü koşmadan
+`no-solution` (kod bilerek `IMP_ERR_NO_SOLUTION` ile aynı dize; ekranların
+mevcut nedeni iki motor için de çalışır).
+
+| İş | Süre | Değerlendirme |
+|---|---|---|
+| Aralık sentezi, hedef 100 Ω (varsayılan form) | ~1.1 s | 8 |
+| gcpw genişlik sentezi, hedef 50 Ω | ~1.7 s | 7 |
+| Ulaşılamayan Z_diff hedefi (ön kontrol) | ~0 ms | 0 |
+| Ulaşılamayan gcpw hedefi (yönlü yürüyüş) | ~2.4 s | ~7 |
+
+Arama aralıkları fiziksel bölgeye kapatıldı ve gerekçeleri kodda: çiftte
+S ∈ [H/100, 20·H] (altı üretim dışı ve ızgarayı aşırı inceltiyor; üstü
+kuplajsız plato — platoda kök yok), gcpw'de W ∈ [H/50, 30·H]. Kök toleransı
+H·10⁻³ — ızgara çözünürlüğünün altı, µm-altı hassasiyet fiziksel olarak
+anlamsız. Zarf `search: { evals, iterations, density }` taşır; ekran teknik
+detayda gösterir, kapanış tam analizi E_Z ile birlikte tabloya gider.
+
+Worker sözleşmesine iki iş türü eklendi: `pair-spacing` ve `gcpw-width`
+(`target` parametresiyle). DiffPair sentezi yine iki dallıdır ve ikisi ayrı
+rotadır: "aralığı sabitle → genişliği bul" F2'nin kuplajsız tohum + tek
+seferlik doğrulama rotasında kaldı (hızlı, senkron tohum); "genişliği
+sabitle → aralığı bul" çözücü içinde kök aramadır.
+
+## 17. F3'te bilerek dışarıda kalanlar
+
+- **Geometri genişletmeleri** (trapez kesit, solder mask, embedded
+  microstrip) — brif F3.2'nin diğer yarısı; ayrı iş olarak ele alınacak,
+  her biri ölçümle ve bu dosyaya yazılarak.
+- **Çözücü tabanlı parametrik tarama grafiği** — durum §14'teki gibi.
+- **§7.6 TAM çok iletkenli rota (FFT'li dalga biçimi)** — brifin kendi
+  sınırı: F3 kapsamı değil, istenirse ayrı brif.
+- **Skew farklı-katman εeff,N için çözücü kaynağı** — N hattı ayrı bir
+  geometri; ikinci bir çözücü bağı gerektirir. Elle giriş duruyor; istenirse
+  küçük bir ek.

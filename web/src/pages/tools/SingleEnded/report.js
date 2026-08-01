@@ -44,7 +44,14 @@ export function buildReportSection({ mode, f, r, s, text, fs }) {
   if (!r.ok) return null
 
   const big = r.mode === MODE_SYNTHESIS
-    ? { label: text.bigResultWidth, ...splitFormatted(fmtEng(r.W, 'm', 4)), emphasis: true }
+    ? {
+      label: text.bigResultWidth,
+      // gcpw sentezinde W çözücüden gelir; çözüm bitmemişse sayı uydurulmaz
+      ...(r.solverOnly
+        ? (fs ? splitFormatted(fmtEng(fs.W, 'm', 4)) : { value: text.bigResultPending })
+        : splitFormatted(fmtEng(r.W, 'm', 4))),
+      emphasis: true,
+    }
     : {
       label: text.bigResultZ0,
       ...(r.solverOnly
@@ -70,7 +77,9 @@ export function buildReportSection({ mode, f, r, s, text, fs }) {
             { label: text.table.tpd, value: fmt(fs.tpd * 1e9, 4), unit: 'ps/mm' },
           ]
           : []),
-        { label: text.table.W, ...splitFormatted(fmtEng(r.W, 'm', 5)) },
+        ...((r.W ?? fs?.W) != null
+          ? [{ label: text.table.W, ...splitFormatted(fmtEng(r.W ?? fs.W, 'm', 5)) }]
+          : []),
         { label: text.table.height, ...splitFormatted(fmtEng(r.height, 'm', 5)) },
         ...(fs
           ? [

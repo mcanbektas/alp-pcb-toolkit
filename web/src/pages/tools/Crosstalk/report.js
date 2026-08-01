@@ -29,12 +29,21 @@ function inputRows(f, text) {
     }))
 }
 
-// FEXT bloğu: ekrandaki iki dallanmanın (hesaplandı / hesaplanmadı) aynısı.
+// FEXT bloğu: ekrandaki dallanmaların (hesaplandı / hesaplanmadı / çözücü
+// bekliyor ya da hata verdi) aynısı. Çözücü kaynaklıysa E_Z ve çözücünün
+// Z_odd/Z_even karşılaştırma satırları da rapora girer (F3).
 function fextRows(r, text) {
   if (!r.fext.available) {
     return [
       { label: text.table.fextHead, value: text.table.fextNotComputed },
-      { label: text.table.reason, value: text.table.reasonNoModal },
+      {
+        label: text.table.reason,
+        value: r.fextPending
+          ? text.table.reasonPending
+          : r.fextSolverError
+            ? text.table.reasonSolverError
+            : text.table.reasonNoModal,
+      },
     ]
   }
   return [
@@ -43,6 +52,16 @@ function fextRows(r, text) {
       label: text.table.modalEps,
       value: `${fmt(r.fext.epsEffOdd, 4)} · ${fmt(r.fext.epsEffEven, 4)}`,
     },
+    ...(r.solverPair
+      ? [
+        { label: text.table.modalSource, value: r.solverPair.model },
+        { label: text.table.fextEz, value: text.pct(fmt(r.solverPair.convergence.coarsePct, 2)) },
+        {
+          label: text.table.solverZ,
+          value: `${fmtRes(r.solverPair.Zodd, 4)} · ${fmtRes(r.solverPair.Zeven, 4)}`,
+        },
+      ]
+      : []),
     { label: text.table.modalDelayDiff, ...splitFormatted(fmtEng(r.fext.modalDelayDiff, 's', 5)) },
     { label: text.table.Vfext, ...splitFormatted(fmtEng(r.fext.Vfext, 'V', 5)) },
     { label: text.table.fextPct, value: text.pct(fmt(r.fext.fextPct, 5)) },

@@ -14,7 +14,7 @@ import {
 import { commonText } from '../../../data/uiText'
 import {
   STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, STRUCT_GCPW,
-  REASON_NO_SOLUTION, REASON_SOLVER_ONLY,
+  REASON_NO_SOLUTION,
 } from './model'
 
 export function getText(lang) {
@@ -360,6 +360,20 @@ thickness is real geometry.`,
         tr: `İnce ızgara ${mesh}; sonuç iki yoğunlukla üretilir, fark E_Z olarak raporlanır.`,
         en: `Fine grid ${mesh}; the result is produced at two densities and the difference is reported as E_Z.`,
       }),
+      solverSynthesis: (solvedBy, evals) => t({
+        tr: `Genişlik, kök arama ÇÖZÜCÜNÜN İÇİNDE koşturularak bulundu (${solvedBy}; ${evals} `
+          + 'alan çözümü değerlendirmesi, ince yoğunluk). Kapanışta bulunan geometri tam '
+          + 'analizden geçirildi — tablodaki sayılar o kapanış analizidir.',
+        en: `The width was found by running the root search INSIDE the solver (${solvedBy}; `
+          + `${evals} field-solution evaluations, fine density). The geometry found was then put `
+          + 'through a full analysis — the numbers in the table are that closing analysis.',
+      }),
+      solverSynthesisPending: t({
+        tr: 'Genişlik aranıyor: kök arama çözücünün içinde koşuyor (her adım bir alan çözümü). '
+          + 'Sonuç çözüm bitince gelir.',
+        en: 'The width is being searched: the root search runs inside the solver (each step is '
+          + 'a field solution). The result appears when it finishes.',
+      }),
     },
 
     validity: [
@@ -450,17 +464,6 @@ thickness is real geometry.`,
     },
 
     reasonText: (reason) => {
-      if (reason === REASON_SOLVER_ONLY) {
-        return t({
-          tr: 'Grounded coplanar waveguide için sentez bu fazda yok: yapının kapalı formu '
-            + 'yazılmadı ve alan çözücü kök arama döngüsüne sokulmuyor. Analiz modunda genişliği '
-            + 'elle değiştirip çözücü sonucunu izleyin.',
-          en: 'Synthesis is not available for the grounded coplanar waveguide in this phase: '
-            + 'the structure has no closed form and the field solver is not put inside the '
-            + 'root-search loop. Use analysis mode, adjust the width manually and watch the '
-            + 'solver result.',
-        })
-      }
       if (reason === REASON_NO_SOLUTION) {
         return t({
           tr: 'Bu yığınla hedef empedans fiziksel genişlik aralığında elde edilemiyor. Dielektrik '
@@ -497,6 +500,16 @@ thickness is real geometry.`,
               en: `For ${structLabel[r.structure]}, the field solver gives Z₀ = ${fmtRes(fs.Z0, 4)}, εeff = ${fmt(fs.epsEff, 4)}, propagation delay ${fmt(fs.tpd * 1e9, 4)} ps/mm.`,
             }),
           })
+          if (r.target != null && fs.W != null) {
+            const errPct = (100 * (fs.Z0 - r.target)) / r.target
+            out.push({
+              level: 'ok',
+              text: t({
+                tr: `${fmtRes(r.target, 3)} hedefi için genişlik ${fmtEng(fs.W, 'm', 4)} bulundu; kök arama çözücünün içinde koştu (${fs.search.evals} alan çözümü) ve kapanış analizi hedeften ${pct(fmtPct(errPct))} sapıyor.`,
+                en: `The width found for the ${fmtRes(r.target, 3)} target is ${fmtEng(fs.W, 'm', 4)}; the root search ran inside the solver (${fs.search.evals} field solutions) and the closing analysis deviates ${pct(fmtPct(errPct))} from the target.`,
+              }),
+            })
+          }
           out.push({
             level: ez >= FS_CONVERGENCE_WARN_PCT ? 'warn' : 'ok',
             text: ez >= FS_CONVERGENCE_WARN_PCT

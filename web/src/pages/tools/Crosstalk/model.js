@@ -4,7 +4,13 @@
 // DİKKAT — bu ekran spec §7.6'yı UYGULAMIYOR. §7.6 çok iletkenli iletim hattı
 // çözümü istiyor (kapasitans matrisi 2B alan çözücüden, L = μ₀ε₀·C₀⁻¹,
 // G ≈ ω·tanδ·C, aggressor sinyali FFT → her frekansta e^(−Mℓ) → IFFT).
-// Alan çözücü olmadığı için hiçbir adımı yapılamıyor.
+// Alan çözücü F2'den beri kapasitans matrisini VERİYOR; uygulanmayan kısım
+// FFT'li çok iletkenli dalga biçimi rotasıdır ve brif 09 F3.1'e göre de bu
+// fazın kapsamı değildir — istenirse ayrı brif.
+//
+// F3: FEXT'in modal εeff girdisi artık çözücüden de gelebilir (fextMode
+// 'solver'): çift geometrisi worker'da çözülür, modal değerler kestirime
+// buradan akar. Kestirimin kendisi (K_b, L_sat, V_FEXT) değişmedi.
 //
 // Burada yalnızca lib/signalIntegrity.js içindeki mevcut fonksiyonlar çağrılır;
 // bu dosyada tek bir denklem tanımlanmaz. Kestirimin sınırlarını ekrana taşımak
@@ -21,11 +27,16 @@ export const REASON_GEOMETRY = 'geometry'
 export const REASON_COUPLING = 'coupling'
 export const REASON_CROSSTALK = 'crosstalk'
 
-// FEXT modal hız farkına bağlıdır ve hiçbir mevcut motor bunu vermez.
-// Bu yüzden modal εeff alanları zorunlu değildir; ayrı bir seçim arkasında
-// durur ve yalnızca seçilirse zorunlu olur.
+// FEXT modal hız farkına bağlıdır; değerler ya elle girilir ('on' — alan
+// çözücü raporundan/üretici verisinden) ya da çift geometrisi verilip
+// çözücüden hesaplatılır ('solver', F3). Kapalı formdan türetilmez.
 export const FEXT_OFF = 'off'
 export const FEXT_ON = 'on'
+export const FEXT_SOLVER = 'solver'
+
+export const FEXT_STRUCT_MICROSTRIP = 'microstrip'
+export const FEXT_STRUCT_STRIPLINE = 'stripline'
+export const FEXT_STRUCTURES = [FEXT_STRUCT_MICROSTRIP, FEXT_STRUCT_STRIPLINE]
 
 export const INITIAL_FORM = {
   ...INITIAL_EPS_FORM,
@@ -43,6 +54,12 @@ export const INITIAL_FORM = {
   fextMode: FEXT_OFF,
   epsOdd: '',
   epsEven: '',
+  // Çözücü kaynağının çift geometrisi: W ve S ekrandaki kuplaj alanlarından
+  // gelir (aynı çift), yalnız düşey yığın burada sorulur.
+  fextStructure: FEXT_STRUCT_MICROSTRIP,
+  fextH: '0.2', fextHu: 'mm',
+  fextT: '35', fextTu: 'µm',
+  fextEpsR: '4.2',
 }
 
 const PLAIN = { '': 1 }
@@ -83,10 +100,41 @@ export function formFields(f, labels = {}) {
       { key: 'epsOdd', label: L('epsOdd'), unit: '', table: PLAIN, min: 1 },
       { key: 'epsEven', label: L('epsEven'), unit: '', table: PLAIN, min: 1 },
     ]),
+    // Çözücü kaynağı: çiftin düşey yığını. W ve S yukarıdaki kuplaj
+    // alanlarından okunur — iki ayrı geometri girilmez, kestirimin 3W
+    // kontrolüyle çözücü aynı çifti görür.
+    when(f.fextMode === FEXT_SOLVER, [
+      { key: 'fextH', label: L('fextH'), unitKey: 'fextHu', table: DIM, min: 0 },
+      { key: 'fextT', label: L('fextT'), unitKey: 'fextTu', table: DIM, min: 0, allowZero: true },
+      { key: 'fextEpsR', label: L('fextEpsR'), unit: '', table: PLAIN, min: 1 },
+    ]),
   ])
 }
 
-export function compute(f, labels = {}) {
+// FEXT kaynağı çözücüyken worker'a gidecek iş — ekran useFieldSolver'a
+// geçirir. Form eksik/geçersizken null: iş başlatılmaz.
+export function fextSolverJob(f, labels = {}) {
+  if (f.fextMode !== FEXT_SOLVER) return null
+  const read = readForm(f, formFields(f, labels))
+  if (!read.ok || read.ambiguous.length) return null
+  const v = read.values
+  return {
+    kind: 'pair',
+    structure: f.fextStructure === FEXT_STRUCT_STRIPLINE
+      ? FEXT_STRUCT_STRIPLINE
+      : FEXT_STRUCT_MICROSTRIP,
+    W: v.W,
+    S: v.S,
+    height: v.fextH,
+    t: v.fextT,
+    epsR: v.fextEpsR,
+  }
+}
+
+// `fieldResult`, FEXT kaynağı çözücüyken worker'ın BİTMİŞ sonucudur
+// (fieldDifferentialPair zarfı; yoksa null). Modal εeff'ler oradan akar;
+// çözüm sürerken FEXT "hesaplanıyor" durumundadır, sayı uydurulmaz.
+export function compute(f, labels = {}, fieldResult = null) {
   const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
@@ -105,7 +153,11 @@ export function compute(f, labels = {}) {
   const coupling = nextCoupling({ Zeven: v.Zeven, Zodd: v.Zodd })
   if (coupling.error) return { ok: false, reason: REASON_COUPLING }
 
-  const fextOn = f.fextMode === FEXT_ON
+  const solverMode = f.fextMode === FEXT_SOLVER
+  const solverPair = solverMode && fieldResult && !fieldResult.error ? fieldResult : null
+  const modalOdd = f.fextMode === FEXT_ON ? v.epsOdd : solverPair ? solverPair.epsEffOdd : null
+  const modalEven = f.fextMode === FEXT_ON ? v.epsEven : solverPair ? solverPair.epsEffEven : null
+
   const r = crosstalk({
     Zeven: v.Zeven,
     Zodd: v.Zodd,
@@ -113,8 +165,8 @@ export function compute(f, labels = {}) {
     tr: v.tr,
     coupledLength: v.len,
     Vagg: v.Vagg,
-    epsEffOdd: fextOn ? v.epsOdd : null,
-    epsEffEven: fextOn ? v.epsEven : null,
+    epsEffOdd: modalOdd,
+    epsEffEven: modalEven,
   })
   if (r.error) return { ok: false, reason: REASON_CROSSTALK }
 
@@ -122,7 +174,13 @@ export function compute(f, labels = {}) {
     ok: true,
     eps,
     geom,
-    fextOn,
+    fextOn: f.fextMode !== FEXT_OFF,
+    fextMode: f.fextMode,
+    // Çözücü zarfı yorum/rapor için taşınır: modal değerlerin kaynağı,
+    // E_Z ve girilen Z_odd/Z_even ile tutarlılık karşılaştırması buradan.
+    solverPair,
+    fextSolverError: solverMode && fieldResult && fieldResult.error ? fieldResult.error : null,
+    fextPending: solverMode && !fieldResult,
     W: v.W,
     S: v.S,
     Zeven: v.Zeven,

@@ -23,11 +23,23 @@ export const STRUCTURES = [STRUCT_MICROSTRIP, STRUCT_STRIPLINE]
 export const MODE_ANALYSIS = 'ana'
 export const MODE_SYNTHESIS = 'syn'
 
+// Sentezde spec §6.8.2 W veya S'ten birinin sabitlenmesini ister (tek hedef,
+// iki bilinmeyen → sonsuz çözüm). İki dal iki ayrı rotadan çözülür:
+//   - S sabit → W: kuplajsız kapalı form tohumu (hedef Z₀ = Z_diff/2),
+//     çözücü bulunan geometriyi TEK SEFER doğrular (F2 rotası).
+//   - W sabit → S: aralığa bağlı senkron model yok; kök arama ÇÖZÜCÜNÜN
+//     İÇİNDE koşar (fieldSolveSpacingForZdiff, worker'da — brif 09 F3,
+//     karar #10 ölçümle açıldı).
+export const FIX_WIDTH = 'width'
+export const FIX_SPACING = 'spacing'
+export const FIXED_OPTIONS = [FIX_SPACING, FIX_WIDTH]
+
 export const REASON_INCOMPLETE = 'incomplete'
 export const REASON_NO_SOLUTION = IMP_ERR_NO_SOLUTION
 
 export const INITIAL_FORM = {
   structure: STRUCT_MICROSTRIP,
+  fixed: FIX_SPACING,
 
   W: '0.2', Wu: 'mm',
   S: '0.2', Su: 'mm',
@@ -45,11 +57,6 @@ const DIM = { mm: LENGTH.mm, 'µm': LENGTH['µm'], um: LENGTH.um, mil: LENGTH.mi
 
 // Etiketler `labels` ile çağıran taraftan gelir (geçerli dilde, text.js'ten);
 // `lib/` bunları bilmez. Etiket verilmezse alan anahtarı gösterilir.
-//
-// Sentezde spec §6.8.2 W veya S'ten birinin sabitlenmesini ister. F2'de
-// yalnız "S sabit → W ara" sunulur: senkron katmanda S'e bağlı bir model
-// kalmadı (ampirik kuplaj söküldü) ve çözücünün kök döngüsüne sokulması F3
-// kapsamı (karar #10). Aralık sentezi çözücü döngüsüyle F3'te açılır.
 export function formFields(f, mode, labels = {}) {
   const L = (key) => labels[key] ?? key
   return fieldsFor([
@@ -57,16 +64,22 @@ export function formFields(f, mode, labels = {}) {
       { key: 'H', label: L('H'), unitKey: 'Hu', table: DIM, min: 0 },
       { key: 't', label: L('t'), unitKey: 'tu', table: DIM, min: 0, allowZero: true },
       { key: 'epsR', label: L('epsR'), unit: '', table: PLAIN, min: 1 },
-      { key: 'S', label: L('S'), unitKey: 'Su', table: DIM, min: 0 },
     ],
     when(mode === MODE_ANALYSIS, [
       { key: 'W', label: L('W'), unitKey: 'Wu', table: DIM, min: 0 },
+      { key: 'S', label: L('S'), unitKey: 'Su', table: DIM, min: 0 },
     ]),
     when(mode === MODE_SYNTHESIS, [
       // Birim seçici yok: tek birim `unit` ile sabitlenir, çarpan units.js
       // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
       { key: 'target', label: L('target'), unit: 'Ω', table: RESISTANCE, min: 0 },
       { key: 'tolerancePct', label: L('tolerancePct'), unit: '%', table: PCT, min: 0 },
+    ]),
+    when(mode === MODE_SYNTHESIS && f.fixed === FIX_SPACING, [
+      { key: 'S', label: L('S'), unitKey: 'Su', table: DIM, min: 0 },
+    ]),
+    when(mode === MODE_SYNTHESIS && f.fixed === FIX_WIDTH, [
+      { key: 'W', label: L('W'), unitKey: 'Wu', table: DIM, min: 0 },
     ]),
   ])
 }
@@ -78,15 +91,17 @@ export function compute(mode, f, labels = {}) {
 
   const v = read.values
   const structure = f.structure
+  const fixWidth = mode === MODE_SYNTHESIS && f.fixed === FIX_WIDTH
 
   let W = v.W
   let solvedBy = null
   let solvedFor = null
 
-  if (mode === MODE_SYNTHESIS) {
-    // Kapalı form kuplajı bilmez: tohum, kuplajsız Z_diff ≈ 2·Z₀ varsayımıyla
-    // tek uçlu Z₀ = hedef/2 için çözülür. Gerçek Z_diff'i ve hedeften sapmayı
-    // alan çözücü bulunan geometride TEK SEFER hesaplar (ekran, worker).
+  if (mode === MODE_SYNTHESIS && !fixWidth) {
+    // S sabit → W: kapalı form kuplajı bilmez; tohum, kuplajsız
+    // Z_diff ≈ 2·Z₀ varsayımıyla tek uçlu Z₀ = hedef/2 için çözülür. Gerçek
+    // Z_diff'i ve hedeften sapmayı alan çözücü bulunan geometride TEK SEFER
+    // hesaplar (ekran, worker).
     const solved = solveWidthForZ0({
       target: v.target / 2,
       H: v.H, b: v.H, t: v.t, epsR: v.epsR,
@@ -96,6 +111,11 @@ export function compute(mode, f, labels = {}) {
     W = solved.W
     solvedBy = solved.solvedBy
     solvedFor = 'W'
+  }
+  if (fixWidth) {
+    // W sabit → S: kök arama çözücünün içinde koşar (worker, F3). S burada
+    // bilinmez; sonuç zarfı (S dahil) çözücüden gelir.
+    solvedFor = 'S'
   }
 
   // Kapalı form tek uçlu taban: çözücü gelene kadarki referans ve
@@ -107,20 +127,26 @@ export function compute(mode, f, labels = {}) {
 
   return {
     ok: true, mode, structure,
-    W, S: v.S, H: v.H, t: v.t, epsR: v.epsR,
+    W, S: fixWidth ? null : v.S, H: v.H, t: v.t, epsR: v.epsR,
     Z0: single.Z0,
     epsEff: single.epsEff,
     singleMethod: single.method,
     singleModel: single.model,
     singleInRange: single.inRange,
     tpdPsPerMm: single.tpd * 1e9,
-    ratio: v.S / v.H,
+    ratio: fixWidth ? null : v.S / v.H,
     target: mode === MODE_SYNTHESIS ? v.target : null,
     acceptPct: mode === MODE_SYNTHESIS ? v.tolerancePct : null,
     solvedBy, solvedFor,
-    // Ekranın useFieldSolver'a geçirdiği iş — worker sözleşmesiyle aynı adlar
-    solverParams: {
-      kind: 'pair', structure, W, S: v.S, height: v.H, t: v.t, epsR: v.epsR,
-    },
+    // Ekranın useFieldSolver'a geçirdiği iş — worker sözleşmesiyle aynı adlar.
+    // W sabit sentezde iş, kök aramayı çözücüde koşturan 'pair-spacing'tir.
+    solverParams: fixWidth
+      ? {
+        kind: 'pair-spacing', structure,
+        W, S: 0, height: v.H, t: v.t, epsR: v.epsR, target: v.target,
+      }
+      : {
+        kind: 'pair', structure, W, S: v.S, height: v.H, t: v.t, epsR: v.epsR,
+      },
   }
 }

@@ -36,8 +36,17 @@ function inputRows(f, mode, text) {
 export function buildReportSection({ mode, f, r, text, fs }) {
   if (!r.ok) return null
 
+  // W sabit sentezde S çözücüden gelir (ekranla aynı kaynak)
+  const sFinal = r.S ?? (fs ? fs.S : null)
+
   const big = r.mode === MODE_SYNTHESIS
-    ? { label: text.bigResultWidth, ...splitFormatted(fmtEng(r.W, 'm', 4)), emphasis: true }
+    ? (r.solvedFor === 'S'
+      ? {
+        label: text.bigResultSpacing,
+        ...(fs ? splitFormatted(fmtEng(fs.S, 'm', 4)) : { value: text.bigResultPending }),
+        emphasis: true,
+      }
+      : { label: text.bigResultWidth, ...splitFormatted(fmtEng(r.W, 'm', 4)), emphasis: true })
     : {
       label: text.bigResultZdiff,
       ...(fs ? splitFormatted(fmtRes(fs.Zdiff, 4)) : { value: text.bigResultPending }),
@@ -61,8 +70,11 @@ export function buildReportSection({ mode, f, r, text, fs }) {
       : []),
     { label: text.table.z0, ...splitFormatted(fmtRes(r.Z0, 5)) },
     { label: text.table.twiceZ0, ...splitFormatted(fmtRes(2 * r.Z0, 5)) },
-    { label: text.table.ratio, value: fmt(r.ratio, 4) },
-    { label: text.table.geometry, value: `${fmtEng(r.W, 'm', 4)} · ${fmtEng(r.S, 'm', 4)}` },
+    ...(sFinal != null ? [{ label: text.table.ratio, value: fmt(sFinal / r.H, 4) }] : []),
+    {
+      label: text.table.geometry,
+      value: `${fmtEng(r.W, 'm', 4)} · ${sFinal != null ? fmtEng(sFinal, 'm', 4) : text.bigResultPending}`,
+    },
     ...(fs ? [{ label: text.solver.rowMethod, value: fs.model }] : []),
   ]
 

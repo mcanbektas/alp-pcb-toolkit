@@ -7,15 +7,28 @@
 
 import { fmt, fmtEng } from '../../../lib/num'
 import { pick } from '../../../lib/i18n'
-import { EPS_GEOMETRY, EPS_STRUCT_STRIPLINE } from '../../../lib/epsEff'
-import { REASON_EPS, LAYER_SAME, LAYER_DIFFERENT } from './model'
+import { commonText } from '../../../data/uiText'
+import { EPS_GEOMETRY, EPS_SOLVER, EPS_STRUCT_STRIPLINE } from '../../../lib/epsEff'
+import { REASON_EPS, REASON_EPS_PENDING, LAYER_SAME, LAYER_DIFFERENT } from './model'
 
 export function getText(lang) {
   const t = (dict) => pick(dict, lang)
+  // Yüzde işaretinin yeri dile göre değişir; kalıp uiText.js'te tek yerdedir.
+  const { pct } = commonText(lang)
 
   // εeff kaynağı ortak bileşenden geliyor; yorum metni bu ekranda da aynı
   // terminolojiyi kullanır. Ekranlar arasında paylaşılan durum yoktur.
   const epsSourceNote = (eps) => {
+    if (eps.source === EPS_SOLVER) {
+      return {
+        level: 'ok',
+        text: t({
+          tr: `εeff = ${fmt(eps.epsEff, 4)} alan çözücüden geldi: çiftin odd modu (diferansiyel işaretin yayıldığı mod). Even mod ${fmt(eps.epsEffEven, 4)}; yakınsama farkı E_Z = ${pct(fmt(eps.convergence.coarsePct, 2))}. Gecikme ve skew bu odd mod değeriyle hesaplanıyor.`,
+          en: `εeff = ${fmt(eps.epsEff, 4)} came from the field solver: the pair’s odd mode (the mode the differential signal propagates in). Even mode ${fmt(eps.epsEffEven, 4)}; convergence difference E_Z = ${pct(fmt(eps.convergence.coarsePct, 2))}. Delay and skew are computed with this odd-mode value.`,
+        }),
+      }
+    }
+
     if (eps.source !== EPS_GEOMETRY) {
       return {
         level: 'warn',
@@ -120,6 +133,7 @@ export function getText(lang) {
       epsW: t({ tr: 'Hat genişliği (W)', en: 'Trace width (W)' }),
       epsH: t({ tr: 'Dielektrik yüksekliği (H)', en: 'Dielectric height (H)' }),
       epsT: t({ tr: 'Bakır kalınlığı (t)', en: 'Copper thickness (t)' }),
+      epsS: t({ tr: 'Hatlar arası boşluk (S)', en: 'Trace-to-trace gap (S)' }),
     },
 
     bigLabel: t({ tr: 'Diferansiyel skew', en: 'Differential skew' }),
@@ -131,14 +145,14 @@ export function getText(lang) {
 
     methodNote: t({
       tr: 'Skew doğrudan iki hattın gecikme farkından hesaplanır; hesabın doğruluğu tümüyle εeff '
-        + 'değerinin doğruluğuna bağlıdır. εeff geometriden kapalı formla geldiyse sonuç da kapalı '
-        + 'form güven seviyesindedir, alan çözücü sonucu değildir. Bu ekran skew bütçesi üretmez — '
-        + 'izin verilen değer dışarıdan girilir.',
+        + 'değerinin doğruluğuna bağlıdır ve sonuç, εeff kaynağının güven seviyesini taşır: kapalı '
+        + 'form kapalı form kadar, alan çözücü (çift, odd mod) çözücü kadar güvenilirdir. Bu ekran '
+        + 'skew bütçesi üretmez — izin verilen değer dışarıdan girilir.',
       en: 'Skew is computed directly from the delay difference of the two lines; the accuracy of '
-        + 'the result depends entirely on the accuracy of the εeff value. If εeff came from '
-        + 'geometry via a closed form, the result carries closed-form confidence — it is not a '
-        + 'field-solver result. This screen does not produce a skew budget — the allowed value is '
-        + 'entered from outside.',
+        + 'the result depends entirely on the accuracy of the εeff value, and the result carries '
+        + 'the confidence level of the εeff source: a closed form is as reliable as a closed form, '
+        + 'the field solver (pair, odd mode) as reliable as the solver. This screen does not '
+        + 'produce a skew budget — the allowed value is entered from outside.',
     }),
 
     // Spec eksikliği açıkça görünür kılınıyor: §7.5'in denklem blokları markdown
@@ -187,10 +201,16 @@ export function getText(lang) {
     no: t({ tr: 'hayır', en: 'no' }),
 
     reasonText: (reason) => {
+      if (reason === REASON_EPS_PENDING) {
+        return t({
+          tr: 'Alan çözücü çiftin modal εeff değerlerini hesaplıyor… Sonuç çözüm bitince gelir; sayı uydurulmaz.',
+          en: 'The field solver is computing the pair’s modal εeff values… The result appears when it finishes; no number is invented.',
+        })
+      }
       if (reason === REASON_EPS) {
         return t({
-          tr: 'Efektif dielektrik sabiti hesaplanamadı. Elle giriyorsanız değer 1\'den büyük olmalı; geometriden hesaplıyorsanız W, H ve εr değerlerini kontrol edin.',
-          en: 'The effective dielectric constant could not be computed. If entering it manually the value must be greater than 1; if computing from geometry, check the W, H and εr values.',
+          tr: 'Efektif dielektrik sabiti hesaplanamadı. Elle giriyorsanız değer 1\'den büyük olmalı; geometriden ya da çözücüden hesaplıyorsanız W, S, H ve εr değerlerini kontrol edin.',
+          en: 'The effective dielectric constant could not be computed. If entering it manually the value must be greater than 1; if computing from geometry or the solver, check the W, S, H and εr values.',
         })
       }
       return t({
@@ -413,15 +433,24 @@ filled in by guesswork.`,
     }),
 
     detail: {
-      epsSource: (eps) => (eps.source === 'geometry'
-        ? t({
-          tr: `εeff kaynağı: geometriden hesaplandı (${eps.model}, yöntem \`${eps.method}\`).`,
-          en: `εeff source: computed from geometry (${eps.model}, method \`${eps.method}\`).`,
-        })
-        : t({
+      epsSource: (eps) => {
+        if (eps.source === 'solver') {
+          return t({
+            tr: `εeff kaynağı: alan çözücü, çiftin odd modu (${eps.model}, yöntem \`${eps.method}\`).`,
+            en: `εeff source: field solver, the pair's odd mode (${eps.model}, method \`${eps.method}\`).`,
+          })
+        }
+        if (eps.source === 'geometry') {
+          return t({
+            tr: `εeff kaynağı: geometriden hesaplandı (${eps.model}, yöntem \`${eps.method}\`).`,
+            en: `εeff source: computed from geometry (${eps.model}, method \`${eps.method}\`).`,
+          })
+        }
+        return t({
           tr: 'εeff kaynağı: elle girildi.',
           en: 'εeff source: entered manually.',
-        })),
+        })
+      },
       sameLayer: (same) => t({
         tr: `Hatlar aynı katmanda mı: ${same ? 'evet' : 'hayır'}. Motor bu kararı iki εeff değerinin eşitliğine bakarak verir; farklı katman seçilip aynı değer girilirse sonuç aynı katman gibi çıkar.`,
         en: `Lines on the same layer: ${same ? 'yes' : 'no'}. The engine makes this decision by comparing the two εeff values for equality; if different layers are selected but the same value is entered, the result comes out as same-layer.`,

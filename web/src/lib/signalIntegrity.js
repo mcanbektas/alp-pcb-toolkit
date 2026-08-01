@@ -171,9 +171,11 @@ export function skew({ lengthP, lengthN, epsEff, epsEffN = null, skewMax = null 
 // bir sayı, sonuç vermemekten kötüdür.
 // Bu yüzden: kullanıcı odd ve even mod εeff değerlerini girerse hesaplanır,
 // girmezse hesaplanmaz — Z_odd/Z_even'den türetilmez, uydurulmaz.
-// F2'den beri alan çözücü (fieldDifferentialPair) modal εeff'leri veriyor;
-// kullanıcı DiffPair ekranından okuyup buraya elle taşıyabilir. Değerlerin
-// çözücüden otomatik akması brif 09 F3 kapsamıdır.
+// F3'ten beri akış bağlı: Crosstalk ekranı FEXT kaynağı "çözücüden"
+// seçildiğinde modal εeff'leri worker'daki fieldDifferentialPair'den alır ve
+// bu fonksiyona geçirir; Skew ekranı da εeff kaynağı olarak çözücünün odd mod
+// değerini kullanabilir (lib/epsEff.js → EPS_SOLVER). Elle giriş rotası
+// duruyor (üretici yığın raporu için).
 
 // Geometri karşılaştırması bağıl toleransla yapılır: kullanıcı W = 0.2 mm ve
 // S = 0.6 mm girdiğinde 3·W ile S kayan noktada son bitte ayrışır ve tam

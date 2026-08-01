@@ -24,9 +24,6 @@ export const MODE_SYNTHESIS = 'syn'
 
 export const REASON_INCOMPLETE = 'incomplete'
 export const REASON_NO_SOLUTION = IMP_ERR_NO_SOLUTION
-// Grounded CPW sentezi bu fazda yok: kapalı form yok, çözücünün kök
-// döngüsüne girmesi F3 (karar #10). Ekran bu nedeni açıklayıcı metne çevirir.
-export const REASON_SOLVER_ONLY = 'solver-only-synthesis'
 
 export const INITIAL_FORM = {
   structure: STRUCT_MICROSTRIP,
@@ -103,21 +100,28 @@ export function compute(mode, f, labels = {}) {
   // CPW'de bakır kalınlığı kapalı forma girmiyor; yine de raporlanır
   const geom = { H: v.H, b: v.b, S: v.S, t: v.t, epsR: v.epsR }
 
-  // Grounded CPW: kapalı form yok, sentez de yok (REASON_SOLVER_ONLY).
-  // Analizde sayı üretilmez; geometri ve worker işi döner, ekran sonucu
-  // çözücüden basar.
+  // Grounded CPW: kapalı form yok; sayı üretilmez, geometri ve worker işi
+  // döner, ekran sonucu çözücüden basar. Sentezde kök arama da ÇÖZÜCÜNÜN
+  // içinde koşar (fieldSolveGcpwWidthForZ0 — F3, karar #10 ölçümle açıldı);
+  // W burada bilinmez, çözücü zarfından gelir.
   if (structure === STRUCT_GCPW) {
-    if (mode === MODE_SYNTHESIS) return { ok: false, reason: REASON_SOLVER_ONLY }
+    const synthesis = mode === MODE_SYNTHESIS
     return {
       ok: true, mode, structure,
       solverOnly: true,
-      W: v.W, height: v.H, t: v.t, epsR: v.epsR, S: v.S,
-      target: null,
+      W: synthesis ? null : v.W,
+      height: v.H, t: v.t, epsR: v.epsR, S: v.S,
+      target: synthesis ? v.target : null,
       solvedBy: null,
       tolerance: null,
-      solverParams: {
-        kind: 'gcpw', structure, W: v.W, S: v.S, height: v.H, t: v.t, epsR: v.epsR,
-      },
+      solverParams: synthesis
+        ? {
+          kind: 'gcpw-width', structure,
+          W: 0, S: v.S, height: v.H, t: v.t, epsR: v.epsR, target: v.target,
+        }
+        : {
+          kind: 'gcpw', structure, W: v.W, S: v.S, height: v.H, t: v.t, epsR: v.epsR,
+        },
     }
   }
 

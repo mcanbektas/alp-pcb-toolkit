@@ -10,13 +10,14 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import useFieldSolver from '../../../hooks/useFieldSolver'
 import { statusChip, worstLevel, countAtLevel } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
 import { fmt, fmtEng } from '../../../lib/num'
 import SkewSchematic from './schematic'
-import { INITIAL_FORM, LAYERS, LAYER_DIFFERENT, compute, buildSweep } from './model'
+import { INITIAL_FORM, LAYERS, LAYER_DIFFERENT, compute, buildSweep, solverJob } from './model'
 import { getText } from './text'
 import { buildReportSection } from './report'
 
@@ -33,7 +34,13 @@ export default function Skew() {
   const text = useMemo(() => getText(lang), [lang])
   const ui = useMemo(() => commonText(lang), [lang])
 
-  const r = useMemo(() => compute(f, text.fieldLabels), [f, text])
+  // εeff kaynağı "alan çözücüden (çift)" seçilirse odd mod εeff worker'dan
+  // gelir (brif 09 F3.1); o ana kadar sonuç paneli bekleme durumunu gösterir.
+  const solver = useFieldSolver(useMemo(() => solverJob(f, text.fieldLabels), [f, text]))
+  const r = useMemo(
+    () => compute(f, text.fieldLabels, solver.status === 'done' ? solver.result : null),
+    [f, text, solver],
+  )
   const s = useMemo(() => buildSweep(r), [r])
   const notes = useMemo(() => text.commentary(r), [r, text])
 
@@ -75,7 +82,7 @@ export default function Skew() {
 
           <SkewSchematic ref={schematicRef} r={r} text={text.schematic} />
 
-          <EpsEffFields f={f} set={set} />
+          <EpsEffFields f={f} set={set} solver />
 
           <Segmented
             label={text.layerGroup}

@@ -6,11 +6,16 @@
 
 import { readForm, fieldsFor, when } from '../../../lib/fields'
 import { LENGTH, TIME, fromSI } from '../../../lib/units'
-import { epsFields, resolveEpsEff, INITIAL_EPS_FORM, psPerMm } from '../../../lib/epsEff'
+import {
+  epsFields, resolveEpsEff, epsSolverParams, INITIAL_EPS_FORM, psPerMm,
+} from '../../../lib/epsEff'
 import { skew } from '../../../lib/signalIntegrity'
 
 export const REASON_INCOMPLETE = 'incomplete'
 export const REASON_EPS = 'eps'
+// εeff kaynağı alan çözücü ve worker henüz bitirmedi: hata değil, bekleme.
+// Ekran hesap yerine "çözücü hesaplıyor" durumunu gösterir (brif 09 F3).
+export const REASON_EPS_PENDING = 'eps-pending'
 
 export const LAYER_SAME = 'same'
 export const LAYER_DIFFERENT = 'diff'
@@ -53,12 +58,23 @@ export function formFields(f, labels = {}) {
   ])
 }
 
-export function compute(f, labels = {}) {
+// εeff kaynağı çözücüyken worker'a gidecek iş — ekran useFieldSolver'a
+// geçirir. Form eksik/geçersizken null: iş başlatılmaz.
+export function solverJob(f, labels = {}) {
+  const read = readForm(f, formFields(f, labels))
+  if (!read.ok || read.ambiguous.length) return null
+  return epsSolverParams(read.values, f)
+}
+
+// `fieldResult`, εeff kaynağı çözücüyken worker'ın BİTMİŞ sonucudur
+// (yoksa null → REASON_EPS_PENDING). Diğer kaynaklarda yok sayılır.
+export function compute(f, labels = {}, fieldResult = null) {
   const read = readForm(f, formFields(f, labels))
   if (read.ambiguous.length) return { ok: false, ambiguous: read.ambiguous }
   if (!read.ok) return { ok: false, reason: REASON_INCOMPLETE, invalid: read.invalid }
 
-  const eps = resolveEpsEff(read.values, f)
+  const eps = resolveEpsEff(read.values, f, fieldResult)
+  if (eps.pending) return { ok: false, reason: REASON_EPS_PENDING }
   if (eps.error) return { ok: false, reason: REASON_EPS }
 
   const v = read.values

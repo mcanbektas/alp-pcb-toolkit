@@ -69,6 +69,12 @@ export default function SingleEnded() {
     return statusChip(worst, countAtLevel(levels, worst), ui)
   }, [r, notes, ui])
 
+  // gcpw sentezinde W çözücüden gelir; şematik o değeri gösterir, çözüm
+  // sürerken W basılmaz.
+  const rDisplay = r.ok && r.solverOnly && r.W == null && fs
+    ? { ...r, W: fs.W }
+    : r
+
   const chartSeries = s ? [{ key: 'z0', name: 'Z₀', tone: toneClass(0), points: s.points }] : []
 
   return (
@@ -82,7 +88,7 @@ export default function SingleEnded() {
         <section className="panel">
           <h2>{ui.inputs}</h2>
 
-          <ImpedanceSchematic ref={schematicRef} r={r} form={f} text={text.schematic} />
+          <ImpedanceSchematic ref={schematicRef} r={rDisplay} form={f} text={text.schematic} />
 
           <Segmented
             label={text.modeGroup}
@@ -204,14 +210,20 @@ export default function SingleEnded() {
                 </div>
                 <div className="value">
                   {r.mode === MODE_SYNTHESIS
-                    ? fmtEng(r.W, 'm', 4)
+                    ? r.solverOnly
+                      ? (fs ? fmtEng(fs.W, 'm', 4) : text.bigResultPending)
+                      : fmtEng(r.W, 'm', 4)
                     : r.solverOnly
                       ? (fs ? fmtRes(fs.Z0, 4) : text.bigResultPending)
                       : fmtRes(r.Z0, 4)}
                 </div>
                 <div className="alt">
                   {r.mode === MODE_SYNTHESIS
-                    ? <>Z₀ = {fmtRes(r.Z0, 4)} &nbsp;·&nbsp; {text.targetWord} {fmtRes(r.target, 3)}</>
+                    ? r.solverOnly
+                      ? (fs
+                        ? <>Z₀ = {fmtRes(fs.Z0, 4)} &nbsp;·&nbsp; {text.targetWord} {fmtRes(r.target, 3)}</>
+                        : <>{text.targetWord} {fmtRes(r.target, 3)}</>)
+                      : <>Z₀ = {fmtRes(r.Z0, 4)} &nbsp;·&nbsp; {text.targetWord} {fmtRes(r.target, 3)}</>
                     : r.solverOnly
                       ? (fs
                         ? <>W = {fmtEng(r.W, 'm', 4)} &nbsp;·&nbsp; εeff = {fmt(fs.epsEff, 4)}</>
@@ -257,7 +269,7 @@ export default function SingleEnded() {
                         </tr>
                         <tr>
                           <td>{text.table.W}</td>
-                          <td>{fmtEng(r.W, 'm', 5)}</td>
+                          <td>{fmtEng(r.W ?? fs.W, 'm', 5)}</td>
                         </tr>
                         <tr>
                           <td>{text.table.height}</td>
@@ -362,6 +374,12 @@ export default function SingleEnded() {
                   <li>{text.detail.solverOnly}</li>
                   {fs && (
                     <li>{text.detail.solverMesh(`${fs.mesh.fine.nx}×${fs.mesh.fine.ny}`)}</li>
+                  )}
+                  {r.mode === MODE_SYNTHESIS && fs && (
+                    <li>{text.detail.solverSynthesis(fs.solvedBy, fs.search.evals)}</li>
+                  )}
+                  {r.mode === MODE_SYNTHESIS && !fs && (
+                    <li>{text.detail.solverSynthesisPending}</li>
                   )}
                 </>
               ) : (

@@ -9,8 +9,9 @@ import { EPS0 } from './units'
 import { microstrip, stripline, coplanarWaveguide, ellipticRatio, METHOD_FIELD_SOLVER } from './impedance'
 import {
   fieldMicrostrip, fieldStripline, fieldDifferentialPair, fieldGroundedCpw,
+  fieldSolveSpacingForZdiff, fieldSolveGcpwWidthForZ0,
   parallelPlateCapacitance,
-  FS_ERR_INVALID, FS_CONVERGENCE_WARN_PCT,
+  FS_ERR_INVALID, FS_ERR_NO_SOLUTION, FS_CONVERGENCE_WARN_PCT,
 } from './fieldSolver'
 
 const relErr = (x, ref) => Math.abs(x - ref) / Math.abs(ref)
@@ -315,6 +316,74 @@ describe('grounded CPW (F2, spec §6.7 — yalnız çözücüyle sunulur)', () =
     expect(fieldGroundedCpw({ ...g, S: 0 }).error).toBe(FS_ERR_INVALID)
     expect(fieldGroundedCpw({ ...g, H: 0 }).error).toBe(FS_ERR_INVALID)
   })
+})
+
+// ---------------------------------------------------------------------------
+// F3 — solver-in-loop sentez (karar #10 ölçümle açıldı)
+
+describe('solver-in-loop sentez — hedef Z_diff için aralık (F3)', () => {
+  const g = { structure: 'microstrip', W: 0.2e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 }
+
+  it('100 Ω hedef için aralık bulur; kapanış analizi hedefe oturur', () => {
+    const t0 = Date.now()
+    const r = fieldSolveSpacingForZdiff({ ...g, target: 100 })
+    const ms = Date.now() - t0
+    expect(r.error).toBeUndefined()
+    expect(r.S).toBeGreaterThan(0)
+    // Varsayılan form S=0.2 mm'de Z_diff ≈ 110.7; 100 Ω hedefi daha sıkı çift ister
+    expect(r.S).toBeLessThan(0.2e-3)
+    // Arama ince ızgarada koşar: kapanış Z_diff'i hedefe kök toleransı içinde oturur
+    expect(100 * Math.abs(r.Zdiff - 100) / 100).toBeLessThan(0.5)
+    expect(r.capacitanceMatrix).toBe(true)
+    expect(r.method).toBe(METHOD_FIELD_SOLVER)
+    expect(r.search.evals).toBeGreaterThan(0)
+    console.log(`fieldSolveSpacingForZdiff: ${ms} ms, ${r.search.evals} değerlendirme, S=${(r.S * 1e6).toFixed(1)} µm, Zdiff=${r.Zdiff.toFixed(2)}`)
+    expect(ms).toBeLessThan(10000)
+  }, 30000)
+
+  it('fiziksel aralıkta elde edilemeyen hedefte hata döner, tahmin üretmez', () => {
+    const t0 = Date.now()
+    const r = fieldSolveSpacingForZdiff({ ...g, target: 400 })
+    const ms = Date.now() - t0
+    expect(r.error).toBe(FS_ERR_NO_SOLUTION)
+    expect(r.S).toBeUndefined()
+    // Erken çıkış: iki uç değerlendirmesinden fazlası koşmamalı
+    console.log(`ulaşılamayan Zdiff hedefi: ${ms} ms`)
+    expect(ms).toBeLessThan(5000)
+  }, 30000)
+
+  it('geçersiz girdi { error } döner', () => {
+    expect(fieldSolveSpacingForZdiff({ ...g, target: 0 }).error).toBe(FS_ERR_INVALID)
+    expect(fieldSolveSpacingForZdiff({ ...g, W: 0, target: 100 }).error).toBe(FS_ERR_INVALID)
+  })
+})
+
+describe('solver-in-loop sentez — hedef Z₀ için grounded CPW genişliği (F3)', () => {
+  const g = { S: 0.3e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 }
+
+  it('50 Ω hedef için genişlik bulur; kapanış analizi hedefe oturur', () => {
+    const t0 = Date.now()
+    const r = fieldSolveGcpwWidthForZ0({ ...g, target: 50 })
+    const ms = Date.now() - t0
+    expect(r.error).toBeUndefined()
+    expect(r.W).toBeGreaterThan(0)
+    // W=0.4 mm'de Z₀ ≈ 44.4; 50 Ω hedefi daha dar hat ister
+    expect(r.W).toBeLessThan(0.4e-3)
+    expect(100 * Math.abs(r.Z0 - 50) / 50).toBeLessThan(0.5)
+    expect(r.structure).toBe('gcpw')
+    expect(r.search.evals).toBeGreaterThan(0)
+    console.log(`fieldSolveGcpwWidthForZ0: ${ms} ms, ${r.search.evals} değerlendirme, W=${(r.W * 1e6).toFixed(1)} µm, Z0=${r.Z0.toFixed(2)}`)
+    expect(ms).toBeLessThan(10000)
+  }, 30000)
+
+  it('elde edilemeyen hedefte hata döner', () => {
+    const t0 = Date.now()
+    const r = fieldSolveGcpwWidthForZ0({ ...g, target: 400 })
+    const ms = Date.now() - t0
+    expect(r.error).toBe(FS_ERR_NO_SOLUTION)
+    console.log(`ulaşılamayan gcpw hedefi: ${ms} ms`)
+    expect(ms).toBeLessThan(5000)
+  }, 30000)
 })
 
 describe('F2 performans ölçümü (karar dosyasına geçirilir)', () => {
