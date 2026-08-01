@@ -201,12 +201,15 @@ doğrudan etkiler: künye de saklanacak mı, yoksa yalnız bölümler mi?
 
 ---
 
-# F. Brif 09 — 2B alan çözücü (en büyük iş)
+# F. Brif 09 — 2B alan çözücü (en büyük iş — BRİF HAZIR)
 
 **Model/effort:** Fable/Opus 5, high-max. `docs/brifler/09-alan-cozucu.md`.
 
-UCUZLATILAMAZ — yanlış sayısal sonuç sessizce yanlış mühendislik kararı
-üretir. Diğer brifler bitmeden açma.
+Brif 2026-08-01'de tam spec'e genişletildi ve ÜÇ oturuma bölündü (F1 çekirdek
+çözücü + tek uçlu, F2 diferansiyel matris + grounded CPW, F3 SI beslemesi).
+Yöntem kararları brifte VERİLDİ (tarayıcıda saf JS FDM, enerji rotası,
+even/odd uyarım, worker bağı hooks'ta); taze oturum karar tartışmaz, uygular.
+UCUZLATILAMAZ — yanlış sayısal sonuç sessizce yanlış mühendislik kararı üretir.
 
 ---
 

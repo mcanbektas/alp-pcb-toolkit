@@ -33,11 +33,12 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 | 6 | 06-sunucu-gunu.md | Sonnet 5 | medium | Sunucu ALINDIĞINDA |
 | 7 | 07-en-urller.md | Opus 5 | high | ✓ bitti (2026-07-31) — karar: `docs/en-url-karari.md` |
 | 8 | 08-rapor-snapshot.md | Opus 5 | medium | ✓ bitti (2026-08-01) — karar: `docs/rapor-snapshot-karari.md` |
-| 9 | 09-alan-cozucu.md | Fable/Opus 5 | high/max | Sayısal doğruluk — ucuzlatılamaz |
+| 9 | 09-alan-cozucu.md | Fable/Opus 5 | high/max | BRİF HAZIR (2026-08-01) — üç oturum: F1/F2/F3, yöntem kararları verildi |
 | 10 | **10-kalan-isler.md** | bölüm başına | bölüm başına | **TAZE OTURUMUN GİRİŞ NOKTASI** — kalan her şey burada sıralı |
 
-1-5 ve 7 sunucusuz yapıldı. 6 sunucu gününe bağlı. 8-9 büyük/ertelenmiş —
-briflerinde yalnız karar çerçevesi var, ayrıntılı spec o gün yazılır.
+1-5, 7 ve 8 sunucusuz yapıldı. 6 sunucu gününe bağlı. 9 hazır bekliyor:
+brifi artık karar çerçevesi değil, uygulanabilir spec — taze oturum
+`09-alan-cozucu.md`'yi okuyup F1'den başlar.
 
 ## Açık bulgular — A, B ve C KAPANDI (2026-07-31)
 
