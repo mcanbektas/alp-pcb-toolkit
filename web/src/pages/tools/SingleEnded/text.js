@@ -7,6 +7,10 @@
 import { fmt, fmtEng, fmtRes, fmtPct } from '../../../lib/num'
 import { pick } from '../../../lib/i18n'
 import { METHOD_CLOSED_FORM } from '../../../lib/impedance'
+import {
+  FS_CONVERGENCE_GOOD_PCT, FS_CONVERGENCE_WARN_PCT,
+  FS_ERR_NO_CONVERGENCE, FS_ERR_GRID,
+} from '../../../lib/fieldSolver'
 import { commonText } from '../../../data/uiText'
 import { STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, REASON_NO_SOLUTION } from './model'
 
@@ -14,6 +18,36 @@ export function getText(lang) {
   const t = (dict) => pick(dict, lang)
   // Yüzde işaretinin yeri dile göre değişir; kalıp uiText.js'te tek yerdedir.
   const { pct } = commonText(lang)
+
+  // Çözücü metin yardımcıları hem `solver` grubunda hem yorumlarda kullanılır;
+  // mantık tek kopya kalsın diye burada tanımlıdır
+  const solverConvLevel = (pctVal) => {
+    if (pctVal < FS_CONVERGENCE_GOOD_PCT) {
+      return t({ tr: 'yüksek yakınsama', en: 'high convergence' })
+    }
+    if (pctVal < FS_CONVERGENCE_WARN_PCT) {
+      return t({ tr: 'kabul edilebilir', en: 'acceptable' })
+    }
+    return t({ tr: 'mesh yetersiz', en: 'insufficient mesh' })
+  }
+  const solverErrNote = (code) => {
+    if (code === FS_ERR_NO_CONVERGENCE) {
+      return t({
+        tr: 'Alan çözücü bu geometride yakınsamadı; çözücü satırı gösterilmiyor. Kapalı form sonucu geçerliliğini korur.',
+        en: 'The field solver did not converge for this geometry; the solver row is not shown. The closed-form result remains valid.',
+      })
+    }
+    if (code === FS_ERR_GRID) {
+      return t({
+        tr: 'Geometri oranları alan çözücünün ızgara sınırını aşıyor; çözücü satırı gösterilmiyor.',
+        en: 'The geometry ratios exceed the field solver’s grid limit; the solver row is not shown.',
+      })
+    }
+    return t({
+      tr: 'Alan çözücü bu girdiyle sonuç veremedi.',
+      en: 'The field solver could not produce a result for this input.',
+    })
+  }
 
   const structLabel = {
     [STRUCT_MICROSTRIP]: t({ tr: 'Yüzey microstrip', en: 'Surface microstrip' }),
@@ -48,6 +82,26 @@ export function getText(lang) {
       en: 'Quick equation mode — closed form. The result recommended for production must come '
         + 'from a field solver; this result must not be treated as production-ready.',
     }),
+
+    // Alan çözücü satırı (brif 09 F1). Ana sonuç kapalı formdan gelmeye devam
+    // eder; çözücü sonucu mount'tan sonra ayrı satırlarda gösterilir.
+    solver: {
+      pending: t({
+        tr: 'Alan çözücü hesaplıyor…',
+        en: 'The field solver is computing…',
+      }),
+      rowZ0: t({ tr: 'Alan çözücü — Z₀', en: 'Field solver — Z₀' }),
+      rowZ0Syn: t({
+        tr: 'Alan çözücü doğrulaması — Z₀',
+        en: 'Field-solver check — Z₀',
+      }),
+      rowEps: t({ tr: 'Alan çözücü — εeff', en: 'Field solver — εeff' }),
+      rowConv: t({ tr: 'Yakınsama farkı E_Z', en: 'Convergence difference E_Z' }),
+      rowDiff: t({ tr: 'Kapalı formdan fark', en: 'Difference from closed form' }),
+      rowMethod: t({ tr: 'Çözücü yöntemi', en: 'Solver method' }),
+      convLevel: solverConvLevel,
+      errNote: solverErrNote,
+    },
 
     fields: {
       structure: { label: t({ tr: 'Yapı', en: 'Structure' }) },
@@ -333,7 +387,10 @@ WITHOUT a bottom reference plane.`,
       })
     },
 
-    commentary: (r) => {
+    // solver isteğe bağlıdır (useFieldSolver durumu); rapor rotası vermez —
+    // rapor senkron kurulur ve çözücü satırı F1'de rapora girmez
+    // (docs/alan-cozucu-karari.md §7).
+    commentary: (r, solver) => {
       if (!r.ok) return []
       const out = []
 
@@ -355,18 +412,50 @@ WITHOUT a bottom reference plane.`,
         })
       }
 
-      out.push({
-        level: r.method === METHOD_CLOSED_FORM ? 'warn' : 'ok',
-        text: r.method === METHOD_CLOSED_FORM
-          ? t({
-            tr: 'Sonuç kapalı form denklemlerinden geliyor. Alan çözücü henüz yok; bu değer üretim için doğrulanmış sayılmaz.',
-            en: 'The result comes from closed-form equations. There is no field solver yet; this value is not considered verified for production.',
-          })
-          : t({
+      const fs = solver && solver.status === 'done' ? solver.result : null
+      const fsOk = fs && !fs.error
+
+      if (r.method === METHOD_CLOSED_FORM) {
+        out.push({
+          level: 'warn',
+          text: fsOk
+            ? t({
+              tr: 'Ana sonuç kapalı form denklemlerinden; alan çözücü sonucu ayrı satırda gösteriliyor. Üretim kararı için çözücü sonucu ve üretici doğrulaması esastır.',
+              en: 'The main result comes from closed-form equations; the field-solver result is shown on a separate row. For production decisions the solver result and fabricator verification are authoritative.',
+            })
+            : t({
+              tr: 'Sonuç kapalı form denklemlerinden geliyor. Alan çözücü sonucu bu geometri için hesaplanmadı; değer üretim için doğrulanmış sayılmaz.',
+              en: 'The result comes from closed-form equations. No field-solver result was computed for this geometry; the value is not considered verified for production.',
+            }),
+        })
+      } else {
+        out.push({
+          level: 'ok',
+          text: t({
             tr: 'Sonuç alan çözücüden geliyor.',
             en: 'The result comes from a field solver.',
           }),
-      })
+        })
+      }
+
+      if (fsOk) {
+        const diffPct = (100 * (fs.Z0 - r.Z0)) / r.Z0
+        const ez = fs.convergence.coarsePct
+        out.push({
+          level: ez >= FS_CONVERGENCE_WARN_PCT ? 'warn' : 'ok',
+          text: ez >= FS_CONVERGENCE_WARN_PCT
+            ? t({
+              tr: `Alan çözücü: Z₀ = ${fmtRes(fs.Z0, 4)} (kapalı formdan fark ${pct(fmtPct(diffPct))}). Yakınsama farkı E_Z = ${pct(fmt(ez, 2))} — mesh bu geometri için yetersiz, çözücü sonucu bu hâliyle üretim kararına dayanak yapılmamalıdır.`,
+              en: `Field solver: Z₀ = ${fmtRes(fs.Z0, 4)} (difference from closed form ${pct(fmtPct(diffPct))}). Convergence difference E_Z = ${pct(fmt(ez, 2))} — the mesh is insufficient for this geometry; do not base a production decision on this solver result as it stands.`,
+            })
+            : t({
+              tr: `Alan çözücü: Z₀ = ${fmtRes(fs.Z0, 4)} (kapalı formdan fark ${pct(fmtPct(diffPct))}), εeff = ${fmt(fs.epsEff, 4)}. Yakınsama farkı E_Z = ${pct(fmt(ez, 2))} — ${solverConvLevel(ez)}.`,
+              en: `Field solver: Z₀ = ${fmtRes(fs.Z0, 4)} (difference from closed form ${pct(fmtPct(diffPct))}), εeff = ${fmt(fs.epsEff, 4)}. Convergence difference E_Z = ${pct(fmt(ez, 2))} — ${solverConvLevel(ez)}.`,
+            }),
+        })
+      } else if (fs && fs.error) {
+        out.push({ level: 'warn', text: solverErrNote(fs.error) })
+      }
 
       if (!r.inRange) {
         out.push({

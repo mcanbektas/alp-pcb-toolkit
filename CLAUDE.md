@@ -678,11 +678,16 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   okunmaz, açık hata döner.
 
 - **Kapalı form empedans sonuçları üretime hazır gibi sunulmaz.** `docs/spec.md` §6.1 üretim
-  için önerilen sonucun alan çözücüden gelmesini istiyor; çözücü henüz yok. Bu yüzden empedans
-  fonksiyonları `{ Z0, epsEff, method }` döndürür ve `method` alanı `'closed-form'` |
-  `'field-solver'` değerini taşır. Arayüz `method`'a bakarak etiketi yazar; çözücü sonradan
-  aynı arayüzün arkasına girdiğinde UI değişmez. Kapalı form sonucu daima **"hızlı denklem
-  modu"** etiketiyle ve geçerlilik sınırlarıyla birlikte gösterilir.
+  için önerilen sonucun alan çözücüden gelmesini istiyor. Empedans fonksiyonları
+  `{ Z0, epsEff, method }` döndürür ve `method` alanı `'closed-form'` | `'field-solver'`
+  değerini taşır; arayüz `method`'a bakarak etiketi yazar. Kapalı form sonucu daima
+  **"hızlı denklem modu"** etiketiyle ve geçerlilik sınırlarıyla birlikte gösterilir.
+  **Alan çözücünün F1 fazı yazıldı** (`lib/fieldSolver.js` — 2B FDM, tek uçlu
+  microstrip/stripline; kararlar ve ölçümler `docs/alan-cozucu-karari.md`): saf ve senkron
+  motor, Web Worker bağı `hooks/useFieldSolver.js`'te, `SingleEnded` sonucun yanında ayrı
+  çözücü satırı basar. Ana sayı hâlâ kapalı formdan; diferansiyel (F2) ve sinyal bütünlüğü
+  beslemesi (F3) sonraki oturumlarda. Çözücü sonucu `convergence.coarsePct` (E_Z, spec §6.3)
+  taşır ve E_Z ≥ %1 iken warn'suz gösterilmez.
 
 - **İdeal CPW denklemi grounded CPW sonucu olarak sunulmaz** (`docs/spec.md` §6.7). Grounded
   CPW alan çözücü fazına bırakılmıştır; kapalı form fazında bu yapı hiç sunulmaz.

@@ -10,11 +10,12 @@ import LineChart, { ChartLegend, ChartDataTable, toneClass } from '../../../comp
 import ReportDialog from '../../../components/ReportDialog'
 import SaveToProject from '../../../components/SaveToProject'
 import useToolForm from '../../../hooks/useToolForm'
+import useFieldSolver from '../../../hooks/useFieldSolver'
 import { statusChip, worstLevel, countAtLevel } from '../../../lib/statusChip'
 import useSavedCalculation from '../../../hooks/useSavedCalculation'
 import { useLang } from '../../../hooks/useLang'
 import { commonText } from '../../../data/uiText'
-import { fmt, fmtEng, fmtRes } from '../../../lib/num'
+import { fmt, fmtEng, fmtRes, fmtPct } from '../../../lib/num'
 import ImpedanceSchematic from './schematic'
 import {
   INITIAL_FORM, STRUCTURES, STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW,
@@ -41,7 +42,17 @@ export default function SingleEnded() {
 
   const r = useMemo(() => compute(mode, f, text.fieldLabels), [mode, f, text])
   const s = useMemo(() => buildSweep(r), [r])
-  const notes = useMemo(() => text.commentary(r), [r, text])
+
+  // Alan çözücü, bulunan geometriyi worker'da TEK SEFER analiz eder (sentezde
+  // de: çözücü köke sokulmaz, sonucu doğrulama satırı olarak gelir). CPW F1
+  // kapsamı dışında — grounded CPW yalnız çözücü fazında sunulur (spec §6.7).
+  const solver = useFieldSolver(
+    r.ok && r.structure !== STRUCT_CPW
+      ? { structure: r.structure, W: r.W, height: r.height, t: r.t, epsR: r.epsR }
+      : null,
+  )
+
+  const notes = useMemo(() => text.commentary(r, solver), [r, solver, text])
 
   // Rapor bölümü SVG'siz kurulur; ReportDialog indirme anında canlı DOM'dan
   // (aşağıdaki ref'ler) şematik ve grafiği okuyup satır içine çevirir.
@@ -200,6 +211,9 @@ export default function SingleEnded() {
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
               <p className="method-note">{text.methodNote}</p>
+              {solver.status === 'running' && (
+                <p className="method-note">{text.solver.pending}</p>
+              )}
 
               <table className="result-table">
                 <tbody>
@@ -252,6 +266,30 @@ export default function SingleEnded() {
                     <td>{text.table.model}</td>
                     <td>{r.model}</td>
                   </tr>
+                  {solver.status === 'done' && !solver.result.error && (
+                    <>
+                      <tr className="mini-head">
+                        <td>{r.mode === MODE_SYNTHESIS ? text.solver.rowZ0Syn : text.solver.rowZ0}</td>
+                        <td>{fmtRes(solver.result.Z0, 5)}</td>
+                      </tr>
+                      <tr>
+                        <td>{text.solver.rowEps}</td>
+                        <td>{fmt(solver.result.epsEff, 5)}</td>
+                      </tr>
+                      <tr>
+                        <td>{text.solver.rowConv}</td>
+                        <td>{ui.pct(fmt(solver.result.convergence.coarsePct, 2))}</td>
+                      </tr>
+                      <tr>
+                        <td>{text.solver.rowDiff}</td>
+                        <td>{ui.pct(fmtPct((100 * (solver.result.Z0 - r.Z0)) / r.Z0))}</td>
+                      </tr>
+                      <tr>
+                        <td>{text.solver.rowMethod}</td>
+                        <td>{solver.result.method}</td>
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
 
