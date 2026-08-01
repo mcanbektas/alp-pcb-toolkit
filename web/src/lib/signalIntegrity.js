@@ -163,15 +163,17 @@ export function skew({ lengthP, lengthN, epsEff, epsEffN = null, skewMax = null 
 // açıkça yalnızca geometrik bir kontroldür — crosstalk hesabı değildir,
 // sağlandığında "crosstalk yoktur" denmez.
 //
-// FEXT modal hız farkına bağlıdır ve mevcut motorların hiçbiri bunu vermez.
-// impedance.js diferansiyel çift bloğu tek bir εeff kullanır; bu iki modun
-// hızını özdeş varsaymak demektir ve o varsayım altında FEXT katsayısı
+// FEXT modal hız farkına bağlıdır; kapalı form motorları bunu vermez —
+// tek εeff varsayımı altında FEXT katsayısı
 //   K_f = −½·t_pd·(C_m/C − L_m/L)
 // özdeş olarak SIFIR çıkar. Microstrip'te FEXT genelde baskın crosstalk
 // olduğundan bu sıfır yanlıştır; kapalı formdan geliyormuş gibi sunulan yanlış
 // bir sayı, sonuç vermemekten kötüdür.
 // Bu yüzden: kullanıcı odd ve even mod εeff değerlerini girerse hesaplanır,
 // girmezse hesaplanmaz — Z_odd/Z_even'den türetilmez, uydurulmaz.
+// F2'den beri alan çözücü (fieldDifferentialPair) modal εeff'leri veriyor;
+// kullanıcı DiffPair ekranından okuyup buraya elle taşıyabilir. Değerlerin
+// çözücüden otomatik akması brif 09 F3 kapsamıdır.
 
 // Geometri karşılaştırması bağıl toleransla yapılır: kullanıcı W = 0.2 mm ve
 // S = 0.6 mm girdiğinde 3·W ile S kayan noktada son bitte ayrışır ve tam

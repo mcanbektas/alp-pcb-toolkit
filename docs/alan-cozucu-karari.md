@@ -1,12 +1,15 @@
-# 2B alan çözücüsü kararı — 2026-08-01 (F1)
+# 2B alan çözücüsü kararı — 2026-08-01 (F1 + F2)
 
-Brif 09'un F1 oturumu. Kapsam: çekirdek elektrostatik çözücü (`web/src/lib/fieldSolver.js`),
-tek uçlu microstrip (gerçek bakır kalınlığıyla) ve simetrik/asimetrik stripline;
-doğrulama rejiminin F1 kalemleri; `SingleEnded` ekranına worker üzerinden bağ.
-Diferansiyel (even/odd) rota F2'de, sinyal bütünlüğü beslemesi F3'te.
+Brif 09'un F1 ve F2 oturumları. F1 kapsamı: çekirdek elektrostatik çözücü
+(`web/src/lib/fieldSolver.js`), tek uçlu microstrip (gerçek bakır kalınlığıyla)
+ve simetrik/asimetrik stripline; doğrulama rejiminin F1 kalemleri;
+`SingleEnded` ekranına worker üzerinden bağ. F2 kapsamı (§8'den itibaren):
+diferansiyel even/odd matris rotası, ampirik kuplajın sökümü, grounded CPW ve
+raporlara çözücü satırları. Sinyal bütünlüğü beslemesi F3'te.
 
-Bu dosya brifle verilen ön kararları, oturumda yapılan ölçümleri ve ölçümün
-DEVİRDİĞİ tek kararı (doğrusal çözücü: SOR → PCG) kaydeder.
+Bu dosya brifle verilen ön kararları, oturumlarda yapılan ölçümleri ve ölçümün
+DEVİRDİĞİ kararları (F1: doğrusal çözücü SOR → PCG; F2: grounded CPW tam alan
+→ yarım alan) kaydeder.
 
 ## 1. Ön kararlar (brifle verildi, uygulandı)
 
@@ -138,8 +141,155 @@ durumunda tahmin üretmez.
 - **Rapor bölümüne çözücü satırı girmedi.** Rapor `r`'den (senkron kapalı form)
   kurulur; çözücü sonucu asenkron gelir. Rapora girmesi F2'de, diferansiyel
   rotayla birlikte ele alınacak — o fazda `differentialPair()`in kendisi çözücü
-  rotasına geçtiği için rapor sözleşmesi zaten açılacak.
-- **CPW / grounded CPW yok** (F2 — §6.7 kuralı: grounded CPW yalnız çözücüyle sunulur).
+  rotasına geçtiği için rapor sözleşmesi zaten açılacak. *(F2'de kapandı — §12.)*
+- **CPW / grounded CPW yok** (F2 — §6.7 kuralı: grounded CPW yalnız çözücüyle
+  sunulur). *(F2'de kapandı — §10.)*
 - **Sentez döngüsünde çözücü yok** (karar #10; F3'te ölçümle).
 - **Yük integrali iç tutarlılık testi yazılmadı** (karar #4 izin veriyor ama
   gerektirmiyor; enerji rotası çapalarla doğrulandı).
+
+---
+
+# F2 — diferansiyel matris rotası, söküm, grounded CPW (2026-08-01)
+
+## 8. Even/odd rotası: yarım alan, iki uyarım
+
+Spec §6.8.1'in kapasitans matrisi rotası `fieldDifferentialPair()` olarak
+yazıldı (karar #5 uygulandı). Çift, simetri düzlemi (x = 0) üzerinden YARIM
+alanda çözülür: even uyarımda düzlem doğal Neumann duvarı, odd uyarımda
+Dirichlet(0). Kilit gözlem — türetmesi kodda da yorumla duruyor: yarım alanın
+bağ enerjisi toplamı (analyzeGrid'in `C`'si, `EPS0·Σg·ΔV²` = `2U_yarım/V²`)
+tam yapının `U_full = 2U_yarım` enerjisine eşittir ve V = 1'de hat başına mod
+kapasitesinin KENDİSİDİR:
+
+    even: Q₁ = C₁₁ + C₁₂ = C_even = U_full
+    odd:  Q₁ = C₁₁ − C₁₂ = C_odd  = U_full
+
+Yani F1'in analyzeGrid'i hiç değişmeden even/odd için yeniden kullanılır;
+yalnız `box.left` bayrağı değişir. §6.8.1'in dört formülü birebir:
+`Z_odd = 1/(c·√(C_odd·C₀,odd))`, `Z_even = 1/(c·√(C_even·C₀,even))`,
+`Z_diff = 2·Z_odd`, `Z_common = Z_even/2`. `C₁₁ = (C_even+C_odd)/2` ve
+`C₁₂ = (C_even−C_odd)/2` (Maxwell işaretiyle negatif) yalnız raporlama alanı.
+
+Izgara: x-ekseni simetri düzleminden başlar; düzlem işareti `min(S/2, H+t)/d`
+hedef boyla, hat kenarları (S/2 ve S/2+W) kenar tekilliği boyuyla (hFine/8)
+işaretlenir. `minFeature` kümesine S/2 eklendi — dar aralıkta alan aralıkta
+yoğunlaşıyor (brifin "çift aralığı çevresinde sıklaştırma" maddesi). Duvar
+çarpanı tek uçlu kararları izler: microstrip 15×, stripline 5×; ilgili boyut
+`max(dikey ölçü, S/2+W)`.
+
+E_Z sözleşmesi: `convergence.coarsePct` iki modun KÖTÜSÜDÜR — kullanıcıya
+giden sayı Z_diff olsa da Z_even/Z_common da sunuluyor; eşiğin altındaki bir
+mod ötekinin yetersizliğini maskelememeli. Mod başına E_Z `mesh.even/odd`
+altında ayrıca taşınır.
+
+Doğrulama (varsayılan yoğunluk, DiffPair varsayılan formu W=S=H=0.2 mm,
+t=35 µm, εr=4.2):
+
+- Sıra: Z_odd (55.35) < tek uçlu çözücü Z₀ (67.35) < Z_even (78.23);
+  C_odd > C_even; C₁₂ < 0. Mod E_Z'leri: odd %0.16, even %0.11.
+- Kuplaj sönmesi: S/H = 20'de Z_odd ≈ Z_even ≈ Z₀ (< %1) ve t=0'da Z_diff,
+  kapalı form 2·Z₀'a %−0.78 (sözleşme %2.5).
+- Stripline çifti: her iki mod εeff = εr (< 1e−6) — homojen dielektrik çapası.
+- Modal ayrışma (FEXT girdisi, F3): microstrip çiftinde εeff_odd = 2.54,
+  εeff_even = 3.14 — F1 motorunun veremediği modal hız farkı artık ölçülüyor.
+- Duvar duyarlılığı: çarpan 2× → Z_diff oynaması eşiğin altında (testte).
+
+## 9. Ampirik kuplajın sökümü — ekran ve sentez sonuçları
+
+`couplingFactor`, `COUPLING`, `METHOD_EMPIRICAL`, `differentialPair()` ve
+`solveSpacingForZdiff()` impedance.js'ten SİLİNDİ (brif F2.2 "çözücü rotası
+doğrulandıktan sonra sökülür" — doğrulama §8'deki kalemler). Tarama sonucu:
+tek kullanıcı DiffPair modeliydi; Crosstalk, Z_odd/Z_even'i zaten kullanıcıdan
+alıyor, sinyal bütünlüğü motoruna bağımlılık yoktu. `COUPLING_SOURCE_NOTE`
+çözücü sonuçlarında basılmıyor (brif F2.2); yerine E_Z ve üretici doğrulaması
+uyarıları var.
+
+Sökümün üç zorunlu sonucu (üçü de bilinçli, gerekçeli):
+
+1. **DiffPair ana sonucu asenkron.** Çiftin sayıları yalnız çözücüden gelir;
+   ilk render'da (hydration kuralı) "hesaplanıyor…" ve kapalı form TEK UÇLU
+   taban (Z₀, kuplajsız 2·Z₀ referansı) görünür. `singleMethod` alanı brifin
+   dediği gibi kapalı form olarak kalır.
+2. **Parametrik grafik kaldırıldı.** Eğri ampirik motordan çiziliyordu;
+   kaynağı olmayan bir eğri çözücü sonucunun yanında duramaz. Nokta başına
+   alan çözümü (70 nokta × ~350 ms) bütçe dışıdır; kaba yoğunluklu çözücü
+   taraması ölçümüyle birlikte F3 adayı. Rapordaki chart alanı null.
+3. **Sentez daraldı: yalnız "aralık sabit → genişlik ara".** S'e bağlı senkron
+   model kalmadı; W sentezi kuplajsız tohumla çözülür (hedef Z₀ = Z_diff/2,
+   `solveWidthForZ0`), bulunan geometriyi çözücü TEK SEFER analiz eder ve
+   hedeften gerçek sapma (errPct) çözücü sonucundan gösterilir — kabul sınırı
+   dışındaysa danger. "Genişlik sabit → aralık ara" F2'de SUNULMUYOR: aralığı
+   veren tek yol çözücünün kök döngüsüne girmesiydi ve karar #10 bunu F3'e,
+   ölçüm şartına bağlıyor. Ekran bunu teknik detayda açıkça söylüyor;
+   kullanıcı aralığı elle değiştirip çözücü satırını izleyebiliyor.
+
+Eski davranışa göre kayıp değil kazanım: ampirik rota "S'i çözüyor" görünüyordu
+ama çözdüğü sayı doğrulanamayan katsayılardan geliyordu. Şimdi sunulan her
+sayı ya kapalı form (etiketli taban) ya çözücü.
+
+## 10. Grounded CPW — yarım alan (ölçüm kararı devirdi)
+
+`fieldGroundedCpw()`: orta hat V=1, iki yanda coplanar toprak (hat katmanında,
+kalınlık t) ve altta referans düzlemi. Topraklar yanal olarak topraklı kutu
+duvarına kadar uzanır — "geniş coplanar toprak" varsayımı; sonlu toprak
+genişliği ve stitching via 2B kesitte modellenmez (ekran metni ve geçerlilik
+listesi bunu söylüyor). SingleEnded'e dördüncü yapı seçeneği olarak girdi
+(katalogda yeni ekran yok — brif F2.3); ideal CPW seçeneği ve onun "alt
+düzlemsiz" uyarısı aynen duruyor.
+
+Ölçüm kararı devirdi: tam alan kurulumu 537 ms ölçtü (hedef < 300 ms). Yapı
+x = 0 çevresinde simetrik; yarım alan + Neumann duvarıyla çözülüp
+`C = 2·C_yarım`, `Z₀ = Z₀,yarım/2` düzeltmesi uygulandı → 254 ms. εeff ve E_Z
+oran oldukları için düzeltme gerektirmez.
+
+Doğrulama (W=0.4, S=0.3, H=0.2 mm, εr=4.2): Z₀ = 46.02 Ω, εeff = 2.98,
+E_Z %0.11. Limitler: S → 4 mm'de microstrip kapalı formuna %−0.50 yaklaşır
+(sözleşme %2); S daraldıkça Z₀ tekdüze düşer; alt düzlem ideal CPW formülünün
+Z₀'ını beklendiği gibi aşağı çeker (48.5 Ω vs 84.1 Ω — ideal form kalın
+substrat + düzlemsiz varsayar, "ideal form grounded CPW yerine kullanılmaz"
+kuralının sayısal gerekçesi). Duvar duyarlılığı testte.
+
+Grounded CPW'de SENTEZ YOK (`REASON_SOLVER_ONLY`): kapalı form yok,
+solver-in-loop F3. Ekran sentez modunda gerekçeli açıklama basıyor. Kapalı
+form dalı YAZILMADI — §6.7 kuralı korunuyor; formül panelinde denklem değil
+çözücü rotası anlatılıyor.
+
+## 11. Worker sözleşmesi genişledi
+
+`useFieldSolver` parametresi `{ kind: 'single'|'pair'|'gcpw', structure, W,
+S, height, t, epsR }` oldu; iş anahtarına `kind` ve `S` eklendi. İş seçimi
+worker'da (`fieldSolver.worker.js`), parametre üretimi modellerde
+(`r.solverParams`) — ekranlar worker sözleşmesini bilmez. Debounce ve bayat
+iş ayıklama F1'deki gibi.
+
+## 12. Rapor sözleşmesi: çözücü satırları girdi (F1 §7 kapanışı)
+
+`buildReportSection` iki ekranda da `fs` (çözücünün bitmiş, hatasız sonucu)
+alır. İndirme anında çözüm sürüyorsa çözücü satırları rapora GİRMEZ; grounded
+CPW'de ve DiffPair analizinde büyük sonuç o durumda "hesaplanıyor…" değeriyle
+kalır — rapor sayı uydurmaz. Yorumlar (notes) ekranla aynı `commentary(r,
+solver)` kaynağından, rapor anındaki çözücü durumu zarfa sarılarak üretilir.
+
+## 13. Performans (F2 ölçümleri, M-serisi macbook, Node/vitest)
+
+| İş | Süre | Izgara (ince) |
+|---|---|---|
+| fieldDifferentialPair, W=S=H=0.2 mm, t=35 µm (8 çözüm) | ~350 ms | 135×115 ×2 mod |
+| fieldGroundedCpw, t=35 µm (4 çözüm, yarım alan) | ~254 ms | 148×117 |
+| fieldGroundedCpw tam alan (ELENDİ) | ~537 ms | 297×117 |
+
+Çift 300 ms hedefinin üstünde, 1 s tavanının altında; en pahalı durum bu
+(t'li microstrip çifti, iki mod × iki yoğunluk × dielektrik+vakum = 8 çözüm).
+Tavana pay ~3×. WASM tartışması yine açılmadı (karar #2 duruyor).
+
+## 14. F2'de bilerek dışarıda kalanlar
+
+- **Aralık (S) sentezi ve solver-in-loop** — F3, ölçümle (karar #10; §9.3).
+- **Çözücü tabanlı parametrik tarama grafiği** — F3 adayı, bütçe ölçümüyle (§9.2).
+- **Modal εeff'lerin Crosstalk/Skew'e otomatik akışı** — F3.1; çözücü değerleri
+  veriyor, kullanıcı şimdilik elle taşıyor (ekran yorumu yol gösteriyor).
+- **Asimetrik diferansiyel stripline, coplanar diferansiyel çift** — F3.2
+  geometri genişletmeleri; çift F2'de simetrik (`(b−t)/2` yerleşimi) çözülür.
+- **Yarım alan optimizasyonu tek uçlu yapılara uygulanmadı** — tek uçlu
+  microstrip/stripline simetrik ama F1 ölçümleri bütçede; dokunulmadı.

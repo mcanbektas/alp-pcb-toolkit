@@ -12,13 +12,21 @@ import {
 export const STRUCT_MICROSTRIP = 'microstrip'
 export const STRUCT_STRIPLINE = 'stripline'
 export const STRUCT_CPW = 'cpw'
-export const STRUCTURES = [STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW]
+// Grounded CPW yalnız alan çözücüyle sunulur (spec §6.7 — kapalı form dalı
+// YAZILMAZ; ideal CPW denklemi bu yapının sonucu olarak kullanılamaz).
+// compute() bu yapıda sayı üretmez: geometri + solverParams döner, sayılar
+// worker'daki çözücüden gelir (brif 09 F2).
+export const STRUCT_GCPW = 'gcpw'
+export const STRUCTURES = [STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, STRUCT_GCPW]
 
 export const MODE_ANALYSIS = 'ana'
 export const MODE_SYNTHESIS = 'syn'
 
 export const REASON_INCOMPLETE = 'incomplete'
 export const REASON_NO_SOLUTION = IMP_ERR_NO_SOLUTION
+// Grounded CPW sentezi bu fazda yok: kapalı form yok, çözücünün kök
+// döngüsüne girmesi F3 (karar #10). Ekran bu nedeni açıklayıcı metne çevirir.
+export const REASON_SOLVER_ONLY = 'solver-only-synthesis'
 
 export const INITIAL_FORM = {
   structure: STRUCT_MICROSTRIP,
@@ -58,19 +66,19 @@ export function formFields(f, mode, labels = {}) {
       // RESISTANCE tablosundan gelir (yerel çarpan tablosu yazılmaz).
       { key: 'target', label: L('target'), unit: 'Ω', table: RESISTANCE, min: 0 },
     ]),
-    when(structure === STRUCT_MICROSTRIP || structure === STRUCT_CPW, [
+    when(structure === STRUCT_MICROSTRIP || structure === STRUCT_CPW || structure === STRUCT_GCPW, [
       { key: 'H', label: L('H'), unitKey: 'Hu', table: DIM, min: 0 },
     ]),
     when(structure === STRUCT_STRIPLINE, [
       { key: 'b', label: L('b'), unitKey: 'bu', table: DIM, min: 0 },
     ]),
-    when(structure === STRUCT_CPW, [
+    when(structure === STRUCT_CPW || structure === STRUCT_GCPW, [
       { key: 'S', label: L('S'), unitKey: 'Su', table: DIM, min: 0 },
     ]),
-    // CPW ekranı tolerans kontrolünü ve alanlarını hiç göstermez (compute()'un
-    // kendi `structure !== STRUCT_CPW` koşuluyla aynı), yoksa form state'inde
-    // f.tol=true kalmışken rapora görünmeyen dört tolerans girdisi sızar.
-    when(f.tol && structure !== STRUCT_CPW, [
+    // CPW/GCPW ekranı tolerans kontrolünü ve alanlarını hiç göstermez
+    // (compute()'un kendi koşuluyla aynı), yoksa form state'inde f.tol=true
+    // kalmışken rapora görünmeyen dört tolerans girdisi sızar.
+    when(f.tol && structure !== STRUCT_CPW && structure !== STRUCT_GCPW, [
       { key: 'tolW', label: L('tolW'), unit: '%', table: PCT, min: 0, allowZero: true },
       { key: 'tolH', label: L('tolH'), unit: '%', table: PCT, min: 0, allowZero: true },
       { key: 'tolT', label: L('tolT'), unit: '%', table: PCT, min: 0, allowZero: true },
@@ -94,6 +102,24 @@ export function compute(mode, f, labels = {}) {
   const structure = f.structure
   // CPW'de bakır kalınlığı kapalı forma girmiyor; yine de raporlanır
   const geom = { H: v.H, b: v.b, S: v.S, t: v.t, epsR: v.epsR }
+
+  // Grounded CPW: kapalı form yok, sentez de yok (REASON_SOLVER_ONLY).
+  // Analizde sayı üretilmez; geometri ve worker işi döner, ekran sonucu
+  // çözücüden basar.
+  if (structure === STRUCT_GCPW) {
+    if (mode === MODE_SYNTHESIS) return { ok: false, reason: REASON_SOLVER_ONLY }
+    return {
+      ok: true, mode, structure,
+      solverOnly: true,
+      W: v.W, height: v.H, t: v.t, epsR: v.epsR, S: v.S,
+      target: null,
+      solvedBy: null,
+      tolerance: null,
+      solverParams: {
+        kind: 'gcpw', structure, W: v.W, S: v.S, height: v.H, t: v.t, epsR: v.epsR,
+      },
+    }
+  }
 
   let W = v.W
   let solvedBy = null
@@ -130,12 +156,18 @@ export function compute(mode, f, labels = {}) {
     tolerance,
     // ps/mm — sinyal bütünlüğü ekranlarıyla aynı birim
     tpdPsPerMm: r.tpd * 1e9,
+    // İdeal CPW alan çözücü doğrulaması taşımaz (F1 kararı: yapı kataloğunda
+    // ayrı; grounded CPW ayrı seçenek). Diğer yapılar tek uçlu işi taşır.
+    solverParams: structure === STRUCT_CPW
+      ? null
+      : { kind: 'single', structure, W, S: 0, height, t: v.t, epsR: v.epsR },
   }
 }
 
-// Grafik: genişliğe göre empedans
+// Grafik: genişliğe göre empedans. Grounded CPW'de senkron motor yok —
+// nokta başına alan çözümü koşturulamaz, grafik bu yapıda üretilmez.
 export function buildSweep(r) {
-  if (!r.ok) return null
+  if (!r.ok || r.solverOnly) return null
 
   const from = r.W / 10
   const to = r.W * 10

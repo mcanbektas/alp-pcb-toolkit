@@ -3,9 +3,8 @@ import {
   ellipticK, ellipticRatio,
   microstrip, microstripEpsEff, microstripZair,
   stripline, coplanarWaveguide,
-  differentialPair, couplingFactor,
-  solveWidthForZ0, solveSpacingForZdiff, impedanceTolerance,
-  METHOD_CLOSED_FORM, METHOD_EMPIRICAL, IMP_ERR_INVALID, IMP_ERR_NO_SOLUTION,
+  solveWidthForZ0, impedanceTolerance,
+  METHOD_CLOSED_FORM, IMP_ERR_INVALID, IMP_ERR_NO_SOLUTION,
 } from './impedance'
 import { expectErrorShapes } from './errorShape.testkit'
 
@@ -150,73 +149,9 @@ describe('coplanar waveguide', () => {
   })
 })
 
-describe('diferansiyel çift', () => {
-  const g = { structure: 'microstrip', W: mm(0.2), S: mm(0.2), H: mm(0.2), epsR: 4.2 }
-
-  it('Z_diff = 2·Z_odd (spec §16.4)', () => {
-    const r = differentialPair(g)
-    expect(r.Zdiff).toBeCloseTo(2 * r.Zodd, 12)
-  })
-
-  it('Z_common = Z_even / 2', () => {
-    const r = differentialPair(g)
-    expect(r.Zcommon).toBeCloseTo(r.Zeven / 2, 12)
-  })
-
-  it('Z_diff iki tek uçlu empedansın toplamı değildir', () => {
-    const r = differentialPair(g)
-    expect(r.Zdiff).toBeLessThan(2 * r.Z0)
-  })
-
-  it('aralık açıldıkça kuplaj azalır, Z_diff 2·Z0\'a yaklaşır', () => {
-    const tight = differentialPair({ ...g, S: mm(0.1) })
-    const loose = differentialPair({ ...g, S: mm(2) })
-    expect(loose.coupling).toBeLessThan(tight.coupling)
-    expect(loose.Zdiff).toBeGreaterThan(tight.Zdiff)
-    expect(loose.Zdiff).toBeCloseTo(2 * loose.Z0, 1)
-  })
-
-  it('odd mod tek uçlunun altında, even mod üstündedir', () => {
-    const r = differentialPair(g)
-    expect(r.Zodd).toBeLessThan(r.Z0)
-    expect(r.Zeven).toBeGreaterThan(r.Z0)
-  })
-
-  it('stripline yapısı da desteklenir', () => {
-    const r = differentialPair({ ...g, structure: 'stripline' })
-    expect(r.structure).toBe('stripline')
-    expect(r.Zdiff).toBeGreaterThan(0)
-  })
-
-  it('kuplaj katsayısı aralıkla üstel azalır', () => {
-    expect(couplingFactor('microstrip', 0)).toBeCloseTo(0.48, 12)
-    expect(couplingFactor('microstrip', 2)).toBeLessThan(couplingFactor('microstrip', 1))
-  })
-
-  it('çok sıkı kuplajda geçerlilik dışı işaretlenir', () => {
-    expect(differentialPair({ ...g, S: mm(0.02) }).inRange).toBe(false)
-  })
-
-  // Kuplaj katsayısının kaynağı spec'te yok; sonuç kapalı formla aynı kefeye
-  // konmamalı. Bu ayrım arayüzün etiketlemesinin dayanağıdır.
-  it('ampirik kuplaj kapalı formdan ayrı etiketlenir', () => {
-    const r = differentialPair(g)
-    expect(r.method).toBe(METHOD_EMPIRICAL)
-    expect(r.method).not.toBe(METHOD_CLOSED_FORM)
-    // Tek uçlu form gerçekten kapalı formdur ve ayrı taşınır
-    expect(r.singleMethod).toBe(METHOD_CLOSED_FORM)
-  })
-
-  it('spec §6.8.1 kapasitans matrisi rotasının uygulanmadığını bildirir', () => {
-    expect(differentialPair(g).capacitanceMatrix).toBe(false)
-    expect(differentialPair({ ...g, structure: 'stripline' }).capacitanceMatrix).toBe(false)
-  })
-
-  it('sentez sonucu da ampirik etiketi taşır', () => {
-    const r = solveSpacingForZdiff({ target: 100, W: mm(0.2), H: mm(0.2), epsR: 4.2 })
-    expect(r.method).toBe(METHOD_EMPIRICAL)
-  })
-})
+// Diferansiyel çift F2'de bu modülden çıktı: ampirik kuplaj katsayısı söküldü,
+// odd/even empedanslar spec §6.8.1 kapasitans matrisi rotasıyla
+// lib/fieldSolver.js → fieldDifferentialPair()'de (testleri fieldSolver.test.js).
 
 describe('sentez — hedef empedans için genişlik', () => {
   it('50 Ω microstrip genişliği bulur ve geri doğrular', () => {
@@ -243,20 +178,6 @@ describe('sentez — hedef empedans için genişlik', () => {
       const r = solveWidthForZ0({ target, H: mm(0.2), epsR: 4.2 })
       if (!r.error) expect(r.W).toBeGreaterThan(0)
     }
-  })
-})
-
-describe('sentez — hedef diferansiyel empedans için aralık', () => {
-  it('100 Ω için aralık bulur ve geri doğrular', () => {
-    const r = solveSpacingForZdiff({ target: 100, W: mm(0.2), H: mm(0.2), epsR: 4.2 })
-    expect(r.error).toBeUndefined()
-    expect(r.Zdiff).toBeCloseTo(100, 6)
-    expect(r.S).toBeGreaterThan(0)
-  })
-
-  it('elde edilemeyen hedefte hata döner', () => {
-    const r = solveSpacingForZdiff({ target: 400, W: mm(0.2), H: mm(0.2), epsR: 4.2 })
-    expect(r.error).toBe(IMP_ERR_NO_SOLUTION)
   })
 })
 
@@ -289,9 +210,7 @@ describe('hata sözleşmesi', () => {
       microstrip({ W: mm(0.4), H: mm(0.2), epsR: 0.5 }),
       stripline({ W: 0, b: mm(0.5), epsR: 4.2 }),
       coplanarWaveguide({ W: 0, S: mm(0.2), epsR: 4.2 }),
-      differentialPair({ W: mm(0.2), H: mm(0.2), S: 0, epsR: 4.2 }),
       solveWidthForZ0({ target: 500, H: mm(0.2), epsR: 4.2 }),
-      solveSpacingForZdiff({ target: 400, W: mm(0.2), H: mm(0.2), epsR: 4.2 }),
     ])
   })
 })

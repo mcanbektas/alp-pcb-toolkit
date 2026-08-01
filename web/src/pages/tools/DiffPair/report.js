@@ -1,24 +1,25 @@
 // Diferansiyel çift ekranının rapor bölümü. Saf: React, DOM, ağ bilmez.
 // docs/uyelik-ve-rapor-plani.md §5.2 — mevcut index.jsx'e dokunmadan, aynı
-// `r`/`s`/`text` kaynağından aynı satırları üretir; ekranla rapor arasındaki
+// `r`/`fs`/`text` kaynağından aynı satırları üretir; ekranla rapor arasındaki
 // kayma riski (plan §8 R6) böylece en aza iner.
+//
+// F2: çiftin sayıları alan çözücüden gelir ve rapora da çözücüden girer.
+// `fs` çözücünün BİTMİŞ ve hatasız sonucudur (yoksa null): rapor indirme
+// anında çözüm hâlâ sürüyorsa çift satırları rapora girmez, kapalı form tek
+// uçlu taban ve "hesaplanıyor" notu girer — sayı uydurulmaz.
 
 import { fmt, fmtEng, fmtRes } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
-import { sampleIndices } from '../../../components/LineChart'
 import { formFields, MODE_SYNTHESIS, STRUCT_MICROSTRIP, STRUCT_STRIPLINE } from './model'
 
 // formFields() (model.js) etiketleri hata mesajı amaçlı genel `fieldLabels`
-// sözlüğünden alır; index.jsx ise H için yapıya, W/S için sentez modunda
-// "sabit" olup olmadığına göre ayrı bir metin seçer (bkz. index.jsx satır
-// 112-135). Rapor ekranla aynı satırı göstersin diye (plan §8 R6) bu iki alan
-// burada aynı koşullarla yeniden etiketlenir.
-function labelFor(field, f, mode, text) {
+// sözlüğünden alır; index.jsx H için yapıya göre ayrı bir metin seçer. Rapor
+// ekranla aynı satırı göstersin diye (plan §8 R6) burada aynı koşulla
+// yeniden etiketlenir.
+function labelFor(field, f, text) {
   if (field.key === 'H') {
     return f.structure === STRUCT_MICROSTRIP ? text.fields.HMicrostrip : text.fields.HStripline
   }
-  if (mode === MODE_SYNTHESIS && field.key === 'W') return text.fields.WFixed.label
-  if (mode === MODE_SYNTHESIS && field.key === 'S') return text.fields.SFixed.label
   return field.label
 }
 
@@ -26,60 +27,50 @@ function inputRows(f, mode, text) {
   return formFields(f, mode, text.fieldLabels)
     .filter((field) => f[field.key] !== '' && f[field.key] != null)
     .map((field) => ({
-      label: labelFor(field, f, mode, text),
+      label: labelFor(field, f, text),
       value: f[field.key],
       unit: field.unitKey ? f[field.unitKey] : (field.unit ?? null),
     }))
 }
 
-// Grafik verisi PDF'te SVG (ReportDialog canlı DOM'dan yakalar), Excel'de ham
-// sütun olarak gider (§5.4) — svg alanı burada bilinçli olarak null bırakılır,
-// ReportDialog indirme anında dolduracak (bkz. withCapturedSvg). Sütun
-// başlıkları ve değer biçimi index.jsx'teki LineChart eksen biçimiyle aynı
-// (bare fmt, sig=3) — ChartDataTable'ın kendi birim ekli formatX/formatY'siyle
-// değil, TraceWidth pilotunun kurduğu kalıpla birebir.
-function chartSection(r, s, text) {
-  if (!s) return null
-  const meta = s.sweepSpacing ? text.chartSpacing : text.chartWidth
-  return {
-    title: meta.caption,
-    svg: null,
-    table: {
-      // Örnekleme ekrandaki <ChartDataTable every={6} .../> ile aynı
-      // `sampleIndices` kuralını izler: son nokta her zaman dahil. 70 noktalı
-      // taramada düz `i % 6` filtresi son satırı (69) düşürüyordu.
-      columns: [meta.x, 'Z_diff', 'Z_odd'],
-      rows: sampleIndices(s.rows.length, 6)
-        .map((i) => [fmt(s.rows[i].x, 3), fmt(s.rows[i].y, 3), fmt(s.rows[i].odd, 3)]),
-    },
-  }
-}
-
-export function buildReportSection({ mode, f, r, s, text }) {
+export function buildReportSection({ mode, f, r, text, fs }) {
   if (!r.ok) return null
 
   const big = r.mode === MODE_SYNTHESIS
-    ? {
-      label: r.solvedFor === 'S' ? text.bigResultSpacing : text.bigResultWidth,
-      ...splitFormatted(fmtEng(r.solvedFor === 'S' ? r.S : r.W, 'm', 4)),
+    ? { label: text.bigResultWidth, ...splitFormatted(fmtEng(r.W, 'm', 4)), emphasis: true }
+    : {
+      label: text.bigResultZdiff,
+      ...(fs ? splitFormatted(fmtRes(fs.Zdiff, 4)) : { value: text.bigResultPending }),
       emphasis: true,
     }
-    : { label: text.bigResultZdiff, ...splitFormatted(fmtRes(r.Zdiff, 4)), emphasis: true }
 
   const results = [
     big,
-    { label: text.table.zdiff, ...splitFormatted(fmtRes(r.Zdiff, 5)) },
-    { label: text.table.zodd, ...splitFormatted(fmtRes(r.Zodd, 5)) },
-    { label: text.table.zeven, ...splitFormatted(fmtRes(r.Zeven, 5)) },
-    { label: text.table.zcommon, ...splitFormatted(fmtRes(r.Zcommon, 5)) },
+    ...(fs
+      ? [
+        { label: text.table.zdiff, ...splitFormatted(fmtRes(fs.Zdiff, 5)) },
+        { label: text.table.zodd, ...splitFormatted(fmtRes(fs.Zodd, 5)) },
+        { label: text.table.zeven, ...splitFormatted(fmtRes(fs.Zeven, 5)) },
+        { label: text.table.zcommon, ...splitFormatted(fmtRes(fs.Zcommon, 5)) },
+        { label: text.table.epsEffOdd, value: fmt(fs.epsEffOdd, 5) },
+        { label: text.table.epsEffEven, value: fmt(fs.epsEffEven, 5) },
+        { label: text.table.tpdOdd, value: fmt(fs.tpdOdd * 1e9, 4), unit: 'ps/mm' },
+        { label: text.table.tpdEven, value: fmt(fs.tpdEven * 1e9, 4), unit: 'ps/mm' },
+        { label: text.solver.rowConv, value: text.pct(fmt(fs.convergence.coarsePct, 2)) },
+      ]
+      : []),
     { label: text.table.z0, ...splitFormatted(fmtRes(r.Z0, 5)) },
     { label: text.table.twiceZ0, ...splitFormatted(fmtRes(2 * r.Z0, 5)) },
-    { label: text.table.coupling, value: fmt(r.coupling, 5) },
     { label: text.table.ratio, value: fmt(r.ratio, 4) },
-    { label: text.table.epsEff, value: fmt(r.epsEff, 5) },
-    { label: text.table.tpd, value: fmt(r.tpdPsPerMm, 4), unit: 'ps/mm' },
     { label: text.table.geometry, value: `${fmtEng(r.W, 'm', 4)} · ${fmtEng(r.S, 'm', 4)}` },
+    ...(fs ? [{ label: text.solver.rowMethod, value: fs.model }] : []),
   ]
+
+  // Yorumlar ekranla aynı kaynaktan: commentary useFieldSolver durum zarfı
+  // bekler; rapor anındaki durum fs'ten kurulur.
+  const solverState = fs
+    ? { status: 'done', result: fs }
+    : { status: 'idle', result: null }
 
   return {
     toolName: text.title,
@@ -87,9 +78,9 @@ export function buildReportSection({ mode, f, r, s, text }) {
     inputs: inputRows(f, mode, text),
     formula: text.formula.split('\n').map((line) => line.trim()).filter(Boolean),
     results,
-    notes: text.commentary(r),
+    notes: text.commentary(r, solverState),
     schematicSvg: null, // ReportDialog canlı DOM'dan yakalar
     schematicCaption: r.structure === STRUCT_STRIPLINE ? text.schematic.captionStripline : text.schematic.captionMicrostrip,
-    chart: chartSection(r, s, text),
+    chart: null, // F2: ampirik eğri söküldü; çözücü taraması F3 (karar dosyası)
   }
 }

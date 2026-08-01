@@ -6,9 +6,10 @@
 
 import { describe, it, expect } from 'vitest'
 import { EPS0 } from './units'
-import { microstrip, stripline, ellipticRatio, METHOD_FIELD_SOLVER } from './impedance'
+import { microstrip, stripline, coplanarWaveguide, ellipticRatio, METHOD_FIELD_SOLVER } from './impedance'
 import {
-  fieldMicrostrip, fieldStripline, parallelPlateCapacitance,
+  fieldMicrostrip, fieldStripline, fieldDifferentialPair, fieldGroundedCpw,
+  parallelPlateCapacitance,
   FS_ERR_INVALID, FS_CONVERGENCE_WARN_PCT,
 } from './fieldSolver'
 
@@ -168,6 +169,170 @@ describe('performans bütçesi (brif: < 300 ms hedef, 1 s tavan)', () => {
     expect(r.error).toBeUndefined()
     // eslint yok; ölçüm karar dosyasına elle geçirilir
     console.log(`fieldMicrostrip varsayılan yoğunluk: ${ms} ms (ızgara ${r.mesh.fine.nx}×${r.mesh.fine.ny})`)
+    expect(ms).toBeLessThan(2000)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// F2 — diferansiyel matris rotası (spec §6.8.1, brif 09 F2)
+
+describe('diferansiyel çift — sıra ve simetri (F2)', () => {
+  // DiffPair ekranının varsayılan formu: W=S=H=0.2 mm, t=35 µm, εr=4.2
+  const g = { structure: 'microstrip', W: 0.2e-3, S: 0.2e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 }
+
+  it('sözleşme: method/capacitanceMatrix/convergence alanları taşınır', () => {
+    const r = fieldDifferentialPair(g)
+    expect(r.error).toBeUndefined()
+    expect(r.method).toBe(METHOD_FIELD_SOLVER)
+    expect(r.capacitanceMatrix).toBe(true)
+    expect(Number.isFinite(r.convergence.coarsePct)).toBe(true)
+    expect(r.convergence.coarsePct).toBeLessThan(FS_CONVERGENCE_WARN_PCT)
+  })
+
+  it('her zaman Z_odd ≤ Z₀ ≤ Z_even ve C_odd > C_even', () => {
+    const r = fieldDifferentialPair(g)
+    const single = fieldMicrostrip({ W: g.W, H: g.H, t: g.t, epsR: g.epsR })
+    expect(r.Zodd).toBeLessThan(single.Z0)
+    expect(single.Z0).toBeLessThan(r.Zeven)
+    // Odd modda simetri düzlemi yakın bir toprak gibi davranır: kapasite büyür
+    expect(r.Codd).toBeGreaterThan(r.Ceven)
+    // Maxwell işaretiyle C₁₂ < 0, C₁₁ > 0 (raporlama alanları)
+    expect(r.C11).toBeGreaterThan(0)
+    expect(r.C12).toBeLessThan(0)
+  })
+
+  it('türetilen büyüklükler tanım gereği tam: Z_diff = 2·Z_odd, Z_common = Z_even/2', () => {
+    const r = fieldDifferentialPair(g)
+    expect(r.Zdiff).toBeCloseTo(2 * r.Zodd, 12)
+    expect(r.Zcommon).toBeCloseTo(r.Zeven / 2, 12)
+  })
+
+  it('aralık açıldıkça kuplaj tekdüze söner: Z_odd artar, Z_even düşer', () => {
+    const zo = []
+    const ze = []
+    for (const S of [0.1e-3, 0.3e-3, 1e-3]) {
+      const r = fieldDifferentialPair({ ...g, S })
+      expect(r.error).toBeUndefined()
+      zo.push(r.Zodd)
+      ze.push(r.Zeven)
+    }
+    expect(zo[0]).toBeLessThan(zo[1])
+    expect(zo[1]).toBeLessThan(zo[2])
+    expect(ze[0]).toBeGreaterThan(ze[1])
+    expect(ze[1]).toBeGreaterThan(ze[2])
+  })
+
+  it('kuplajın sönmesi: S → büyük iken Z_odd ≈ Z_even ≈ Z₀', () => {
+    const r = fieldDifferentialPair({ ...g, S: 4e-3 }) // S/H = 20
+    const single = fieldMicrostrip({ W: g.W, H: g.H, t: g.t, epsR: g.epsR })
+    expect(r.error).toBeUndefined()
+    expect((100 * (r.Zeven - r.Zodd)) / single.Z0).toBeLessThan(1)
+    expect(100 * relErr(r.Zodd, single.Z0)).toBeLessThan(1.5)
+    expect(100 * relErr(r.Zeven, single.Z0)).toBeLessThan(1.5)
+  })
+
+  it('gevşek kuplajda Z_diff kapalı form 2·Z₀ değerine yaklaşır (< %2.5)', () => {
+    const r = fieldDifferentialPair({ ...g, t: 0, S: 4e-3 })
+    const cf = microstrip({ W: g.W, H: g.H, t: 0, epsR: g.epsR })
+    expect(100 * relErr(r.Zdiff, 2 * cf.Z0)).toBeLessThan(2.5)
+  })
+
+  it('stripline çifti: homojen dielektrikte her iki mod εeff = εr', () => {
+    const r = fieldDifferentialPair({ structure: 'stripline', W: 0.15e-3, S: 0.2e-3, H: 0.6e-3, t: 30e-6, epsR: 4.2 })
+    expect(r.error).toBeUndefined()
+    expect(relErr(r.epsEffOdd, 4.2)).toBeLessThan(1e-6)
+    expect(relErr(r.epsEffEven, 4.2)).toBeLessThan(1e-6)
+    expect(r.Zodd).toBeLessThan(r.Zeven)
+  })
+
+  it('microstrip çiftinde modal εeff değerleri ayrışır (FEXT girdisi)', () => {
+    const r = fieldDifferentialPair({ ...g, S: 0.15e-3 })
+    // İnhomojen dielektrikte even mod alanı dielektrikte daha çok yaşar;
+    // ayrışmanın işareti değil VARLIĞI sözleşmedir (Crosstalk F3 girdisi)
+    expect(Math.abs(r.epsEffOdd - r.epsEffEven)).toBeGreaterThan(0.01)
+    expect(r.epsEffOdd).toBeGreaterThan(1)
+    expect(r.epsEffOdd).toBeLessThan(g.epsR)
+    expect(r.epsEffEven).toBeGreaterThan(1)
+    expect(r.epsEffEven).toBeLessThan(g.epsR)
+  })
+
+  it('duvar duyarlılığı: duvar 2× uzaklaştırılınca Z_diff oynaması eşiğin altında', () => {
+    const near = fieldDifferentialPair(g)
+    const far = fieldDifferentialPair({ ...g, wallFactor: 30 })
+    expect(100 * relErr(far.Zdiff, near.Zdiff)).toBeLessThan(FS_CONVERGENCE_WARN_PCT)
+  })
+
+  it('geçersiz girdi { error } döner', () => {
+    expect(fieldDifferentialPair({ ...g, S: 0 }).error).toBe(FS_ERR_INVALID)
+    expect(fieldDifferentialPair({ ...g, W: -1 }).error).toBe(FS_ERR_INVALID)
+    expect(fieldDifferentialPair({ structure: 'stripline', W: 0.2e-3, S: 0.2e-3, H: 0.2e-3, t: 0.2e-3, epsR: 4.2 }).error).toBe(FS_ERR_INVALID)
+  })
+})
+
+describe('grounded CPW (F2, spec §6.7 — yalnız çözücüyle sunulur)', () => {
+  const g = { W: 0.4e-3, S: 0.3e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 }
+
+  it('boşluk daraldıkça coplanar toprak kapasiteyi büyütür, Z₀ düşer', () => {
+    const z = [0.15e-3, 0.5e-3, 2e-3].map((S) => {
+      const r = fieldGroundedCpw({ ...g, S })
+      expect(r.error).toBeUndefined()
+      return r.Z0
+    })
+    expect(z[0]).toBeLessThan(z[1])
+    expect(z[1]).toBeLessThan(z[2])
+  })
+
+  it('boşluk büyüdükçe microstrip limitine yaklaşır (< %2)', () => {
+    const r = fieldGroundedCpw({ ...g, t: 0, S: 4e-3 })
+    const cf = microstrip({ W: g.W, H: g.H, t: 0, epsR: g.epsR })
+    expect(100 * relErr(r.Z0, cf.Z0)).toBeLessThan(2)
+  })
+
+  it('alt düzlem ideal CPW formülüne göre empedansı düşürür', () => {
+    // İdeal CPW alt düzlemsiz ve kalın substrat varsayar; alt düzlem eklemek
+    // kapasite ekler. Bu, "ideal form grounded CPW yerine kullanılmaz"
+    // kuralının sayısal gerekçesidir.
+    const fs = fieldGroundedCpw({ ...g, t: 0 })
+    const ideal = coplanarWaveguide({ W: g.W, S: g.S, epsR: g.epsR })
+    expect(fs.Z0).toBeLessThan(ideal.Z0)
+  })
+
+  it('sözleşme alanları ve yakınsama', () => {
+    const r = fieldGroundedCpw(g)
+    expect(r.method).toBe(METHOD_FIELD_SOLVER)
+    expect(r.structure).toBe('gcpw')
+    expect(r.groundedBelow).toBe(true)
+    expect(r.convergence.coarsePct).toBeLessThan(FS_CONVERGENCE_WARN_PCT)
+  })
+
+  it('duvar duyarlılığı: duvar 2× uzaklaştırılınca Z₀ oynaması eşiğin altında', () => {
+    const near = fieldGroundedCpw(g)
+    const far = fieldGroundedCpw({ ...g, wallFactor: 30 })
+    expect(100 * relErr(far.Z0, near.Z0)).toBeLessThan(FS_CONVERGENCE_WARN_PCT)
+  })
+
+  it('geçersiz girdi { error } döner', () => {
+    expect(fieldGroundedCpw({ ...g, S: 0 }).error).toBe(FS_ERR_INVALID)
+    expect(fieldGroundedCpw({ ...g, H: 0 }).error).toBe(FS_ERR_INVALID)
+  })
+})
+
+describe('F2 performans ölçümü (karar dosyasına geçirilir)', () => {
+  it('diferansiyel çift analizi (8 çözüm) tavanın altında kalır', () => {
+    const t0 = Date.now()
+    const r = fieldDifferentialPair({ structure: 'microstrip', W: 0.2e-3, S: 0.2e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 })
+    const ms = Date.now() - t0
+    expect(r.error).toBeUndefined()
+    console.log(`fieldDifferentialPair varsayılan yoğunluk: ${ms} ms (even ${r.mesh.even.nx}×${r.mesh.even.ny}, odd ${r.mesh.odd.nx}×${r.mesh.odd.ny})`)
+    expect(ms).toBeLessThan(2000)
+  })
+
+  it('grounded CPW analizi (4 çözüm) tavanın altında kalır', () => {
+    const t0 = Date.now()
+    const r = fieldGroundedCpw({ W: 0.4e-3, S: 0.3e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 })
+    const ms = Date.now() - t0
+    expect(r.error).toBeUndefined()
+    console.log(`fieldGroundedCpw varsayılan yoğunluk: ${ms} ms (ızgara ${r.mesh.fine.nx}×${r.mesh.fine.ny})`)
     expect(ms).toBeLessThan(2000)
   })
 })

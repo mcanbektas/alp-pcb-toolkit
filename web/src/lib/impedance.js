@@ -3,11 +3,9 @@
 // SÖZLEŞME: Bu modüldeki her empedans fonksiyonu
 //   { Z0, epsEff, method, ... }
 // döndürür. `method` alanı
-//   'closed-form'        → denklemi spec'te tanımlı kapalı form
-//   'empirical-coupling' → kaynağı spec'te OLMAYAN ampirik yaklaşım
-//   'field-solver'       → alan çözücü
+//   'closed-form'   → denklemi spec'te tanımlı kapalı form
+//   'field-solver'  → alan çözücü (lib/fieldSolver.js — aynı sözleşme)
 // değerlerinden birini taşır.
-// Alan çözücü sonradan aynı arayüzün arkasına girer; arayüz değişmez.
 //
 // Kapalı form sonuçları üretim için önerilen sonuç DEĞİLDİR (spec §6.1).
 // Arayüz bunları daima "hızlı denklem modu" etiketiyle ve geçerlilik
@@ -20,12 +18,6 @@ import { solveBounded } from './solve'
 
 export const METHOD_CLOSED_FORM = 'closed-form'
 export const METHOD_FIELD_SOLVER = 'field-solver'
-
-// Ampirik yaklaşım — kapalı formla AYNI KEFEYE KONMAZ. Kapalı formların
-// denklemi docs/spec.md'de tanımlıdır ve oradan alınmıştır; bu etiketi taşıyan
-// sonucun denklemi spec'te yoktur (bkz. §6.8 kuplaj notu). Arayüz bu ayrımı
-// göstermek zorundadır.
-export const METHOD_EMPIRICAL = 'empirical-coupling'
 
 export const IMP_ERR_INVALID = 'invalid'
 export const IMP_ERR_NO_SOLUTION = 'no-solution'
@@ -198,94 +190,22 @@ export function coplanarWaveguide({ W, S, epsR }) {
 
 // --- §6.8 Diferansiyel çift (kenar bağlı) ---
 //
-// BİLİNEN SAPMA — bu blok spec'i uygulamıyor, yerine geçici bir yaklaşım
-// koyuyor. Spec §6.8.1 odd/even empedansları Maxwell kapasitans matrisinden
-// istiyor:
-//   C_odd = C₁₁ − C₁₂, C_even = C₁₁ + C₁₂
-//   Z_odd = 1 / (c·√(C_odd·C₀,odd)),  Z_even = 1 / (c·√(C_even·C₀,even))
-// C₁₁ ve C₁₂ için kapalı form YOKTUR; kapasitans matrisi alan çözücüden çıkar.
-// Çözücü olmadığı için burada bunun yerine ampirik bir kuplaj katsayısı
-// kullanılıyor:
-//   Z_odd  ≈ Z0·(1 − k_c)
-//   Z_even ≈ Z0·(1 + k_c)
-// Microstrip için  k_c = 0.48·exp(−0.96·S/H)
-// Stripline için   k_c = 0.347·exp(−2.9·S/b)
+// Bu modülde diferansiyel çift için kapalı form YOKTUR ve yazılmayacaktır:
+// C₁₁ ve C₁₂ kapalı formla türetilemez, kapasitans matrisi alan çözücüden
+// çıkar. Odd/even empedanslar spec §6.8.1 rotasıyla
+// lib/fieldSolver.js → fieldDifferentialPair()'dedir (F2).
 //
-// Bu iki k_c ifadesinin KAYNAĞI SPEC'TE YOK. Sayısal katsayıları spec'ten
-// doğrulanamıyor, geçerlilik aralıkları da spec'ten gelmiyor. Bu yüzden
-// sonuç `method: METHOD_EMPIRICAL` taşır ve kapalı form sonuçlarıyla aynı
-// güven seviyesinde sunulamaz. Alan çözücü fazında bu blok §6.8.1 rotasıyla
-// bütünüyle değiştirilecektir.
+// Buradaki eski ampirik kuplaj katsayısı (k_c = a·exp(−b·S/H)) F2'de
+// SÖKÜLDÜ: sayısal katsayılarının kaynağı spec'te yoktu ve çözücü rotası
+// doğrulanınca varlık nedeni kalmadı. Aynı sınıftan yeni bir yaklaşım bu
+// modüle eklenmez (CLAUDE.md "yeni ampirik formül eklenmez").
 //
-// Türetilmiş büyüklükler spec'e uygundur: Z_diff = 2·Z_odd,
-// Z_common = Z_even / 2 (spec §6.8.1, §16.4) — sapma yalnızca Z_odd/Z_even'in
-// nereden geldiğindedir.
-//
-// Yaklaşım yalnızca simetrik çift ve zayıf-orta kuplaj içindir. Tek bir εeff
-// kullandığı için iki modun hızını eşit varsayar; modal hız farkı ve dolayısıyla
-// far-end crosstalk bu modelden ÇIKARILAMAZ (bkz. signalIntegrity.js §7.6).
-
-export const COUPLING = {
-  microstrip: { a: 0.48, b: 0.96 },
-  stripline: { a: 0.347, b: 2.9 },
-}
-
-export function couplingFactor(structure, ratio) {
-  const c = COUPLING[structure]
-  if (!c || !(ratio >= 0)) return NaN
-  return c.a * Math.exp(-c.b * ratio)
-}
-
-/**
- * Kenar bağlı diferansiyel çift.
- *
- * @param {'microstrip'|'stripline'} structure
- * @param {number} W  hat genişliği (m)
- * @param {number} S  hatlar arası kenar-kenar boşluk (m)
- * @param {number} H  microstrip'te dielektrik yüksekliği, stripline'da düzlemler arası mesafe (m)
- * @param {number} t  bakır kalınlığı (m)
- * @param {number} epsR
- */
-export function differentialPair({ structure = 'microstrip', W, S, H, t = 0, epsR }) {
-  if (!(S > 0)) return { error: IMP_ERR_INVALID }
-
-  const single = structure === 'stripline'
-    ? stripline({ W, b: H, epsR })
-    : microstrip({ W, H, t, epsR })
-  if (single.error) return single
-
-  const ratio = S / H
-  const kc = couplingFactor(structure, ratio)
-  if (!Number.isFinite(kc)) return { error: IMP_ERR_INVALID }
-
-  const Zodd = single.Z0 * (1 - kc)
-  const Zeven = single.Z0 * (1 + kc)
-
-  return {
-    // Sözleşme gereği tek uçlu değerler de aynı adlarla döner
-    Z0: single.Z0,
-    epsEff: single.epsEff,
-    // Tek uçlu Z0 kapalı formdan gelse de çiftin sonucunu ampirik kuplaj
-    // belirliyor; sonucun etiketi en zayıf halkayı gösterir.
-    method: METHOD_EMPIRICAL,
-    // Tek uçlu formun yöntemi ayrıca taşınır ki arayüz ikisini ayırabilsin
-    singleMethod: single.method,
-    model: `${single.model}+empirical-coupling`,
-    // Spec §6.8.1 kapasitans matrisi rotası uygulanmadı
-    capacitanceMatrix: false,
-    structure,
-    Zodd, Zeven,
-    Zdiff: 2 * Zodd,
-    Zcommon: Zeven / 2,
-    coupling: kc,
-    ratio,
-    tpd: single.tpd,
-    thicknessIncluded: single.thicknessIncluded,
-    // Yaklaşım S/H > 0.2 civarında güvenilir; çok sıkı kuplajda sapar
-    inRange: single.inRange && ratio >= 0.2,
-    single,
-  }
-}
+// Çiftin sentezi (hedef Z_diff → geometri): S'e bağlı senkron model
+// kalmadığı için kök arama yalnız tek uçlu kapalı formla tohumlanabilir
+// (Z_diff/2 hedefli solveWidthForZ0); bulunan geometriyi alan çözücü tek
+// sefer analiz edip gerçek Z_diff'i ve hedeften sapmayı gösterir.
+// Çözücünün kök döngüsüne girmesi (solver-in-loop) F3 kapsamıdır ve ölçümle
+// açılır (docs/brifler/09-alan-cozucu.md karar #10).
 
 // --- Sentez: hedef empedans için genişlik ---
 //
@@ -321,27 +241,6 @@ export function solveWidthForZ0({ target, H, t = 0, epsR, structure = 'microstri
   }
 
   return { W: solved.value, solvedBy: solved.method, ...evaluate(solved.value) }
-}
-
-// Hedef diferansiyel empedans için hat aralığı (W sabit tutulur, spec §6.8.2)
-export function solveSpacingForZdiff({ target, W, H, t = 0, epsR, structure = 'microstrip' }) {
-  if (!(target > 0)) return { error: IMP_ERR_INVALID }
-
-  const F = (S) => {
-    const r = differentialPair({ structure, W, S, H, t, epsR })
-    return r.error ? NaN : r.Zdiff - target
-  }
-
-  const solved = solveBounded(F, { x0: H, min: H / 500, max: H * 50 })
-  if (solved.error) {
-    return { error: IMP_ERR_NO_SOLUTION }
-  }
-
-  return {
-    S: solved.value,
-    solvedBy: solved.method,
-    ...differentialPair({ structure, W, S: solved.value, H, t, epsR }),
-  }
 }
 
 // --- Tolerans (spec §3.4) ---

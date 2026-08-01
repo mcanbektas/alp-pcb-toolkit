@@ -37,3 +37,33 @@ test('coplanar yapıda çözücü satırı sunulmaz (F1 kapsamı)', async ({ pag
   await expect(resultPanel(page).getByText('Alan çözücü — Z₀')).toHaveCount(0)
   await expect(resultPanel(page).getByText('Alan çözücü hesaplıyor')).toHaveCount(0)
 })
+
+// F2: grounded CPW yalnız çözücüyle çözülür — ana sayı worker'dan düşer.
+test('grounded CPW yapısında ana sonuç çözücüden gelir', async ({ page }) => {
+  await page.goto('/arac/tek-uclu-empedans')
+  await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
+
+  await page.getByLabel('Yapı').selectOption({ index: 3 })
+  // Kapalı form yok: değer "hesaplanıyor…" ile başlar, sonra Ω taşır
+  await expect(resultPanel(page).locator('.big-result .value')).toHaveText(/\d+(\.\d+)?\s+Ω$/, {
+    timeout: 15000,
+  })
+  await expect(resultPanel(page).getByText('Yakınsama farkı E_Z', { exact: true })).toBeVisible()
+})
+
+// F2: diferansiyel çiftin sayıları çözücüden gelir (kapasitans matrisi rotası)
+test('diferansiyel çift ekranında Z_diff worker üzerinden gelir', async ({ page }) => {
+  await page.goto('/arac/diferansiyel-cift')
+
+  // Kapalı form tek uçlu taban hemen; çiftin ana sayısı çözücüden düşer
+  await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
+  await expect(resultPanel(page).locator('.big-result .value')).toHaveText(/\d+(\.\d+)?\s+Ω$/, {
+    timeout: 15000,
+  })
+
+  const zoddRow = resultPanel(page).getByText('Odd mod (Z_odd)', { exact: true })
+  await expect(zoddRow).toBeVisible()
+  const zoddCell = zoddRow.locator('xpath=following-sibling::td')
+  await expect(zoddCell).toHaveText(/\d+(\.\d+)?\s+Ω$/)
+  await expect(resultPanel(page).getByText('Yakınsama farkı E_Z', { exact: true })).toBeVisible()
+})

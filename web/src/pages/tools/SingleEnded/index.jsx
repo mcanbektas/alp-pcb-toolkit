@@ -18,7 +18,7 @@ import { commonText } from '../../../data/uiText'
 import { fmt, fmtEng, fmtRes, fmtPct } from '../../../lib/num'
 import ImpedanceSchematic from './schematic'
 import {
-  INITIAL_FORM, STRUCTURES, STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW,
+  INITIAL_FORM, STRUCTURES, STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, STRUCT_GCPW,
   MODE_ANALYSIS, MODE_SYNTHESIS, compute, buildSweep,
 } from './model'
 import { getText } from './text'
@@ -44,19 +44,21 @@ export default function SingleEnded() {
   const s = useMemo(() => buildSweep(r), [r])
 
   // Alan çözücü, bulunan geometriyi worker'da TEK SEFER analiz eder (sentezde
-  // de: çözücü köke sokulmaz, sonucu doğrulama satırı olarak gelir). CPW F1
-  // kapsamı dışında — grounded CPW yalnız çözücü fazında sunulur (spec §6.7).
-  const solver = useFieldSolver(
-    r.ok && r.structure !== STRUCT_CPW
-      ? { structure: r.structure, W: r.W, height: r.height, t: r.t, epsR: r.epsR }
-      : null,
-  )
+  // de: çözücü köke sokulmaz, sonucu doğrulama satırı olarak gelir). İdeal
+  // CPW'de iş yok (solverParams null); grounded CPW'de sayının TEK kaynağı
+  // çözücüdür (kapalı form dalı yazılmadı — spec §6.7, brif 09 F2).
+  const solver = useFieldSolver(r.ok ? r.solverParams : null)
+  const fs = solver.status === 'done' && !solver.result.error ? solver.result : null
 
   const notes = useMemo(() => text.commentary(r, solver), [r, solver, text])
 
   // Rapor bölümü SVG'siz kurulur; ReportDialog indirme anında canlı DOM'dan
   // (aşağıdaki ref'ler) şematik ve grafiği okuyup satır içine çevirir.
-  const reportSection = useMemo(() => buildReportSection({ mode, f, r, s, text }), [mode, f, r, s, text])
+  // Çözücü satırları rapora da girer (F2); indirme anında yoksa girmez.
+  const reportSection = useMemo(
+    () => buildReportSection({ mode, f, r, s, text, fs }),
+    [mode, f, r, s, text, fs],
+  )
   const schematicRef = useRef(null)
   const chartRef = useRef(null)
 
@@ -129,7 +131,7 @@ export default function SingleEnded() {
             />
           )}
 
-          {f.structure === STRUCT_CPW && (
+          {(f.structure === STRUCT_CPW || f.structure === STRUCT_GCPW) && (
             <NumberField
               label={text.fields.S.label}
               value={f.S} onChange={set('S')}
@@ -143,7 +145,9 @@ export default function SingleEnded() {
             units={DIM_UNITS} unit={f.tu} onUnit={set('tu')}
             hint={f.structure === STRUCT_MICROSTRIP
               ? text.fields.tField.hintMicrostrip
-              : text.fields.tField.hintOther}
+              : f.structure === STRUCT_GCPW
+                ? text.fields.tField.hintSolver
+                : text.fields.tField.hintOther}
           />
 
           <NumberField
@@ -153,7 +157,7 @@ export default function SingleEnded() {
             hint={text.fields.epsR.hint}
           />
 
-          {f.structure !== STRUCT_CPW && (
+          {f.structure !== STRUCT_CPW && f.structure !== STRUCT_GCPW && (
             <>
               <label className="check-row">
                 <input type="checkbox" checked={f.tol} onChange={(e) => set('tol')(e.target.checked)} />
@@ -199,18 +203,28 @@ export default function SingleEnded() {
                   {r.mode === MODE_SYNTHESIS ? text.bigResultWidth : text.bigResultZ0}
                 </div>
                 <div className="value">
-                  {r.mode === MODE_SYNTHESIS ? fmtEng(r.W, 'm', 4) : fmtRes(r.Z0, 4)}
+                  {r.mode === MODE_SYNTHESIS
+                    ? fmtEng(r.W, 'm', 4)
+                    : r.solverOnly
+                      ? (fs ? fmtRes(fs.Z0, 4) : text.bigResultPending)
+                      : fmtRes(r.Z0, 4)}
                 </div>
                 <div className="alt">
                   {r.mode === MODE_SYNTHESIS
                     ? <>Z₀ = {fmtRes(r.Z0, 4)} &nbsp;·&nbsp; {text.targetWord} {fmtRes(r.target, 3)}</>
-                    : <>W = {fmtEng(r.W, 'm', 4)} &nbsp;·&nbsp; εeff = {fmt(r.epsEff, 4)}</>}
+                    : r.solverOnly
+                      ? (fs
+                        ? <>W = {fmtEng(r.W, 'm', 4)} &nbsp;·&nbsp; εeff = {fmt(fs.epsEff, 4)}</>
+                        : <>W = {fmtEng(r.W, 'm', 4)}</>)
+                      : <>W = {fmtEng(r.W, 'm', 4)} &nbsp;·&nbsp; εeff = {fmt(r.epsEff, 4)}</>}
                 </div>
               </div>
 
               {status && <span className={`status ${status.cls}`}>{status.text}</span>}
 
-              <p className="method-note">{text.methodNote}</p>
+              <p className="method-note">
+                {r.solverOnly ? text.methodNoteSolver : text.methodNote}
+              </p>
               {solver.status === 'running' && (
                 <p className="method-note">{text.solver.pending}</p>
               )}
@@ -226,68 +240,105 @@ export default function SingleEnded() {
                       </td>
                     </tr>
                   )}
-                  <tr>
-                    <td>{text.table.z0}</td>
-                    <td>{fmtRes(r.Z0, 5)}</td>
-                  </tr>
-                  <tr>
-                    <td>{text.table.epsEff}</td>
-                    <td>{fmt(r.epsEff, 5)}</td>
-                  </tr>
-                  <tr>
-                    <td>{text.table.tpd}</td>
-                    <td>{fmt(r.tpdPsPerMm, 4)} ps/mm</td>
-                  </tr>
-                  <tr>
-                    <td>{text.table.vp}</td>
-                    <td>{fmt(1 / r.tpdPsPerMm * 1000, 4)} mm/ns</td>
-                  </tr>
-                  <tr>
-                    <td>{text.table.W}</td>
-                    <td>{fmtEng(r.W, 'm', 5)}</td>
-                  </tr>
-                  <tr>
-                    <td>{text.table.height}</td>
-                    <td>{fmtEng(r.height, 'm', 5)}</td>
-                  </tr>
-                  {r.u != null && (
-                    <tr>
-                      <td>{text.table.u}</td>
-                      <td>{fmt(r.u, 4)}</td>
-                    </tr>
-                  )}
-                  {r.k != null && (
-                    <tr>
-                      <td>{text.table.k}</td>
-                      <td>{fmt(r.k, 5)}</td>
-                    </tr>
-                  )}
-                  <tr>
-                    <td>{text.table.model}</td>
-                    <td>{r.model}</td>
-                  </tr>
-                  {solver.status === 'done' && !solver.result.error && (
+                  {r.solverOnly ? (
+                    fs && (
+                      <>
+                        <tr>
+                          <td>{text.table.z0}</td>
+                          <td>{fmtRes(fs.Z0, 5)}</td>
+                        </tr>
+                        <tr>
+                          <td>{text.table.epsEff}</td>
+                          <td>{fmt(fs.epsEff, 5)}</td>
+                        </tr>
+                        <tr>
+                          <td>{text.table.tpd}</td>
+                          <td>{fmt(fs.tpd * 1e9, 4)} ps/mm</td>
+                        </tr>
+                        <tr>
+                          <td>{text.table.W}</td>
+                          <td>{fmtEng(r.W, 'm', 5)}</td>
+                        </tr>
+                        <tr>
+                          <td>{text.table.height}</td>
+                          <td>{fmtEng(r.height, 'm', 5)}</td>
+                        </tr>
+                        <tr>
+                          <td>{text.solver.rowConv}</td>
+                          <td>{ui.pct(fmt(fs.convergence.coarsePct, 2))}</td>
+                        </tr>
+                        <tr>
+                          <td>{text.table.model}</td>
+                          <td>{fs.model}</td>
+                        </tr>
+                      </>
+                    )
+                  ) : (
                     <>
-                      <tr className="mini-head">
-                        <td>{r.mode === MODE_SYNTHESIS ? text.solver.rowZ0Syn : text.solver.rowZ0}</td>
-                        <td>{fmtRes(solver.result.Z0, 5)}</td>
+                      <tr>
+                        <td>{text.table.z0}</td>
+                        <td>{fmtRes(r.Z0, 5)}</td>
                       </tr>
                       <tr>
-                        <td>{text.solver.rowEps}</td>
-                        <td>{fmt(solver.result.epsEff, 5)}</td>
+                        <td>{text.table.epsEff}</td>
+                        <td>{fmt(r.epsEff, 5)}</td>
                       </tr>
                       <tr>
-                        <td>{text.solver.rowConv}</td>
-                        <td>{ui.pct(fmt(solver.result.convergence.coarsePct, 2))}</td>
+                        <td>{text.table.tpd}</td>
+                        <td>{fmt(r.tpdPsPerMm, 4)} ps/mm</td>
                       </tr>
                       <tr>
-                        <td>{text.solver.rowDiff}</td>
-                        <td>{ui.pct(fmtPct((100 * (solver.result.Z0 - r.Z0)) / r.Z0))}</td>
+                        <td>{text.table.vp}</td>
+                        <td>{fmt(1 / r.tpdPsPerMm * 1000, 4)} mm/ns</td>
                       </tr>
                       <tr>
-                        <td>{text.solver.rowMethod}</td>
-                        <td>{solver.result.method}</td>
+                        <td>{text.table.W}</td>
+                        <td>{fmtEng(r.W, 'm', 5)}</td>
                       </tr>
+                      <tr>
+                        <td>{text.table.height}</td>
+                        <td>{fmtEng(r.height, 'm', 5)}</td>
+                      </tr>
+                      {r.u != null && (
+                        <tr>
+                          <td>{text.table.u}</td>
+                          <td>{fmt(r.u, 4)}</td>
+                        </tr>
+                      )}
+                      {r.k != null && (
+                        <tr>
+                          <td>{text.table.k}</td>
+                          <td>{fmt(r.k, 5)}</td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td>{text.table.model}</td>
+                        <td>{r.model}</td>
+                      </tr>
+                      {fs && (
+                        <>
+                          <tr className="mini-head">
+                            <td>{r.mode === MODE_SYNTHESIS ? text.solver.rowZ0Syn : text.solver.rowZ0}</td>
+                            <td>{fmtRes(fs.Z0, 5)}</td>
+                          </tr>
+                          <tr>
+                            <td>{text.solver.rowEps}</td>
+                            <td>{fmt(fs.epsEff, 5)}</td>
+                          </tr>
+                          <tr>
+                            <td>{text.solver.rowConv}</td>
+                            <td>{ui.pct(fmt(fs.convergence.coarsePct, 2))}</td>
+                          </tr>
+                          <tr>
+                            <td>{text.solver.rowDiff}</td>
+                            <td>{ui.pct(fmtPct((100 * (fs.Z0 - r.Z0)) / r.Z0))}</td>
+                          </tr>
+                          <tr>
+                            <td>{text.solver.rowMethod}</td>
+                            <td>{fs.method}</td>
+                          </tr>
+                        </>
+                      )}
                     </>
                   )}
                 </tbody>
@@ -306,12 +357,23 @@ export default function SingleEnded() {
 
           {r.ok && (
             <ul className="detail-list">
-              <li>{text.detail.model(r.model, r.method)}</li>
-              {r.u != null && <li>{text.detail.ratios(fmt(r.u, 5), fmt(r.tau, 5))}</li>}
-              {r.mode === MODE_SYNTHESIS && (
-                <li>{text.detail.solved(r.solvedBy)}</li>
+              {r.solverOnly ? (
+                <>
+                  <li>{text.detail.solverOnly}</li>
+                  {fs && (
+                    <li>{text.detail.solverMesh(`${fs.mesh.fine.nx}×${fs.mesh.fine.ny}`)}</li>
+                  )}
+                </>
+              ) : (
+                <>
+                  <li>{text.detail.model(r.model, r.method)}</li>
+                  {r.u != null && <li>{text.detail.ratios(fmt(r.u, 5), fmt(r.tau, 5))}</li>}
+                  {r.mode === MODE_SYNTHESIS && (
+                    <li>{text.detail.solved(r.solvedBy)}</li>
+                  )}
+                  <li>{text.detail.rangeCheck(r.inRange)}</li>
+                </>
               )}
-              <li>{text.detail.rangeCheck(r.inRange)}</li>
               <li>{text.detail.noRounding}</li>
             </ul>
           )}
@@ -326,6 +388,10 @@ export default function SingleEnded() {
       </div>
 
       {/* ---------- Alt: Parametrik grafik ---------- */}
+      {/* Grounded CPW'de grafik hiç çizilmez: nokta başına senkron motor yok
+          (bkz. buildSweep). Paneli "geçerli girdi gerekli" notuyla göstermek
+          yanıltıcı olurdu — girdi geçerli, grafik bu yapıda yok. */}
+      {!(r.ok && r.solverOnly) && (
       <section className="panel panel-chart">
         <div className="chart-head">
           <h2>{ui.chart}</h2>
@@ -365,6 +431,7 @@ export default function SingleEnded() {
           <p className="empty-note">{ui.chartNeedsInput}</p>
         )}
       </section>
+      )}
 
       <ReportDialog section={reportSection} schematicRef={schematicRef} chartRef={chartRef} />
       <SaveToProject

@@ -12,7 +12,10 @@ import {
   FS_ERR_NO_CONVERGENCE, FS_ERR_GRID,
 } from '../../../lib/fieldSolver'
 import { commonText } from '../../../data/uiText'
-import { STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, REASON_NO_SOLUTION } from './model'
+import {
+  STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, STRUCT_GCPW,
+  REASON_NO_SOLUTION, REASON_SOLVER_ONLY,
+} from './model'
 
 export function getText(lang) {
   const t = (dict) => pick(dict, lang)
@@ -56,9 +59,14 @@ export function getText(lang) {
       tr: 'Coplanar waveguide (alt düzlemsiz)',
       en: 'Coplanar waveguide (no bottom plane)',
     }),
+    [STRUCT_GCPW]: t({
+      tr: 'Grounded coplanar waveguide (alt düzlemli)',
+      en: 'Grounded coplanar waveguide (bottom plane)',
+    }),
   }
 
   return {
+    pct,
     backlink: t({ tr: '← Kontrollü Empedans', en: '← Controlled Impedance' }),
     title: t({ tr: 'Tek Uçlu Empedans', en: 'Single-Ended Impedance' }),
     intro: t({
@@ -82,6 +90,18 @@ export function getText(lang) {
       en: 'Quick equation mode — closed form. The result recommended for production must come '
         + 'from a field solver; this result must not be treated as production-ready.',
     }),
+
+    // Grounded CPW'nin kapalı formu yoktur ve yazılmaz (spec §6.7); bu yapıda
+    // sayının tek kaynağı alan çözücüdür.
+    methodNoteSolver: t({
+      tr: 'Bu yapının kapalı formu yoktur: grounded coplanar waveguide yalnız 2B alan çözücüyle '
+        + 'hesaplanır. Sonuç, iki ızgara yoğunluğuyla üretilir ve yakınsama farkı (E_Z) birlikte '
+        + 'raporlanır.',
+      en: 'This structure has no closed form: a grounded coplanar waveguide is computed only '
+        + 'with the 2D field solver. The result is produced at two grid densities and reported '
+        + 'together with the convergence difference (E_Z).',
+    }),
+    bigResultPending: t({ tr: 'hesaplanıyor…', en: 'computing…' }),
 
     // Alan çözücü satırı (brif 09 F1). Ana sonuç kapalı formdan gelmeye devam
     // eder; çözücü sonucu mount'tan sonra ayrı satırlarda gösterilir.
@@ -134,6 +154,10 @@ export function getText(lang) {
         hintOther: t({
           tr: 'Bu yapının kapalı formuna dahil değil',
           en: 'Not included in this structure’s closed form',
+        }),
+        hintSolver: t({
+          tr: 'Çözücü gerçek kalınlık geometrisini çözer',
+          en: 'The solver solves the real thickness geometry',
         }),
       },
       epsR: {
@@ -271,6 +295,36 @@ Z₀ = (30π / √εeff) · K(k') / K(k)
 This form is for a structure
 WITHOUT a bottom reference plane.`,
       }),
+      [STRUCT_GCPW]: t({
+        tr: `Kapalı form YOK — 2B alan çözücü:
+
+∇·(ε∇V) = 0  (elektrostatik)
+C' = 2U'/V²  (enerji rotası)
+aynı geometri vakumla → C'₀
+
+εeff = C'/C'₀
+Z₀ = 1 / (c·√(C'·C'₀))
+
+Orta hat, iki yanda coplanar
+toprak (boşluk S) ve altta
+referans düzlemi birlikte
+çözülür; bakır kalınlığı
+gerçek geometridir.`,
+        en: `NO closed form — 2D field solver:
+
+∇·(ε∇V) = 0  (electrostatics)
+C' = 2U'/V²  (energy route)
+same geometry in vacuum → C'₀
+
+εeff = C'/C'₀
+Z₀ = 1 / (c·√(C'·C'₀))
+
+The centre trace, the coplanar
+grounds on both sides (gap S)
+and the bottom reference plane
+are solved together; the copper
+thickness is real geometry.`,
+      }),
     },
 
     detail: {
@@ -293,6 +347,18 @@ WITHOUT a bottom reference plane.`,
       noRounding: t({
         tr: 'Ara değerlerde yuvarlama yapılmaz; yalnızca gösterim yuvarlanır.',
         en: 'Intermediate values are never rounded; only the display is rounded.',
+      }),
+      solverOnly: t({
+        tr: 'Bu yapının kapalı formu yok; sonuç 2B alan çözücüden gelir (yöntem alanı '
+          + '`field-solver`). Coplanar topraklar hat katmanında geniş kabul edilir; stitching '
+          + 'via yapısı 2B kesitte modellenmez.',
+        en: 'This structure has no closed form; the result comes from the 2D field solver '
+          + '(method field `field-solver`). The coplanar grounds are taken as wide on the trace '
+          + 'layer; stitching via structures are not modelled in a 2D cross-section.',
+      }),
+      solverMesh: (mesh) => t({
+        tr: `İnce ızgara ${mesh}; sonuç iki yoğunlukla üretilir, fark E_Z olarak raporlanır.`,
+        en: `Fine grid ${mesh}; the result is produced at two densities and the difference is reported as E_Z.`,
       }),
     },
 
@@ -320,9 +386,18 @@ WITHOUT a bottom reference plane.`,
       }),
       t({
         tr: 'İdeal coplanar waveguide sonucu, altında referans düzlemi bulunan yapı için '
-          + 'kullanılmamalıdır.',
+          + 'kullanılmamalıdır — alt düzlemli yapı için grounded coplanar waveguide seçeneğini '
+          + 'kullanın; o yapı yalnız alan çözücüyle hesaplanır.',
         en: 'The ideal coplanar waveguide result must not be used for a structure with a '
-          + 'reference plane underneath.',
+          + 'reference plane underneath — for that structure use the grounded coplanar waveguide '
+          + 'option, which is computed only with the field solver.',
+      }),
+      t({
+        tr: 'Grounded coplanar waveguide modelinde coplanar topraklar geniş ve hat katmanında '
+          + 'kabul edilir; sonlu toprak genişliği ve stitching via yapısı 2B kesitte yoktur.',
+        en: 'In the grounded coplanar waveguide model the coplanar grounds are taken as wide and '
+          + 'on the trace layer; finite ground width and stitching via structures are not in the '
+          + '2D cross-section.',
       }),
       t({
         tr: 'Sonuçlar yaklaşıktır — kritik tasarımlarda üretici verisi ve ölçümle doğrulayın.',
@@ -362,6 +437,10 @@ WITHOUT a bottom reference plane.`,
           tr: 'İdeal coplanar waveguide — altında referans düzlem yok',
           en: 'Ideal coplanar waveguide — no reference plane underneath',
         }),
+        [STRUCT_GCPW]: t({
+          tr: 'Grounded coplanar waveguide — coplanar toprak + alt referans düzlemi',
+          en: 'Grounded coplanar waveguide — coplanar ground + bottom reference plane',
+        }),
       },
       refPlane: t({ tr: 'referans düzlem', en: 'reference plane' }),
       topPlane: t({ tr: 'üst düzlem', en: 'top plane' }),
@@ -371,6 +450,17 @@ WITHOUT a bottom reference plane.`,
     },
 
     reasonText: (reason) => {
+      if (reason === REASON_SOLVER_ONLY) {
+        return t({
+          tr: 'Grounded coplanar waveguide için sentez bu fazda yok: yapının kapalı formu '
+            + 'yazılmadı ve alan çözücü kök arama döngüsüne sokulmuyor. Analiz modunda genişliği '
+            + 'elle değiştirip çözücü sonucunu izleyin.',
+          en: 'Synthesis is not available for the grounded coplanar waveguide in this phase: '
+            + 'the structure has no closed form and the field solver is not put inside the '
+            + 'root-search loop. Use analysis mode, adjust the width manually and watch the '
+            + 'solver result.',
+        })
+      }
       if (reason === REASON_NO_SOLUTION) {
         return t({
           tr: 'Bu yığınla hedef empedans fiziksel genişlik aralığında elde edilemiyor. Dielektrik '
@@ -393,6 +483,52 @@ WITHOUT a bottom reference plane.`,
     commentary: (r, solver) => {
       if (!r.ok) return []
       const out = []
+
+      // Grounded CPW: sayının tek kaynağı çözücü — yorumlar da oradan kurulur
+      if (r.solverOnly) {
+        const fs = solver && solver.status === 'done' ? solver.result : null
+        const fsOk = fs && !fs.error
+        if (fsOk) {
+          const ez = fs.convergence.coarsePct
+          out.push({
+            level: 'ok',
+            text: t({
+              tr: `${structLabel[r.structure]} için alan çözücü: Z₀ = ${fmtRes(fs.Z0, 4)}, εeff = ${fmt(fs.epsEff, 4)}, yayılma gecikmesi ${fmt(fs.tpd * 1e9, 4)} ps/mm.`,
+              en: `For ${structLabel[r.structure]}, the field solver gives Z₀ = ${fmtRes(fs.Z0, 4)}, εeff = ${fmt(fs.epsEff, 4)}, propagation delay ${fmt(fs.tpd * 1e9, 4)} ps/mm.`,
+            }),
+          })
+          out.push({
+            level: ez >= FS_CONVERGENCE_WARN_PCT ? 'warn' : 'ok',
+            text: ez >= FS_CONVERGENCE_WARN_PCT
+              ? t({
+                tr: `Yakınsama farkı E_Z = ${pct(fmt(ez, 2))} — mesh bu geometri için yetersiz, sonuç bu hâliyle üretim kararına dayanak yapılmamalıdır.`,
+                en: `Convergence difference E_Z = ${pct(fmt(ez, 2))} — the mesh is insufficient for this geometry; do not base a production decision on this result as it stands.`,
+              })
+              : t({
+                tr: `Yakınsama farkı E_Z = ${pct(fmt(ez, 2))} — ${solverConvLevel(ez)}.`,
+                en: `Convergence difference E_Z = ${pct(fmt(ez, 2))} — ${solverConvLevel(ez)}.`,
+              }),
+          })
+        } else if (fs && fs.error) {
+          out.push({ level: 'warn', text: solverErrNote(fs.error) })
+        } else {
+          out.push({
+            level: 'warn',
+            text: t({
+              tr: 'Alan çözücü henüz hesaplıyor; bu yapının kapalı formu olmadığı için sonuç çözüm bitince gelir.',
+              en: 'The field solver is still computing; as this structure has no closed form, the result appears when it finishes.',
+            }),
+          })
+        }
+        out.push({
+          level: 'warn',
+          text: t({
+            tr: 'Coplanar topraklar geniş kabul edilir ve hat katmanındadır; sonlu toprak genişliği ve stitching via aralığı sonucu değiştirir. Empedans sonucu üreticiyle doğrulanmalıdır.',
+            en: 'The coplanar grounds are taken as wide and on the trace layer; finite ground width and stitching via pitch change the result. The impedance result must be verified with the fabricator.',
+          }),
+        })
+        return out
+      }
 
       out.push({
         level: 'ok',

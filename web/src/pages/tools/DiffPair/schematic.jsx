@@ -97,9 +97,8 @@ const DiffPairSchematic = forwardRef(function DiffPairSchematic({ r, form, text 
           <text className="sch-value" x={hTextX} y={hValueY} textAnchor="end">
             {fmtEng(r.H, 'm', 3)}
           </text>
-          <text className="sch-value" x={24} y={152}>
-            Z_diff = {fmtEng(r.Zdiff, 'Ω', 4)}
-          </text>
+          {/* Z_diff burada basılmaz (F2): sayı asenkron çözücüden gelir,
+              şematik yalnız senkron r'yi bilir — bayat/boş değer basılmasın */}
         </>
       )}
     </Schematic>

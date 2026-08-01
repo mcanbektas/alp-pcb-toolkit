@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 import Schematic from '../../../components/Schematic'
 import { fmtEng } from '../../../lib/num'
-import { STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW } from './model'
+import { STRUCT_MICROSTRIP, STRUCT_STRIPLINE, STRUCT_CPW, STRUCT_GCPW } from './model'
 
 const cx = 130
 
@@ -95,6 +95,36 @@ function Cpw({ r, text }) {
   )
 }
 
+// Grounded CPW: coplanar yerleşim Cpw ile aynı, ek olarak dielektriğin
+// altında referans düzlemi çizilir (spec §6.7 — yapı yalnız çözücüyle çözülür).
+function Gcpw({ r, text }) {
+  const half = 30
+  const gap = 22
+  return (
+    <>
+      <rect className="sch-dielectric" x={20} y={70} width={220} height={40} />
+      <rect className="sch-copper" x={20} y={110} width={220} height={7} />
+      {/* Yan toprak düzlemleri ve orta hat aynı katmanda */}
+      <rect className="sch-copper" x={20} y={60} width={cx - half - gap - 20} height={10} />
+      <rect className="sch-copper" x={cx - half} y={60} width={half * 2} height={10} />
+      <rect className="sch-copper" x={cx + half + gap} y={60} width={240 - (cx + half + gap)} height={10} />
+
+      <text className="sch-label" x={cx} y={54} textAnchor="middle">W</text>
+      <text className="sch-label" x={cx - half - gap / 2} y={90} textAnchor="middle">S</text>
+      <text className="sch-label" x={cx + half + gap / 2} y={90} textAnchor="middle">S</text>
+      <text className="sch-label dim" x={20} y={48}>{text.coplanarGround}</text>
+      <text className="sch-label dim" x={24} y={131}>{text.refPlane}</text>
+
+      {r.ok && (
+        <>
+          <text className="sch-value" x={cx} y={34} textAnchor="middle">{fmtEng(r.W, 'm', 3)}</text>
+          <text className="sch-value" x={cx} y={104} textAnchor="middle">S = {fmtEng(r.S, 'm', 3)}</text>
+        </>
+      )}
+    </>
+  )
+}
+
 // `ref` yalnızca rapor üretimi için Schematic'e iletilir — bkz. report.js.
 const ImpedanceSchematic = forwardRef(function ImpedanceSchematic({ r, form, text }, ref) {
   const structure = r.ok ? r.structure : form.structure
@@ -104,6 +134,7 @@ const ImpedanceSchematic = forwardRef(function ImpedanceSchematic({ r, form, tex
       {structure === STRUCT_MICROSTRIP && <Microstrip r={r} text={text} />}
       {structure === STRUCT_STRIPLINE && <Stripline r={r} text={text} />}
       {structure === STRUCT_CPW && <Cpw r={r} text={text} />}
+      {structure === STRUCT_GCPW && <Gcpw r={r} text={text} />}
     </Schematic>
   )
 })

@@ -682,41 +682,38 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   `{ Z0, epsEff, method }` döndürür ve `method` alanı `'closed-form'` | `'field-solver'`
   değerini taşır; arayüz `method`'a bakarak etiketi yazar. Kapalı form sonucu daima
   **"hızlı denklem modu"** etiketiyle ve geçerlilik sınırlarıyla birlikte gösterilir.
-  **Alan çözücünün F1 fazı yazıldı** (`lib/fieldSolver.js` — 2B FDM, tek uçlu
-  microstrip/stripline; kararlar ve ölçümler `docs/alan-cozucu-karari.md`): saf ve senkron
-  motor, Web Worker bağı `hooks/useFieldSolver.js`'te, `SingleEnded` sonucun yanında ayrı
-  çözücü satırı basar. Ana sayı hâlâ kapalı formdan; diferansiyel (F2) ve sinyal bütünlüğü
-  beslemesi (F3) sonraki oturumlarda. Çözücü sonucu `convergence.coarsePct` (E_Z, spec §6.3)
-  taşır ve E_Z ≥ %1 iken warn'suz gösterilmez.
+  **Alan çözücünün F1 + F2 fazları yazıldı** (`lib/fieldSolver.js` — 2B FDM; kararlar ve
+  ölçümler `docs/alan-cozucu-karari.md`): saf ve senkron motor, Web Worker bağı
+  `hooks/useFieldSolver.js`'te. F1: tek uçlu microstrip/stripline — `SingleEnded` ana sayıyı
+  kapalı formdan basar, çözücü satırı ayrıca gelir. F2: diferansiyel çift
+  (`fieldDifferentialPair` — spec §6.8.1 kapasitans matrisi rotası, even/odd uyarımlı yarım
+  alan) ve grounded CPW (`fieldGroundedCpw`); bu ikisinde sayının TEK kaynağı çözücüdür ve
+  sonuç worker'dan asenkron düşer — o ana kadar ekran "hesaplanıyor…" ve varsa kapalı form
+  tek uçlu tabanı gösterir. Çözücü satırları raporlara da girer; indirme anında çözüm
+  bitmemişse satır rapora girmez, sayı uydurulmaz. Çözücü sonucu `convergence.coarsePct`
+  (E_Z, spec §6.3) taşır ve E_Z ≥ %1 iken warn'suz gösterilmez. Sinyal bütünlüğü beslemesi
+  ve solver-in-loop sentez F3'te.
 
 - **İdeal CPW denklemi grounded CPW sonucu olarak sunulmaz** (`docs/spec.md` §6.7). Grounded
-  CPW alan çözücü fazına bırakılmıştır; kapalı form fazında bu yapı hiç sunulmaz.
+  CPW, `SingleEnded` ekranında ayrı yapı seçeneğidir ve YALNIZ alan çözücüyle hesaplanır —
+  kapalı form dalı yazılmadı, yazılmayacak. Bu yapıda sentez de yoktur
+  (`REASON_SOLVER_ONLY`); solver-in-loop F3'te ölçümle açılır.
 
-- **Bilinen sapma — diferansiyel çift kuplaj katsayısı.** `impedance.js` içindeki
-  `differentialPair()`, spec §6.8.1'in istediği Maxwell kapasitans matrisi rotasını
-  (`C_odd = C₁₁ − C₁₂`, `C_even = C₁₁ + C₁₂`, `Z = 1/(c·√(C·C₀))`) **uygulamıyor**. `C₁₁` ve
-  `C₁₂` için kapalı form yoktur; kapasitans matrisi alan çözücüden çıkar. Yerine ampirik bir
-  kuplaj katsayısı kullanılıyor:
-
-  ```
-  microstrip: k_c = 0.48·exp(−0.96·S/H)
-  stripline:  k_c = 0.347·exp(−2.9·S/b)
-  Z_odd = Z₀·(1 − k_c),  Z_even = Z₀·(1 + k_c)
-  ```
-
-  **Bu iki ifadenin kaynağı `docs/spec.md`'de yok** — sayısal katsayıları ve geçerlilik
-  aralıkları spec'ten doğrulanamıyor. Kod bunu şu şekilde görünür kılar, üçü de zorunludur:
-  1. Sonuç `method: METHOD_EMPIRICAL` (`'empirical-coupling'`) taşır, `'closed-form'` değil.
-     Tek uçlu formun kendi etiketi ayrıca `singleMethod` alanında döner. Yeni bir kod
-     `method === METHOD_CLOSED_FORM` kontrolü yazarken bu ayrımı bozmamalı.
-  2. `capacitanceMatrix: false` alanı §6.8.1 rotasının uygulanmadığını açıkça bildirir.
-  3. Diferansiyel ekranda hem `METHOD_NOTE` hem `COUPLING_SOURCE_NOTE` gösterilir; sonuç
-     üretim kararı verilecekmiş gibi sunulmaz (yığın onayı / panel çıkışı / empedans kuponu
-     için alan çözücü ya da üretici ölçümü şart).
-
-  Silinmiyor çünkü çift için çalışan tek motor bu. Alan çözücü fazında §6.8.1 rotasıyla
-  bütünüyle değiştirilecek. Bu arada **aynı gerekçeyle yeni ampirik formül eklenmez** —
-  kaynağı spec'te olmayan bir denklem, kapalı formdan gelmiş gibi sunulamaz.
+- **Diferansiyel çift F2'de spec rotasına geçti; eski ampirik kuplaj SÖKÜLDÜ.** Spec
+  §6.8.1'in Maxwell kapasitans matrisi rotası (`C_odd = C₁₁ − C₁₂`, `C_even = C₁₁ + C₁₂`,
+  `Z = 1/(c·√(C·C₀))`) artık `lib/fieldSolver.js → fieldDifferentialPair()`de uygulanıyor;
+  sonuç `method: 'field-solver'` ve `capacitanceMatrix: true` taşır. `impedance.js`'te
+  diferansiyel çift için kapalı form YOKTUR ve yazılmayacaktır; eski
+  `couplingFactor`/`COUPLING`/`METHOD_EMPIRICAL`/`differentialPair`/`solveSpacingForZdiff`
+  silindi — geri getirilmez, `COUPLING_SOURCE_NOTE` da çözücü sonuçlarında basılmaz.
+  DiffPair ekranında çiftin sayıları çözücüden (asenkron) gelir; kapalı form yalnız tek uçlu
+  tabanı verir (Z₀ ve "kuplajsız 2·Z₀" referansı, `singleMethod` etiketiyle). Sentez F2'de
+  "aralık sabit → genişlik" ile sınırlıdır: kuplajsız kapalı form tohumu (hedef Z₀ =
+  Z_diff/2) + çözücünün tek seferlik doğrulaması, hedeften gerçek sapma çözücüden okunur;
+  "genişlik sabit → aralık" F3'ün solver-in-loop işidir. Ekranın parametrik grafiği de
+  söküldü (eğri ampirik motordan çiziliyordu). Gerekçeler ve ölçümler:
+  `docs/alan-cozucu-karari.md` §8–§9. **Yeni ampirik formül eklenmez** kuralı aynen
+  geçerli — kaynağı spec'te olmayan bir denklem, kapalı formdan gelmiş gibi sunulamaz.
 
 - **Bilinen sapma — crosstalk kestirimi.** `signalIntegrity.js` `crosstalk()` de spec'i
   uygulamıyor. Spec §7.6 çok iletkenli iletim hattı çözümü istiyor (kapasitans matrisi 2B alan
@@ -727,14 +724,19 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
   `method: SI_METHOD_EMPIRICAL` ve `multiconductorModel: false` taşır; arayüz bunu kapalı form
   sonuçlarıyla aynı kefeye koymaz. Spec'te birebir tanımlı tek şey 3W kontrolüdür (`S ≥ 3W`) ve
   o da yalnızca geometrik bir kontroldür — sağlandığında **"crosstalk yoktur" denmez**.
+  (§7.6'nın TAM rotası F2'den sonra da uygulanmadı; alan çözücü artık kapasitans matrisi
+  verebiliyor ama FFT'li çok iletkenli çözüm ayrı bir iş — brif 09 F3.1 bile kapsamına
+  almıyor, istenirse ayrı brif.)
 
-- **Türetilemeyen büyüklük uydurulmaz.** Far-end crosstalk (FEXT) modal hız farkına bağlıdır.
-  Diferansiyel çift motoru tek bir εeff kullanır; bu, iki modun hızını özdeş varsaymak
-  demektir ve o varsayım altında FEXT katsayısı `K_f = −½·t_pd·(C_m/C − L_m/L)` özdeş olarak
-  **sıfır** çıkar. Microstrip'te FEXT genelde baskın crosstalk olduğu için bu sıfır yanlıştır.
-  Bu yüzden `signalIntegrity.js` FEXT'i `Z_odd`/`Z_even`'den türetmez: kullanıcı odd ve even
-  mod εeff değerlerini elle girerse hesaplar, girmezse `SI_ERR_NO_FEXT` döndürür. Kapalı
-  formdan geliyormuş gibi sunulan yanlış bir sayı, sonuç vermemekten kötüdür.
+- **Türetilemeyen büyüklük uydurulmaz.** Far-end crosstalk (FEXT) modal hız farkına bağlıdır
+  ve kapalı form motorları tek εeff kullandığı için bu farkı veremez; o varsayım altında FEXT
+  katsayısı `K_f = −½·t_pd·(C_m/C − L_m/L)` özdeş olarak **sıfır** çıkar. Microstrip'te FEXT
+  genelde baskın crosstalk olduğu için bu sıfır yanlıştır. Bu yüzden `signalIntegrity.js`
+  FEXT'i `Z_odd`/`Z_even`'den türetmez: kullanıcı odd ve even mod εeff değerlerini elle
+  girerse hesaplar, girmezse `SI_ERR_NO_FEXT` döndürür. Kapalı formdan geliyormuş gibi
+  sunulan yanlış bir sayı, sonuç vermemekten kötüdür. F2'den beri modal εeff'leri alan
+  çözücü veriyor (DiffPair ekranı ikisini de gösterir); kullanıcı bunları Crosstalk ekranına
+  elle taşıyabilir, otomatik akış brif 09 F3 kapsamıdır.
 
 ## Sonuç sunumu
 

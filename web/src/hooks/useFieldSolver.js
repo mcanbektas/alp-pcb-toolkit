@@ -3,10 +3,12 @@
 // `lib/fieldSolver.js` saf ve senkron kalır; tarayıcı API'si (Worker) yalnız
 // bu katmandadır. İlk render'da HİÇBİR ŞEY yapılmaz — hydration kuralı:
 // prerender'lı HTML ile ilk client render'ı birebir aynıdır, çözücü sonucu
-// mount'tan sonra gelir ve o ana kadar kapalı form sonucu ekranda kalır.
+// mount'tan sonra gelir ve o ana kadar senkron sonuç (varsa) ekranda kalır.
 //
 // params null ise (geçersiz form, desteklenmeyen yapı) kanca 'idle' döner.
-// params: { structure: 'microstrip' | 'stripline', W, height, t, epsR } — SI.
+// params: { kind: 'single' | 'pair' | 'gcpw',
+//           structure: 'microstrip' | 'stripline' | 'gcpw',
+//           W, S, height, t, epsR } — SI. S yalnız pair/gcpw işlerinde okunur.
 
 import { useEffect, useRef, useState } from 'react'
 
@@ -21,7 +23,10 @@ export default function useFieldSolver(params) {
 
   // Nesne kimliği her render'da değişir; efekt yalnız değerlere bakar
   const key = params
-    ? [params.structure, params.W, params.height, params.t, params.epsR].join('|')
+    ? [
+        params.kind ?? 'single', params.structure,
+        params.W, params.S ?? 0, params.height, params.t, params.epsR,
+      ].join('|')
     : null
 
   useEffect(() => {
@@ -48,11 +53,11 @@ export default function useFieldSolver(params) {
     }
     worker.addEventListener('message', onMessage)
 
-    const [structure, W, height, t, epsR] = key.split('|')
+    const [kind, structure, W, S, height, t, epsR] = key.split('|')
     const timer = setTimeout(() => {
       worker.postMessage({
         id,
-        params: { structure, W: +W, height: +height, t: +t, epsR: +epsR },
+        params: { kind, structure, W: +W, S: +S, height: +height, t: +t, epsR: +epsR },
       })
     }, DEBOUNCE_MS)
 

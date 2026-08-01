@@ -444,7 +444,10 @@ function analyzeGrid(spec) {
 // yorumu ekranındır (dilsiz kural).
 const CG_TOL = 1e-7
 
-function solveTwoDensities(buildSpec, density, extra) {
+// Kaba + ince ızgara koşumu; ince çözüm kaba çözümle tohumlanır ve iki Z₀
+// arasındaki fark E_Z olarak döner. Tek uçlu yapılar bunu solveTwoDensities
+// üzerinden, diferansiyel çift her uyarım (even/odd) için ayrı ayrı kullanır.
+function runTwoDensities(buildSpec, density) {
   const dCoarse = Math.max(2, Math.round(density))
   const dFine = Math.max(dCoarse + 2, Math.round(dCoarse * 1.5))
 
@@ -458,13 +461,21 @@ function solveTwoDensities(buildSpec, density, extra) {
   const fine = analyzeGrid(fineSpec)
   if (fine.error) return fine
 
-  const coarsePct = (100 * Math.abs(fine.Z0 - coarse.Z0)) / fine.Z0
+  return { coarse, fine, coarsePct: (100 * Math.abs(fine.Z0 - coarse.Z0)) / fine.Z0 }
+}
+
+function solveTwoDensities(buildSpec, density, extra) {
+  const run = runTwoDensities(buildSpec, density)
+  if (run.error) return run
+  const { coarse, fine, coarsePct } = run
 
   return {
     Z0: fine.Z0,
     epsEff: fine.epsEff,
     method: METHOD_FIELD_SOLVER,
-    model: 'fdm-sor-energy',
+    // Doğrusal çözücü PCG'dir (SOR F1'de ölçümle elendi — karar dosyası §4);
+    // etiket kullanıcıya görünür, yanlış yöntemi anmamalı
+    model: 'fdm-pcg-energy',
     C: fine.C,
     Cvac: fine.Cvac,
     tpd: Math.sqrt(fine.epsEff) / C0, // s/m
@@ -601,6 +612,226 @@ export function fieldStripline({
     thicknessIncluded: t > 0,
     symmetric: h1 == null || Math.abs(hBottom - hTop) <= b * 1e-9,
   })
+}
+
+/**
+ * Kenar bağlı diferansiyel çift — spec §6.8.1 kapasitans matrisi rotası
+ * (brif 09 F2, karar #5).
+ *
+ * Simetri düzlemi (x = 0) kullanılarak YARIM alan çözülür: even uyarımda
+ * düzlem doğal Neumann duvarıdır (akı geçmez), odd uyarımda Dirichlet(0)
+ * duvarı (potansiyel antisimetrik, düzlemde sıfır). Yarım alanda tek iletken
+ * V = 1 ile çözülür; bağ enerjisi toplamı EPS0·Σg·ΔV² tam yapının
+ * U_full = 2·U_half enerjisine eşittir ve V = 1 için hat başına mod
+ * kapasitesinin kendisidir:
+ *   even: Q₁ = C₁₁ + C₁₂ = C_even = U_full
+ *   odd:  Q₁ = C₁₁ − C₁₂ = C_odd  = U_full
+ * Yani analyzeGrid'in enerji rotası C'si doğrudan C_even / C_odd'dur; aynı
+ * geometri vakumla çözülüp C₀,even / C₀,odd alınır ve §6.8.1'in dört formülü
+ * birebir uygulanır:
+ *   Z_odd  = 1/(c·√(C_odd·C₀,odd))    Z_even = 1/(c·√(C_even·C₀,even))
+ *   Z_diff = 2·Z_odd                  Z_common = Z_even/2
+ * C₁₁ = (C_even+C_odd)/2 ve C₁₂ = (C_even−C_odd)/2 yalnız raporlama içindir
+ * (Maxwell işaretiyle C₁₂ negatiftir).
+ *
+ * @param {'microstrip'|'stripline'} structure
+ * @param {number} W  hat genişliği (m)
+ * @param {number} S  hatlar arası kenar-kenar boşluk (m)
+ * @param {number} H  microstrip'te dielektrik yüksekliği, stripline'da
+ *                    düzlemler arası mesafe (m) — differentialPair sözleşmesi
+ * @param {number} t  bakır kalınlığı (m)
+ * @param {number} epsR
+ */
+export function fieldDifferentialPair({
+  structure = 'microstrip', W, S, H, t = 0, epsR,
+  density = FS_DENSITY_DEFAULT,
+  wallFactor = null,
+}) {
+  if (!(W > 0) || !(S > 0) || !(H > 0) || !(t >= 0) || !(epsR >= 1)) {
+    return { error: FS_ERR_INVALID }
+  }
+  const isStripline = structure === 'stripline'
+  if (!isStripline && structure !== 'microstrip') return { error: FS_ERR_INVALID }
+
+  // Stripline'da hat düşey ortada (simetrik çift — F2 kapsamı); düzleme değen
+  // hat kısa devredir.
+  const hBottom = isStripline ? (H - t) / 2 : null
+  if (isStripline && !(hBottom > 0)) return { error: FS_ERR_INVALID }
+
+  // Duvar mesafesi tek uçlu yapılarla aynı kararı izler (karar #7): açık
+  // microstrip'te 15×, stripline'da 5×. İlgili boyut, simetri düzleminden
+  // yapının dış kenarına uzanan S/2+W ile düşey ölçünün büyüğüdür.
+  const wf = wallFactor ?? (isStripline ? FS_WALL_FACTOR_DEFAULT : FS_WALL_FACTOR_OPEN)
+  const xOuter = S / 2 + W
+  const margin = wf * Math.max(isStripline ? H : H + t, xOuter)
+  const halfX = xOuter + margin
+
+  const yLo = isStripline ? hBottom : H
+  const yHi = yLo + t
+  const top = isStripline ? H : H + t + margin
+  const minFeature = Math.min(W, S / 2, isStripline ? Math.min(hBottom, H - hBottom - t) : H, t > 0 ? t : Infinity)
+
+  const buildSpec = (odd) => (d) => {
+    const hFine = minFeature / d
+    const hEdge = hFine / EDGE_ZOOM // iletken kenarı/köşesi: tekillik
+    const hWall = margin / 3
+    const yMarks = isStripline
+      ? [
+          { pos: 0, h: hBottom / d },
+          { pos: yLo, h: hEdge },
+          { pos: H, h: (H - hBottom - t) / d },
+        ]
+      : [
+          { pos: 0, h: H / d }, // referans düzlem: alan düzgün, ölçek H
+          { pos: yLo, h: hEdge },
+          { pos: top, h: hWall },
+        ]
+    if (t > 0) yMarks.push({ pos: yHi, h: hEdge })
+    return {
+      xMarks: [
+        // Simetri düzlemi: odd modda alan aralıkta yoğunlaşır, çözünürlük
+        // aralık ölçeğiyle (S/2) sınırlanır
+        { pos: 0, h: Math.min(S / 2, isStripline ? H : H + t) / d },
+        { pos: S / 2, h: hEdge },
+        { pos: S / 2 + W, h: hEdge },
+        { pos: halfX, h: hWall },
+      ],
+      yMarks,
+      hMax: margin / 3,
+      epsAt: isStripline ? () => epsR : (xc, yc) => (yc < H ? epsR : 1),
+      conductors: [{ x1: S / 2, x2: S / 2 + W, y1: yLo, y2: yHi, V: 1 }],
+      // Sol duvar simetri düzlemidir: odd → Dirichlet(0), even → Neumann
+      box: { left: odd, right: true, top: true, bottom: true },
+      grow: growFor(d),
+      tol: CG_TOL,
+    }
+  }
+
+  const even = runTwoDensities(buildSpec(false), density)
+  if (even.error) return even
+  const odd = runTwoDensities(buildSpec(true), density)
+  if (odd.error) return odd
+
+  const Ceven = even.fine.C
+  const Codd = odd.fine.C
+  const Zeven = even.fine.Z0
+  const Zodd = odd.fine.Z0
+
+  return {
+    Zodd,
+    Zeven,
+    Zdiff: 2 * Zodd,
+    Zcommon: Zeven / 2,
+    epsEffOdd: odd.fine.epsEff,
+    epsEffEven: even.fine.epsEff,
+    Codd,
+    Ceven,
+    C0odd: odd.fine.Cvac,
+    C0even: even.fine.Cvac,
+    C11: (Ceven + Codd) / 2,
+    C12: (Ceven - Codd) / 2,
+    method: METHOD_FIELD_SOLVER,
+    model: 'fdm-pcg-energy-even-odd',
+    capacitanceMatrix: true,
+    structure,
+    thicknessIncluded: t > 0,
+    tpdOdd: Math.sqrt(odd.fine.epsEff) / C0, // s/m
+    tpdEven: Math.sqrt(even.fine.epsEff) / C0,
+    // Kullanıcıya giden sayı Z_diff'tir ama Z_even/Z_common da sunulur;
+    // E_Z iki modun kötüsüdür ki eşiğin altındaki bir mod ötekinin
+    // yetersizliğini maskelemesin.
+    convergence: { coarsePct: Math.max(odd.coarsePct, even.coarsePct) },
+    mesh: {
+      even: { nx: even.fine.nx, ny: even.fine.ny, iterations: even.fine.iterations, coarsePct: even.coarsePct },
+      odd: { nx: odd.fine.nx, ny: odd.fine.ny, iterations: odd.fine.iterations, coarsePct: odd.coarsePct },
+    },
+  }
+}
+
+/**
+ * Grounded coplanar waveguide — orta hat, iki yanda coplanar toprak ve altta
+ * referans düzlemi. Spec §6.7: bu yapı KAPALI FORMLA SUNULMAZ, yalnız alan
+ * çözücüyle çözülür; ideal CPW denklemi bunun yerine kullanılamaz.
+ *
+ * Coplanar topraklar hat katmanındadır (kalınlık t) ve yanal olarak topraklı
+ * kutu duvarına kadar uzanır — sonlu toprak genişliği modellenmez, duvarla
+ * bütünleşir. Bu, "geniş coplanar toprak" varsayımıdır ve stitching via
+ * yapısı 2B kesitte zaten temsil edilemez.
+ *
+ * Yapı x = 0 çevresinde simetrik olduğundan YARIM alan çözülür (x = 0
+ * Neumann duvarı — tek iletkenli even uyarım). Yarım alanın enerji rotası
+ * tam yapının yarısını sayar: C = 2·C_yarım, dolayısıyla Z₀ = Z₀,yarım / 2;
+ * εeff bir oran olduğu için değişmez. Ölçüldü: tam alan 537 ms idi, yarım
+ * alan bütçeye iner (karar dosyası F2).
+ *
+ * @param {number} W  orta hat genişliği (m)
+ * @param {number} S  hat ile coplanar toprak arası boşluk (m)
+ * @param {number} H  dielektrik yüksekliği (m)
+ * @param {number} t  bakır kalınlığı (m)
+ * @param {number} epsR
+ */
+export function fieldGroundedCpw({
+  W, S, H, t = 0, epsR,
+  density = FS_DENSITY_DEFAULT,
+  wallFactor = FS_WALL_FACTOR_OPEN,
+}) {
+  if (!(W > 0) || !(S > 0) || !(H > 0) || !(t >= 0) || !(epsR >= 1)) {
+    return { error: FS_ERR_INVALID }
+  }
+
+  const margin = wallFactor * Math.max(H + t, W)
+  const halfX = W / 2 + S + margin // toprak şeridi S kenarından duvara uzanır
+  const top = H + t + margin
+  const minFeature = Math.min(W, S, H, t > 0 ? t : Infinity)
+
+  const buildSpec = (d) => {
+    const hFine = minFeature / d
+    const hEdge = hFine / EDGE_ZOOM // iletken kenarı/köşesi: tekillik
+    const hWall = margin / 3
+    const yMarks = [
+      { pos: 0, h: H / d }, // referans düzlem: alan düzgün, ölçek H
+      { pos: H, h: hEdge },
+      { pos: top, h: hWall },
+    ]
+    if (t > 0) yMarks.push({ pos: H + t, h: hEdge })
+    return {
+      xMarks: [
+        // x = 0 simetri düzlemi: hat ortası, alan burada düzgün (ölçek W)
+        { pos: 0, h: W / d },
+        { pos: W / 2, h: hEdge },
+        { pos: W / 2 + S, h: hEdge },
+        { pos: halfX, h: hWall },
+      ],
+      yMarks,
+      hMax: margin / 3,
+      epsAt: (xc, yc) => (yc < H ? epsR : 1),
+      conductors: [
+        { x1: 0, x2: W / 2, y1: H, y2: H + t, V: 1 },
+        { x1: W / 2 + S, x2: halfX, y1: H, y2: H + t, V: 0 },
+      ],
+      // Sol duvar simetri düzlemi: Neumann (akı geçmez)
+      box: { left: false, right: true, top: true, bottom: true },
+      grow: growFor(d),
+      tol: CG_TOL,
+    }
+  }
+
+  const r = solveTwoDensities(buildSpec, density, {
+    structure: 'gcpw',
+    groundedBelow: true,
+    thicknessIncluded: t > 0,
+  })
+  if (r.error) return r
+
+  // Yarım alan düzeltmesi: tam kapasite yarımın 2 katı, Z₀ yarısı; εeff
+  // (oran) ve tpd değişmez. E_Z de oran olduğu için olduğu gibi kalır.
+  return {
+    ...r,
+    C: 2 * r.C,
+    Cvac: 2 * r.Cvac,
+    Z0: r.Z0 / 2,
+    mesh: { ...r.mesh, coarse: { ...r.mesh.coarse, Z0: r.mesh.coarse.Z0 / 2 } },
+  }
 }
 
 /**
