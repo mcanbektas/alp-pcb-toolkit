@@ -34,6 +34,7 @@ const STATIC_ROUTES = {
   resetPassword: { tr: '/parola-sifirla', en: '/en/reset-password' },
   confirmEmail: { tr: '/e-posta-dogrula', en: '/en/confirm-email' },
   projects: { tr: '/projelerim', en: '/en/projects' },
+  reports: { tr: '/raporlarim', en: '/en/reports' },
   account: { tr: '/hesabim', en: '/en/account' },
   project: { tr: '/proje/:id', en: '/en/project/:id' },
 }

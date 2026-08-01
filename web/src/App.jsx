@@ -101,6 +101,7 @@ const TOOL_SCREENS = {
 // araç ekranlarıyla aynı gerekçe: ilk boyamada yalnızca girişte gereken kod.
 const Projects = lazy(() => import('./pages/account/Projects'))
 const Project = lazy(() => import('./pages/account/Project'))
+const Reports = lazy(() => import('./pages/account/Reports'))
 const Account = lazy(() => import('./pages/account/Account'))
 
 // Uygulama geneli metinler. Ekran metni gibi bunlar da `pick()` ile çözülür:
@@ -248,6 +249,7 @@ function AccountArea() {
     return (
       <div className="lang-switch" role="group">
         <LangLink to="/projelerim">{text.header.projects}</LangLink>
+        <LangLink to="/raporlarim">{text.header.reports}</LangLink>
         <LangLink to="/hesabim">{text.header.account}</LangLink>
         <span className="header-user">{user.displayName}</span>
         <button type="button" onClick={onLogout}>{text.header.logout}</button>
@@ -324,6 +326,7 @@ function Layout({ children }) {
               <h2>{pick(FOOTER_ACCOUNT, lang)}</h2>
               <ul>
                 <li><LangLink to="/projelerim">{authText(lang).header.projects}</LangLink></li>
+                <li><LangLink to="/raporlarim">{authText(lang).header.reports}</LangLink></li>
                 <li><LangLink to="/hesabim">{authText(lang).header.account}</LangLink></li>
               </ul>
             </nav>
@@ -380,6 +383,7 @@ function langRoutes(lang) {
       element={<ConfirmEmail />}
     />,
     <Route key={`${lang}:projects`} path={staticPath('projects', lang)} element={<Projects />} />,
+    <Route key={`${lang}:reports`} path={staticPath('reports', lang)} element={<Reports />} />,
     <Route key={`${lang}:account`} path={staticPath('account', lang)} element={<Account />} />,
     <Route key={`${lang}:project`} path={staticPath('project', lang)} element={<Project />} />,
   ]

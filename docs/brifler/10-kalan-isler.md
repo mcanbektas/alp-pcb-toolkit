@@ -187,8 +187,9 @@ gerçek alan adına çekilmelidir** — bugün placeholder ve sitemap ile 76 say
 
 Karar `docs/rapor-snapshot-karari.md`'de: belge baytları değil, üretimdeki
 bölümlerin içerik-adresli kopyası donuyor. Künyedeki firma da donuyor (§27
-boşluğu kapandı). Sunucu tarafı bitti; **istemcide rapor geçmişi ekranı yok**,
-ayrım `GET /api/reports` → `hasSnapshot` ile yayımlandı.
+boşluğu kapandı). Sunucu tarafı ve **Raporlarım ekranı** (`/raporlarim`,
+başlık + altbilgi bağlantısıyla) bitti; ayrım listede "o günkü içerik" /
+"güncel içerikten üretilir" çipiyle görünüyor.
 
 Mevcut "saklamama" kararının gerekçesi güçlü; onu deviren gerekçe de yazılı
 olmalı. Karar yazılmadan kod yazılmaz.

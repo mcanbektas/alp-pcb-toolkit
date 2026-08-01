@@ -1624,8 +1624,13 @@ vermeyen bir çelişkidir.
   saklama kararının "kabul edilen sınırı" kalktı.
 - **`GET /api/reports` artık `hasSnapshot` taşıyor**: aynı listede iki farklı
   indirme davranışı var ve hangisinin geçerli olduğu belgeden anlaşılmıyor.
-  **İstemcide rapor geçmişi ekranı henüz yok** (bu uç hiçbir ekrandan
-  çağrılmıyor); etiket o ekran yazıldığında bu alandan okunacak.
+  Karşılığı aynı gün yazılan **Raporlarım** ekranı
+  (`web/src/pages/account/Reports.jsx`, `/raporlarim` · `/en/reports`):
+  kütüğü listeler, satırda "o günkü içerik" / "güncel içerikten üretilir"
+  çipini basar ve seçilen belge diliyle `POST /api/reports/{id}/download`
+  çağırır. Bağlantı başlıkta ve altbilgide, Projelerim'in yanında. Sayfa
+  indekslenmez; giriş denetimi Projects.jsx ile aynı desende sayfanın
+  kendisinde.
 
 ### Doğrulama
 

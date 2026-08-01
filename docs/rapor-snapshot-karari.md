@@ -121,11 +121,14 @@ dünyasının semantiği burada doğru olandır — basılmış belge güncellen
 revizyon basılır. Güncel içerik isteyen kullanıcı proje ekranından yeni rapor
 alır; bu zaten yeni bir kütük satırı ve yeni bir snapshot üretir.
 
-**Uygulama notu (2026-08-01):** istemcide rapor geçmişi EKRANI henüz yok —
-`GET /api/reports` bugün hiçbir ekran tarafından çağrılmıyor. Sunucu tarafı
-ayrımı `ReportSummary.HasSnapshot` alanıyla yayımlar; ekran yazıldığında
-etiket bu alandan okunur. Ekranın kendisi bu kararın kapsamı dışıdır (Brif 08
-listede bir ekran olduğunu varsayıyordu).
+**Uygulama notu (2026-08-01, aynı gün kapandı):** karar yazıldığında istemcide
+rapor geçmişi ekranı yoktu — `GET /api/reports` hiçbir ekrandan çağrılmıyordu;
+Brif 08 var olmayan bir listeyi varsayıyordu. Ekran ayrı iş olarak yazıldı:
+`web/src/pages/account/Reports.jsx` (`/raporlarim` · `/en/reports`). Etiketi
+`ReportSummary.HasSnapshot` alanından okur; indirme, seçilen belge diliyle
+`POST /api/reports/{id}/download` çağırır. Sayfa indekslenmez
+(`indexablePages` yalnız ana sayfa + katalog üretir, prerender 76 sayfada
+kaldı).
 
 ## 4. Silinen proje ve göç
 

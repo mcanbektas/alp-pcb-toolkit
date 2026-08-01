@@ -125,6 +125,49 @@ export function getText(lang) {
       }),
     },
 
+    reports: {
+      title: t({ tr: 'Raporlarım', en: 'Reports' }),
+      intro: t({
+        tr: 'Bugüne kadar indirilen raporların kütüğü. Bir raporu tekrar indirmek '
+          + 'belgeyi yeniden üretir; hangi içerikle üretileceğini satırdaki etiket söyler.',
+        en: 'The log of every report downloaded so far. Downloading a report again '
+          + 'reproduces the document; the tag on the row says which content it will carry.',
+      }),
+      loginRequired: t({
+        tr: 'Raporlarını görmek için giriş yapmalısın.',
+        en: 'Sign in to see your reports.',
+      }),
+      loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
+      loading: t({ tr: 'Raporlar yükleniyor…', en: 'Loading reports…' }),
+      loadError: t({ tr: 'Rapor listesi yüklenemedi.', en: 'The report list could not be loaded.' }),
+      empty: t({
+        tr: 'Henüz rapor yok. Bir araç ekranından ya da proje sayfasından rapor indir.',
+        en: 'No reports yet. Download one from a tool screen or a project page.',
+      }),
+
+      // İki indirme davranışı aynı listede yaşıyor ve hangisinin geçerli
+      // olduğu belgeden anlaşılmıyor — ayrım burada, satırın üstünde durmak
+      // zorunda (docs/rapor-snapshot-karari.md §3).
+      snapshotTag: t({ tr: 'o günkü içerik', en: 'content as of that day' }),
+      liveTag: t({ tr: 'güncel içerikten üretilir', en: 'produced from current content' }),
+
+      preparedByLine: (name) => t({ tr: `Hazırlayan: ${name}`, en: `Prepared by: ${name}` }),
+      sizeLine: (kb) => t({ tr: `${kb} KB`, en: `${kb} KB` }),
+
+      downloadPdf: t({ tr: 'PDF indir', en: 'Download PDF' }),
+      downloadXlsx: t({ tr: 'Excel indir', en: 'Download Excel' }),
+      working: t({ tr: 'Hazırlanıyor…', en: 'Preparing…' }),
+
+      // Snapshot'sız VE kaynağı kalmamış rapor: projesi silinmiş ya da projede
+      // okunabilir bölüm yok. Genel hata değil — kayıt duruyor, belge yok.
+      notReproducible: t({
+        tr: 'Bu raporun belgesi geri getirilemiyor: anlık görüntüsü yok ve '
+          + 'üretildiği kaynak veri (proje/bölümler) artık durmuyor.',
+        en: 'This report cannot be reproduced: it has no snapshot and the source '
+          + 'data it was built from (project/sections) is gone.',
+      }),
+    },
+
     account: {
       title: t({ tr: 'Hesabım', en: 'Account' }),
       intro: t({
