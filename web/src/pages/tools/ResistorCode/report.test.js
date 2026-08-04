@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildReportSection } from './report'
-import { compute, INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS, KIND_SMD, KIND_CAP } from './model'
+import { compute, INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS, KIND_CAP } from './model'
 import { getText } from './text'
 
 const text = getText('tr')
@@ -24,13 +24,6 @@ describe('ResistorCode report.js', () => {
     expect(section.inputs.some((i) => i.value === text.colorName.yellow)).toBe(true)
   })
 
-  it('SMD modunda kod türü sonuçlarda görünür', () => {
-    const f = { ...INITIAL_FORM, kind: KIND_SMD, smd: '472' }
-    const r = compute(MODE_ANALYSIS, f, text.fieldLabels)
-    const section = buildReportSection({ mode: MODE_ANALYSIS, f, r, text })
-    expect(section.results.some((row) => row.label === text.table.smdKind)).toBe(true)
-  })
-
   it('kondansatör modunda pF/nF/µF satırları görünür, E24/E96 görünmez', () => {
     const f = { ...INITIAL_FORM, kind: KIND_CAP, cap: '104K' }
     const r = compute(MODE_ANALYSIS, f, text.fieldLabels)
@@ -49,7 +42,7 @@ describe('ResistorCode report.js', () => {
   })
 
   it('hesap başarısızsa null döner', () => {
-    const f = { ...INITIAL_FORM, kind: KIND_SMD, smd: 'gecersiz-kod' }
+    const f = { ...INITIAL_FORM, kind: KIND_CAP, cap: 'gecersiz-kod' }
     const r = compute(MODE_ANALYSIS, f, text.fieldLabels)
     expect(buildReportSection({ mode: MODE_ANALYSIS, f, r, text })).toBeNull()
   })

@@ -437,7 +437,7 @@ CopperConverter'daki iki kayıt paneli), sunucu uçları ve testleri. İstenmedi
 iki yüzeyde yönetmek de kafa karıştırıyordu. `ThicknessRecords` tablosu logo kararıyla aynı
 gerekçeyle şemada duruyor. Geri istenirse desen DFM profillerinde yaşıyor.
 
-**Bilinçli sapma:** `categories.js` 29 araç kaydı içerir, `docs/spec.md` §15 ise 21 ekran
+**Bilinçli sapma:** `categories.js` 32 araç kaydı içerir, `docs/spec.md` §15 ise 21 ekran
 sayar. Fark kasıtlıdır, düzeltilmemeli: spec'in 2. ekranı (*Trace Resistance, Voltage Drop
 and Power Loss*) ayrı araç değil, `TraceWidth.jsx` içinde birleşik; spec'in 21. ekranı
 (*BGA, Stack-Up and Thermal Relief*) `bga`, `stackup` ve `thermal-relief` olarak üçe

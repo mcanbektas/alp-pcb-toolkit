@@ -30,8 +30,11 @@ import ConfirmEmail from './pages/auth/ConfirmEmail'
 const TraceWidth = lazy(() => import('./pages/tools/TraceWidth'))
 const VoltageDivider = lazy(() => import('./pages/tools/VoltageDivider'))
 const ResistorCode = lazy(() => import('./pages/tools/ResistorCode'))
-const LedOhmRlc = lazy(() => import('./pages/tools/LedOhmRlc'))
-const TimingCrystal = lazy(() => import('./pages/tools/TimingCrystal'))
+const OhmLaw = lazy(() => import('./pages/tools/OhmLaw'))
+const LedResistor = lazy(() => import('./pages/tools/LedResistor'))
+const RlcResonance = lazy(() => import('./pages/tools/RlcResonance'))
+const RcRl = lazy(() => import('./pages/tools/RcRl'))
+const CrystalLoad = lazy(() => import('./pages/tools/CrystalLoad'))
 const PowerPlane = lazy(() => import('./pages/tools/PowerPlane'))
 const CopperConverter = lazy(() => import('./pages/tools/CopperConverter'))
 const ViaProperties = lazy(() => import('./pages/tools/ViaProperties'))
@@ -83,8 +86,11 @@ const TOOL_SCREENS = {
   junction: Junction,
   'resistor-code': ResistorCode,
   divider: VoltageDivider,
-  'led-ohm-rlc': LedOhmRlc,
-  'rc-crystal': TimingCrystal,
+  'ohm-law': OhmLaw,
+  'led-resistor': LedResistor,
+  'rlc-resonance': RlcResonance,
+  'rc-rl': RcRl,
+  'crystal-load': CrystalLoad,
   'length-conv': LengthConverter,
   'awg-conv': AwgConverter,
   'freq-conv': FrequencyConverter,

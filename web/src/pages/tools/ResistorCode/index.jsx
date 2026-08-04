@@ -19,7 +19,7 @@ import { fmt, fmtRes, fmtPct } from '../../../lib/num'
 import CodeSchematic from './schematic'
 import {
   INITIAL_FORM, MODE_ANALYSIS, MODE_SYNTHESIS,
-  KIND_COLOR, KIND_SMD, KIND_CAP, KINDS, BAND_COUNTS,
+  KIND_COLOR, KIND_CAP, KINDS, BAND_COUNTS,
   compute, buildSweep, bandRoles,
 } from './model'
 import { getText } from './text'
@@ -128,22 +128,6 @@ export default function ResistorCode() {
                 options={role.options.map((c) => ({ value: c.key, label: text.colorName[c.key] }))}
               />
             ))
-          ) : f.kind === KIND_SMD ? (
-            <>
-              <TextField
-                label={text.fields.smd.label}
-                value={f.smd} onChange={set('smd')}
-                hint={text.fields.smd.hint}
-              />
-              <SelectField
-                label={text.fields.smdProfile.label}
-                value={f.smdProfile} onChange={set('smdProfile')}
-                options={[
-                  { value: 'standard', label: text.fields.smdProfile.standard },
-                  { value: 'manufacturer', label: text.fields.smdProfile.manufacturer },
-                ]}
-              />
-            </>
           ) : (
             <TextField
               label={text.fields.cap.label}
@@ -225,18 +209,6 @@ export default function ResistorCode() {
                       <tr>
                         <td>{text.table.bands}</td>
                         <td>{r.bands.map((b) => text.colorName[b]).join(' · ')}</td>
-                      </tr>
-                    )}
-                    {r.kind === KIND_SMD && (
-                      <tr>
-                        <td>{text.table.smdKind}</td>
-                        <td>{text.smdKindLabel[r.smdKind] ?? r.smdKind}</td>
-                      </tr>
-                    )}
-                    {r.kind === KIND_SMD && r.base != null && (
-                      <tr>
-                        <td>{text.table.baseTimesMultiplier}</td>
-                        <td>{r.base} × {fmt(r.multiplier, 4)}</td>
                       </tr>
                     )}
                     <tr>

@@ -1,10 +1,10 @@
-// Direnç ve SMD kod çözücü ekranının hesap modeli (spec §9.1 – §9.3).
+// Direnç renk kodu ekranının hesap modeli (spec §9.1 – §9.3).
 // Saf: React, DOM ve gösterim bilmez.
 
 import { readForm, fieldsFor, when } from '../../../lib/fields'
 import {
   decodeColorBands, encodeColorBands, resistanceAtTemp,
-  decodeSmd, decodeCapacitor,
+  decodeCapacitor,
   DIGIT_COLORS, MULTIPLIER_COLORS, TOLERANCE_COLORS, TCR_COLORS,
 } from '../../../lib/codes'
 import { nearestValue } from '../../../lib/eseries'
@@ -14,10 +14,9 @@ export const MODE_ANALYSIS = 'ana' // koddan değere
 export const MODE_SYNTHESIS = 'syn' // değerden koda
 
 export const KIND_COLOR = 'color'
-export const KIND_SMD = 'smd'
 export const KIND_CAP = 'cap'
 
-export const KINDS = [KIND_COLOR, KIND_SMD, KIND_CAP]
+export const KINDS = [KIND_COLOR, KIND_CAP]
 export const BAND_COUNTS = [4, 5, 6]
 
 export const REASON_INCOMPLETE = 'incomplete'
@@ -27,8 +26,6 @@ export const INITIAL_FORM = {
   kind: KIND_COLOR,
   bandCount: '4',
   b0: 'yellow', b1: 'violet', b2: 'black', b3: 'red', b4: 'gold', b5: 'brown',
-  smd: '472',
-  smdProfile: 'standard',
   cap: '104K',
   // Sentez girdileri
   target: '4.7', targetUnit: 'kΩ',
@@ -132,22 +129,6 @@ export function compute(mode, f, labels = {}) {
       ok: true, mode, kind: KIND_COLOR, bandCount,
       bands: dec.bands,
       ...evaluate(dec.ohms, dec.tolerance, dec.tcr, v),
-      temps: v,
-    }
-  }
-
-  if (f.kind === KIND_SMD) {
-    const dec = decodeSmd(f.smd, { profile: f.smdProfile })
-    if (dec.error) return { ok: false, reason: dec.error, detail: dec.detail }
-
-    return {
-      ok: true, mode, kind: KIND_SMD,
-      smdKind: dec.kind,
-      base: dec.base ?? null,
-      multiplier: dec.multiplier ?? null,
-      aliasUsed: dec.aliasUsed ?? false,
-      zero: dec.kind === 'zero',
-      ...evaluate(dec.ohms, null, null, v),
       temps: v,
     }
   }

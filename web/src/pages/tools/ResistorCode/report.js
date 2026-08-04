@@ -1,21 +1,15 @@
-// Direnç/SMD/kondansatör kod çözücü ekranının rapor bölümü. Saf.
-// docs/uyelik-ve-rapor-plani.md §5.2. Üç komponent türü (renk bandı, SMD,
+// Direnç/kondansatör kod çözücü ekranının rapor bölümü. Saf.
+// docs/uyelik-ve-rapor-plani.md §5.2. İki komponent türü (renk bandı,
 // kondansatör) ve iki mod (analiz, sentez) için ayrı girdi/sonuç kümeleri —
 // ekrandaki `index.jsx` dallanmasının aynısı, aynı `r` alanlarından okunur.
 
 import { fmt, fmtRes, fmtPct } from '../../../lib/num'
 import { splitFormatted } from '../../../lib/reportPayload'
 import {
-  formFields, bandKeys, bandRoles, MODE_SYNTHESIS, KIND_COLOR, KIND_SMD, KIND_CAP,
+  formFields, bandKeys, bandRoles, MODE_SYNTHESIS, KIND_COLOR, KIND_CAP,
 } from './model'
 
 function kindInputs(f, r, text) {
-  if (f.kind === KIND_SMD) {
-    return [
-      { label: text.fields.smd.label, value: f.smd },
-      { label: text.fields.smdProfile.label, value: f.smdProfile === 'standard' ? text.fields.smdProfile.standard : text.fields.smdProfile.manufacturer },
-    ]
-  }
   if (f.kind === KIND_CAP) {
     return [{ label: text.fields.cap.label, value: f.cap }]
   }
@@ -61,13 +55,6 @@ function coreResults(r, text) {
   if (r.mode !== MODE_SYNTHESIS && r.kind === KIND_COLOR) {
     rows.push({ label: text.table.bands, value: r.bands.map((b) => text.colorName[b]).join(' · ') })
   }
-  if (r.kind === KIND_SMD) {
-    rows.push({ label: text.table.smdKind, value: text.smdKindLabel[r.smdKind] ?? r.smdKind })
-    if (r.base != null) {
-      rows.push({ label: text.table.baseTimesMultiplier, value: `${r.base} × ${fmt(r.multiplier, 4)}` })
-    }
-  }
-
   rows.push(
     { label: text.table.nearestE24, value: `${fmtRes(r.nearestE24.value, 4)} (${text.pct(fmtPct(r.nearestE24.errorPct))})` },
     { label: text.table.nearestE96, value: `${fmtRes(r.nearestE96.value, 4)} (${text.pct(fmtPct(r.nearestE96.errorPct))})` },

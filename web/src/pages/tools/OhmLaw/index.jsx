@@ -1,9 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import LangLink from '../../../components/LangLink'
 import NumberField from '../../../components/NumberField'
 import SelectField from '../../../components/SelectField'
 import TextField from '../../../components/TextField'
-import Segmented from '../../../components/Segmented'
 import ToolHeader from '../../../components/ToolHeader'
 import ResultPanel from '../../../components/ResultPanel'
 import Commentary from '../../../components/Commentary'
@@ -18,8 +17,7 @@ import { commonText } from '../../../data/uiText'
 import { fmt, fmtEng, fmtRes, fmtAmp, fmtPow, fmtVolt, fmtPct } from '../../../lib/num'
 import CircuitSchematic from './schematic'
 import {
-  INITIAL_FORM, TOOLS, TOOL_OHM, TOOL_LED, TOOL_RLC, TOOL_COMBO,
-  MODE_ANALYSIS, MODE_SYNTHESIS, HAS_MODES,
+  INITIAL_FORM, TOOLS, TOOL_OHM, TOOL_COMBO,
   COMBO_SERIES, COMBO_PARALLEL,
   REASON_VALUE_LIST,
   compute, buildSweep,
@@ -27,27 +25,26 @@ import {
 import { getText } from './text'
 import { buildReportSection } from './report'
 
-export default function LedOhmRlc() {
-  const [mode, setMode] = useState(MODE_ANALYSIS)
+export default function OhmLaw() {
   const { f, set, patch } = useToolForm(INITIAL_FORM)
 
   // Kaydedilmiş hesabı geri yükler (?hesap=<id>) ve ekranı o kayda bağlar;
   // SaveToProject bağlı kayda yeni satır açmak yerine üzerine yazar.
   const saved = useSavedCalculation({
-    toolKey: 'led-ohm-rlc', initialForm: INITIAL_FORM, patch, setMode,
+    toolKey: 'ohm-law', initialForm: INITIAL_FORM, patch,
   })
   const { lang } = useLang()
 
   const text = useMemo(() => getText(lang), [lang])
   const ui = useMemo(() => commonText(lang), [lang])
 
-  const r = useMemo(() => compute(f.tool, mode, f, text.fieldLabels), [f, mode, text])
+  const r = useMemo(() => compute(f.tool, f, text.fieldLabels), [f, text])
   const s = useMemo(() => buildSweep(r), [r])
   const notes = useMemo(() => text.commentary(r), [r, text])
 
   // Rapor bölümü SVG'siz kurulur; ReportDialog indirme anında canlı DOM'dan
   // (aşağıdaki ref'ler) şematik ve grafiği okuyup satır içine çevirir.
-  const reportSection = useMemo(() => buildReportSection({ mode, f, r, s, text }), [mode, f, r, s, text])
+  const reportSection = useMemo(() => buildReportSection({ f, r, s, text }), [f, r, s, text])
   const schematicRef = useRef(null)
   const chartRef = useRef(null)
 
@@ -82,18 +79,6 @@ export default function LedOhmRlc() {
             options={TOOLS.map((x) => ({ value: x, label: text.toolLabel[x] }))}
           />
 
-          {HAS_MODES[f.tool] && (
-            <Segmented
-              label={text.modeGroup}
-              value={mode}
-              onChange={setMode}
-              options={[
-                { value: MODE_ANALYSIS, label: text.modeLabel[MODE_ANALYSIS] },
-                { value: MODE_SYNTHESIS, label: text.modeLabel[MODE_SYNTHESIS] },
-              ]}
-            />
-          )}
-
           {f.tool === TOOL_OHM && (
             <>
               <p className="method-note">{text.ohmNote}</p>
@@ -124,74 +109,6 @@ export default function LedOhmRlc() {
             </>
           )}
 
-          {f.tool === TOOL_LED && (
-            <>
-              <NumberField
-                label={text.fields.Vs.label}
-                value={f.Vs} onChange={set('Vs')}
-                units={['V', 'mV']} unit={f.Vsu} onUnit={set('Vsu')}
-              />
-              <NumberField
-                label={text.fields.Vf.label}
-                value={f.Vf} onChange={set('Vf')}
-                units={['V', 'mV']} unit={f.Vfu} onUnit={set('Vfu')}
-                hint={text.fields.Vf.hint}
-              />
-              <NumberField
-                label={text.fields.n.label}
-                value={f.n} onChange={set('n')}
-                units={[text.fields.countUnit]} unit={text.fields.countUnit} onUnit={() => {}}
-              />
-              <NumberField
-                label={text.fields.Iled.label}
-                value={f.Iled} onChange={set('Iled')}
-                units={['mA', 'A']} unit={f.Iledu} onUnit={set('Iledu')}
-              />
-              <NumberField
-                label={text.fields.derating.label}
-                value={f.derating} onChange={set('derating')}
-                units={['%']} unit="%" onUnit={() => {}}
-                hint={text.fields.derating.hint}
-              />
-            </>
-          )}
-
-          {f.tool === TOOL_RLC && (
-            <>
-              <NumberField
-                label={text.fields.Rr.label}
-                value={f.Rr} onChange={set('Rr')}
-                units={['Ω', 'mΩ', 'kΩ']} unit={f.Rru} onUnit={set('Rru')}
-              />
-              <NumberField
-                label={text.fields.L.label}
-                value={f.L} onChange={set('L')}
-                units={['H', 'mH', 'µH', 'nH']} unit={f.Lu} onUnit={set('Lu')}
-              />
-              {mode === MODE_ANALYSIS ? (
-                <>
-                  <NumberField
-                    label={text.fields.C.label}
-                    value={f.C} onChange={set('C')}
-                    units={['F', 'µF', 'nF', 'pF']} unit={f.Cu} onUnit={set('Cu')}
-                  />
-                  <NumberField
-                    label={text.fields.freq.label}
-                    value={f.freq} onChange={set('freq')}
-                    units={['Hz', 'kHz', 'MHz', 'GHz']} unit={f.frequ} onUnit={set('frequ')}
-                  />
-                </>
-              ) : (
-                <NumberField
-                  label={text.fields.targetF0.label}
-                  value={f.targetF0} onChange={set('targetF0')}
-                  units={['Hz', 'kHz', 'MHz', 'GHz']} unit={f.targetF0u} onUnit={set('targetF0u')}
-                  hint={text.fields.targetF0.hint}
-                />
-              )}
-            </>
-          )}
-
           {f.tool === TOOL_COMBO && (
             <>
               <SelectField
@@ -218,7 +135,7 @@ export default function LedOhmRlc() {
           r={r}
           reason={(code) => (code === REASON_VALUE_LIST
             ? text.valueListError(r.valueList, r.at)
-            : text.reasonText(code, r))}
+            : text.reasonText(code))}
         >
           {r.ok && (
             <>
@@ -242,95 +159,6 @@ export default function LedOhmRlc() {
                         <tr>
                           <td>{text.table.inconsistency}</td>
                           <td>{text.pct(fmt(r.inconsistency * 100, 3))}</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {r.tool === TOOL_LED && (
-                <>
-                  <div className="big-result">
-                    <div className="label">{text.big.ledLabel}</div>
-                    <div className="value">{fmtRes(r.R, 4)}</div>
-                    <div className="alt">
-                      {text.big.ledAlt(fmtRes(r.e24.value, 4), fmtAmp(r.e24.I, 3))}
-                    </div>
-                  </div>
-                  {status && <span className={`status ${status.cls}`}>{status.text}</span>}
-                  <table className="result-table">
-                    <tbody>
-                      <tr><td>{text.table.totalLedVoltage}</td><td>{fmtVolt(r.Vled)}</td></tr>
-                      <tr><td>{text.table.headroom}</td><td>{fmtVolt(r.headroom)}</td></tr>
-                      <tr><td>{text.table.idealResistance}</td><td>{fmtRes(r.R, 5)}</td></tr>
-                      <tr><td>{text.table.resistorPower}</td><td>{fmtPow(r.P, 4)}</td></tr>
-                      <tr>
-                        <td>{text.table.ratedPower}</td>
-                        <td>
-                          {fmtPow(r.Prated, 4)}{' '}
-                          <span className="sub">
-                            {text.table.utilisation(text.pct(fmt(r.derating * 100, 3)))}
-                          </span>
-                        </td>
-                      </tr>
-                      <tr className="mini-head">
-                        <td>{text.table.standardHead}</td>
-                        <td>{text.table.standardHeadSub}</td>
-                      </tr>
-                      <tr>
-                        <td>E24</td>
-                        <td>
-                          {fmtRes(r.e24.value, 4)} · {fmtAmp(r.e24.I, 3)} ·{' '}
-                          {text.pct(fmtPct((100 * (r.e24.I - r.targetI)) / r.targetI))}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>E96</td>
-                        <td>
-                          {fmtRes(r.e96.value, 4)} · {fmtAmp(r.e96.I, 3)} ·{' '}
-                          {text.pct(fmtPct((100 * (r.e96.I - r.targetI)) / r.targetI))}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {r.tool === TOOL_RLC && (
-                <>
-                  <div className="big-result">
-                    <div className="label">
-                      {r.mode === MODE_SYNTHESIS
-                        ? text.big.rlcSynthesisLabel
-                        : text.big.rlcAnalysisLabel(fmtEng(r.f, 'Hz', 4))}
-                    </div>
-                    <div className="value">
-                      {r.mode === MODE_SYNTHESIS ? fmtEng(r.C, 'F', 4) : fmtRes(r.magnitude, 4)}
-                    </div>
-                    <div className="alt">
-                      f₀ = {fmtEng(r.f0, 'Hz', 4)} &nbsp;·&nbsp; Q = {fmt(r.Q, 4)} &nbsp;·&nbsp;{' '}
-                      {text.kindLabel[r.kind]}
-                    </div>
-                  </div>
-                  {status && <span className={`status ${status.cls}`}>{status.text}</span>}
-                  <table className="result-table">
-                    <tbody>
-                      <tr><td>{text.table.XL}</td><td>{fmtRes(r.XL, 4)}</td></tr>
-                      <tr><td>{text.table.XC}</td><td>{fmtRes(r.XC, 4)}</td></tr>
-                      <tr><td>{text.table.X}</td><td>{fmtRes(r.X, 4)}</td></tr>
-                      <tr><td>{text.table.magnitude}</td><td>{fmtRes(r.magnitude, 4)}</td></tr>
-                      <tr><td>{text.table.phase}</td><td>{fmt(r.phaseDeg, 4)}°</td></tr>
-                      <tr><td>{text.table.f0}</td><td>{fmtEng(r.f0, 'Hz', 5)}</td></tr>
-                      <tr><td>{text.table.Q}</td><td>{fmt(r.Q, 4)}</td></tr>
-                      <tr><td>{text.table.BW}</td><td>{fmtEng(r.BW, 'Hz', 4)}</td></tr>
-                      {r.mode === MODE_SYNTHESIS && (
-                        <tr>
-                          <td>{text.table.nearestC}</td>
-                          <td>
-                            {fmt(r.nearestC.value, 4)} pF{' '}
-                            <span className="sub">({text.pct(fmtPct(r.nearestC.errorPct))})</span>
-                          </td>
                         </tr>
                       )}
                     </tbody>
@@ -384,18 +212,6 @@ export default function LedOhmRlc() {
 
           <pre className="formula">{text.formula[f.tool]}</pre>
 
-          {r.ok && r.tool === TOOL_RLC && (
-            <ul className="detail-list">
-              {text.detail.rlc(r).map((line) => <li key={line}>{line}</li>)}
-            </ul>
-          )}
-
-          {r.ok && r.tool === TOOL_LED && (
-            <ul className="detail-list">
-              {text.detail.led(r).map((line) => <li key={line}>{line}</li>)}
-            </ul>
-          )}
-
           {r.ok && r.tool === TOOL_OHM && (
             <ul className="detail-list">
               {text.detail.ohm(r).map((line) => <li key={line}>{line}</li>)}
@@ -421,13 +237,6 @@ export default function LedOhmRlc() {
             <ChartLegend
               items={[
                 { label: chartMeta.y, tone: toneClass(0), kind: 'line' },
-                ...s.refs.map((ref) => ({
-                  label: ref.key === 'target'
-                    ? text.chart.targetLegend
-                    : text.chart.resistanceLegend,
-                  tone: 'tone-muted',
-                  kind: 'line',
-                })),
               ]}
             />
 
@@ -437,13 +246,6 @@ export default function LedOhmRlc() {
               xLabel={chartMeta.x}
               yLabel={chartMeta.y}
               series={chartSeries}
-              refLines={s.refs.map((ref) => ({
-                key: ref.key,
-                y: ref.y,
-                label: ref.key === 'target'
-                  ? text.chart.targetRef(fmtAmp(ref.y, 3))
-                  : `R = ${fmtRes(ref.y, 3)}`,
-              }))}
               marker={{ ...s.marker, label: text.chart.marker }}
               formatX={(v) => fmtEng(v, '', 3).replace(' ', '')}
               formatY={(v) => fmt(v, 3)}
@@ -467,8 +269,7 @@ export default function LedOhmRlc() {
 
       <ReportDialog section={reportSection} schematicRef={schematicRef} chartRef={chartRef} />
       <SaveToProject
-        toolKey="led-ohm-rlc"
-        toolMode={mode}
+        toolKey="ohm-law"
         f={f}
         r={r}
         section={reportSection}

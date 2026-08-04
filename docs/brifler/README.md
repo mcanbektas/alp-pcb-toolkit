@@ -35,6 +35,7 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 | 8 | 08-rapor-snapshot.md | Opus 5 | medium | ✓ bitti (2026-08-01) — karar: `docs/rapor-snapshot-karari.md` |
 | 9 | 09-alan-cozucu.md | Fable/Opus 5 | high/max | BRİF HAZIR (2026-08-01) — üç oturum: F1/F2/F3, yöntem kararları verildi |
 | 10 | **10-kalan-isler.md** | bölüm başına | bölüm başına | **TAZE OTURUMUN GİRİŞ NOKTASI** — kalan her şey burada sıralı |
+| 11 | 11-arac-bolunmesi.md | Sonnet 5 | ultracode (yoksa max) | BRİF HAZIR (2026-08-04) — SMD sökümü + rc-crystal ve led-ohm-rlc'nin 5 araca ayrılması; kararlar brifte verildi |
 
 1-5, 7 ve 8 sunucusuz yapıldı. 6 sunucu gününe bağlı. 9 hazır bekliyor:
 brifi artık karar çerçevesi değil, uygulanabilir spec — taze oturum

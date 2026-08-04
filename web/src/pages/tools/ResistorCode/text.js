@@ -1,4 +1,4 @@
-// Direnç ve SMD kod çözücü ekranının kullanıcıya görünen metinleri —
+// Direnç renk kodu ekranının kullanıcıya görünen metinleri —
 // iki dilli (tr/en).
 //
 // Motor (lib/codes.js) yalnızca kod ve sayısal/simgesel alan döndürür; cümleyi
@@ -11,15 +11,14 @@ import { pick } from '../../../lib/i18n'
 import { commonText } from '../../../data/uiText'
 import {
   REASON_INCOMPLETE, REASON_SYNTHESIS_COLOR_ONLY,
-  KIND_COLOR, KIND_SMD, KIND_CAP, MODE_SYNTHESIS,
+  KIND_COLOR, KIND_CAP, MODE_SYNTHESIS,
 } from './model'
 import {
-  TOLERANCE_COLORS, TCR_COLORS, EIA96_MULTIPLIERS,
+  TOLERANCE_COLORS, TCR_COLORS,
   CAP_TOLERANCE_LETTERS,
   CODE_ERR_BANDS, CODE_ERR_COLOR, CODE_ERR_DIGIT, CODE_ERR_FORMAT, CODE_ERR_RANGE,
   BAND_ROLE_DIGIT, BAND_ROLE_MULTIPLIER, BAND_ROLE_TOLERANCE, BAND_ROLE_TCR,
-  CODE_VARIANT_NOT_TEXT, CODE_VARIANT_EMPTY, CODE_VARIANT_R_NOTATION,
-  CODE_VARIANT_SMD_SHAPE, CODE_VARIANT_EIA96_INDEX, CODE_VARIANT_EIA96_LETTER,
+  CODE_VARIANT_NOT_TEXT, CODE_VARIANT_EMPTY,
   CODE_VARIANT_CAP_SHAPE, CODE_VARIANT_CAP_LETTER,
   CODE_VARIANT_POSITIVE, CODE_VARIANT_MULTIPLIER, CODE_VARIANT_TOLERANCE, CODE_VARIANT_TCR,
 } from '../../../lib/codes'
@@ -129,11 +128,6 @@ export function getText(lang) {
               en: `There is no colour for a temperature coefficient of ${fmt(d.tcr, 3)} ppm/°C. `
                 + `Valid values: ${numberList(TCR_COLORS.map((c) => c.tcr))}.`,
             })
-          case CODE_VARIANT_EIA96_INDEX:
-            return t({
-              tr: `EIA-96 kod numarası 01–96 aralığında olmalı, "${d.index}" geçersiz.`,
-              en: `The EIA-96 code number must lie in the range 01–96; "${d.index}" is invalid.`,
-            })
           default:
             return null
         }
@@ -144,27 +138,6 @@ export function getText(lang) {
             return t({ tr: 'Kod metin olmalı.', en: 'The code must be text.' })
           case CODE_VARIANT_EMPTY:
             return t({ tr: 'Kod boş.', en: 'The code is empty.' })
-          case CODE_VARIANT_R_NOTATION:
-            return t({
-              tr: 'R işaretli kod okunamadı.',
-              en: 'The R-notation code could not be read.',
-            })
-          case CODE_VARIANT_EIA96_LETTER:
-            return t({
-              tr: `"${d.letter}" standart EIA-96 çarpan harfi değil. Geçerli: `
-                + `${Object.keys(EIA96_MULTIPLIERS.standard).join(', ')}. Üretici alias'ı için `
-                + 'üretici profilini seçin.',
-              en: `"${d.letter}" is not a standard EIA-96 multiplier letter. Valid: `
-                + `${Object.keys(EIA96_MULTIPLIERS.standard).join(', ')}. Select the manufacturer `
-                + 'profile to accept a manufacturer alias.',
-            })
-          case CODE_VARIANT_SMD_SHAPE:
-            return t({
-              tr: `"${d.code}" tanınmadı. Desteklenen biçimler: 3 hane (472), 4 hane (4701), `
-                + 'R işareti (4R7), EIA-96 (01A), sıfır ohm (0, 00, 000, 0000).',
-              en: `"${d.code}" was not recognised. Supported formats: 3 digits (472), 4 digits `
-                + '(4701), R notation (4R7), EIA-96 (01A), zero ohm (0, 00, 000, 0000).',
-            })
           case CODE_VARIANT_CAP_SHAPE:
             return t({
               tr: `"${d.code}" tanınmadı. Beklenen biçim: üç rakam ve opsiyonel tolerans harfi `
@@ -194,16 +167,16 @@ export function getText(lang) {
       en: '← Component and Circuit Calculators',
     }),
     title: t({
-      tr: 'Direnç ve SMD Kod Çözücü',
-      en: 'Resistor & SMD Code Decoder',
+      tr: 'Direnç Renk Kodu',
+      en: 'Resistor Color Code',
     }),
     intro: t({
-      tr: 'Renk bantlarını, SMD direnç kodlarını ve seramik kondansatör kodlarını çözer; değerden '
-        + 'renk bandına ters çevirme, tolerans penceresi, en yakın E serisi değeri ve sıcaklık '
-        + 'kaymasını birlikte verir.',
-      en: 'Decodes colour bands, SMD resistor codes and ceramic capacitor codes; it gives the '
-        + 'reverse conversion from a value to colour bands, the tolerance window, the nearest '
-        + 'E-series value and the temperature drift together.',
+      tr: 'Renk bantlarını ve seramik kondansatör kodlarını çözer; değerden renk bandına ters '
+        + 'çevirme, tolerans penceresi, en yakın E serisi değeri ve sıcaklık kaymasını birlikte '
+        + 'verir.',
+      en: 'Decodes colour bands and ceramic capacitor codes; it gives the reverse conversion '
+        + 'from a value to colour bands, the tolerance window, the nearest E-series value and '
+        + 'the temperature drift together.',
     }),
 
     modeGroup: t({ tr: 'Hesap modu', en: 'Calculation mode' }),
@@ -212,7 +185,6 @@ export function getText(lang) {
 
     kindLabel: {
       [KIND_COLOR]: t({ tr: 'Renk bandı', en: 'Colour band' }),
-      [KIND_SMD]: t({ tr: 'SMD direnç', en: 'SMD resistor' }),
       [KIND_CAP]: t({ tr: 'Kondansatör', en: 'Capacitor' }),
     },
 
@@ -227,14 +199,6 @@ export function getText(lang) {
       multiplier: () => t({ tr: 'Çarpan', en: 'Multiplier' }),
       tolerance: () => t({ tr: 'Tolerans', en: 'Tolerance' }),
       tcr: () => t({ tr: 'Sıcaklık katsayısı', en: 'Temperature coefficient' }),
-    },
-
-    smdKindLabel: {
-      '3-digit': t({ tr: '3 haneli kod', en: '3-digit code' }),
-      '4-digit': t({ tr: '4 haneli kod', en: '4-digit code' }),
-      'r-notation': t({ tr: 'R işaretli kod', en: 'R-notation code' }),
-      eia96: t({ tr: 'EIA-96 kodu', en: 'EIA-96 code' }),
-      zero: t({ tr: 'Sıfır ohm jumper', en: 'Zero-ohm jumper' }),
     },
 
     bandCountOption: (n) => t({ tr: `${n} bant`, en: `${n} bands` }),
@@ -255,19 +219,6 @@ export function getText(lang) {
         hint: t({
           tr: 'Renklerle gösterilebilenler: 5, 10, 15, 25, 50, 100',
           en: 'Representable with colours: 5, 10, 15, 25, 50, 100',
-        }),
-      },
-      smd: {
-        label: t({ tr: 'SMD kodu', en: 'SMD code' }),
-        // Yalnızca kod örnekleri — çevrilmez.
-        hint: '472 · 4701 · 4R7 · R22 · 01A · 0',
-      },
-      smdProfile: {
-        label: t({ tr: 'Kod profili', en: 'Code profile' }),
-        standard: t({ tr: 'Standart EIA-96', en: 'Standard EIA-96' }),
-        manufacturer: t({
-          tr: 'Üretici profili (alias harfleri dahil)',
-          en: 'Manufacturer profile (alias letters included)',
         }),
       },
       cap: {
@@ -319,11 +270,6 @@ export function getText(lang) {
       requested: t({ tr: 'İstenen değer', en: 'Requested value' }),
       representable: t({ tr: 'Gösterilebilen değer', en: 'Representable value' }),
       nearestNote: t({ tr: '(en yakın)', en: '(nearest)' }),
-      smdKind: t({ tr: 'Kod türü', en: 'Code type' }),
-      baseTimesMultiplier: t({
-        tr: 'E96 temel değeri × çarpan',
-        en: 'E96 base value × multiplier',
-      }),
       nearestE24: t({ tr: 'En yakın E24', en: 'Nearest E24' }),
       nearestE96: t({ tr: 'En yakın E96', en: 'Nearest E96' }),
       tcr: t({ tr: 'Sıcaklık katsayısı', en: 'Temperature coefficient' }),
@@ -343,16 +289,6 @@ export function getText(lang) {
   R(T) = R₂₅ ·
     [1 + TCR·10⁻⁶·(T − 25)]
 
-SMD 3 hane:
-  R = (10·D₁ + D₂) · 10^D₃
-SMD 4 hane:
-  R = (100·D₁ + 10·D₂ + D₃) ·
-    10^D₄
-R işareti:
-  4R7 = 4.7 Ω, R22 = 0.22 Ω
-EIA-96:
-  R = E96[kod] × M[harf]
-
 Kondansatör:
   C[pF] = (10·D₁ + D₂) · 10^D₃
 
@@ -366,16 +302,6 @@ Tolerans sınırları:
 6th band:
   R(T) = R₂₅ ·
     [1 + TCR·10⁻⁶·(T − 25)]
-
-SMD 3 digits:
-  R = (10·D₁ + D₂) · 10^D₃
-SMD 4 digits:
-  R = (100·D₁ + 10·D₂ + D₃) ·
-    10^D₄
-R notation:
-  4R7 = 4.7 Ω, R22 = 0.22 Ω
-EIA-96:
-  R = E96[code] × M[letter]
 
 Capacitor:
   C[pF] = (10·D₁ + D₂) · 10^D₃
@@ -406,17 +332,10 @@ Tolerance limits:
 
     validity: [
       t({
-        tr: 'Bant renkleri ve SMD kod düzenleri endüstride yaygın kabul görmüş biçimlerdir; bazı '
-          + 'üreticiler farklı çarpan harfi veya bant düzeni kullanır.',
-        en: 'The band colours and SMD code layouts are the formats widely accepted in the '
-          + 'industry; some manufacturers use a different multiplier letter or band layout.',
-      }),
-      t({
-        tr: 'EIA-96 alias harfleri (R, S, H) yalnızca üretici profili seçildiğinde kabul edilir. '
-          + 'Standart profilde bilinmeyen harf hata verir — sessizce tahmin edilmez.',
-        en: 'The EIA-96 alias letters (R, S, H) are accepted only when the manufacturer profile is '
-          + 'selected. In the standard profile an unknown letter raises an error — it is never '
-          + 'guessed silently.',
+        tr: 'Bant renkleri endüstride yaygın kabul görmüş biçimlerdir; bazı üreticiler farklı '
+          + 'bant düzeni kullanır.',
+        en: 'The band colours are the format widely accepted in the industry; some '
+          + 'manufacturers use a different band layout.',
       }),
       t({
         tr: 'Sıcaklık modeli doğrusaldır. Gerçek TCR sıcaklıkla değişir ve üretici eğrisi '
@@ -478,10 +397,6 @@ Tolerance limits:
         tr: 'Tolerans bandı gövdenin sağ ucunda, diğerlerinden aralıklı durur',
         en: 'The tolerance band sits at the right end of the body, spaced apart from the others',
       }),
-      captionSmd: t({
-        tr: 'SMD direnç — kod gövdenin üstüne basılır',
-        en: 'SMD resistor — the code is printed on top of the body',
-      }),
       captionCap: t({ tr: 'Seramik kondansatör', en: 'Ceramic capacitor' }),
       // Kod girilmediğinde gövdeye basılan yer tutucu; dilden bağımsız simge.
       noCode: '—',
@@ -490,9 +405,9 @@ Tolerance limits:
     reasonText: (reason, detail) => {
       if (reason === REASON_SYNTHESIS_COLOR_ONLY) {
         return t({
-          tr: 'Değerden koda çevirme yalnızca renk bandı için yapılır. SMD ve kondansatör kodları '
+          tr: 'Değerden koda çevirme yalnızca renk bandı için yapılır. Kondansatör kodları '
             + 'üreticiye göre değişir; ters çevirmek tek bir doğru sonuç vermez.',
-          en: 'Converting a value into a code is done for colour bands only. SMD and capacitor '
+          en: 'Converting a value into a code is done for colour bands only. Capacitor '
             + 'codes vary by manufacturer; reversing them does not give a single correct result.',
         })
       }
@@ -659,18 +574,6 @@ Tolerance limits:
               + 'verisinden TCR okunmalı.',
             en: 'The temperature coefficient is not present in the bands. If the part will work '
               + 'over a wide temperature range, the TCR must be read from manufacturer data.',
-          }),
-        })
-      }
-
-      if (r.kind === KIND_SMD && r.aliasUsed) {
-        out.push({
-          level: 'warn',
-          text: t({
-            tr: 'Çarpan harfi standart EIA-96 tablosunda yok, üretici alias\'ı olarak yorumlandı. '
-              + 'Üretici dokümanıyla doğrulayın.',
-            en: 'The multiplier letter is not in the standard EIA-96 table; it was interpreted as '
-              + 'a manufacturer alias. Verify it against the manufacturer documentation.',
           }),
         })
       }

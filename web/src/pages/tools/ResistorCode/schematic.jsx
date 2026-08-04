@@ -1,6 +1,6 @@
 import { forwardRef } from 'react'
 import Schematic from '../../../components/Schematic'
-import { KIND_COLOR, KIND_SMD } from './model'
+import { KIND_COLOR } from './model'
 
 // Yerleşim kuralı: her yazı kutusu çizim elemanlarının ÇİZİLİ KENARINDAN (tel
 // kalınlığının yarısı düşülerek) en az 3 px, başka bir yazı kutusundan en az
@@ -8,9 +8,8 @@ import { KIND_COLOR, KIND_SMD } from './model'
 // .sch-label 11 px, tek aralıklı yazıda karakter genişliği ≈ 0.62·fs, kutu =
 // [y − 0.78·fs , y + 0.22·fs]; tel kalınlığı 2 px → yarım kalınlık 1 px.
 // Bu şemadaki tek yazı komponent kodudur; geçerli kod en çok dört hanedir
-// (4701 / 104K), altı haneli hatalı girişte bile en yakın çizili kenara
-// 10 px'ten fazla açıklık kalır (SMD gövdesinde 16.6 px, kondansatör
-// plakasında 10.4 px).
+// (104K), altı haneli hatalı girişte bile en yakın çizili kenara 10 px'ten
+// fazla açıklık kalır (kondansatör plakasında 10.4 px).
 
 // Renk bantlı direnç gövdesi. Bant renkleri theme.css'teki --band-<key>
 // değişkenlerinden gelir; SVG içine renk yazılmaz.
@@ -45,18 +44,6 @@ function ColorBody({ bands }) {
   )
 }
 
-// SMD direnç: üstünde kod yazan dikdörtgen gövde
-function SmdBody({ code }) {
-  return (
-    <>
-      <rect className="sch-body" x={62} y={44} width={136} height={52} rx={3} />
-      <rect className="sch-copper" x={62} y={44} width={16} height={52} />
-      <rect className="sch-copper" x={182} y={44} width={16} height={52} />
-      <text className="sch-label" x={130} y={76} textAnchor="middle">{code}</text>
-    </>
-  )
-}
-
 // Seramik kondansatör: iki plaka
 function CapBody({ code }) {
   return (
@@ -78,18 +65,13 @@ function CapBody({ code }) {
 const CodeSchematic = forwardRef(function CodeSchematic({ r, form, text }, ref) {
   const kind = r.ok ? r.kind : form.kind
 
-  const caption = kind === KIND_COLOR
-    ? text.captionColor
-    : kind === KIND_SMD
-      ? text.captionSmd
-      : text.captionCap
+  const caption = kind === KIND_COLOR ? text.captionColor : text.captionCap
 
   return (
     <Schematic ref={ref} viewBox="0 0 260 130" title={text.title} caption={caption}>
       {kind === KIND_COLOR && r.ok && <ColorBody bands={r.bands} />}
       {kind === KIND_COLOR && !r.ok && <rect className="sch-body" x={58} y={44} width={144} height={52} rx={12} />}
-      {kind === KIND_SMD && <SmdBody code={form.smd || text.noCode} />}
-      {kind !== KIND_COLOR && kind !== KIND_SMD && <CapBody code={form.cap || text.noCode} />}
+      {kind !== KIND_COLOR && <CapBody code={form.cap || text.noCode} />}
     </Schematic>
   )
 })
