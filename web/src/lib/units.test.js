@@ -9,7 +9,7 @@ import {
   INCH_M, MIL_M, C0, EPS0, MU0, ETA0,
   RHO_CU_20, ALPHA_CU, DENSITY_CU,
   LENGTH, AREA, CURRENT, VOLTAGE, RESISTANCE,
-  CAPACITANCE, INDUCTANCE, FREQUENCY, TIME, POWER, THERMAL_R,
+  CAPACITANCE, CHARGE, INDUCTANCE, FREQUENCY, TIME, POWER, ENERGY, THERMAL_R,
   toSI, fromSI,
   copperThicknessFromWeight, OZ_NOMINAL_UM, rhoCuAt,
   mmToM, mToMm, milToMm, mmToMil, umToM, mToUm,
@@ -70,6 +70,8 @@ describe('elektriksel tablolarda önek tutarlılığı', () => {
     expect(VOLTAGE.mV).toBe(1e-3)
     expect(POWER.mW).toBe(1e-3)
     expect(CAPACITANCE.pF).toBe(1e-12)
+    expect(CHARGE.nC).toBe(1e-9)
+    expect(ENERGY.µJ).toBe(1e-6)
     expect(INDUCTANCE.nH).toBe(1e-9)
     expect(TIME.ps).toBe(1e-12)
     expect(FREQUENCY.GHz).toBe(1e9)

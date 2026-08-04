@@ -121,12 +121,27 @@ function padRange([lo, hi], pad = 0.06) {
   return [lo - d, hi + d]
 }
 
+// Logaritmik eksende dolgu log uzayında verilir. Doğrusal dolgu ([lo−d, hi+d])
+// küçük bir alt sınırı sıfırın altına indirir ve makeScale sessizce doğrusal
+// ölçeğe düşerdi — eksen log görünmez, kimse de hata almaz.
+function padRangeLog([lo, hi], pad = 0.06) {
+  const a = Math.log10(lo)
+  const b = Math.log10(hi)
+  if (a === b) return [10 ** (a - 0.5), 10 ** (b + 0.5)]
+  const d = (b - a) * pad
+  return [10 ** (a - d), 10 ** (b + d)]
+}
+
 function pathFrom(points, sx, sy) {
   let d = ''
   let pen = false
   for (const [x, y] of points) {
-    if (!Number.isFinite(x) || !Number.isFinite(y)) { pen = false; continue }
-    d += `${pen ? 'L' : 'M'}${sx(x).toFixed(2)} ${sy(y).toFixed(2)}`
+    // Ölçeklenmiş değer de kontrol edilir: log eksende sıfır veya negatif girdi
+    // ham hâliyle sonludur ama log10 sonrası NaN olur ve path'e "NaN" yazılırdı.
+    const X = sx(x)
+    const Y = sy(y)
+    if (!Number.isFinite(X) || !Number.isFinite(Y)) { pen = false; continue }
+    d += `${pen ? 'L' : 'M'}${X.toFixed(2)} ${Y.toFixed(2)}`
     pen = true
   }
   return d
@@ -193,6 +208,8 @@ function layoutLabels(items, bounds) {
  * @param {string}   props.xLabel        x ekseni başlığı (birim dahil)
  * @param {string}   props.yLabel        y ekseni başlığı (birim dahil)
  * @param {'log'|'linear'} props.xScale
+ * @param {'log'|'linear'} [props.yScale]  varsayılan 'linear'. 'log' verildiğinde
+ *   sıfır ve negatif y değerleri eksene alınmaz (logaritmik eksende tanımsız).
  * @param {Array}    props.series        [{ key, name, color, points: [[x,y]…] }]
  * @param {object}   [props.band]        { name, color, points: [[x, yLo, yHi]…] }
  * @param {Array}    [props.refLines]    [{ y|x, label, key }]
@@ -208,7 +225,7 @@ function layoutLabels(items, bounds) {
 // İçeride imleç konumlandırması için zaten bir `svgRef` var; ikisi burada
 // birleştirilir, ekran davranışı değişmez.
 const LineChart = forwardRef(function LineChart({
-  xLabel, yLabel, xScale = 'linear',
+  xLabel, yLabel, xScale = 'linear', yScale = 'linear',
   series = [], band = null, refLines = [], marker = null,
   formatX = (v) => String(v), formatY = (v) => String(v),
   caption, empty,
@@ -237,12 +254,16 @@ const LineChart = forwardRef(function LineChart({
     if (marker && Number.isFinite(marker.y)) ys.push(marker.y)
     if (marker && Number.isFinite(marker.x)) xs.push(marker.x)
 
+    const yLog = yScale === 'log'
     const xe = extent(xs)
-    const ye = extent(ys)
+    // Logaritmik eksende sıfır ve negatif değer tanımsızdır; ekseni onlara göre
+    // kurmak ölçeği bozar. Sonlu-pozitif hiç değer yoksa grafik çizilmez ve
+    // boş not gösterilir — uydurma bir alt sınır konmaz.
+    const ye = extent(yLog ? ys.filter((v) => v > 0) : ys)
     if (!xe || !ye) return null
 
-    const [y0, y1] = padRange(ye)
-    const yTicksAll = linearTicks(y0, y1)
+    const [y0, y1] = yLog ? padRangeLog(ye) : padRange(ye)
+    const yTicksAll = yLog ? logTicks(y0, y1) : linearTicks(y0, y1)
 
     // Sol boşluk en uzun y tik yazısına göre açılır
     const yw = Math.max(...yTicksAll.map((t) => textW(formatY(t), FONT_TICK)))
@@ -251,7 +272,7 @@ const LineChart = forwardRef(function LineChart({
     const plotH = H - M_TOP - M_BOTTOM
 
     const sx = makeScale(xScale, xe[0], xe[1], plotW, false)
-    const sy = makeScale('linear', y0, y1, plotH, true)
+    const sy = makeScale(yScale, y0, y1, plotH, true)
     const px = (v) => mLeft + sx(v)
     const py = (v) => M_TOP + sy(v)
 
@@ -260,7 +281,7 @@ const LineChart = forwardRef(function LineChart({
     const yTicks = thinTicks(yTicksAll, (t) => ({ at: py(t), size: FONT_TICK + 4 }), FONT_TICK)
 
     return { live, sx, sy, px, py, mLeft, plotW, plotH, xTicks, yTicks }
-  }, [series, band, refLines, marker, xScale, formatX, formatY])
+  }, [series, band, refLines, marker, xScale, yScale, formatX, formatY])
 
   if (!model) {
     return (

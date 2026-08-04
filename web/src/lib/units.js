@@ -11,6 +11,8 @@ export const C0 = 299792458 // ışık hızı, m/s
 export const EPS0 = 8.8541878128e-12 // F/m
 export const MU0 = 1.25663706212e-6 // H/m
 export const ETA0 = 376.730313668 // serbest uzay dalga empedansı, Ω
+export const K_B = 1.380649e-23 // Boltzmann sabiti, J/K — ADC sampling capacitor
+// termal gürültüsü (kT/C) için. Tanım gereği tam değerdir, ölçülmüş bir sabit değil.
 
 // Bakır
 export const RHO_CU_20 = 1.724e-8 // Ω·m @ 20 °C
@@ -36,10 +38,12 @@ export const CURRENT = { A: 1, mA: 1e-3, µA: 1e-6, kA: 1e3 }
 export const VOLTAGE = { V: 1, mV: 1e-3, µV: 1e-6, kV: 1e3 }
 export const RESISTANCE = { Ω: 1, mΩ: 1e-3, µΩ: 1e-6, kΩ: 1e3, MΩ: 1e6 }
 export const CAPACITANCE = { F: 1, mF: 1e-3, µF: 1e-6, nF: 1e-9, pF: 1e-12 }
+export const CHARGE = { C: 1, mC: 1e-3, µC: 1e-6, nC: 1e-9, pC: 1e-12 } // MOSFET gate charge (Q_g, Q_gd)
 export const INDUCTANCE = { H: 1, mH: 1e-3, µH: 1e-6, nH: 1e-9, pH: 1e-12 }
 export const FREQUENCY = { Hz: 1, kHz: 1e3, MHz: 1e6, GHz: 1e9 }
 export const TIME = { s: 1, ms: 1e-3, µs: 1e-6, ns: 1e-9, ps: 1e-12 }
 export const POWER = { W: 1, mW: 1e-3, µW: 1e-6, kW: 1e3 }
+export const ENERGY = { J: 1, mJ: 1e-3, µJ: 1e-6, nJ: 1e-9 } // MOSFET E_oss (datasheet)
 export const THERMAL_R = { '°C/W': 1, 'K/W': 1 }
 
 // Tabloya göre SI'ye çevirir. Bilinmeyen birim NaN döner — sessizce 1 kabul
