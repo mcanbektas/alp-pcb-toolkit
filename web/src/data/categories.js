@@ -42,6 +42,15 @@ export const CATEGORIES = [
         path: '/arac/bakir-donusturucu',
         slugEn: 'copper-thickness-converter',
       },
+      {
+        id: 'shunt-kelvin',
+        name: {
+          tr: 'Shunt Direnci ve Kelvin Bağlantı Hesaplayıcı',
+          en: 'Shunt Resistor and Kelvin Connection Calculator',
+        },
+        path: '/arac/shunt-kelvin',
+        slugEn: 'shunt-kelvin',
+      },
     ],
   },
   {
@@ -64,6 +73,21 @@ export const CATEGORIES = [
         name: { tr: 'Termal Via Dizisi', en: 'Thermal Via Array' },
         path: '/arac/termal-via',
         slugEn: 'thermal-via-array',
+      },
+      {
+        id: 'return-path-stitching-via',
+        name: {
+          tr: 'Dönüş Yolu ve Stitching Via Planlayıcı',
+          en: 'Return Path and Stitching Via Planner',
+        },
+        path: '/arac/donus-yolu-stitching-via',
+        slugEn: 'return-path-stitching-via',
+      },
+      {
+        id: 'via-stub-backdrill',
+        name: { tr: 'Via Stub ve Backdrill Hesaplayıcı', en: 'Via Stub and Backdrill Calculator' },
+        path: '/arac/via-stub-backdrill',
+        slugEn: 'via-stub-backdrill',
       },
     ],
   },
@@ -128,6 +152,15 @@ export const CATEGORIES = [
         name: { tr: 'Terminasyon Hesaplayıcı', en: 'Termination Calculator' },
         path: '/arac/terminasyon',
         slugEn: 'termination-calculator',
+      },
+      {
+        id: 'can-rs485-physical-layer',
+        name: {
+          tr: 'CAN ve RS-485 Fiziksel Katman Hesaplayıcı',
+          en: 'CAN and RS-485 Physical Layer Calculator',
+        },
+        path: '/arac/can-rs485-fiziksel-katman',
+        slugEn: 'can-rs485-physical-layer',
       },
     ],
   },
@@ -210,6 +243,24 @@ export const CATEGORIES = [
         name: { tr: 'Kristal Yük Kapasitesi', en: 'Crystal Load Capacitance' },
         path: '/arac/kristal-yuk-kapasitansi',
         slugEn: 'crystal-load-capacitance',
+      },
+      {
+        id: 'mosfet-gate-driver',
+        name: {
+          tr: 'MOSFET Gate Sürücü ve Gate Direnci Hesaplayıcı',
+          en: 'MOSFET Gate Driver and Gate Resistor Calculator',
+        },
+        path: '/arac/mosfet-gate-surucu',
+        slugEn: 'mosfet-gate-driver',
+      },
+      {
+        id: 'adc-settling-rc-filter',
+        name: {
+          tr: 'ADC Giriş Yerleşme ve RC Filtre Hesaplayıcı',
+          en: 'ADC Input Settling and RC Filter Calculator',
+        },
+        path: '/arac/adc-giris-yerlesme-rc-filtre',
+        slugEn: 'adc-settling-rc-filter',
       },
     ],
   },

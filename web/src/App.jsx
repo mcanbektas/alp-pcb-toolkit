@@ -39,6 +39,12 @@ const PowerPlane = lazy(() => import('./pages/tools/PowerPlane'))
 const CopperConverter = lazy(() => import('./pages/tools/CopperConverter'))
 const ViaProperties = lazy(() => import('./pages/tools/ViaProperties'))
 const ThermalVia = lazy(() => import('./pages/tools/ThermalVia'))
+const ReturnPathStitchingVia = lazy(() => import('./pages/tools/ReturnPathStitchingVia'))
+const ViaStubBackdrill = lazy(() => import('./pages/tools/ViaStubBackdrill'))
+const MosfetGateDriver = lazy(() => import('./pages/tools/MosfetGateDriver'))
+const AdcSettlingRcFilter = lazy(() => import('./pages/tools/AdcSettlingRcFilter'))
+const CanRs485PhysicalLayer = lazy(() => import('./pages/tools/CanRs485PhysicalLayer'))
+const ShuntKelvin = lazy(() => import('./pages/tools/ShuntKelvin'))
 const SingleEnded = lazy(() => import('./pages/tools/SingleEnded'))
 const DiffPair = lazy(() => import('./pages/tools/DiffPair'))
 const PropDelay = lazy(() => import('./pages/tools/PropDelay'))
@@ -74,6 +80,12 @@ const TOOL_SCREENS = {
   'cu-converter': CopperConverter,
   'via-props': ViaProperties,
   'thermal-via': ThermalVia,
+  'return-path-stitching-via': ReturnPathStitchingVia,
+  'via-stub-backdrill': ViaStubBackdrill,
+  'mosfet-gate-driver': MosfetGateDriver,
+  'adc-settling-rc-filter': AdcSettlingRcFilter,
+  'can-rs485-physical-layer': CanRs485PhysicalLayer,
+  'shunt-kelvin': ShuntKelvin,
   'single-ended': SingleEnded,
   'diff-pair': DiffPair,
   'prop-delay': PropDelay,

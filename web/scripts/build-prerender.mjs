@@ -201,6 +201,18 @@ async function main() {
       process.exitCode = 1
       return
     }
+    // `renderToPipeableStream`in (react-dom 18.3.1) `onAllReady` sonrası
+    // birleştirdiği çıktıda, belirli SVG şemalarının ardından gelen bazı
+    // metin düğümlerinde tekil `\0` bayt karakteri gözlemlendi — deterministik
+    // (aynı rota her derlemede aynı bayt konumunda), ama izole edilmiş küçük
+    // tekrarlarla üretilemedi; react-dom'un akış/parça sınırı davranışında dar
+    // bir uç durum olduğu düşünülüyor. HTML metninde `\0` hiçbir zaman geçerli
+    // değildir (tarayıcı U+FFFD'ye çevirir, JS koşmadan önce görünür bozukluk
+    // olur) — kaynağı ne olursa olsun burada süzülür.
+    if (html.includes('\0')) {
+      console.warn(`build-prerender: ${route.url} çıktısında NUL bayt bulundu, siliniyor.`)
+      html = html.replaceAll('\0', '')
+    }
     const file = outputFile(route.url)
     // eslint-disable-next-line no-await-in-loop
     await mkdir(path.dirname(file), { recursive: true })
