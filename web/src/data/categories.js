@@ -191,6 +191,42 @@ export const CATEGORIES = [
         path: '/arac/junction-sicakligi',
         slugEn: 'junction-temperature',
       },
+      {
+        id: 'pdn-resonance-analyzer',
+        name: {
+          tr: 'PDN Rezonans ve Antirezonans Analizörü',
+          en: 'PDN Resonance and Antiresonance Analyzer',
+        },
+        path: '/arac/pdn-rezonans-analizoru',
+        slugEn: 'pdn-resonance-analyzer',
+      },
+      {
+        id: 'plane-cavity-resonance',
+        name: {
+          tr: 'Düzlem Kavite Rezonansı ve Kapasitansı',
+          en: 'Plane Cavity Resonance and Capacitance',
+        },
+        path: '/arac/duzlem-kavite-rezonansi',
+        slugEn: 'plane-cavity-resonance',
+      },
+      {
+        id: 'emc-filter-designer',
+        name: {
+          tr: 'EMC LC, Pi ve Ortak Mod Filtre Tasarım Aracı',
+          en: 'EMC LC, Pi, and Common-Mode Filter Designer',
+        },
+        path: '/arac/emc-filtre-tasarim',
+        slugEn: 'emc-filter-designer',
+      },
+      {
+        id: 'buck-pcb-pre-design',
+        name: {
+          tr: 'Buck Dönüştürücü PCB Ön Tasarım Aracı',
+          en: 'Buck Converter PCB Pre-Design Tool',
+        },
+        path: '/arac/buck-pcb-on-tasarim',
+        slugEn: 'buck-pcb-pre-design',
+      },
     ],
   },
   {
@@ -262,6 +298,15 @@ export const CATEGORIES = [
         path: '/arac/adc-giris-yerlesme-rc-filtre',
         slugEn: 'adc-settling-rc-filter',
       },
+      {
+        id: 'tvs-esd-protection',
+        name: {
+          tr: 'TVS ve ESD Koruma Boyutlandırıcısı',
+          en: 'TVS and ESD Protection Sizing Tool',
+        },
+        path: '/arac/tvs-esd-koruma',
+        slugEn: 'tvs-esd-protection',
+      },
     ],
   },
   {
@@ -296,6 +341,15 @@ export const CATEGORIES = [
         name: { tr: 'Thermal Relief', en: 'Thermal Relief' },
         path: '/arac/thermal-relief',
         slugEn: 'thermal-relief',
+      },
+      {
+        id: 'flex-pcb-bend-trace',
+        name: {
+          tr: 'Flex PCB Bükülme ve İz Hesaplayıcı',
+          en: 'Flex PCB Bend and Trace Calculator',
+        },
+        path: '/arac/flex-pcb-bukulme-iz',
+        slugEn: 'flex-pcb-bend-trace',
       },
     ],
   },

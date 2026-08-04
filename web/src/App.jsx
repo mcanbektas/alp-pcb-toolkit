@@ -65,6 +65,12 @@ const ClearanceCreepagePadstack = lazy(() => import('./pages/tools/ClearanceCree
 const BgaBreakout = lazy(() => import('./pages/tools/BgaBreakout'))
 const StackupPlanner = lazy(() => import('./pages/tools/StackupPlanner'))
 const ThermalRelief = lazy(() => import('./pages/tools/ThermalRelief'))
+const PdnResonanceAnalyzer = lazy(() => import('./pages/tools/PdnResonanceAnalyzer'))
+const PlaneCavityResonance = lazy(() => import('./pages/tools/PlaneCavityResonance'))
+const EmcFilterDesigner = lazy(() => import('./pages/tools/EmcFilterDesigner'))
+const BuckPcbPreDesign = lazy(() => import('./pages/tools/BuckPcbPreDesign'))
+const TvsEsdProtection = lazy(() => import('./pages/tools/TvsEsdProtection'))
+const FlexPcbBendTrace = lazy(() => import('./pages/tools/FlexPcbBendTrace'))
 
 // Araç `id`'sinden ekrana eşleme. Rota YOLLARI burada YAZILMAZ — onlar
 // `data/categories.js`ten türer (`toolPath`) ve iki dilde de kendiliğinden
@@ -113,6 +119,12 @@ const TOOL_SCREENS = {
   'bga-breakout': BgaBreakout,
   'stackup-planner': StackupPlanner,
   'thermal-relief': ThermalRelief,
+  'pdn-resonance-analyzer': PdnResonanceAnalyzer,
+  'plane-cavity-resonance': PlaneCavityResonance,
+  'emc-filter-designer': EmcFilterDesigner,
+  'buck-pcb-pre-design': BuckPcbPreDesign,
+  'tvs-esd-protection': TvsEsdProtection,
+  'flex-pcb-bend-trace': FlexPcbBendTrace,
 }
 
 // Hesap sayfaları (Projelerim listesi + proje detayı) da tembel yüklenir —
