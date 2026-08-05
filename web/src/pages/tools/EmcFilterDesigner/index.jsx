@@ -447,7 +447,10 @@ export default function EmcFilterDesigner() {
                 YOK; her aday kendi tek-noktalı serisidir (bkz. metricSeries),
                 domine edilenler `tone-muted` ile soluklaştırılır. */}
             <div className="metric-charts">
-              <h3 className="section">{text.metricChart.gPeakTitle}</h3>
+              {/* Alt başlık `h2.section`tir: panel başlığı kimliği (mono, büyük
+                  harf, aralıklı, muted) yalnız `.panel h2` seçicisine bağlı —
+                  `h3` o kuralların hiçbirini almaz ve 44 ekranın tek aykırısı olur. */}
+              <h2 className="section">{text.metricChart.gPeakTitle}</h2>
               <ChartLegend
                 items={metricSeries((c) => c.gPeakDb).map((sr) => ({ label: sr.name, tone: sr.tone, kind: 'line' }))}
               />
@@ -459,7 +462,7 @@ export default function EmcFilterDesigner() {
                 caption={text.metricChart.caption}
               />
 
-              <h3 className="section">{text.metricChart.aTargetTitle}</h3>
+              <h2 className="section">{text.metricChart.aTargetTitle}</h2>
               <ChartLegend
                 items={metricSeries((c) => c.aTargetDb).map((sr) => ({ label: sr.name, tone: sr.tone, kind: 'line' }))}
               />
@@ -471,7 +474,7 @@ export default function EmcFilterDesigner() {
                 caption={text.metricChart.caption}
               />
 
-              <h3 className="section">{text.metricChart.pRDTitle}</h3>
+              <h2 className="section">{text.metricChart.pRDTitle}</h2>
               <ChartLegend
                 items={metricSeries((c) => c.pRD).map((sr) => ({ label: sr.name, tone: sr.tone, kind: 'line' }))}
               />

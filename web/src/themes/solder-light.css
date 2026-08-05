@@ -341,6 +341,12 @@ a:hover { text-decoration: underline; }
 .tool-header p { color: var(--muted); margin: 0; font-size: 0.9rem; }
 
 .tool-grid { display: grid; gap: 18px; grid-template-columns: 1fr; padding-bottom: 30px; }
+/* Grid öğesinin varsayılan `min-width: auto`'su min-content demektir: panelin
+   içindeki sarmalanmayan en geniş blok (teknik detaydaki `pre.formula`) kolonu
+   kendi genişliğine zorlar ve dar ekranda SAYFANIN tamamı yana kayar. Bloğun
+   kendi `overflow-x: auto`'su bu yüzden hiç devreye girmiyordu. Sıfırlanınca
+   kolon kabına uyar, taşan blok kendi içinde kaydırılır. */
+.tool-grid > * { min-width: 0; }
 @media (min-width: 980px) {
   .tool-grid { grid-template-columns: 340px 1fr; align-items: start; }
   .panel-detail { grid-column: 1 / -1; }
@@ -751,7 +757,10 @@ a.row-add { display: inline-block; text-decoration: none; }
 .result-table td:last-child {
   text-align: right; font-family: var(--font-mono); white-space: nowrap;
 }
-.result-table td .sub { color: var(--muted); font-size: 0.76rem; }
+/* Son sütunun `nowrap`ı SAYININ bölünmemesi içindir; `.sub` açıklama metnidir
+   ve sarmalanabilir (kardeş `.sub-line` zaten böyle). Miras alındığında uzun
+   bir not hücreyi zorluyor ve dar ekranda sayfa yana kayıyordu. */
+.result-table td .sub { color: var(--muted); font-size: 0.76rem; white-space: normal; }
 
 /* DFM kontrol tablosu: ikinci satır (sınır, marj, kaynak, neden) ve durum
    imi. Renkler durum sınıfından gelir, satır içine yazılmaz. */
@@ -898,6 +907,13 @@ a.row-add { display: inline-block; text-decoration: none; }
 .sch-copper { fill: var(--accent); stroke: var(--accent); stroke-width: 1; }
 /* Geniş bakır alanı — dolgu, kenarı belirgin */
 .sch-copper-fill { fill: var(--green-deep); stroke: var(--accent-dim); stroke-width: 1; }
+/* Yalnız KONTURLA çizilen açık yollar (bobin sarımı, kavisli bakır iz).
+   `fill="none"` ÖZNİTELİĞİ CSS'in fill kuralına yenilir: açık `path`
+   kapatılıp boyanır. Flex şemasında bütün kavis dolu bir alan oluyor ve
+   içindeki yazıları yutuyordu; RLC bobini de arka planla aynı renge
+   boyandığı için ancak tema değişince görülecekti. */
+.sch-part.no-fill,
+.sch-copper.no-fill { fill: none; }
 .sch-dim { stroke: var(--muted); stroke-width: 1; }
 /* Delik boşluğu — bakırın olmadığı alan */
 .sch-hole { fill: var(--bg); }
@@ -984,6 +1000,10 @@ a.row-add { display: inline-block; text-decoration: none; }
   cursor: pointer; font-family: var(--font-mono); font-size: 0.72rem;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
+/* Kaydırma sarmalayıcısı `.chart-data` DIŞINDA da kullanılıyor (EMC damping
+   aday tablosu, 9 sütun). Kural yalnız bileşik seçicide dururken orada hiç
+   eşleşmiyor ve tablo dar ekranda kaydırılamadan kesiliyordu. */
+.scroll { overflow-x: auto; }
 .chart-data .scroll { overflow-x: auto; margin-top: 10px; }
 
 /* ---------- Aday çift tablosu ---------- */

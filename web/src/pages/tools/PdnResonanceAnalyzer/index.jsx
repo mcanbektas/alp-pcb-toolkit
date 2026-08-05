@@ -357,28 +357,32 @@ export default function PdnResonanceAnalyzer() {
               {sortedPeaksValleys.length === 0 ? (
                 <p className="empty-note">{text.peakTable.none}</p>
               ) : (
-                <table className="result-table">
-                  <thead>
-                    <tr>
-                      <th>{text.peakTable.kind}</th>
-                      <th>{text.peakTable.freq}</th>
-                      <th>{text.peakTable.impedance}</th>
-                      <th>{text.peakTable.ratio}</th>
-                      <th>{text.peakTable.prominence}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedPeaksValleys.map((c) => (
-                      <tr key={`${c.kind}-${c.startIndex}`}>
-                        <td>{c.kind === 'peak' ? text.peakTable.kindPeak : text.peakTable.kindValley}</td>
-                        <td>{fmtEng(c.freq, 'Hz', 4)}</td>
-                        <td>{fmtRes(c.magnitude)}</td>
-                        <td>{c.ratioToTarget != null ? `${fmt(c.ratioToTarget, 3)}×` : '—'}</td>
-                        <td>{fmt(c.prominence, 3)} dB</td>
+                /* Beş sütun dar ekranda panele sığmıyor (min-content 405 px);
+                   sarmalayıcı olmadan sayfanın kendisi yana kayıyordu. */
+                <div className="scroll">
+                  <table className="result-table">
+                    <thead>
+                      <tr>
+                        <th>{text.peakTable.kind}</th>
+                        <th>{text.peakTable.freq}</th>
+                        <th>{text.peakTable.impedance}</th>
+                        <th>{text.peakTable.ratio}</th>
+                        <th>{text.peakTable.prominence}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {sortedPeaksValleys.map((c) => (
+                        <tr key={`${c.kind}-${c.startIndex}`}>
+                          <td>{c.kind === 'peak' ? text.peakTable.kindPeak : text.peakTable.kindValley}</td>
+                          <td>{fmtEng(c.freq, 'Hz', 4)}</td>
+                          <td>{fmtRes(c.magnitude)}</td>
+                          <td>{c.ratioToTarget != null ? `${fmt(c.ratioToTarget, 3)}×` : '—'}</td>
+                          <td>{fmt(c.prominence, 3)} dB</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
               <p className="method-note">
                 {text.peakTable.candidateNote(
