@@ -30,7 +30,7 @@ export function getText(lang) {
       en: 'ADC Input Settling and RC Filter Calculator',
     }),
     intro: t({
-      tr: 'SAR ADC girişinin acquisition süresi içinde yarım LSB doğruluğuna yerleşip '
+      tr: 'SAR ADC girişinin edinim süresi içinde yarım LSB doğruluğuna yerleşip '
         + 'yerleşmediğini, izin verilen maksimum kaynak direncini ve opsiyonel bir RC '
         + 'filtrenin kesim frekansı ile zayıflatmasını değerlendirir.',
       en: 'Evaluates whether the SAR ADC input settles to half-LSB accuracy within the '
@@ -43,11 +43,11 @@ export function getText(lang) {
       vFullScale: { label: t({ tr: 'Tam ölçek gerilimi (V_FS)', en: 'Full-scale voltage (V_FS)' }) },
       cs: { label: t({ tr: 'Sampling kapasitörü (C_s)', en: 'Sampling capacitor (C_s)' }) },
 
-      acqMode: { label: t({ tr: 'Acquisition süresi kaynağı', en: 'Acquisition time source' }) },
+      acqMode: { label: t({ tr: 'Edinim süresi kaynağı', en: 'Acquisition time source' }) },
       acqDirect: t({ tr: 'Doğrudan süre', en: 'Direct time' }),
       acqCycles: t({ tr: 'Çevrim sayısından', en: 'From cycle count' }),
-      tAcq: { label: t({ tr: 'Acquisition süresi (t_acq)', en: 'Acquisition time (t_acq)' }) },
-      cycles: { label: t({ tr: 'Acquisition çevrim sayısı', en: 'Acquisition cycle count' }) },
+      tAcq: { label: t({ tr: 'Edinim süresi (t_acq)', en: 'Acquisition time (t_acq)' }) },
+      cycles: { label: t({ tr: 'Edinim çevrim sayısı', en: 'Acquisition cycle count' }) },
       clock: { label: t({ tr: 'ADC saat frekansı', en: 'ADC clock frequency' }) },
       acqFixed: {
         label: t({ tr: 'Sabit ek gecikme (opsiyonel)', en: 'Fixed additional delay (optional)' }),
@@ -92,8 +92,8 @@ export function getText(lang) {
       bits: t({ tr: 'Çözünürlük', en: 'Resolution' }),
       vFullScale: t({ tr: 'Tam ölçek gerilimi', en: 'Full-scale voltage' }),
       cs: t({ tr: 'Sampling kapasitörü', en: 'Sampling capacitor' }),
-      tAcq: t({ tr: 'Acquisition süresi', en: 'Acquisition time' }),
-      cycles: t({ tr: 'Acquisition çevrim sayısı', en: 'Acquisition cycle count' }),
+      tAcq: t({ tr: 'Edinim süresi', en: 'Acquisition time' }),
+      cycles: t({ tr: 'Edinim çevrim sayısı', en: 'Acquisition cycle count' }),
       clock: t({ tr: 'ADC saat frekansı', en: 'ADC clock frequency' }),
       acqFixed: t({ tr: 'Sabit ek gecikme', en: 'Fixed additional delay' }),
       rSource: t({ tr: 'Kaynak direnci', en: 'Source resistance' }),
@@ -110,13 +110,13 @@ export function getText(lang) {
     bigResultLabel: t({ tr: 'Maksimum eşdeğer direnç (R_eq,maks)', en: 'Maximum equivalent resistance (R_eq,max)' }),
     altLabels: {
       settles: t({ tr: 'yerleşme', en: 'settling' }),
-      acq: t({ tr: 'acquisition', en: 'acquisition' }),
+      acq: t({ tr: 'edinim', en: 'acquisition' }),
     },
     settleOk: t({ tr: 'yeterli', en: 'sufficient' }),
     settleFail: t({ tr: 'YETERSİZ', en: 'INSUFFICIENT' }),
 
     table: {
-      acquisitionTime: t({ tr: 'Acquisition süresi (t_acq)', en: 'Acquisition time (t_acq)' }),
+      acquisitionTime: t({ tr: 'Edinim süresi (t_acq)', en: 'Acquisition time (t_acq)' }),
       rEq: t({ tr: 'Toplam eşdeğer direnç (R_eq)', en: 'Total equivalent resistance (R_eq)' }),
       cEq: t({ tr: 'Toplam eşdeğer kapasitans (C_eq)', en: 'Total equivalent capacitance (C_eq)' }),
       tau: t({ tr: 'Zaman sabiti (τ = R_eq·C_eq)', en: 'Time constant (τ = R_eq·C_eq)' }),
@@ -132,7 +132,7 @@ export function getText(lang) {
       cutoffFrequency: t({ tr: 'Filtre kesim frekansı (f_c)', en: 'Filter cutoff frequency (f_c)' }),
       filterAtten: t({ tr: 'Gürültü frekansında zayıflatma', en: 'Attenuation at the noise frequency' }),
       capacitorRatio: t({ tr: 'C_filter / C_s oranı', en: 'C_filter / C_s ratio' }),
-      droop: t({ tr: 'Charge-sharing droop', en: 'Charge-sharing droop' }),
+      droop: t({ tr: 'Yük paylaşımı düşüşü', en: 'Charge-sharing droop' }),
       thermalNoise: t({ tr: 'kT/C termal gürültü (RMS)', en: 'kT/C thermal noise (RMS)' }),
     },
 
@@ -196,8 +196,8 @@ kT/C_noise = √(k_B·T / C_eq)`,
           + 'does not include the total ADC noise (quantization, reference, digital).',
       }),
       t({
-        tr: 'Charge-sharing droop hesabı ADC anahtar direncini ve sürücü dinamiğini ihmal '
-          + 'eder; gerçek droop genelde daha küçüktür.',
+        tr: 'Yük paylaşımı düşüşü hesabı ADC anahtar direncini ve sürücü dinamiğini ihmal '
+          + 'eder; gerçek düşüş genelde daha küçüktür.',
         en: 'The charge-sharing droop calculation ignores the ADC switch resistance and '
           + 'driver dynamics; the real droop is generally smaller.',
       }),
@@ -225,7 +225,7 @@ kT/C_noise = √(k_B·T / C_eq)`,
     sweepCaption: {
       [SWEEP_SETTLING]: t({
         tr: 'Hata zamanla üstel olarak azalır (log-y eksende düz çizgi); işaretçi gerçek '
-          + 'acquisition süresindeki konumu gösterir.',
+          + 'edinim süresindeki konumu gösterir.',
         en: 'The error decays exponentially with time (a straight line on a log-y axis); the '
           + 'marker shows the position at the actual acquisition time.',
       }),
@@ -288,7 +288,7 @@ kT/C_noise = √(k_B·T / C_eq)`,
         level: 'ok',
         text: t({
           tr: `R_eq,maks = ${fmtRes(r.maxEquivalentResistance)} — ${fmtS(r.acquisitionTime)} `
-            + `acquisition süresinde ${fmtS(r.tau)} zaman sabitiyle.`,
+            + `edinim süresinde ${fmtS(r.tau)} zaman sabitiyle.`,
           en: `R_eq,max = ${fmtRes(r.maxEquivalentResistance)} — with a ${fmtS(r.tau)} time `
             + `constant over a ${fmtS(r.acquisitionTime)} acquisition time.`,
         }),
@@ -308,7 +308,7 @@ kT/C_noise = √(k_B·T / C_eq)`,
           key: ADC_ERR_SETTLING_FAILED,
           level: 'danger',
           text: t({
-            tr: `Giriş YERLEŞMİYOR: acquisition süresi gerekenden ${fmtS(-r.settlingMargin)} `
+            tr: `Giriş YERLEŞMİYOR: edinim süresi gerekenden ${fmtS(-r.settlingMargin)} `
               + `kısa. Kalan hata ${fmt(r.errorLsb, 2)} LSB — sonuç sessizce yanlış çıkar, `
               + 'hiçbir hata koddan görünmez.',
             en: `The input does NOT settle: the acquisition time is ${fmtS(-r.settlingMargin)} `
@@ -358,7 +358,7 @@ kT/C_noise = √(k_B·T / C_eq)`,
         out.push({
           level: 'warn',
           text: t({
-            tr: `Charge-sharing droop tahmini ${fmtVolt(r.droop)} — ADC anahtar direncini ve `
+            tr: `Yük paylaşımı düşüşü tahmini ${fmtVolt(r.droop)} — ADC anahtar direncini ve `
               + 'sürücü dinamiğini ihmal eder, gerçek değer genelde daha küçüktür.',
             en: `The estimated charge-sharing droop is ${fmtVolt(r.droop)} — it ignores the `
               + 'ADC switch resistance and driver dynamics, the real value is generally '

@@ -165,7 +165,7 @@ export function getText(lang) {
     // Hata mesajında alan adı olarak görünen kısa etiketler; model.js'e verilir.
     fieldLabels: {
       tTotal: t({ tr: 'Toplam flex kalınlığı', en: 'Total flex thickness' }),
-      R: t({ tr: 'Bend radius', en: 'Bend radius' }),
+      R: t({ tr: 'Bükülme yarıçapı', en: 'Bend radius' }),
       thetaDeg: t({ tr: 'Bükülme açısı', en: 'Bend angle' }),
       y: t({ tr: 'Nötr eksene uzaklık', en: 'Neutral axis distance' }),
       epsilonAllow: t({ tr: 'İzin verilen strain', en: 'Allowed strain' }),
@@ -192,7 +192,7 @@ export function getText(lang) {
 
     table: {
       vendorMinRadius: t({ tr: 'Üretici kuralına göre minimum bend radius', en: 'Minimum bend radius per vendor rule' }),
-      strainMinRadius: t({ tr: 'Strain kuralına göre minimum bend radius', en: 'Minimum bend radius per strain rule' }),
+      strainMinRadius: t({ tr: 'Gerinim kuralına göre minimum bükülme yarıçapı', en: 'Minimum bend radius per strain rule' }),
       bendRadius: t({ tr: 'Kullanılan gerçek bend radius', en: 'Bend radius actually used' }),
       strain: t({ tr: 'Tahmini copper strain', en: 'Estimated copper strain' }),
       arcLength: t({ tr: 'Bend arc uzunluğu (nötr eksen)', en: 'Bend arc length (neutral axis)' }),
@@ -334,29 +334,29 @@ N_f = A·ε^(−b)   (only if A and b are entered)`,
 
     sweepGroup: t({ tr: 'Grafik', en: 'Chart' }),
     sweepLabel: {
-      [SWEEP_STRAIN]: t({ tr: 'Bend radius → strain', en: 'Bend radius → strain' }),
+      [SWEEP_STRAIN]: t({ tr: 'Bükülme yarıçapı → gerinim', en: 'Bend radius → strain' }),
       [SWEEP_THICKNESS]: t({ tr: 'Toplam kalınlık → minimum radius', en: 'Total thickness → minimum radius' }),
       [SWEEP_TRACE_WIDTH]: t({ tr: 'İz genişliği → direnç', en: 'Trace width → resistance' }),
       [SWEEP_TEMPERATURE]: t({ tr: 'Sıcaklık → direnç', en: 'Temperature → resistance' }),
       [SWEEP_VENDOR_FACTOR]: t({ tr: 'Üretici çarpanı → minimum radius', en: 'Vendor factor → minimum radius' }),
     },
     sweepAxisX: {
-      [SWEEP_STRAIN]: t({ tr: 'Bend radius R (m)', en: 'Bend radius R (m)' }),
+      [SWEEP_STRAIN]: t({ tr: 'Bükülme yarıçapı R (m)', en: 'Bend radius R (m)' }),
       [SWEEP_THICKNESS]: t({ tr: 'Toplam kalınlık t_total (m)', en: 'Total thickness t_total (m)' }),
       [SWEEP_TRACE_WIDTH]: t({ tr: 'İz genişliği w (m)', en: 'Trace width w (m)' }),
       [SWEEP_TEMPERATURE]: t({ tr: 'Sıcaklık (°C)', en: 'Temperature (°C)' }),
       [SWEEP_VENDOR_FACTOR]: t({ tr: 'Üretici çarpanı K_b', en: 'Vendor factor K_b' }),
     },
     sweepAxisY: {
-      [SWEEP_STRAIN]: t({ tr: 'Strain (%)', en: 'Strain (%)' }),
-      [SWEEP_THICKNESS]: t({ tr: 'Minimum bend radius (m)', en: 'Minimum bend radius (m)' }),
+      [SWEEP_STRAIN]: t({ tr: 'Gerinim (%)', en: 'Strain (%)' }),
+      [SWEEP_THICKNESS]: t({ tr: 'Minimum bükülme yarıçapı (m)', en: 'Minimum bend radius (m)' }),
       [SWEEP_TRACE_WIDTH]: t({ tr: 'Direnç (Ω)', en: 'Resistance (Ω)' }),
       [SWEEP_TEMPERATURE]: t({ tr: 'Direnç (Ω)', en: 'Resistance (Ω)' }),
-      [SWEEP_VENDOR_FACTOR]: t({ tr: 'Minimum bend radius (m)', en: 'Minimum bend radius (m)' }),
+      [SWEEP_VENDOR_FACTOR]: t({ tr: 'Minimum bükülme yarıçapı (m)', en: 'Minimum bend radius (m)' }),
     },
     sweepCaption: {
       [SWEEP_STRAIN]: t({
-        tr: 'Bend radius büyüdükçe strain ters orantılı azalır. İşaretli nokta girilen R değeridir.',
+        tr: 'Bükülme yarıçapı büyüdükçe gerinim ters orantılı azalır. İşaretli nokta girilen R değeridir.',
         en: 'As the bend radius grows the strain falls off inversely. The marked point is the entered R.',
       }),
       [SWEEP_THICKNESS]: t({
@@ -382,7 +382,7 @@ N_f = A·ε^(−b)   (only if A and b are entered)`,
       }),
     },
     seriesVendor: t({ tr: 'üretici kuralı', en: 'vendor rule' }),
-    seriesStrain: t({ tr: 'strain kuralı', en: 'strain rule' }),
+    seriesStrain: t({ tr: 'gerinim kuralı', en: 'strain rule' }),
     operatingPoint: t({ tr: 'çalışma noktası', en: 'operating point' }),
 
     schematic: {

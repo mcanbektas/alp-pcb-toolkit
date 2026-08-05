@@ -33,7 +33,7 @@ export function getText(lang) {
 
   return {
     pct,
-    backlink: t({ tr: '← Güç ve Termal', en: '← Power and Thermal' }),
+    backlink: t({ tr: '← Güç Bütünlüğü ve Termal', en: '← Power Integrity and Thermal' }),
     title: t({
       tr: 'EMC LC, Pi ve Ortak Mod Filtre Tasarım Aracı',
       en: 'EMC LC, Pi, and Common-Mode Filter Designer',
@@ -339,7 +339,7 @@ Z_CM ≈ DCR + jωL_CM     Z_DM ≈ DCR + jωL_leak`,
 
     chart: {
       paramLabel: {
-        [CHART_GAIN]: t({ tr: 'Kazanç / Insertion loss', en: 'Gain / insertion loss' }),
+        [CHART_GAIN]: t({ tr: 'Kazanç / Ekleme kaybı', en: 'Gain / insertion loss' }),
         [CHART_ZOUT]: t({ tr: 'Filtre ve converter empedansı', en: 'Filter and converter impedance' }),
         [CHART_COMPARE]: t({ tr: 'Dampingli / dampingsiz karşılaştırma', en: 'Damped / undamped comparison' }),
         [CHART_TOLERANCE]: t({ tr: 'Nominal / min / maks tolerans', en: 'Nominal / min / max tolerance' }),
@@ -349,7 +349,7 @@ Z_CM ≈ DCR + jωL_CM     Z_DM ≈ DCR + jωL_leak`,
       axisZ: t({ tr: 'Empedans |Z| (Ω)', en: 'Impedance |Z| (Ω)' }),
       axisGain: t({ tr: 'Kazanç H(f) (dB)', en: 'Gain H(f) (dB)' }),
       seriesGain: t({ tr: 'Kazanç |H(f)|', en: 'Gain |H(f)|' }),
-      seriesIl: t({ tr: 'Insertion loss', en: 'Insertion loss' }),
+      seriesIl: t({ tr: 'Ekleme kaybı', en: 'Insertion loss' }),
       seriesZout: t({ tr: '|Z_out,filtre|', en: '|Z_out,filter|' }),
       zInRefLabel: (v) => t({ tr: `K·|Z_in,converter| — ${fmtRes(v)}`, en: `K·|Z_in,converter| — ${fmtRes(v)}` }),
       seriesUndamped: t({ tr: 'Sönümsüz', en: 'Undamped' }),
@@ -414,7 +414,10 @@ Z_CM ≈ DCR + jωL_CM     Z_DM ≈ DCR + jωL_leak`,
       },
       source: t({ tr: 'kaynak', en: 'source' }),
       load: t({ tr: 'yük', en: 'load' }),
-      damping: t({ tr: 'damping (opsiyonel)', en: 'damping (optional)' }),
+      // Şema etiketi kısadır: uzun hâli (19/18 karakter) 320 px'lik tuvalde
+      // komşu kondansatör etiketinin üstüne biniyor ve sağdan taşıyordu.
+      // Kolun opsiyonel olduğunu kesikli çizim ve caption zaten söylüyor.
+      damping: t({ tr: 'damping', en: 'damping' }),
       winding: t({ tr: 'sarım', en: 'winding' }),
     },
 

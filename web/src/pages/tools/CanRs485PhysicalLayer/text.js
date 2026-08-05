@@ -47,7 +47,7 @@ export function getText(lang) {
 
       bitrate: { label: t({ tr: 'Bit hızı', en: 'Bit rate' }) },
       samplePoint: {
-        label: t({ tr: 'Sample point (0–1)', en: 'Sample point (0–1)' }),
+        label: t({ tr: 'Örnekleme noktası (0–1)', en: 'Sample point (0–1)' }),
         hint: t({ tr: 'Örn. %87.5 için 0.875', en: 'E.g. 0.875 for 87.5%' }),
       },
       busLength: { label: t({ tr: 'Bus uzunluğu', en: 'Bus length' }) },
@@ -112,7 +112,7 @@ export function getText(lang) {
       term1: t({ tr: 'Terminasyon direnci 1', en: 'Termination resistor 1' }),
       term2: t({ tr: 'Terminasyon direnci 2', en: 'Termination resistor 2' }),
       bitrate: t({ tr: 'Bit hızı', en: 'Bit rate' }),
-      samplePoint: t({ tr: 'Sample point', en: 'Sample point' }),
+      samplePoint: t({ tr: 'Örnekleme noktası', en: 'Sample point' }),
       busLength: t({ tr: 'Bus uzunluğu', en: 'Bus length' }),
       delayPerMeter: t({ tr: 'Metre başına gecikme', en: 'Delay per metre' }),
       controllerDelay: t({ tr: 'Kontrolör gecikmesi', en: 'Controller delay' }),
@@ -130,7 +130,7 @@ export function getText(lang) {
       rPullUp: t({ tr: 'Pull-up direnci', en: 'Pull-up resistor' }),
       rPullDown: t({ tr: 'Pull-down direnci', en: 'Pull-down resistor' }),
       receiverThreshold: t({ tr: 'Alıcı eşik gerilimi', en: 'Receiver threshold voltage' }),
-      unitLoad: t({ tr: 'Unit load', en: 'Unit load' }),
+      unitLoad: t({ tr: 'Birim yük', en: 'Unit load' }),
       rs485Bitrate: t({ tr: 'Bit hızı', en: 'Bit rate' }),
       rs485BusLength: t({ tr: 'Kablo uzunluğu', en: 'Cable length' }),
       rs485DelayPerMeter: t({ tr: 'Metre başına gecikme', en: 'Delay per metre' }),
@@ -142,7 +142,7 @@ export function getText(lang) {
 
     table: {
       bitTime: t({ tr: 'Bit süresi', en: 'Bit time' }),
-      sampleTime: t({ tr: 'Sample time', en: 'Sample time' }),
+      sampleTime: t({ tr: 'Örnekleme zamanı', en: 'Sample time' }),
       cableDelay: t({ tr: 'Kablo gecikmesi (tek yön)', en: 'Cable delay (one-way)' }),
       roundTrip: t({ tr: 'Gidiş-dönüş gecikmesi', en: 'Round-trip delay' }),
       fixedDelay: t({ tr: 'Sabit gecikme (t_fixed)', en: 'Fixed delay (t_fixed)' }),
@@ -256,7 +256,7 @@ N_max = 32 / unit_load`,
       }
       return [
         t({
-          tr: 'Unit load hesabı kablo kapasitansını, konnektörleri ve gerçek transceiver '
+          tr: 'Birim yük hesabı kablo kapasitansını, konnektörleri ve gerçek transceiver '
             + 'limitlerini içermez.',
           en: 'The unit load calculation does not include cable capacitance, connectors or '
             + 'real transceiver limits.',
@@ -332,7 +332,7 @@ N_max = 32 / unit_load`,
         out.push({
           level: 'ok',
           text: t({
-            tr: `Sample time ${fmtS(r.sampleTime, 3)}; toplam döngü gecikmesi `
+            tr: `Örnekleme zamanı ${fmtS(r.sampleTime, 3)}; toplam döngü gecikmesi `
               + `${fmtS(r.loopDelay, 3)} (t_fixed ${fmtS(r.fixedDelay, 3)} + gidiş-dönüş `
               + `${fmtS(r.roundTrip, 3)}).`,
             en: `Sample time ${fmtS(r.sampleTime, 3)}; total loop delay ${fmtS(r.loopDelay, 3)} `

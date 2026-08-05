@@ -53,7 +53,7 @@ export function getText(lang) {
       b: { label: t({ tr: 'Plane Y boyutu (b)', en: 'Plane Y dimension (b)' }) },
       d: { label: t({ tr: 'Power–ground mesafesi (d)', en: 'Power–ground spacing (d)' }) },
       epsR: { label: t({ tr: 'Dielektrik sabiti (εr)', en: 'Dielectric constant (εr)' }) },
-      lossTangent: { label: t({ tr: 'Loss tangent (tan δ)', en: 'Loss tangent (tan δ)' }) },
+      lossTangent: { label: t({ tr: 'Kayıp tanjantı (tan δ)', en: 'Loss tangent (tan δ)' }) },
       mMax: {
         label: t({ tr: 'Maksimum mod indeksi (m_maks)', en: 'Maximum mode index (m_max)' }),
         hint: t({
@@ -127,7 +127,7 @@ export function getText(lang) {
       b: t({ tr: 'Plane Y boyutu (b)', en: 'Plane Y dimension (b)' }),
       d: t({ tr: 'Power–ground mesafesi (d)', en: 'Power–ground spacing (d)' }),
       epsR: t({ tr: 'Dielektrik sabiti (εr)', en: 'Dielectric constant (εr)' }),
-      lossTangent: t({ tr: 'Loss tangent', en: 'Loss tangent' }),
+      lossTangent: t({ tr: 'Kayıp tanjantı', en: 'Loss tangent' }),
       mMax: t({ tr: 'Maksimum mod indeksi (m_maks)', en: 'Maximum mode index (m_max)' }),
       nMax: t({ tr: 'Maksimum mod indeksi (n_maks)', en: 'Maximum mode index (n_max)' }),
       areaOverride: t({ tr: 'Örtüşen etkin alan', en: 'Overlapping effective area' }),

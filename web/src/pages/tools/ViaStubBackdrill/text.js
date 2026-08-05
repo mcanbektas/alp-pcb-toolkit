@@ -40,7 +40,7 @@ export function getText(lang) {
     }),
     intro: t({
       tr: 'Through-hole via’nın kullanılmayan bölümünü açık uçlu bir stub olarak değerlendirir: '
-        + 'çeyrek dalga rezonansı, harmonikler ve opsiyonel backdrill sonrası kalan residual '
+        + 'çeyrek dalga rezonansı, harmonikler ve opsiyonel backdrill sonrası kalan '
         + 'stub’ın üretim toleransıyla birlikte worst-case rezonansı.',
       en: 'Evaluates the unused portion of a through-hole via as an open-ended stub: the '
         + 'quarter-wave resonance, its harmonics, and — if a backdrill is applied — the '
@@ -61,7 +61,7 @@ export function getText(lang) {
       safety: {
         label: t({ tr: 'Güvenlik payı', en: 'Safety margin' }),
         hint: t({
-          tr: 'Hem gerçekleşen worst-case residual’a hem backdrill hedefine eklenir/çıkarılır',
+          tr: 'Hem gerçekleşen worst-case kalan stub’a hem backdrill hedefine eklenir/çıkarılır',
           en: 'Applied to both the realized worst-case residual and the backdrill target',
         }),
       },
@@ -129,14 +129,14 @@ export function getText(lang) {
       kt: t({ tr: 'K_t (gecikme / yükselme süresi)', en: 'K_t (delay / rise time)' }),
       margin: t({ tr: 'Rezonans / analiz frekansı oranı', en: 'Resonance / analysis frequency ratio' }),
 
-      residualNominal: t({ tr: 'Residual stub — nominal', en: 'Residual stub — nominal' }),
-      residualWorst: t({ tr: 'Residual stub — worst-case', en: 'Residual stub — worst-case' }),
-      residualBest: t({ tr: 'Residual stub — best-case', en: 'Residual stub — best-case' }),
+      residualNominal: t({ tr: 'Kalan stub — nominal', en: 'Residual stub — nominal' }),
+      residualWorst: t({ tr: 'Kalan stub — en kötü durum', en: 'Residual stub — worst-case' }),
+      residualBest: t({ tr: 'Kalan stub — en iyi durum', en: 'Residual stub — best-case' }),
       resonanceNominal: t({ tr: 'Backdrill sonrası rezonans — nominal', en: 'Post-backdrill resonance — nominal' }),
       resonanceWorst: t({ tr: 'Backdrill sonrası rezonans — worst-case', en: 'Post-backdrill resonance — worst-case' }),
       resonanceGain: t({ tr: 'Rezonans yükselme katsayısı', en: 'Resonance improvement factor' }),
 
-      targetAllowed: t({ tr: 'İzin verilen residual (l_residual,maks)', en: 'Allowed residual (l_residual,max)' }),
+      targetAllowed: t({ tr: 'İzin verilen kalan stub (l_residual,maks)', en: 'Allowed residual (l_residual,max)' }),
       targetNominal: t({ tr: 'Önerilen nominal backdrill hedefi', en: 'Suggested nominal backdrill target' }),
       targetRemoval: t({ tr: 'Gereken kaldırma derinliği', en: 'Required removal depth' }),
     },
@@ -237,7 +237,7 @@ l_nominal,target = l_residual,max − Δl_fabrication − l_safety`,
           + 'axes).',
       }),
       [SWEEP_REMOVED]: t({
-        tr: 'Kaldırılan derinlik arttıkça (residual küçüldükçe) rezonans yükselir.',
+        tr: 'Kaldırılan derinlik arttıkça (kalan stub küçüldükçe) rezonans yükselir.',
         en: 'As the removed depth increases (the residual shrinks) the resonance rises.',
       }),
     },
@@ -247,7 +247,7 @@ l_nominal,target = l_residual,max − Δl_fabrication − l_safety`,
       title: t({ tr: 'Via stub kesiti', en: 'Via stub cross-section' }),
       caption: (hasBackdrill) => (hasBackdrill
         ? t({
-          tr: 'Backdrill sonrası kalan residual stub',
+          tr: 'Backdrill sonrası kalan stub',
           en: 'The residual stub remaining after a backdrill',
         })
         : t({
@@ -256,7 +256,7 @@ l_nominal,target = l_residual,max − Δl_fabrication − l_safety`,
         })),
       used: t({ tr: 'kullanılan', en: 'used' }),
       stub: t({ tr: 'stub', en: 'stub' }),
-      residual: t({ tr: 'residual', en: 'residual' }),
+      residual: t({ tr: 'kalan', en: 'residual' }),
       removed: t({ tr: 'backdrill', en: 'backdrill' }),
     },
 
@@ -280,7 +280,7 @@ l_nominal,target = l_residual,max − Δl_fabrication − l_safety`,
           })
         case VS_ERR_TARGET_UNREACHABLE:
           return t({
-            tr: 'Üretim toleransı ve güvenlik payı, izin verilen residual’ı tüketiyor — bu '
+            tr: 'Üretim toleransı ve güvenlik payı, izin verilen kalan stub’ı tüketiyor — bu '
               + 'hedef rezonansa mevcut süreçle ulaşılamaz. Toleransı, payı veya hedefi gevşetin.',
             en: 'The fabrication tolerance and safety margin consume the entire allowed '
               + 'residual — this target resonance cannot be reached with the current process. '
@@ -357,7 +357,7 @@ l_nominal,target = l_residual,max − Δl_fabrication − l_safety`,
         out.push({
           level: 'ok',
           text: t({
-            tr: `Backdrill sonrası residual stub ${fmtM(r.residual.nominal)} (worst-case `
+            tr: `Backdrill sonrası kalan stub ${fmtM(r.residual.nominal)} (worst-case `
               + `${fmtM(r.residual.worstCase)}) — rezonans ${fmt(r.residual.resonanceGain, 2)} `
               + 'kat yükseldi.',
             en: `The post-backdrill residual stub is ${fmtM(r.residual.nominal)} (worst-case `
@@ -392,7 +392,7 @@ l_nominal,target = l_residual,max − Δl_fabrication − l_safety`,
           out.push({
             level: 'danger',
             text: t({
-              tr: `Hedef rezonans için izin verilen residual ${fmtM(r.backdrillTarget.allowed)} `
+              tr: `Hedef rezonans için izin verilen kalan stub ${fmtM(r.backdrillTarget.allowed)} `
                 + '— üretim toleransı ve güvenlik payı bunu tüketiyor, hedefe mevcut süreçle '
                 + 'ulaşılamaz.',
               en: `The allowed residual for the target resonance is `

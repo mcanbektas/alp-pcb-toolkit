@@ -31,7 +31,7 @@ export function getText(lang) {
 
   return {
     pct,
-    backlink: t({ tr: '← Güç ve Termal', en: '← Power and Thermal' }),
+    backlink: t({ tr: '← Güç Bütünlüğü ve Termal', en: '← Power Integrity and Thermal' }),
     title: t({
       tr: 'Buck Dönüştürücü PCB Ön Tasarım Aracı',
       en: 'Buck Converter PCB Pre-Design Tool',
@@ -110,13 +110,13 @@ export function getText(lang) {
       },
 
       cOut: {
-        label: t({ tr: 'Output capacitance (seçilen, opsiyonel)', en: 'Output capacitance (chosen, optional)' }),
+        label: t({ tr: 'Çıkış kapasitansı (seçilen, opsiyonel)', en: 'Output capacitance (chosen, optional)' }),
         hint: t({
           tr: 'Girilirse gerçekleşen çıkış ripple’ı hesaplanır',
           en: 'If given, the resulting output ripple is calculated',
         }),
       },
-      esrCOut: { label: t({ tr: 'Output capacitor ESR (opsiyonel)', en: 'Output capacitor ESR (optional)' }) },
+      esrCOut: { label: t({ tr: 'Çıkış kondansatörü ESR\'si (opsiyonel)', en: 'Output capacitor ESR (optional)' }) },
       deltaVTarget: {
         label: t({ tr: 'Hedef çıkış ripple’ı (opsiyonel)', en: 'Target output ripple (optional)' }),
         hint: t({
@@ -141,7 +141,7 @@ export function getText(lang) {
       vF: { label: t({ tr: 'Diode forward gerilimi (V_F, opsiyonel)', en: 'Diode forward voltage (V_F, optional)' }) },
       qrr: { label: t({ tr: 'Diode reverse recovery yükü (Q_rr, opsiyonel)', en: 'Diode reverse recovery charge (Q_rr, optional)' }) },
       vFBody: { label: t({ tr: 'Body diode forward gerilimi (V_F,body, opsiyonel)', en: 'Body diode forward voltage (V_F,body, optional)' }) },
-      tDead: { label: t({ tr: 'Dead time (opsiyonel)', en: 'Dead time (optional)' }) },
+      tDead: { label: t({ tr: 'Ölü zaman (opsiyonel)', en: 'Dead time (optional)' }) },
 
       tr: { label: t({ tr: 'Yükselme süresi (t_r, opsiyonel)', en: 'Rise time (t_r, optional)' }) },
       tf: { label: t({ tr: 'Düşme süresi (t_f, opsiyonel)', en: 'Fall time (t_f, optional)' }) },
@@ -189,8 +189,8 @@ export function getText(lang) {
       dcr: t({ tr: 'İndüktör DCR', en: 'Inductor DCR' }),
       iSat: t({ tr: 'İndüktör saturation akımı', en: 'Inductor saturation current' }),
       iRmsRating: t({ tr: 'İndüktör RMS akım değeri', en: 'Inductor RMS current rating' }),
-      cOut: t({ tr: 'Output capacitance', en: 'Output capacitance' }),
-      esrCOut: t({ tr: 'Output capacitor ESR', en: 'Output capacitor ESR' }),
+      cOut: t({ tr: 'Çıkış kapasitansı', en: 'Output capacitance' }),
+      esrCOut: t({ tr: 'Çıkış kondansatörü ESR\'si', en: 'Output capacitor ESR' }),
       deltaVTarget: t({ tr: 'Hedef çıkış ripple’ı', en: 'Target output ripple' }),
       iCinRmsRating: t({ tr: 'Input capacitor RMS akım değeri', en: 'Input capacitor RMS current rating' }),
       rdsOnHs: t({ tr: 'High-side R_DS(on)', en: 'High-side R_DS(on)' }),
@@ -198,7 +198,7 @@ export function getText(lang) {
       vF: t({ tr: 'Diode forward gerilimi', en: 'Diode forward voltage' }),
       qrr: t({ tr: 'Diode reverse recovery yükü', en: 'Diode reverse recovery charge' }),
       vFBody: t({ tr: 'Body diode forward gerilimi', en: 'Body diode forward voltage' }),
-      tDead: t({ tr: 'Dead time', en: 'Dead time' }),
+      tDead: t({ tr: 'Ölü zaman', en: 'Dead time' }),
       tr: t({ tr: 'Yükselme süresi', en: 'Rise time' }),
       tf: t({ tr: 'Düşme süresi', en: 'Fall time' }),
       vg: t({ tr: 'Gate sürüş gerilimi', en: 'Gate drive voltage' }),
@@ -246,7 +246,7 @@ export function getText(lang) {
       deltaVC: t({ tr: 'Kapasitif ripple (ΔV_C)', en: 'Capacitive ripple (ΔV_C)' }),
       deltaVEsr: t({ tr: 'ESR ripple (ΔV_ESR)', en: 'ESR ripple (ΔV_ESR)' }),
       deltaVTotal: t({ tr: 'Toplam çıkış ripple’ı (kaba yaklaşım)', en: 'Total output ripple (rough approximation)' }),
-      cOutMin: t({ tr: 'Minimum output capacitance', en: 'Minimum output capacitance' }),
+      cOutMin: t({ tr: 'Minimum çıkış kapasitansı', en: 'Minimum output capacitance' }),
       iCinRms: t({ tr: 'Input capacitor RMS akımı', en: 'Input capacitor RMS current' }),
 
       hsCondLoss: t({ tr: 'High-side iletim kaybı', en: 'High-side conduction loss' }),
@@ -533,7 +533,7 @@ T_J = T_A + P_device·θ_JA`,
       if (!r.ok) return []
       const out = []
 
-      const lUsed = r.inductor.chosen ?? r.inductor.required
+      const lUsed = r.inductor.used
       out.push({
         level: 'ok',
         text: t({
@@ -545,6 +545,33 @@ T_J = T_A + P_device·θ_JA`,
             + `peak-to-peak ripple is ΔI_L=${fmtAmp(r.inductor.deltaIL, 3)}.`,
         }),
       })
+
+      // Girilen bobin hesaba hiç girmediyse bu SÖYLENİR. Sessiz kalındığında
+      // kullanıcı ekranda yazan indüktansın kendi girdiği parça olduğunu sanıp
+      // peak/RMS akımı, ΔV_C'yi ve T_j'yi ona ait okuyordu; oysa hepsi ripple
+      // hedefinden türeyen `required` bobinin sayıları.
+      //
+      // Uyarı yalnız fark GÖRÜNÜRKEN basılır. İki girdi aynı çalışma noktasını
+      // tarif ettiğinde (varsayılan form tam böyledir: 20 µH zaten %30 ripple
+      // demek) "20 µH kullanılmadı, sonuçlar 20 µH'e ait" cümlesi doğru ama
+      // anlamsızdır ve gerçek atılmaları da gözden düşürür. Eşik %1: bunun
+      // altındaki fark ekrandaki yuvarlamada zaten görünmez.
+      const lFarki = r.inductor.chosen != null && r.inductor.used > 0
+        ? Math.abs(r.inductor.chosen - r.inductor.used) / r.inductor.used
+        : 0
+      if (r.inductor.chosenIgnored && lFarki > 0.01) {
+        out.push({
+          level: 'warn',
+          text: t({
+            tr: `Girilen ${fmtH(r.inductor.chosen)} indüktans HESABA GİRMEDİ: ripple `
+              + `hedefi verildiği için ΔI_L ondan türetildi ve sonuçlar ${fmtH(lUsed)} `
+              + 'bobine aittir. Girdiğiniz bobinin sayılarını görmek için ripple hedefini boşaltın.',
+            en: `The ${fmtH(r.inductor.chosen)} inductance you entered was NOT used: a ripple `
+              + `target was given, so ΔI_L came from it and every result belongs to a ${fmtH(lUsed)} `
+              + 'inductor. Clear the ripple target to see the numbers for your own part.',
+          }),
+        })
+      }
 
       // İdeal duty her zaman (0,1) içindedir (D=V_out/V_in, BUCK_ERR_STEP_UP
       // V_out<V_in'i zaten dayatıyor) ama verim tahminli dApprox=V_out/(η·V_in)

@@ -50,7 +50,7 @@ export function getText(lang) {
 
   return {
     pct,
-    backlink: t({ tr: '← Güç ve Termal', en: '← Power and Thermal' }),
+    backlink: t({ tr: '← Güç Bütünlüğü ve Termal', en: '← Power Integrity and Thermal' }),
     title: t({
       tr: 'PDN Rezonans ve Antirezonans Analizörü',
       en: 'PDN Resonance and Antiresonance Analyzer',
@@ -86,7 +86,7 @@ export function getText(lang) {
           en: 'If entered, this is used directly instead of the ripple percentage',
         }),
       },
-      deltaI: { label: t({ tr: 'Load step (ΔI)', en: 'Load step (ΔI)' }) },
+      deltaI: { label: t({ tr: 'Yük adımı (ΔI)', en: 'Load step (ΔI)' }) },
       fMin: { label: t({ tr: 'Minimum analiz frekansı', en: 'Minimum analysis frequency' }) },
       fMax: { label: t({ tr: 'Maksimum analiz frekansı', en: 'Maximum analysis frequency' }) },
       points: {
@@ -94,7 +94,7 @@ export function getText(lang) {
         hint: t({ tr: 'Logaritmik sweep, en az 3 nokta', en: 'Logarithmic sweep, at least 3 points' }),
       },
       threshold: {
-        label: t({ tr: 'Prominence eşiği', en: 'Prominence threshold' }),
+        label: t({ tr: 'Belirginlik eşiği', en: 'Prominence threshold' }),
         hint: t({
           tr: `Varsayılan 3 dB; izin verilen aralık ${PROMINENCE_MIN_DB}–${PROMINENCE_MAX_DB} dB`,
           en: `Default 3 dB; allowed range ${PROMINENCE_MIN_DB}–${PROMINENCE_MAX_DB} dB`,
@@ -113,7 +113,7 @@ export function getText(lang) {
       },
 
       hasPlaneCheck: t({ tr: 'Plane kolunu ağa ekle', en: 'Add the plane branch to the network' }),
-      planeR: { label: t({ tr: 'Plane ESR / kayıp direnci', en: 'Plane ESR / loss resistance' }) },
+      planeR: { label: t({ tr: 'Düzlem ESR\'si / kayıp direnci', en: 'Plane ESR / loss resistance' }) },
       planeL: {
         label: t({ tr: 'Plane yayılma/bağlantı endüktansı', en: 'Plane spreading/connection inductance' }),
       },
@@ -125,14 +125,14 @@ export function getText(lang) {
       }),
 
       deltaT: {
-        label: t({ tr: 'Load step süresi (Δt)', en: 'Load step duration (Δt)' }),
+        label: t({ tr: 'Yük adımı süresi (Δt)', en: 'Load step duration (Δt)' }),
         hint: t({
           tr: 'C_min ve worst-case droop tahmini için; yükselme süresinden (t_rise) farklıdır',
           en: 'For C_min and the worst-case droop estimate; distinct from the rise time (t_rise)',
         }),
       },
       tRise: {
-        label: t({ tr: 'Load step yükselme süresi (opsiyonel)', en: 'Load step rise time (optional)' }),
+        label: t({ tr: 'Yük adımı yükselme süresi (opsiyonel)', en: 'Load step rise time (optional)' }),
         hint: t({
           tr: 'ΔV_ESL = L_eq·(ΔI/t_rise) için; ΔI Sistem bölümündeki değerden alınır',
           en: 'For ΔV_ESL = L_eq·(ΔI/t_rise); ΔI is reused from the System section above',
@@ -162,19 +162,19 @@ export function getText(lang) {
       Vrail: t({ tr: 'Nominal hat gerilimi', en: 'Nominal rail voltage' }),
       ripplePct: t({ tr: 'Ripple yüzdesi', en: 'Ripple percentage' }),
       deltaVAllowed: t({ tr: 'İzin verilen mutlak ripple', en: 'Allowed absolute ripple' }),
-      deltaI: t({ tr: 'Load step', en: 'Load step' }),
+      deltaI: t({ tr: 'Yük adımı', en: 'Load step' }),
       fMin: t({ tr: 'Minimum analiz frekansı', en: 'Minimum analysis frequency' }),
       fMax: t({ tr: 'Maksimum analiz frekansı', en: 'Maximum analysis frequency' }),
       points: t({ tr: 'Nokta sayısı', en: 'Point count' }),
-      threshold: t({ tr: 'Prominence eşiği', en: 'Prominence threshold' }),
+      threshold: t({ tr: 'Belirginlik eşiği', en: 'Prominence threshold' }),
       vrmR: t({ tr: 'VRM çıkış direnci', en: 'VRM output resistance' }),
       vrmL: t({ tr: 'VRM çıkış endüktansı', en: 'VRM output inductance' }),
       vrmC: t({ tr: 'VRM çıkış kondansatörü', en: 'VRM output capacitor' }),
-      planeR: t({ tr: 'Plane ESR', en: 'Plane ESR' }),
+      planeR: t({ tr: 'Düzlem ESR\'si', en: 'Plane ESR' }),
       planeL: t({ tr: 'Plane endüktansı', en: 'Plane inductance' }),
       planeC: t({ tr: 'Plane kapasitansı', en: 'Plane capacitance' }),
-      deltaT: t({ tr: 'Load step süresi', en: 'Load step duration' }),
-      tRise: t({ tr: 'Load step yükselme süresi', en: 'Load step rise time' }),
+      deltaT: t({ tr: 'Yük adımı süresi', en: 'Load step duration' }),
+      tRise: t({ tr: 'Yük adımı yükselme süresi', en: 'Load step rise time' }),
       dropC: t({ tr: 'Düşük frekans kapasitesi', en: 'Low-frequency capacitance' }),
       dropESReq: t({ tr: 'Eşdeğer ESR', en: 'Equivalent ESR' }),
       dropLeq: t({ tr: 'Eşdeğer ESL', en: 'Equivalent ESL' }),
@@ -266,7 +266,7 @@ export function getText(lang) {
       freq: t({ tr: 'Frekans', en: 'Frequency' }),
       impedance: t({ tr: 'Empedans |Z|', en: 'Impedance |Z|' }),
       ratio: t({ tr: 'Hedefe oran', en: 'Ratio to target' }),
-      prominence: 'Prominence',
+      prominence: t({ tr: 'Belirginlik', en: 'Prominence' }),
       none: t({
         tr: 'Eşiği geçen doğrulanmış bir rezonans/antirezonans yok (adaylar grafikte görünebilir).',
         en: 'No resonance/antiresonance clears the threshold (candidates may still appear on the chart).',
@@ -492,7 +492,7 @@ Low-frequency capacitance:
           })
         case PEAKS_ERR_THRESHOLD:
           return t({
-            tr: `Prominence eşiği ${PROMINENCE_MIN_DB}–${PROMINENCE_MAX_DB} dB aralığında olmalı.`,
+            tr: `Belirginlik eşiği ${PROMINENCE_MIN_DB}–${PROMINENCE_MAX_DB} dB aralığında olmalı.`,
             en: `The prominence threshold must be within ${PROMINENCE_MIN_DB}–${PROMINENCE_MAX_DB} dB.`,
           })
         case PEAKS_ERR_NONPOSITIVE:
