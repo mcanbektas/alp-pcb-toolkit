@@ -12,11 +12,14 @@ const PlaneCavitySchematic = forwardRef(function PlaneCavitySchematic({ r, text 
 
   const rectX = 74
   const rectW = 156
-  const rectCy = 50
+  const rectCy = 54
   // b/a oranı 0.3–3 arasına kırpılır: aşırı ince/uzun bir dikdörtgen şemayı
   // okunaksız yapardı (PowerPlane'deki boyun oranı kırpmasıyla aynı gerekçe).
+  // Çizim YÜKSEKLİĞİ ayrıca 84 px'e kapatılır: oran 3'e giderken dikdörtgen
+  // 168 px oluyordu ve hem kendisi hem üstüne yazılan b değeri viewBox'ın
+  // üstünden taşıyordu (ölçülen: b değeri y = −40).
   const ratio = live ? Math.max(0.3, Math.min(3, r.b / r.a)) : 1
-  const rectH = 56 * ratio
+  const rectH = Math.max(18, Math.min(84, 56 * ratio))
   const rectY = rectCy - rectH / 2
 
   const csX = 74
@@ -29,7 +32,7 @@ const PlaneCavitySchematic = forwardRef(function PlaneCavitySchematic({ r, text 
   return (
     <Schematic
       ref={ref}
-      viewBox="0 0 300 226"
+      viewBox="0 -6 320 244"
       title={text.title}
       caption={text.caption}
     >
@@ -57,7 +60,7 @@ const PlaneCavitySchematic = forwardRef(function PlaneCavitySchematic({ r, text 
       </g>
       <text className="sch-label" x={34} y={rectCy + 3} textAnchor="middle">b</text>
       {live && (
-        <text className="sch-value" x={40} y={rectY - 4 < 10 ? rectCy - rectH / 2 - 6 : rectY - 4} textAnchor="middle">
+        <text className="sch-value" x={40} y={rectY - 4} textAnchor="middle">
           {fmtEng(r.b, 'm', 3)}
         </text>
       )}
@@ -87,7 +90,7 @@ const PlaneCavitySchematic = forwardRef(function PlaneCavitySchematic({ r, text 
         d
       </text>
       {live && (
-        <text className="sch-value" x={csX + csW + 30} y={csTopY + (barH + gapH + barH) / 2 + 12} textAnchor="start">
+        <text className="sch-value" x={csX + csW + 30} y={csTopY + (barH + gapH + barH) / 2 + 16} textAnchor="start">
           {fmtEng(r.d, 'm', 3)}
         </text>
       )}

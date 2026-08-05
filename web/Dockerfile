@@ -10,6 +10,13 @@ COPY web/package.json web/package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY web/ ./
+# `authMailPaths.guard.test.js` istemcideki yol sözlüğünü SUNUCUDAKİ kopyayla
+# karşılaştırır ve dosyayı depo kökünden okur (`<kök>/api/…/AuthEmailText.cs`).
+# İmajda web/ içeriği /src'ye açıldığı için testin hesapladığı kök `/` olur;
+# dosya kopyalanmazsa süit hiç toplanamadan düşer ve imaj HİÇ derlenemez.
+# Bekçiyi imaj derlemesinden çıkarmak yerine ihtiyacı olan tek dosya taşınır:
+# kopya ayrıştığında kırık doğrulama bağlantısı üretime gitmemeli.
+COPY api/Alp.Api/Auth/AuthEmailText.cs /api/Alp.Api/Auth/AuthEmailText.cs
 # Hesap motorları testten geçmeden imaja girmez.
 RUN npm test
 # VITE_API_BASE_URL verilmez: useAuth.jsx boş tabanı aynı köken sayar, yani

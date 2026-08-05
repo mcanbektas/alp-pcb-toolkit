@@ -28,6 +28,11 @@ const BgaSchematic = forwardRef(function BgaSchematic({ r, text, fmtLen }, ref) 
     ? (r.engineInput.viaPadDiameter / 2) * s
     : 0
 
+  const pitchDimY = Math.min(cy + half + Math.max(rLand, rMask) + 22, 172)
+  // İzler ölçü satırının ÜSTÜNDE biter: büyük land çaplarında iz uçları
+  // pitch etiketinin/değerinin üstünden geçiyordu.
+  const traceBottomY = Math.min(cy + half + rLand + 14, pitchDimY - 6)
+
   const centres = [
     [cx - half, cy - half], [cx + half, cy - half],
     [cx - half, cy + half], [cx + half, cy + half],
@@ -59,7 +64,7 @@ const BgaSchematic = forwardRef(function BgaSchematic({ r, text, fmtLen }, ref) 
           x1={x}
           y1={cy - half - rLand - 14}
           x2={x}
-          y2={cy + half + rLand + 14}
+          y2={traceBottomY}
           strokeWidth={Math.max(1, traceW)}
         />
       ))}
@@ -78,11 +83,14 @@ const BgaSchematic = forwardRef(function BgaSchematic({ r, text, fmtLen }, ref) 
         </>
       )}
 
-      {/* Pitch ölçüsü */}
-      <line className="sch-dim" x1={cx - half} y1={cy + half + rLand + 22} x2={cx + half} y2={cy + half + rLand + 22} />
-      <text className="sch-label" x={cx} y={cy + half + rLand + 36} textAnchor="middle">{text.pitch}</text>
+      {/* Pitch ölçüsü — dizinin altında, mask halkasını da açacak kadar.
+          Satır land/mask yarıçapıyla birlikte aşağı kayıyor ve büyük land
+          çaplarında tuvalden taşıyordu (ölçülen: değer y = 231, tuval 224);
+          bu yüzden en aşağı 172'ye kapatılır. */}
+      <line className="sch-dim" x1={cx - half} y1={pitchDimY} x2={cx + half} y2={pitchDimY} />
+      <text className="sch-label" x={cx} y={pitchDimY + 14} textAnchor="middle">{text.pitch}</text>
       {live && (
-        <text className="sch-value" x={cx} y={cy + half + rLand + 50} textAnchor="middle">
+        <text className="sch-value" x={cx} y={pitchDimY + 28} textAnchor="middle">
           {fmtLen(r.engineInput.pitch)}
         </text>
       )}

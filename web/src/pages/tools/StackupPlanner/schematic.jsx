@@ -11,6 +11,9 @@ import { LAYER_COPPER, DIELECTRIC_TYPES } from '../../../lib/stackup'
 // Seçili sinyal katmanı ile referans düzlemi arasındaki H (ya da iç katmanda
 // H1/H2) ayrıca işaretlenir.
 const MIN_BAND_PX = 5
+// İki etiket satırı arasındaki asgari açıklık: 11 px yazının kutusu ~15 px,
+// 9 px'lik bantlarda ardışık iki satır üst üste biniyordu.
+const LABEL_MIN_GAP = 16
 const MAX_TOTAL_PX = 250
 const LABEL_X = 172
 const VALUE_X = 368
@@ -64,10 +67,24 @@ const StackupSchematic = forwardRef(function StackupSchematic(
   const upperDim = signal?.upper ? dim(signal.index, signal.upper.index) : null
   const lowerDim = signal?.lower ? dim(signal.index, signal.lower.index) : null
 
+  // Etiketlenecek satırlar: bant en az 9 px ve bir önceki etiket satırından
+  // en az LABEL_MIN_GAP uzakta olmalı.
+  const labelY = []
+  let lastLabelY = -Infinity
+  scaled.forEach((h, i) => {
+    const centre = tops[i] + h / 2 + 3
+    if (h >= 9 && centre - lastLabelY >= LABEL_MIN_GAP) {
+      labelY[i] = centre
+      lastLabelY = centre
+    } else {
+      labelY[i] = null
+    }
+  })
+
   const vbH = Math.max(bottom + 34, 120)
 
   return (
-    <Schematic ref={ref} viewBox={`0 0 380 ${vbH}`} title={text.title} caption={text.caption}>
+    <Schematic ref={ref} viewBox={`-16 0 396 ${vbH}`} title={text.title} caption={text.caption}>
       {layers.map((l, i) => (
         <g key={`${l.type}-${i}`}>
           <rect
@@ -78,14 +95,13 @@ const StackupSchematic = forwardRef(function StackupSchematic(
             height={scaled[i]}
           />
           {/* Katman adı ve kalınlığı bandın sağında; bakırın üstüne yazı düşmez.
-              Çok ince bantlarda etiket satırı taşmasın diye yalnızca 9 px ve
-              üstü bantlar etiketlenir. */}
-          {scaled[i] >= 9 && (
+              Etiketlenecek satırlar yukarıda seçilir (bkz. labelY). */}
+          {labelY[i] !== null && (
             <>
-              <text className="sch-label" x={LABEL_X} y={tops[i] + scaled[i] / 2 + 3}>
+              <text className="sch-label" x={LABEL_X} y={labelY[i]}>
                 {l.name !== '' ? l.name : text.typeLabel(l.type)}
               </text>
-              <text className="sch-value" x={VALUE_X} textAnchor="end" y={tops[i] + scaled[i] / 2 + 3}>
+              <text className="sch-value" x={VALUE_X} textAnchor="end" y={labelY[i]}>
                 {fmtLen(l.thickness)}
               </text>
             </>

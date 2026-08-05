@@ -65,19 +65,24 @@ const TvsEsdSchematic = forwardRef(function TvsEsdSchematic({ r, text }, ref) {
       {live && (
         <CurrentArrow x={122} y={lineY} dir="right" len={18} label={fmtAmp(r.solver.current)} />
       )}
+      {/* V_clamp bir satır yukarıda: akım oku etiketi de hattın üstünde
+          (lineY − 6) duruyor ve uzun akım değerlerinde iki kutu çakışıyordu. */}
       {live && (
-        <text className="sch-value" x={nodeX + 4} y={lineY - 8} textAnchor="start">
+        <text className="sch-value" x={nodeX + 4} y={lineY - 22} textAnchor="start">
           {fmtVolt(r.vClamp)}
         </text>
       )}
 
       {/* TVS şönt elemanı */}
       <rect className="sch-part" x={nodeX - 12} y={tvsY} width={24} height={tvsH} rx={2} />
-      <text className="sch-label" x={nodeX} y={tvsY - 6} textAnchor="middle">{text.tvs}</text>
+      {/* Etiketler telin SOLUNDA: düğümden toprağa inen dikey tel nodeX'te
+          ve ortalanmış etiketler telin üstüne biniyordu. Sağ kolon V_L
+          değerine ayrılmış durumda. */}
+      <text className="sch-label" x={nodeX - 16} y={tvsY + 8} textAnchor="end">{text.tvs}</text>
 
       {/* Dönüş yolu endüktansı L_path — REV2 §14.7 kısa/geniş tutulmalı */}
       <rect className="sch-part" x={nodeX - 12} y={lpathY} width={24} height={lpathH} rx={2} />
-      <text className="sch-label" x={nodeX} y={lpathY - 6} textAnchor="middle">{text.lpath}</text>
+      <text className="sch-label" x={nodeX - 16} y={lpathY + 8} textAnchor="end">{text.lpath}</text>
       {hasOvershoot && (
         <text className="sch-value" x={nodeX + 20} y={lpathY + lpathH / 2 + 4} textAnchor="start">
           {fmtVolt(r.overshoot.vL)}

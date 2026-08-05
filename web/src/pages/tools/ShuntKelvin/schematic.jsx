@@ -52,15 +52,19 @@ const ShuntKelvinSchematic = forwardRef(function ShuntKelvinSchematic({ r, text 
         </>
       )}
 
-      <text className="sch-label" x={ampX - 14} y={ampY - 14} textAnchor="middle">{text.sensePlus}</text>
-      <text className="sch-label" x={ampX + 14} y={ampY - 14} textAnchor="middle">{text.senseMinus}</text>
+      {/* İki sense etiketi ortalanınca kutuları çakışıyordu (28 px aralık, her
+          biri ~40 px): dışa doğru hizalanır, aralarında amp ucu kalır. */}
+      <text className="sch-label" x={ampX - 24} y={ampY - 14} textAnchor="end">{text.sensePlus}</text>
+      <text className="sch-label" x={ampX + 24} y={ampY - 14} textAnchor="start">{text.senseMinus}</text>
 
       {/* Amplifikatör */}
       <path
         className="sch-part"
-        d={`M${ampX - 18} ${ampY - 10} L${ampX + 18} ${ampY} L${ampX - 18} ${ampY + 10} Z`}
+        d={`M${ampX - 24} ${ampY - 18} L${ampX + 24} ${ampY} L${ampX - 24} ${ampY + 18} Z`}
       />
-      <text className="sch-label" x={ampX - 4} y={ampY} textAnchor="middle" dominantBaseline="middle">
+      {/* Üçgen yazıyı taşıyacak kadar büyütüldü: eski ölçüde (36x20) "amp"
+          kutusunun köşeleri konturun dışına taşıyordu. */}
+      <text className="sch-label" x={ampX - 8} y={ampY} textAnchor="middle" dominantBaseline="middle">
         {text.amp}
       </text>
     </Schematic>

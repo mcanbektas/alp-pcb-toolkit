@@ -24,9 +24,12 @@ function ShuntBranch({
         className={dashed ? 'sch-part sch-dash' : 'sch-part'}
         x={x - 10} y={midY - 9} width={20} height={18} rx={2}
       />
-      <text className="sch-label" x={x} y={midY - 14} textAnchor="middle">{label}</text>
+      {/* Etiket ve değer kolun DIŞINDA: iki rayı birleştiren dikey tel
+          topY–botY arasını baştan sona kaplıyor, aradaki her yazı telin
+          üstüne biniyordu. Etiket üst rayın üstüne, değer alt rayın altına. */}
+      <text className="sch-label" x={x} y={topY - 14} textAnchor="middle">{label}</text>
       {value != null && (
-        <text className="sch-value" x={x} y={midY + 24} textAnchor="middle">{value}</text>
+        <text className="sch-value" x={x} y={botY + 18} textAnchor="middle">{value}</text>
       )}
       <circle className="sch-node" cx={x} cy={topY} r={2.5} />
       <circle className="sch-node" cx={x} cy={botY} r={2.5} />
@@ -56,8 +59,10 @@ const EmcFilterSchematic = forwardRef(function EmcFilterSchematic({ r, text }, r
 
   return (
     <Schematic ref={ref} viewBox="0 0 320 190" title={text.title} caption={text.caption(topology)}>
-      <text className="sch-label" x={LEFT_X} y={30}>{text.source}</text>
-      <text className="sch-label" x={RIGHT_X} y={30} textAnchor="end">{text.load}</text>
+      {/* Kaynak/yük satırı 24'e alındı: kol etiketleri artık üst rayın üstünde
+          (TOP_Y − 14 = 42) ve 30'daki satırla kutuları örtüşüyordu. */}
+      <text className="sch-label" x={LEFT_X} y={24}>{text.source}</text>
+      <text className="sch-label" x={RIGHT_X} y={24} textAnchor="end">{text.load}</text>
 
       {topology === TOPOLOGY_CM ? (
         <>
@@ -77,7 +82,7 @@ const EmcFilterSchematic = forwardRef(function EmcFilterSchematic({ r, text }, r
           )}
           <ShuntBranch x={230} label="C_LL" value={live ? fmtF(net.cLL) : null} />
           {hasCandidate && (
-            <ShuntBranch x={264} label={text.damping} dashed />
+            <ShuntBranch x={276} label={text.damping} dashed />
           )}
         </>
       ) : (

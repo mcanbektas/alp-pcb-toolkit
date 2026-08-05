@@ -38,7 +38,7 @@ function RlcCircuit({ r }) {
       <text className="sch-label" x={50} y={52}>R</text>
 
       {/* L — üç yay */}
-      <path className="sch-part" fill="none" d="M96 70 q11 -16 22 0 q11 -16 22 0" />
+      <path className="sch-part no-fill" fill="none" d="M96 70 q11 -16 22 0 q11 -16 22 0" />
       <text className="sch-label" x={112} y={48}>L</text>
 
       {/* C — iki plaka */}

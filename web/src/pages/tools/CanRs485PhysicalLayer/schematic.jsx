@@ -72,13 +72,16 @@ const BusSchematic = forwardRef(function BusSchematic({ r, mode, text }, ref) {
         <>
           <line className="sch-copper" x1={leftX + 40} y1={busY - 4} x2={leftX + 40} y2={busY - 40} />
           <rect className="sch-part" x={leftX + 30} y={busY - 50} width={20} height={10} />
-          <text className="sch-label" x={leftX + 40} y={busY - 56} textAnchor="middle">{text.pullUp}</text>
-          <text className="sch-value" x={leftX + 40} y={busY - 64} textAnchor="middle">{text.vcc}</text>
+          {/* Etiket direncin YANINDA, ray adı üstünde: ikisi de aynı kolonda
+              8 px arayla dururken kutuları ~6 px örtüşüyor, V_CC de tuvalin
+              üstünden taşıyordu (ölçülen: y = −4.2). */}
+          <text className="sch-label" x={leftX + 58} y={busY - 40}>{text.pullUp}</text>
+          <text className="sch-value" x={leftX + 40} y={busY - 56} textAnchor="middle">{text.vcc}</text>
 
           <line className="sch-copper" x1={leftX + 40} y1={busY + 4} x2={leftX + 40} y2={busY + 40} />
           <rect className="sch-part" x={leftX + 30} y={busY + 40} width={20} height={10} />
-          <text className="sch-label" x={leftX + 40} y={busY + 64} textAnchor="middle">{text.pullDown}</text>
-          <text className="sch-value" x={leftX + 40} y={busY + 72} textAnchor="middle">{text.gnd}</text>
+          <text className="sch-label" x={leftX + 58} y={busY + 50}>{text.pullDown}</text>
+          <text className="sch-value" x={leftX + 40} y={busY + 62} textAnchor="middle">{text.gnd}</text>
           {hasBias && (
             <circle className="sch-dim" cx={leftX + 40} cy={busY} r={3} />
           )}

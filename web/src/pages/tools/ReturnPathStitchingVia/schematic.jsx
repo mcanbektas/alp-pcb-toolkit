@@ -41,7 +41,7 @@ const ReturnPathSchematic = forwardRef(function ReturnPathSchematic({ r, text },
   return (
     <Schematic
       ref={ref}
-      viewBox="0 0 300 224"
+      viewBox="0 -20 300 250"
       title={text.title}
       caption={text.caption(hasCap, plane)}
     >
@@ -90,7 +90,7 @@ const ReturnPathSchematic = forwardRef(function ReturnPathSchematic({ r, text },
           <rect className="sch-copper" x={capX - 3} y={2} width={6} height={planeAY - 2} />
           <rect className="sch-copper" x={capX - 3} y={planeBY} width={6} height={bottomY - planeBY} />
           <rect className="sch-part" x={capX - 12} y={10} width={24} height={12} rx={2} />
-          <text className="sch-label" x={capX} y={8} textAnchor="middle">{text.capacitor}</text>
+          <text className="sch-label" x={capX} y={topY - 26} textAnchor="middle">{text.capacitor}</text>
         </>
       )}
 
@@ -109,21 +109,31 @@ const ReturnPathSchematic = forwardRef(function ReturnPathSchematic({ r, text },
         </text>
       )}
 
-      {/* Etiketler */}
+      {/* Etiketler — üstteki şerit İKİ satırdır (26 ve 8 px kart üstünde).
+          Tek satırda "sinyal via" (cx = 130) ile "stitching via" (küme
+          ortası ≈ 184) kutuları çakışıyordu: aralık 54 px, kutular ~88 px.
+          Alt satırda ikisi de dış hizaya çekildi, üst satır sinyal via'ya
+          ve (varsa) kondansatöre kaldı. Stitching etiketi via BAŞINA değil
+          küme başına bir kez yazılır — iki via'da iki kopya üst üste
+          biniyordu. */}
+      <text className="sch-label" x={cx} y={topY - 26} textAnchor="middle">{text.signalVia}</text>
       <text className="sch-label" x={boardL + 4} y={topY - 8}>{text.signalTrace}</text>
-      <text className="sch-label" x={cx} y={topY - 8} textAnchor="middle">{text.signalVia}</text>
-      {stitchX.map((x) => (
-        <text key={x} className="sch-label" x={x} y={topY - 8} textAnchor="middle">{text.stitchingVia}</text>
-      ))}
+      {stitchX.length > 0 && (
+        <text className="sch-label" x={hasCap ? capX - 20 : boardR - 4} y={topY - 8} textAnchor="end">
+          {text.stitchingVia}
+        </text>
+      )}
       <text className="sch-label" x={boardL + 4} y={planeAY - 4}>{text.planeStart}</text>
       <text className="sch-label" x={boardL + 4} y={planeBY + planeBH + 14}>{text.planeTarget}</text>
+      {/* Bölünme etiketi sinyal via'sının SOLUNDA: boşluğun ortası tam
+          via çubuğunun üstüne denk geliyordu. */}
       {split && (
-        <text className="sch-label dim" x={(gapL + gapR) / 2} y={planeBY + planeBH + 14} textAnchor="middle">
+        <text className="sch-label dim" x={cx - 10} y={planeBY + planeBH + 30} textAnchor="end">
           {text.planeSplitGap}
         </text>
       )}
       {n > 2 && (
-        <text className="sch-value" x={boardR - 4} y={topY - 8} textAnchor="end">{text.countNote(n)}</text>
+        <text className="sch-value" x={296} y={bottomY + 26} textAnchor="end">{text.countNote(n)}</text>
       )}
     </Schematic>
   )

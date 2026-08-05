@@ -14,6 +14,10 @@ const fmtF = (x) => fmtEng(x, 'F', 3)
 // çizim deseniyle aynı gerekçe: gerçek bir bileşen ama bu ekranda ölçülü
 // değil). Ölçüler orantılı değildir.
 //
+// TUVAL GENİŞLİĞİ 292 px: C_out / V_out etiketleri ve değerleri sağ kolonda
+// x = 228'den başlıyor; 9 karakterlik uç değer (fmtEng sınır durumu) 284'e
+// kadar uzanıyor ve 250 px'lik tuvalden taşıyordu.
+//
 // `ref` yalnızca rapor üretimi için Schematic'e iletilir — bkz. report.js.
 const BuckSchematic = forwardRef(function BuckSchematic({ r, text }, ref) {
   const live = r.ok
@@ -36,14 +40,14 @@ const BuckSchematic = forwardRef(function BuckSchematic({ r, text }, ref) {
   return (
     <Schematic
       ref={ref}
-      viewBox="0 0 250 190"
+      viewBox="0 0 292 190"
       title={text.title}
       caption={isSync ? text.captionSync : text.captionAsync}
     >
       {/* Vin kaynağı ve giriş rayı */}
       <Terminal x={vinX} y={14} />
-      <text className="sch-label" x={vinX + 8} y={18}>V_in</text>
-      {live && <text className="sch-value" x={vinX + 8} y={30}>{fmtEng(r.vInNom, 'V', 3)}</text>}
+      <text className="sch-label" x={vinX + 8} y={12}>V_in</text>
+      {live && <text className="sch-value" x={vinX + 8} y={26}>{fmtEng(r.vInNom, 'V', 3)}</text>}
       <g className="sch-wire">
         <line x1={vinX} y1={14} x2={vinX} y2={topY} />
         <line x1={vinX} y1={topY} x2={swX} y2={topY} />
@@ -89,7 +93,7 @@ const BuckSchematic = forwardRef(function BuckSchematic({ r, text }, ref) {
       <text className="sch-label" x={(lX1 + lX2) / 2} y={swY - 12} textAnchor="middle">{text.inductorLabel}</text>
       {live && (
         <text className="sch-value" x={(lX1 + lX2) / 2} y={swY + 22} textAnchor="middle">
-          {fmtH(r.inductor.chosen ?? r.inductor.required)}
+          {fmtH(r.inductor.used)}
         </text>
       )}
 

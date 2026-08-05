@@ -28,6 +28,8 @@ export const RULES = {
   'sch-dielectric': { fill: 'var(--raised)', stroke: 'var(--line)', 'stroke-width': '1' },
   'sch-copper': { fill: 'var(--accent)', stroke: 'var(--accent)', 'stroke-width': '1' },
   'sch-copper-fill': { fill: 'var(--green-deep)', stroke: 'var(--accent-dim)', 'stroke-width': '1' },
+  // Konturla çizilen açık yollar; sınıf listesinde sonra geldiği için fill'i ezer.
+  'no-fill': { fill: 'none' },
   'sch-dim': { stroke: 'var(--muted)', 'stroke-width': '1', fill: 'none' },
   'sch-hole': { fill: 'var(--bg)' },
   'sch-arrow': { stroke: 'var(--accent)', 'stroke-width': '1.5', 'stroke-linecap': 'round' },

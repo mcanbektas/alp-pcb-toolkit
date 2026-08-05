@@ -38,7 +38,10 @@ const AdcSettlingSchematic = forwardRef(function AdcSettlingSchematic({ r, text 
     >
       {/* Gerilim kaynağı sembolü (basit daire yerine etiketli düğüm) */}
       <circle className="sch-part" cx={x0} cy={y} r={8} />
-      <text className="sch-label" x={x0} y={y - 16} textAnchor="middle">{text.source}</text>
+      {/* Kaynak etiketi dairenin ALTINDA ve sola yaslıdır: üstte ortalanınca
+          hem viewBox'ın solundan taşıyor hem de R_source etiketinin üstüne
+          biniyordu (x0 = 16, yazı ~41 px). */}
+      <text className="sch-label" x={2} y={y + 22}>{text.source}</text>
 
       <line className="sch-copper" x1={x0 + 8} y1={y} x2={rSourceX - 12} y2={y} />
       {resistor(rSourceX, 'R_source')}

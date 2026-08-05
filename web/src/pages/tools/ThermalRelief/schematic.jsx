@@ -26,16 +26,21 @@ const ThermalReliefSchematic = forwardRef(function ThermalReliefSchematic(
 
   const rPad = PAD_PX
   const gap = live && r.results.thermalGap !== null ? r.results.thermalGap : null
-  const rClear = hasPad && gap !== null
-    ? rPad + gap * s
-    : rPad + 22
+  // Açıklık yarıçapı tuvale kapatılır: pad milimetre, gap mikrometre
+  // biriminde girildiğinde gap * s binlerce piksel oluyor ve hem daire hem
+  // üstündeki "akım yönü" yazısı tuvalin dışına çıkıyordu (ölçülen: y = −27560).
+// Üst sınır 84: yazı satırı cy − rClear − 12 = 12'den yukarı çıkamaz.
+  const rClear = Math.min(
+    84,
+    hasPad && gap !== null ? rPad + gap * s : rPad + 22,
+  )
 
   const count = live ? r.results.spokeCount : 4
   // Çizimde spoke sayısı okunabilir kalsın diye üst sınır uygulanır; ölçü
   // etiketi gerçek sayıyı yazar.
   const drawn = Math.min(count, 16)
   const spokeW = live && hasPad
-    ? Math.max(2, r.results.widestInnerWidth * s)
+    ? Math.min(rPad, Math.max(2, r.results.widestInnerWidth * s))
     : 8
 
   const spokes = Array.from({ length: drawn }, (_, i) => {
@@ -49,7 +54,7 @@ const ThermalReliefSchematic = forwardRef(function ThermalReliefSchematic(
   })
 
   return (
-    <Schematic ref={ref} viewBox="0 0 340 226" title={text.title} caption={text.caption}>
+    <Schematic ref={ref} viewBox="0 0 340 238" title={text.title} caption={text.caption}>
       {/* Plane bakırı — açıklığın dışında kalan alan */}
       <rect className="sch-copper-fill" x={8} y={8} width={200} height={200} />
       <text className="sch-label" x={14} y={22}>{text.plane}</text>
@@ -75,7 +80,10 @@ const ThermalReliefSchematic = forwardRef(function ThermalReliefSchematic(
 
       {/* Akım yönü: paddan plane'e doğru bir spoke boyunca */}
       <line className="sch-arrow" x1={cx} y1={cy - rPad} x2={cx} y2={cy - rClear - 8} />
-      <text className="sch-value" x={cx + 6} y={cy - rClear - 12}>{text.current}</text>
+      {/* Yazı plane karesinin ALTINDA: kare 8–208 arasını dolduruyor ve okun
+          yanına yazılan etiket (İngilizcede 17 karakter) karenin üst/sağ
+          kenarını kesiyordu. */}
+      <text className="sch-value" x={8} y={226}>{text.current}</text>
 
       {/* Etiket sütunu — çizimin sağında */}
       <text className="sch-label" x={222} y={44}>{text.pad}</text>

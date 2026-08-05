@@ -11,6 +11,10 @@ import { fmtEng } from '../../../lib/num'
 // değiştiği için gerçek oranla çizilse çok kısa ya da çok uzun stub'larda
 // diyagram okunaksızlaşırdı. Gerçek uzunluklar sayı olarak etiketlenir.
 //
+// Etiket ile değeri arasındaki satır aralığı 16 px'tir: dominantBaseline
+// 'middle' ile 11 px etiketin kutusu ±7.4 px, 10 px değerin kutusu ±6.7 px
+// yer kaplıyor; 12 px'te iki kutu ~2 px örtüşüyordu.
+//
 // `ref` yalnızca rapor üretimi için Schematic'e iletilir — bkz. report.js.
 const USED_FRAC = 0.32
 const RESIDUAL_FRAC = 0.16
@@ -66,7 +70,7 @@ const ViaStubSchematic = forwardRef(function ViaStubSchematic({ r, text }, ref) 
         {text.used}
       </text>
       {live && (
-        <text className="sch-value" x={labelX} y={(topY + breakY) / 2 + 12} dominantBaseline="middle">
+        <text className="sch-value" x={labelX} y={(topY + breakY) / 2 + 16} dominantBaseline="middle">
           {fmtEng(r.usedInput, 'm', 3)}
         </text>
       )}
@@ -81,7 +85,7 @@ const ViaStubSchematic = forwardRef(function ViaStubSchematic({ r, text }, ref) 
         {hasBackdrill ? text.residual : text.stub}
       </text>
       {live && (
-        <text className="sch-value" x={labelX} y={(breakY + cutY) / 2 + 12} dominantBaseline="middle">
+        <text className="sch-value" x={labelX} y={(breakY + cutY) / 2 + 16} dominantBaseline="middle">
           {fmtEng(hasBackdrill ? r.residual.nominal : r.stub, 'm', 3)}
         </text>
       )}
@@ -98,7 +102,7 @@ const ViaStubSchematic = forwardRef(function ViaStubSchematic({ r, text }, ref) 
             {text.removed}
           </text>
           {r.removedInput != null && (
-            <text className="sch-value" x={labelX} y={(cutY + bottomY) / 2 + 12} dominantBaseline="middle">
+            <text className="sch-value" x={labelX} y={(cutY + bottomY) / 2 + 16} dominantBaseline="middle">
               {fmtEng(r.removedInput, 'm', 3)}
             </text>
           )}

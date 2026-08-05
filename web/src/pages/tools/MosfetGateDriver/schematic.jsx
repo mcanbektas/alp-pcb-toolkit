@@ -55,7 +55,7 @@ const GateDriverSchematic = forwardRef(function GateDriverSchematic({ r, text },
       <rect className="sch-part" x={splitX + 20} y={gateY2 - 6} width={30} height={12} />
       <text className="sch-label" x={splitX + 35} y={gateY2 + 20} textAnchor="middle">{text.off}</text>
       {live && (
-        <text className="sch-value" x={splitX + 35} y={gateY2 + 32} textAnchor="middle">
+        <text className="sch-value" x={splitX + 35} y={gateY2 + 35} textAnchor="middle">
           {fmtRes(r.rExtOffInput)}
         </text>
       )}

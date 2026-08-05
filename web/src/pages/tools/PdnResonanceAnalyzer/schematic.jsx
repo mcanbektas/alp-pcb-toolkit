@@ -34,6 +34,12 @@ const PdnResonanceSchematic = forwardRef(function PdnResonanceSchematic({ r, tex
 
   const n = slots.length
   const span = right - left
+  // Kutu etikete göre genişler ama komşu kola değmez: dar kutuda uzun etiket
+  // (plane, MLCC) kutunun kenar çizgisini kesiyordu.
+  const boxW = (label) => Math.min(
+    Math.max(30, String(label).length * 7 + 10),
+    span / (n + 1) - 8,
+  )
   const xs = slots.map((_, i) => left + (span * (i + 1)) / (n + 1))
 
   return (
@@ -41,13 +47,17 @@ const PdnResonanceSchematic = forwardRef(function PdnResonanceSchematic({ r, tex
       {/* Hat ve referans düzlemi */}
       <rect className="sch-copper" x={left} y={railY - 2} width={right - left} height={4} />
       <rect className="sch-copper" x={left} y={gndY - 2} width={right - left} height={4} />
-      <text className="sch-label" x={left} y={railY - 10}>{text.rail}</text>
+      {/* Hat etiketi SAĞ uçtadır: ölçüm noktası yazısı (iki dilde de 18–22
+          karakter) sol üst köşeyi tümüyle dolduruyor, ortalanmış hâlde hem
+          viewBox'ın soluna hem üstüne taşıyordu. Yazı artık ölçü çizgisinin
+          sağından başlar, hat etiketi karşı uca alındı. */}
+      <text className="sch-label" x={right} y={railY - 10} textAnchor="end">{text.rail}</text>
 
       {/* Z(f) ölçüm noktası — sol uçta, ilk koldan önce */}
       <g className="sch-dim">
         <line x1={left + 4} x2={left + 4} y1={railY} y2={railY - 20} />
       </g>
-      <text className="sch-value" x={left + 4} y={railY - 24} textAnchor="middle">{text.probe}</text>
+      <text className="sch-value" x={left + 10} y={railY - 12}>{text.probe}</text>
 
       {slots.map((slot, i) => {
         const x = xs[i]
@@ -59,9 +69,12 @@ const PdnResonanceSchematic = forwardRef(function PdnResonanceSchematic({ r, tex
         return (
           <g key={`${slot.kind}-${slot.index ?? 0}`}>
             <rect className="sch-copper" x={x - 1} y={railY} width={2} height={16} />
-            <rect className="sch-part" x={x - 11} y={railY + 16} width={22} height={20} rx={2} />
+            <rect className="sch-part" x={x - boxW(label) / 2} y={railY + 16} width={boxW(label)} height={20} rx={2} />
             <rect className="sch-copper" x={x - 1} y={railY + 36} width={2} height={gndY - railY - 36} />
-            <text className="sch-label" x={x} y={railY + 12} textAnchor="middle">{label}</text>
+            {/* Etiket parça KUTUSUNUN İÇİNDE: rayla kutu arasındaki 16 px'lik
+                boşluğu dikey bakır çubuk dolduruyor, oraya yazılan etiket
+                çubuğun üstüne biniyordu. */}
+            <text className="sch-label" x={x} y={railY + 30} textAnchor="middle">{label}</text>
           </g>
         )
       })}
