@@ -232,6 +232,66 @@ describe('TvsEsdProtection — V_C = V_BR eşitliği (R_dyn = 0) hata değildir'
   })
 })
 
+// Regresyon: yukarıdaki V_BR düzeltmesinin İKİZİ korunan-IC kontrolünde
+// duruyordu. `vClamp < vProtectedMax ? ok : danger` yazıldığı için TAM SINIR
+// (V_C = V_IC,maks) "AŞIYOR — IC bu TVS ile korunmuyor" diyordu. Üstelik aynı
+// limiti ölçen kardeş kontrol (overshoot, `icPeak > vProtectedMax`) eşitliği
+// geçer sayıyordu: aynı sayfa aynı sınır için iki zıt yargı veriyordu.
+describe('TvsEsdProtection — V_C = V_IC,maks eşitliği aşmak değildir', () => {
+  const EXCEEDS = { tr: /AŞIYOR/, en: /EXCEEDS/ }
+  const CLAMP_IC = { tr: /korunan IC sınır/, en: /protected IC limit/ }
+
+  // V_BR = V_C = 33 V (R_dyn = 0 yolu) ve korunan IC sınırı da tam 33 V.
+  const sinirda = {
+    ok: true,
+    vBR: 33, vClamp: 33, vNormalMax: 10, vRWM: 20, vProtectedMax: 33,
+    solver: { current: 33.5, method: 'analytic', clamped: false },
+    peakPower: 1105.5, energy: null, overshoot: null, capacitanceCutoffHz: null, rDyn: 0,
+  }
+
+  for (const lang of ['tr', 'en']) {
+    it(`${lang}: tam sınırdaki clamp notu ok'tur ve "aşıyor" demez`, () => {
+      const localText = getText(lang)
+      const notes = localText.commentary(sinirda)
+      const icNote = notes.find((n) => CLAMP_IC[lang].test(n.text))
+      expect(icNote).toBeTruthy()
+      expect(icNote.level).toBe('ok')
+      expect(icNote.text).not.toMatch(EXCEEDS[lang])
+      expect(notes.some((n) => n.level === 'danger')).toBe(false)
+    })
+  }
+
+  it('marjın sıfır olduğunu ayrıca söyler (eşitlik sessizce geçmez)', () => {
+    const icNote = text.commentary(sinirda).find((n) => /korunan IC sınır/.test(n.text))
+    expect(icNote.text).toMatch(/marj yok/)
+  })
+
+  it('V_C gerçekten sınırın üstündeyse hâlâ danger üretir (kontrol körleştirilmedi)', () => {
+    const asan = { ...sinirda, vClamp: 34, vProtectedMax: 33 }
+    const icNote = text.commentary(asan).find((n) => /korunan IC sınır/.test(n.text))
+    expect(icNote.level).toBe('danger')
+    expect(icNote.text).toMatch(/AŞIYOR/)
+  })
+
+  it('kardeş overshoot kontrolü aynı sınırda aynı yönde davranır', () => {
+    // icPeak tam sınırda: bu da danger olmamalı — iki kontrol aynı limiti
+    // ölçüyor, eşitlik ikisinde de aynı anlama gelmeli. V_BR de clamp ile
+    // birlikte indirilir, yoksa danger'ı üreten şey V_C < V_BR kontrolü olur
+    // ve test aslında overshoot'u hiç ölçmez.
+    const esit = {
+      ...sinirda,
+      vBR: 30,
+      vClamp: 30,
+      overshoot: { vL: 3, icPeak: 33 },
+    }
+    const notes = text.commentary(esit)
+    expect(notes.some((n) => n.level === 'danger')).toBe(false)
+
+    const asan = { ...esit, overshoot: { vL: 4, icPeak: 34 } }
+    expect(text.commentary(asan).some((n) => n.level === 'danger')).toBe(true)
+  })
+})
+
 describe('TvsEsdProtection rapor bölümü — İngilizce', () => {
   it('İngilizce metinle bölüm kurulur ve başlık/yöntem İngilizcedir', () => {
     const textEn = getText('en')

@@ -4,6 +4,7 @@
 // ekranla rapor arasındaki kayma riski böylece en aza iner. Saf: React, DOM
 // ve ağ bilmez.
 
+import { sampleIndices } from '../../../components/LineChart'
 import { splitFormatted } from '../../../lib/reportPayload'
 import { fmtVolt, fmtAmp, fmtRes, fmtPow, fmtEng } from '../../../lib/num'
 import { formFields } from './model'
@@ -36,12 +37,16 @@ function inputRows(f, text) {
 
 function chartSection(s, text) {
   if (!s) return null
+  // Ekran veri tablosunu `every={8}` ile seyreltiyor (index.jsx); rapor aynı
+  // örneklemeyi kullanmazsa aynı grafiğin tablosu raporda sekiz katı satır
+  // taşır. Seyreltme kuralı tek yerdedir: `sampleIndices`.
+  const indices = sampleIndices(s.rows.length, 8)
   return {
     title: text.sweepLabel[s.param],
     svg: null, // ReportDialog canlı DOM'dan yakalar
     table: {
       columns: [text.sweepAxis[s.param], text.sweepYLabel[s.param]],
-      rows: s.rows.map((p) => [fmtEng(p.x, '', 3), fmtEng(p.y, '', 3)]),
+      rows: indices.map((i) => [fmtEng(s.rows[i].x, '', 3), fmtEng(s.rows[i].y, '', 3)]),
     },
   }
 }

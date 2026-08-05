@@ -36,14 +36,14 @@ export function getText(lang) {
       vNormalMax: t({ tr: 'Maks. normal çalışma gerilimi', en: 'Max. normal operating voltage' }),
       vRWM: t({ tr: 'TVS çalışma gerilimi (V_RWM)', en: 'TVS working voltage (V_RWM)' }),
       vProtectedMax: t({ tr: 'Korunan IC mutlak maksimumu', en: 'Protected IC absolute maximum' }),
-      rDyn: t({ tr: 'Dynamic resistance', en: 'Dynamic resistance' }),
-      vCDatasheet: t({ tr: 'Datasheet clamping voltage', en: 'Datasheet clamping voltage' }),
-      iPPDatasheet: t({ tr: 'Datasheet clamping current', en: 'Datasheet clamping current' }),
+      rDyn: t({ tr: 'Dinamik direnç', en: 'Dynamic resistance' }),
+      vCDatasheet: t({ tr: 'Veri sayfası clamp gerilimi', en: 'Datasheet clamping voltage' }),
+      iPPDatasheet: t({ tr: 'Veri sayfası clamp akımı', en: 'Datasheet clamping current' }),
       tp: t({ tr: 'Pulse süresi', en: 'Pulse duration' }),
       kw: t({ tr: 'Waveform katsayısı', en: 'Waveform coefficient' }),
       lPath: t({ tr: 'PCB bağlantı endüktansı', en: 'PCB connection inductance' }),
       didt: t({ tr: 'Akım değişim hızı (di/dt)', en: 'Current slew rate (di/dt)' }),
-      cTvs: t({ tr: 'TVS junction capacitance', en: 'TVS junction capacitance' }),
+      cTvs: t({ tr: 'TVS jonksiyon kapasitansı', en: 'TVS junction capacitance' }),
     },
 
     // Girdi alanlarının tam etiket/ipucu metni.
@@ -87,15 +87,15 @@ export function getText(lang) {
         }),
       },
       rDyn: {
-        label: t({ tr: 'Dynamic resistance (R_dyn)', en: 'Dynamic resistance (R_dyn)' }),
+        label: t({ tr: 'Dinamik direnç (R_dyn)', en: 'Dynamic resistance (R_dyn)' }),
         hint: t({
           tr: 'Bilinmiyorsa 0 bırakın — clamp gerilimi sabit V_BR kabul edilir.',
           en: 'Leave 0 if unknown — the clamp voltage is then assumed constant at V_BR.',
         }),
       },
-      vCDatasheet: { label: t({ tr: 'Datasheet clamping voltage (V_C)', en: 'Datasheet clamping voltage (V_C)' }) },
+      vCDatasheet: { label: t({ tr: 'Veri sayfası clamp gerilimi (V_C)', en: 'Datasheet clamping voltage (V_C)' }) },
       iPPDatasheet: {
-        label: t({ tr: 'Datasheet clamping current (I_PP)', en: 'Datasheet clamping current (I_PP)' }),
+        label: t({ tr: 'Veri sayfası clamp akımı (I_PP)', en: 'Datasheet clamping current (I_PP)' }),
       },
       hasEnergyCheck: t({ tr: 'Pulse enerjisini hesapla', en: 'Compute pulse energy' }),
       tp: { label: t({ tr: 'Pulse süresi (t_p)', en: 'Pulse duration (t_p)' }) },
@@ -107,7 +107,7 @@ export function getText(lang) {
       lPath: { label: t({ tr: 'PCB bağlantı endüktansı (L_path)', en: 'PCB connection inductance (L_path)' }) },
       didt: { label: t({ tr: 'Akım değişim hızı (di/dt)', en: 'Current slew rate (di/dt)' }) },
       hasCapacitanceCheck: t({ tr: 'Hat capacitance etkisini hesapla', en: 'Compute line capacitance effect' }),
-      cTvs: { label: t({ tr: 'TVS junction capacitance (C_TVS)', en: 'TVS junction capacitance (C_TVS)' }) },
+      cTvs: { label: t({ tr: 'TVS jonksiyon kapasitansı (C_TVS)', en: 'TVS junction capacitance (C_TVS)' }) },
     },
 
     rDynModeGroup: t({ tr: 'R_dyn kaynağı', en: 'R_dyn source' }),
@@ -136,10 +136,10 @@ export function getText(lang) {
       iterations: t({ tr: 'İterasyon / genişletme sayısı', en: 'Iterations / expansions' }),
       rDynMode: t({ tr: 'R_dyn kaynağı', en: 'R_dyn source' }),
       waveform: t({ tr: 'Pulse dalga şekli', en: 'Pulse waveform' }),
-      rDyn: t({ tr: 'Dynamic resistance (R_dyn)', en: 'Dynamic resistance (R_dyn)' }),
-      vClamp: t({ tr: 'Clamping voltage (V_C)', en: 'Clamping voltage (V_C)' }),
-      peakPower: t({ tr: 'Peak pulse power', en: 'Peak pulse power' }),
-      energy: t({ tr: 'Pulse energy', en: 'Pulse energy' }),
+      rDyn: t({ tr: 'Dinamik direnç (R_dyn)', en: 'Dynamic resistance (R_dyn)' }),
+      vClamp: t({ tr: 'Clamp gerilimi (V_C)', en: 'Clamping voltage (V_C)' }),
+      peakPower: t({ tr: 'Tepe darbe gücü', en: 'Peak pulse power' }),
+      energy: t({ tr: 'Darbe enerjisi', en: 'Pulse energy' }),
       overshootVL: t({ tr: 'PCB overshoot (V_L)', en: 'PCB overshoot (V_L)' }),
       icPeak: t({ tr: 'IC üzerinde tahmini peak', en: 'Estimated peak at the IC' }),
       capCutoff: t({ tr: 'TVS capacitance kutbu', en: 'TVS capacitance pole' }),
@@ -299,8 +299,15 @@ export function getText(lang) {
       }
 
       if (r.vProtectedMax != null) {
-        out.push(r.vClamp < r.vProtectedMax
-          ? {
+        // Eşitlik "aşmak" DEĞİLDİR: V_C = V_IC,maks tam sınırdır ve IC hâlâ
+        // sınırının içindedir. Aşağıdaki kardeş kontrol (overshoot) de aynı
+        // limiti `icPeak > vProtectedMax` ile ölçüyor, yani eşitliği geçer
+        // sayıyor — ikili karşılaştırma burada da onunla aynı yönde olmalı,
+        // yoksa aynı sayfa aynı sınır için iki zıt yargı verir. Marjın sıfır
+        // olduğu ayrı bir cümleyle söylenir; danger'a düşürülmez (9f2bfd8'in
+        // V_BR kontrolüne uyguladığı düzeltmenin aynısı).
+        if (r.vClamp < r.vProtectedMax) {
+          out.push({
             level: 'ok',
             text: t({
               tr: `Clamp gerilimi (${fmtVolt(r.vClamp)}) korunan IC sınırının `
@@ -308,8 +315,21 @@ export function getText(lang) {
               en: `The clamp voltage (${fmtVolt(r.vClamp)}) is below the protected IC limit `
                 + `(${fmtVolt(r.vProtectedMax)}).`,
             }),
-          }
-          : {
+          })
+        } else if (r.vClamp === r.vProtectedMax) {
+          out.push({
+            level: 'ok',
+            text: t({
+              tr: `Clamp gerilimi (${fmtVolt(r.vClamp)}) korunan IC sınırına `
+                + `(${fmtVolt(r.vProtectedMax)}) tam eşit — sınır aşılmıyor ama marj yok; `
+                + 'üretim saçılması ya da sıcaklık kayması bu tasarımı sınırın dışına taşır.',
+              en: `The clamp voltage (${fmtVolt(r.vClamp)}) is exactly at the protected IC limit `
+                + `(${fmtVolt(r.vProtectedMax)}) — the limit is not exceeded, but there is no `
+                + 'margin; process spread or temperature drift will push it over.',
+            }),
+          })
+        } else {
+          out.push({
             level: 'danger',
             text: t({
               tr: `Clamp gerilimi (${fmtVolt(r.vClamp)}) korunan IC sınırını `
@@ -318,6 +338,7 @@ export function getText(lang) {
                 + `(${fmtVolt(r.vProtectedMax)}) — the IC is not protected by this TVS.`,
             }),
           })
+        }
       }
 
       if (r.overshoot) {
@@ -361,7 +382,7 @@ export function getText(lang) {
           + 'from this line, the results may be optimistic or pessimistic.',
       }),
       t({
-        tr: 'Pulse energy yalnızca dikdörtgen, üçgen ya da kullanıcı tanımlı katsayılı '
+        tr: 'Darbe enerjisi yalnızca dikdörtgen, üçgen ya da kullanıcı tanımlı katsayılı '
           + 'basitleştirilmiş dalga şekli varsayımıyla hesaplanır; gerçek darbe şekli '
           + 'farklıysa enerji tahmini yaklaşıktır.',
         en: 'Pulse energy is computed only under a simplified rectangular, triangular, or '
@@ -432,7 +453,7 @@ export function getText(lang) {
 
     sweepGroup: t({ tr: 'Taranan parametre', en: 'Swept parameter' }),
     sweepLabel: {
-      [SWEEP_RSOURCE]: t({ tr: 'Pulse current — R_source', en: 'Pulse current — R_source' }),
+      [SWEEP_RSOURCE]: t({ tr: 'Darbe akımı — R_source', en: 'Pulse current — R_source' }),
       [SWEEP_CLAMP_CURVE]: t({ tr: 'Clamp gerilimi — akım', en: 'Clamp voltage — current' }),
       [SWEEP_OVERSHOOT]: t({ tr: 'Overshoot — L_path', en: 'Overshoot — L_path' }),
       [SWEEP_CAPACITANCE]: t({ tr: 'Kutup frekansı — C_TVS', en: 'Pole frequency — C_TVS' }),
@@ -441,7 +462,7 @@ export function getText(lang) {
       [SWEEP_RSOURCE]: t({ tr: 'Surge kaynak direnci (Ω)', en: 'Surge source resistance (Ω)' }),
       [SWEEP_CLAMP_CURVE]: t({ tr: 'Pulse akımı (A)', en: 'Pulse current (A)' }),
       [SWEEP_OVERSHOOT]: t({ tr: 'PCB bağlantı endüktansı (H)', en: 'PCB connection inductance (H)' }),
-      [SWEEP_CAPACITANCE]: t({ tr: 'TVS junction capacitance (F)', en: 'TVS junction capacitance (F)' }),
+      [SWEEP_CAPACITANCE]: t({ tr: 'TVS jonksiyon kapasitansı (F)', en: 'TVS junction capacitance (F)' }),
     },
     sweepYLabel: {
       [SWEEP_RSOURCE]: t({ tr: 'Pulse akımı (A)', en: 'Pulse current (A)' }),
