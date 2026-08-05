@@ -36,6 +36,44 @@ describe('stub uzunlukları', () => {
     expect(residualStub({ stub: 1e-3, removed: 1.5e-3 }).error).toBe(VS_ERR_RESIDUAL_NEGATIVE)
   })
 
+  // Regresyon: `stub` ve `removed` ayrı birim çevrimlerinden geldiği için
+  // stub'ı TAM kaldıran backdrill 1e-19 m mertebesinde artık bırakıyordu. Ham
+  // `< 0` karşılaştırması bu artığın işaretine göre ya geçerli tasarımı
+  // reddediyor ya da 1e26 Hz'lik bir rezonans üretiyordu.
+  describe('tam kaldırma — kayan nokta artığı', () => {
+    // 1.6 mm via, 0.4 mm kullanılan → 1.2 mm stub; backdrill tam o kadar.
+    const stub = stubLength({ viaTotal: 1.6e-3, used: 0.4e-3 })
+
+    it('stub’ı tam kaldıran backdrill reddedilmez', () => {
+      const r = residualStub({ stub: 1.2e-3, removed: stub })
+      expect(r.error).toBeUndefined()
+    })
+
+    it('tolerans içindeki artık tam sıfıra oturur', () => {
+      expect(residualStub({ stub: 1.2e-3, removed: stub }).residual).toBe(0)
+      expect(residualStub({ stub, removed: 1.2e-3 }).residual).toBe(0)
+    })
+
+    it('sıfır residual’da çeyrek dalga rezonansı YOKTUR (Infinity değil null)', () => {
+      const r = viaStubPlan({
+        viaTotal: 1.6e-3, used: 0.4e-3, epsR: 4.2, removed: 1.2e-3,
+      })
+      expect(r.ok).toBe(true)
+      expect(r.residual.nominal).toBe(0)
+      expect(r.residual.resonanceNominal).toBeNull()
+      expect(r.residual.resonanceGain).toBeNull()
+      // REV2 §18.2: grafik katmanına Infinity/NaN gitmez.
+      expect(Number.isFinite(r.residual.resonanceNominal)).toBe(false)
+      expect(r.residual.resonanceNominal).not.toBe(Infinity)
+    })
+
+    it('gerçek fazla kaldırma hâlâ reddedilir (tolerans kontrolü körleştirmedi)', () => {
+      // 1 µm gerçek taşma toleransın (1.2e-12 m) çok üstünde.
+      expect(residualStub({ stub: 1.2e-3, removed: 1.201e-3 }).error)
+        .toBe(VS_ERR_RESIDUAL_NEGATIVE)
+    })
+  })
+
   it('worst-case residual tolerans ve payı EKLER', () => {
     expect(residualWorstCase({ nominal: 0.2e-3, depthTol: 0.05e-3, safety: 0.1e-3 }))
       .toBeCloseTo(0.35e-3, 15)
@@ -137,10 +175,15 @@ describe('viaStubPlan', () => {
     expect(r.error).toBe(VS_ERR_EXCEEDS_BOARD)
   })
 
-  it('stub tamamen kaldırılmışsa rezonans sonsuzdur', () => {
+  // Davranış değişti: eskiden `Infinity` dönüyordu. Sonsuz bir rezonans
+  // frekansı ekrana `fmtEng` ile anlamsız basılıyor ve grafik katmanına
+  // sızıyordu; REV2 §18.2 bunu açıkça yasaklıyor. Yokluk artık `null` —
+  // kardeş alan `resonanceGain` zaten bu sözleşmeyi kullanıyordu.
+  it('stub tamamen kaldırılmışsa rezonans YOKTUR (null)', () => {
     const r = viaStubPlan({ ...base, removed: 1e-3 })
     expect(r.residual.nominal).toBe(0)
-    expect(r.residual.resonanceNominal).toBe(Infinity)
+    expect(r.residual.resonanceNominal).toBeNull()
+    expect(r.residual.resonanceWorstCase).not.toBe(Infinity)
   })
 
   it('geçersiz girdide hata döner', () => {

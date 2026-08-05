@@ -164,7 +164,10 @@ export function buildSweep(r, param) {
       param,
       rows,
       points: rows.map((p) => [p.x, p.y]),
-      marker: r.removedInput != null
+      // İşaretçi ancak gerçek bir rezonans varsa konur: stub tamamen
+      // kalktığında `resonanceNominal` null gelir ve `y: null` bir işaretçi
+      // grafiğe çizilemez.
+      marker: (r.removedInput != null && r.residual.resonanceNominal != null)
         ? { x: r.removedInput, y: r.residual.resonanceNominal }
         : null,
     }

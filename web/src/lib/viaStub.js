@@ -41,11 +41,22 @@ export function stubLength({ viaTotal, used }) {
 
 // Backdrill sonrası kalan stub. Negatif sonuç fiziksel değildir: kaldırılan
 // uzunluk stub'dan büyük olamaz, aksi hâlde hedef katmana girilmiştir.
+//
+// Karşılaştırma BAĞIL toleranslıdır (dfmCheck.js ile aynı gerekçe ve aynı
+// REL_EPS): `stub` ve `removed` ayrı ayrı birim çevriminden geçtiği için
+// stub'ı TAM kaldıran bir backdrill 1e-19 m mertebesinde artık bırakır. Ham
+// `< 0` bu artığı "fiziksel değil" sayıp geçerli tasarımı reddediyordu; ters
+// işaretlisi ise `residual > 0` testini geçip 1e26 Hz'lik bir rezonans
+// üretiyordu. Tolerans içindeki değer tam sıfıra oturtulur — sıfır residual
+// "stub kalmadı" demektir ve aşağıda rezonansı `null` döner.
+const REL_EPS = 1e-9
+
 export function residualStub({ stub, removed }) {
   if (!(stub >= 0) || !(removed >= 0)) return { error: VS_ERR_INVALID }
   const residual = stub - removed
-  if (residual < 0) return { error: VS_ERR_RESIDUAL_NEGATIVE }
-  return { residual }
+  const tolerance = Math.abs(stub) * REL_EPS
+  if (residual < -tolerance) return { error: VS_ERR_RESIDUAL_NEGATIVE }
+  return { residual: residual < tolerance ? 0 : residual }
 }
 
 // Üretim toleransı ve güvenlik payı dâhil, gerçekleşmesi beklenen en kötü değer.
@@ -155,8 +166,12 @@ export function viaStubPlan({
       worstCase: wc,
       bestCase: bc,
       // Worst-case stub en UZUN olandır, dolayısıyla rezonansı en DÜŞÜK.
-      resonanceNominal: residual > 0 ? quarterWaveResonance({ stub: residual, epsR }) : Infinity,
-      resonanceWorstCase: wc > 0 ? quarterWaveResonance({ stub: wc, epsR }) : Infinity,
+      // Stub tamamen kalktığında çeyrek dalga rezonansı YOKTUR; bunu `Infinity`
+      // ile göstermek REV2 §18.2'ye aykırıdır (grafik katmanına Infinity
+      // gitmez) ve `fmtEng` ile ekrana anlamsız bir değer olarak basılırdı.
+      // Yokluk `null`dur — kardeş alan `resonanceGain` zaten böyle davranıyor.
+      resonanceNominal: residual > 0 ? quarterWaveResonance({ stub: residual, epsR }) : null,
+      resonanceWorstCase: wc > 0 ? quarterWaveResonance({ stub: wc, epsR }) : null,
       // Backdrill'in kazandırdığı rezonans yükselmesi.
       resonanceGain: residual > 0 ? quarterWaveResonance({ stub: residual, epsR }) / fNominal : null,
     }

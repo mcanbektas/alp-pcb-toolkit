@@ -367,7 +367,7 @@ export default function BuckPcbPreDesign() {
                 <div className="label">{text.bigResultLabel}</div>
                 <div className="value">{fmt(r.duty.ideal, 4)}</div>
                 <div className="alt">
-                  {text.altLabels.lUsed} {fmtH(r.inductor.chosen ?? r.inductor.required)}
+                  {text.altLabels.lUsed} {fmtH(r.inductor.used)}
                   &nbsp;·&nbsp; {text.altLabels.ripple} {fmtAmp(r.inductor.deltaIL, 3)}
                   &nbsp;·&nbsp; {text.altLabels.peak} {fmtAmp(r.inductor.peak, 3)}
                 </div>

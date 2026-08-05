@@ -325,7 +325,7 @@ function vinDutySweep(r) {
 function vinRippleSweep(r) {
   const lo = Math.min(r.vInMin, r.vInNom)
   const hi = Math.max(r.vInMax, r.vInNom)
-  const l = r.inductor.chosen ?? r.inductor.required
+  const l = r.inductor.used
   const rows = linspace(lo, hi, 100).map((vIn) => {
     const d = dutyCycleIdeal({ vIn, vOut: r.vOut })
     return { x: vIn, y: inductorRippleCurrent({ vIn, vOut: r.vOut, d, l, fsw: r.fsw }) }
@@ -334,7 +334,7 @@ function vinRippleSweep(r) {
 }
 
 function lPeakSweep(r) {
-  const l0 = r.inductor.chosen ?? r.inductor.required
+  const l0 = r.inductor.used
   const { values } = logspace(l0 / 10, l0 * 10, 120)
   const rows = (values ?? []).map((l) => {
     const deltaIL = inductorRippleCurrent({ vIn: r.vInNom, vOut: r.vOut, d: r.duty.ideal, l, fsw: r.fsw })
@@ -403,7 +403,7 @@ export function buildSweep(r, param) {
       param,
       rows,
       points: rows.map((p) => [p.x, p.y]),
-      marker: { x: r.inductor.chosen ?? r.inductor.required, y: r.inductor.peak },
+      marker: { x: r.inductor.used, y: r.inductor.peak },
     }
   }
 

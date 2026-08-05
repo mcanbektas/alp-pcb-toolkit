@@ -250,12 +250,22 @@ export function buckConverterPlan({
   const d = dutyCycleIdeal({ vIn, vOut })
   const dApprox = eta !== null ? dutyCycleApprox({ vIn, vOut, eta }) : null
 
+  // ΔI_L üç girdiden türeyebilir ve öncelik sırası budur: doğrudan ΔI_L >
+  // hedef ripple oranı > girilen indüktans. REV2 §13.4 ikisi birlikte
+  // verildiğinde bir kural VERMEDİĞİ için sıra burada sabitlenir — ama
+  // hangisinin karar verdiği DIŞARI BİLDİRİLİR (`rippleSource`). Bildirilmediği
+  // sürece ekran girilen L'yi "kullanılan indüktans" diye basıyordu: ripple
+  // oranı yazan kullanıcı, ekranda gördüğü bobinin değil, hiç yazmayan bir
+  // bobinin peak/RMS akımını, ΔV_C'sini ve T_j'sini okuyordu.
   let deltaILValue = deltaIL
+  let rippleSource = deltaIL !== null ? 'direct' : null
   if (deltaILValue === null && rippleTargetRatio !== null) {
     deltaILValue = rippleCurrentFromRatio({ iOut, rI: rippleTargetRatio })
+    rippleSource = 'ratio'
   }
   if (deltaILValue === null && l !== null) {
     deltaILValue = inductorRippleCurrent({ vIn, vOut, d, l, fsw })
+    rippleSource = 'inductance'
   }
   if (!(deltaILValue > 0)) return { error: BUCK_ERR_INVALID }
 
@@ -353,6 +363,14 @@ export function buckConverterPlan({
       deltaIL: deltaILValue,
       chosen: l,
       required: lRequired,
+      // ΔI_L'yi hangi girdi belirledi: 'direct' | 'ratio' | 'inductance'.
+      rippleSource,
+      // Sonuçların gerçekten dayandığı indüktans. `chosen` yalnız ripple'ı O
+      // belirlediğinde kullanılandır; ripple oranı kazandığında girilen bobin
+      // hesaba HİÇ girmez ve gösterilmesi gereken değer `required`tır.
+      used: rippleSource === 'inductance' ? l : lRequired,
+      // Girilen bobin var ama ripple'ı başka girdi belirledi mi?
+      chosenIgnored: l !== null && rippleSource !== 'inductance',
       rippleRatio: rippleRatio({ deltaIL: deltaILValue, iOut }),
       peak: iLPeak,
       min: iLMin,

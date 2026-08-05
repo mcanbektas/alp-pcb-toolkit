@@ -223,17 +223,31 @@ export default function ViaStubBackdrill() {
                         <td>{text.table.residualBest}</td>
                         <td>{fmtEng(r.residual.bestCase, 'm', 4)}</td>
                       </tr>
+                      {/* Stub tamamen kalktığında çeyrek dalga rezonansı yoktur;
+                          motor bu durumda `null` döner (bkz. lib/viaStub.js). */}
                       <tr>
                         <td>{text.table.resonanceNominal}</td>
-                        <td>{fmtEng(r.residual.resonanceNominal, 'Hz', 4)}</td>
+                        <td>
+                          {r.residual.resonanceNominal != null
+                            ? fmtEng(r.residual.resonanceNominal, 'Hz', 4)
+                            : '—'}
+                        </td>
                       </tr>
                       <tr>
                         <td>{text.table.resonanceWorst}</td>
-                        <td>{fmtEng(r.residual.resonanceWorstCase, 'Hz', 4)}</td>
+                        <td>
+                          {r.residual.resonanceWorstCase != null
+                            ? fmtEng(r.residual.resonanceWorstCase, 'Hz', 4)
+                            : '—'}
+                        </td>
                       </tr>
                       <tr>
                         <td>{text.table.resonanceGain}</td>
-                        <td>{fmt(r.residual.resonanceGain, 4)}×</td>
+                        <td>
+                          {r.residual.resonanceGain != null
+                            ? `${fmt(r.residual.resonanceGain, 4)}×`
+                            : '—'}
+                        </td>
                       </tr>
                     </>
                   )}

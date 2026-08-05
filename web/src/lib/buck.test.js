@@ -47,6 +47,61 @@ describe('REV2 §13.16 referans testi', () => {
   })
 })
 
+// Regresyon: ΔI_L üç girdiden türeyebiliyor (doğrudan ΔI_L / hedef ripple
+// oranı / girilen indüktans) ve öncelik bu sıradadır. Girilen bobin
+// kaybedince motor onu `chosen` alanında taşımaya devam ediyordu; ekran da
+// "kullanılan indüktans" diye TAM ONU basıyordu. Sonuç: kullanıcı, hesaba hiç
+// girmemiş bir bobinin peak/RMS akımını, ΔV_C'sini ve T_j'sini kendi
+// parçasının sayıları sanıyordu. Artık `used` gerçekten kullanılanı,
+// `rippleSource` kararı vereni, `chosenIgnored` de atılmayı bildiriyor.
+describe('ΔI_L kaynağı ve kullanılan indüktans', () => {
+  const ortak = { vIn: 12, vOut: 3.3, iOut: 2, fsw: 500e3 }
+
+  it('yalnız indüktans verilince ripple ondan türer ve kullanılan odur', () => {
+    const r = buckConverterPlan({ ...ortak, l: 47e-6 })
+    expect(r.inductor.rippleSource).toBe('inductance')
+    expect(r.inductor.used).toBe(47e-6)
+    expect(r.inductor.chosenIgnored).toBe(false)
+    // ΔI = (V_in − V_out)·D/(L·f) = 8.7 × 0.275 / (47e−6 × 500e3) = 2.3925/23.5
+    expect(r.inductor.deltaIL).toBeCloseTo(0.1018085, 7)
+  })
+
+  it('ripple oranı da verilince O kazanır ve girilen bobin ATILIR', () => {
+    const r = buckConverterPlan({ ...ortak, l: 47e-6, rippleTargetRatio: 0.3 })
+    expect(r.inductor.rippleSource).toBe('ratio')
+    expect(r.inductor.deltaIL).toBeCloseTo(0.6, 12) // 0.3 × 2 A
+    expect(r.inductor.chosen).toBe(47e-6) // girdi korunur
+    expect(r.inductor.chosenIgnored).toBe(true) // ama kullanılmadı
+    // Kullanılan bobin, ripple hedefinden türeyen gerekli değerdir.
+    expect(r.inductor.used).toBe(r.inductor.required)
+    expect(r.inductor.used * 1e6).toBeCloseTo(7.9750, 4)
+    expect(r.inductor.used).not.toBe(r.inductor.chosen)
+  })
+
+  it('türev sonuçlar KULLANILAN bobine aittir, girilene değil', () => {
+    const r = buckConverterPlan({ ...ortak, l: 47e-6, rippleTargetRatio: 0.3 })
+    // 47 µH gerçek olsaydı ΔI = 0.1019 A, peak = 2.051 A olurdu.
+    // Hesap 7.975 µH'e ait: peak = I_out + ΔI/2 = 2 + 0.3 = 2.3 A.
+    expect(r.inductor.peak).toBeCloseTo(2.3, 12)
+    expect(r.inductor.peak).not.toBeCloseTo(2.051, 2)
+  })
+
+  it('doğrudan ΔI_L her ikisini de ezer', () => {
+    const r = buckConverterPlan({ ...ortak, l: 47e-6, rippleTargetRatio: 0.3, deltaIL: 0.9 })
+    expect(r.inductor.rippleSource).toBe('direct')
+    expect(r.inductor.deltaIL).toBe(0.9)
+    expect(r.inductor.chosenIgnored).toBe(true)
+    expect(r.inductor.used).toBe(r.inductor.required)
+  })
+
+  it('bobin hiç verilmezse atılma bildirimi de yoktur', () => {
+    const r = buckConverterPlan({ ...ortak, rippleTargetRatio: 0.3 })
+    expect(r.inductor.chosen).toBeNull()
+    expect(r.inductor.chosenIgnored).toBe(false)
+    expect(r.inductor.used).toBe(r.inductor.required)
+  })
+})
+
 describe('§13.3 duty cycle', () => {
   it('ideal D = V_out/V_in', () => {
     expect(dutyCycleIdeal({ vIn: 24, vOut: 12 })).toBeCloseTo(0.5, 12)
@@ -308,5 +363,116 @@ describe('buckConverterPlan — opsiyonel bloklar', () => {
     const expected = r.conduction.highSide.loss + r.conduction.lowSide.loss
       + r.gate.total + r.deadTime.loss + r.inductor.copperLoss
     expect(r.totalLossApprox).toBeCloseTo(expected, 9)
+  })
+})
+
+// --- ASİMETRİK DUTY (D = 0.25) ----------------------------------------------
+//
+// Yukarıdaki plan testlerinin neredeyse tamamı REV2 §13.16 referansında, yani
+// V_in=24 / V_out=12 → D=0.5'te koşuyor. D=0.5'te `d` ile `1−d` SAYICA AYNIDIR:
+// low-side iletim kaybının (1−D) çarpanı D yapılsa, diyot ortalama akımı
+// I_out·(1−D) yerine I_out·D yazılsa hiçbir test kırılmazdı. Bu blok aynı
+// motoru V_in=24 / V_out=6 → D=0.25 çalışma noktasında sınar; beklenen sayılar
+// elle hesaplanıp yazıldı (hesap her testin yorumunda).
+describe('asimetrik duty (V_in=24, V_out=6 → D=0.25)', () => {
+  const asim = {
+    vIn: 24, vOut: 6, iOut: 4, fsw: 200e3, deltaIL: 1.2,
+  }
+  // I_L,RMS² = I_out² + ΔI_L²/12 = 16 + 1.44/12 = 16 + 0.12 = 16.12 A²
+  const ILRMS2 = 16.12
+
+  it('D = 6/24 = 0.25 — ve 1−D = 0.75, ikisi artık ayırt edilebilir', () => {
+    expect(dutyCycleIdeal({ vIn: 24, vOut: 6 })).toBeCloseTo(0.25, 12)
+  })
+
+  it('low-side iletim kaybı (1−D) ile, high-side D ile çarpılır', () => {
+    // I_L,RMS = 4 A (doğrudan verildi) → I² = 16 A², R_DS(on) = 20 mΩ
+    //   HS : 16 × 0.02 × 0.25 = 0.08 W
+    //   LS : 16 × 0.02 × 0.75 = 0.24 W
+    // (1−d) → d mutasyonunda LS 0.08 W'a düşer; d → (1−d) mutasyonunda HS
+    // 0.24 W'a çıkar. D=0.5'te ikisi de 0.16 W olurdu ve fark görünmezdi.
+    expect(highSideConductionLoss({ iLRms: 4, rdsOnHs: 0.02, d: 0.25 })).toBeCloseTo(0.08, 12)
+    expect(lowSideConductionLoss({ iLRms: 4, rdsOnLs: 0.02, d: 0.25 })).toBeCloseTo(0.24, 12)
+    // Oran tam olarak (1−D)/D = 3 olmalı.
+    expect(
+      lowSideConductionLoss({ iLRms: 4, rdsOnLs: 0.02, d: 0.25 })
+      / highSideConductionLoss({ iLRms: 4, rdsOnHs: 0.02, d: 0.25 }),
+    ).toBeCloseTo(3, 12)
+  })
+
+  it('diyot ortalama akımı ve iletim kaybı (1−D) ile ölçeklenir', () => {
+    // I_D,avg = I_out·(1−D) = 4 × 0.75 = 3 A     (I_out·D olsaydı 1 A)
+    // P_D     = V_F·I_out·(1−D) = 0.5 × 4 × 0.75 = 1.5 W  (D ile 0.5 W)
+    expect(diodeAverageCurrent({ iOut: 4, d: 0.25 })).toBeCloseTo(3, 12)
+    expect(diodeConductionLoss({ vF: 0.5, iOut: 4, d: 0.25 })).toBeCloseTo(1.5, 12)
+  })
+
+  it('input capacitor RMS akımı √(D(1−D)) ile: 4·√0.1875 = √3', () => {
+    // D(1−D) = 0.25 × 0.75 = 0.1875 ; √0.1875 = 0.4330127…
+    // 4 × 0.4330127 = 1.7320508 = √3.  D² mutasyonu 4×0.25 = 1 A verirdi.
+    expect(inputCapacitorRmsCurrent({ iOut: 4, d: 0.25 })).toBeCloseTo(1.7320508075688772, 12)
+    // Simetri: D ve 1−D takas edilince aynı akım çıkar (fonksiyon simetriktir).
+    expect(inputCapacitorRmsCurrent({ iOut: 4, d: 0.75 }))
+      .toBeCloseTo(inputCapacitorRmsCurrent({ iOut: 4, d: 0.25 }), 12)
+  })
+
+  it('asenkron plan: diyot bloğu (1−D) ile dolar', () => {
+    const r = buckConverterPlan({ ...asim, rdsOnHs: 0.02, vF: 0.5 })
+    expect(r.duty.ideal).toBeCloseTo(0.25, 12)
+    expect(r.inductor.rms ** 2).toBeCloseTo(ILRMS2, 9)
+    // HS: 16.12 × 0.02 × 0.25 = 0.0806 W
+    expect(r.conduction.highSide.loss).toBeCloseTo(0.0806, 12)
+    expect(r.diode.avgCurrent).toBeCloseTo(3, 12)
+    expect(r.diode.conductionLoss).toBeCloseTo(1.5, 12)
+    expect(r.inputCapacitor.rmsCurrent).toBeCloseTo(1.7320508075688772, 12)
+    // Gerekli endüktans: V_out(V_in−V_out)/(ΔI_L·f·V_in)
+    //   = 6 × 18 / (1.2 × 200e3 × 24) = 108/5.76e6 = 18.75 µH
+    expect(r.inductor.required * 1e6).toBeCloseTo(18.75, 9)
+  })
+
+  it('senkron plan: LS kaybı HS kaybının tam üç katı', () => {
+    const r = buckConverterPlan({ ...asim, rdsOnHs: 0.02, rdsOnLs: 0.02 })
+    // HS: 16.12 × 0.02 × 0.25 = 0.0806 W ; LS: 16.12 × 0.02 × 0.75 = 0.2418 W
+    expect(r.conduction.highSide.loss).toBeCloseTo(0.0806, 12)
+    expect(r.conduction.lowSide.loss).toBeCloseTo(0.2418, 12)
+    expect(r.conduction.isSynchronous).toBe(true)
+  })
+})
+
+// Mevcut termal test (`termal blok yalnız θ_JA ve T_A birlikte verildiğinde
+// dolar`) t_r/t_f VERMİYOR, dolayısıyla switching kaybı null kalıyor ve
+// `pDevice = highSide.loss + (switching?.loss ?? 0)` ifadesinden switching
+// terimi tümüyle silinse test yine geçerdi. Aşağıdaki senaryo t_r/t_f veriyor.
+describe('termal — switching kaybı high-side T_J hesabına GİRER', () => {
+  const r = buckConverterPlan({
+    vIn: 24, vOut: 6, iOut: 4, fsw: 200e3, deltaIL: 1.2,
+    rdsOnHs: 0.02, rdsOnLs: 0.02, dcr: 0.01,
+    tr: 20e-9, tf: 30e-9,
+    thetaJaHs: 40, thetaJaLs: 50, thetaJaInductor: 30, tAmbient: 25,
+  })
+
+  it('switching kaybı ½·V_in·I_out·(t_r+t_f)·f_sw = 0.48 W', () => {
+    // 0.5 × 24 × 4 × 50e-9 × 200e3 = 48 × 1e-5 = 0.48 W
+    expect(r.switching.loss).toBeCloseTo(0.48, 12)
+  })
+
+  it('T_J,HS = 25 + (0.0806 + 0.48)·40 = 47.424 °C', () => {
+    // İletim 0.0806 W + switching 0.48 W = 0.5606 W ; × 40 K/W = 22.424 K
+    // Switching terimi pDevice'tan silinseydi 25 + 0.0806×40 = 28.224 °C çıkardı.
+    expect(r.thermal.highSide).toBeCloseTo(47.424, 9)
+    expect(r.thermal.highSide).not.toBeCloseTo(28.224, 2)
+  })
+
+  it('T_J,LS = 25 + 0.2418·50 = 37.09 °C — switching low-side e EKLENMEZ', () => {
+    // Anahtarlama kaybı yalnız high-side MOSFET'e yazılır (senkron buck'ta LS
+    // ZVS'e yakın anahtarlar). LS'e de eklenseydi 25 + 0.7218×50 = 61.09 °C.
+    expect(r.thermal.lowSide).toBeCloseTo(37.09, 9)
+    expect(r.thermal.lowSide).not.toBeCloseTo(61.09, 2)
+  })
+
+  it('T_J,indüktör = 25 + 0.1612·30 = 29.836 °C (yalnız bakır kaybı)', () => {
+    // P_Cu = I_L,RMS²·DCR = 16.12 × 0.01 = 0.1612 W
+    expect(r.inductor.copperLoss).toBeCloseTo(0.1612, 12)
+    expect(r.thermal.inductor).toBeCloseTo(29.836, 9)
   })
 })

@@ -53,9 +53,18 @@ export function buildReportSection({ f, r, s, text }) {
       { label: text.table.residualNominal, ...splitFormatted(fmtEng(r.residual.nominal, 'm', 4)) },
       { label: text.table.residualWorst, ...splitFormatted(fmtEng(r.residual.worstCase, 'm', 4)) },
       { label: text.table.residualBest, ...splitFormatted(fmtEng(r.residual.bestCase, 'm', 4)) },
-      { label: text.table.resonanceNominal, ...splitFormatted(fmtEng(r.residual.resonanceNominal, 'Hz', 4)) },
-      { label: text.table.resonanceWorst, ...splitFormatted(fmtEng(r.residual.resonanceWorstCase, 'Hz', 4)) },
-      { label: text.table.resonanceGain, value: `${fmt(r.residual.resonanceGain, 4)}×` },
+      // Stub tamamen kalktığında rezonans yoktur (`null`) — ekranla aynı
+      // gösterim, aynı kaynak.
+      r.residual.resonanceNominal != null
+        ? { label: text.table.resonanceNominal, ...splitFormatted(fmtEng(r.residual.resonanceNominal, 'Hz', 4)) }
+        : { label: text.table.resonanceNominal, value: '—', unit: null },
+      r.residual.resonanceWorstCase != null
+        ? { label: text.table.resonanceWorst, ...splitFormatted(fmtEng(r.residual.resonanceWorstCase, 'Hz', 4)) }
+        : { label: text.table.resonanceWorst, value: '—', unit: null },
+      {
+        label: text.table.resonanceGain,
+        value: r.residual.resonanceGain != null ? `${fmt(r.residual.resonanceGain, 4)}×` : '—',
+      },
     )
   }
 
