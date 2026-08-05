@@ -898,6 +898,21 @@ const fineDensity = (density) => {
   return Math.max(dCoarse + 2, Math.round(dCoarse * 1.5))
 }
 
+// Arama sözleşmesi: ARAMA EVRESİNE GİRİLDİYSE dönüşün — başarı ya da hata —
+// `search` taşıması zorunludur. Hata yolu eskiden sayaç taşımıyordu ve arama
+// bütçesi ancak duvar saatiyle kapatılabiliyordu; duvar saati makinenin o
+// andaki yüküne bağlı olduğu için paralel koşumda yanlış kırmızı verdi (bir
+// kapı bu yüzden sökülmüştü). `evals` deterministiktir: aynı girdi her koşumda
+// aynı sayıyı verir, böylece bütçe gerçek bir kapıya bağlanır.
+//
+// Evreye girilmemiş dönüşler (geçersiz hedef, geçersiz geometri) `search`
+// TAŞIMAZ — taşısalardı koşmamış bir aramayı koşmuş gibi bildirirlerdi.
+const searchInfo = (evals, iterations, density) => ({
+  evals,
+  iterations: iterations ?? 0,
+  density,
+})
+
 // Monotonluğu kullanan yönlü kök arama. Genel expandBracket iki yöne birden
 // genişler ve uçlardan Brent, iki ucu da baştan değerlendirir; F'nin her
 // çağrısı ~yüzlerce ms'lik bir alan çözümü olduğu ve EN PAHALI çağrılar tam da
@@ -947,6 +962,8 @@ export function fieldSolveSpacingForZdiff({
   const probe = pairSpec({ structure, W, S: H, H, t, epsR })
   if (probe.error) return probe
 
+  const dFine = fineDensity(density)
+
   // Ucuz ön kontrol: Z_diff, S ile artar ve kuplajsız 2·Z₀ platosuna doyar.
   // Kapalı form tek uçlu Z₀ platoyu ~%2 içinde verir; belirgin payla üstündeki
   // hedef tek bir alan çözümü koşmadan reddedilir.
@@ -954,10 +971,11 @@ export function fieldSolveSpacingForZdiff({
     ? stripline({ W, b: H, epsR })
     : microstrip({ W, H, t, epsR })
   if (!single.error && target > 2 * single.Z0 * 1.08) {
-    return { error: FS_ERR_NO_SOLUTION }
+    // Arama evresinin ilk adımı budur, o yüzden `search` taşır: evals = 0
+    // "tek bir alan çözümü koşmadan reddedildi" demektir ve ön kontrolün
+    // gerçekten çalıştığı ancak bu sayıyla doğrulanabilir.
+    return { error: FS_ERR_NO_SOLUTION, search: searchInfo(0, 0, dFine) }
   }
-
-  const dFine = fineDensity(density)
 
   // Genel yardımcı buildSpec(d) bekler; çiftte uyarım da seçilir.
   // Sarmalayıcı: yalnız odd mod (Z_diff = 2·Z_odd).
@@ -982,15 +1000,16 @@ export function fieldSolveSpacingForZdiff({
   const solved = directedRoot(F, {
     x0: H, lo: H / 100, hi: H * 20, tol: H * 1e-3, increasing: true,
   })
-  if (solved.error) return solved
+  const search = () => searchInfo(st.evals, solved.iterations, dFine)
+  if (solved.error) return { ...solved, search: search() }
 
   const pair = fieldDifferentialPair({ structure, W, S: solved.value, H, t, epsR, density })
-  if (pair.error) return pair
+  if (pair.error) return { ...pair, search: search() }
 
   return {
     S: solved.value,
     solvedBy: solved.method,
-    search: { evals: st.evals, iterations: solved.iterations, density: dFine },
+    search: search(),
     ...pair,
   }
 }
@@ -1120,15 +1139,16 @@ export function fieldSolveGcpwWidthForZ0({
   const solved = directedRoot(F, {
     x0: H, lo: H / 50, hi: H * 30, tol: H * 1e-3, increasing: false,
   })
-  if (solved.error) return solved
+  const search = () => searchInfo(st.evals, solved.iterations, dFine)
+  if (solved.error) return { ...solved, search: search() }
 
   const full = fieldGroundedCpw({ W: solved.value, S, H, t, epsR, density })
-  if (full.error) return full
+  if (full.error) return { ...full, search: search() }
 
   return {
     W: solved.value,
     solvedBy: solved.method,
-    search: { evals: st.evals, iterations: solved.iterations, density: dFine },
+    search: search(),
     ...full,
   }
 }

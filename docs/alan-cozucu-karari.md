@@ -431,3 +431,72 @@ işi baskın.
   tohumuyla dikdörtgen varsayar; geometri ayrıntıları yalnız analiz
   rotasında. Solver-in-loop genişlik sentezine seçenek geçirmek istenirse
   küçük bir ek (aynı kurulum fonksiyonu).
+
+# REV2 denetimi — performans kapıları duvar saatinden çıktı (2026-08-05)
+
+## 19. Arama sözleşmesi hata yolunu da kapsıyor
+
+**Sorun.** Testlerdeki yedi performans kapısı `expect(ms).toBeLessThan(N)`
+biçimindeydi. Duvar saati makinenin o andaki yüküne bağlıdır: gcpw'nin
+ulaşılamayan hedef testi paralel koşumda 5184 ms ile kırmızı verdi, aynı çağrı
+tek başına ~2.4 s sürüyor. O kapı sökülmüştü; geri kalan altısı aynı sınıftandı.
+Yanlış kırmızı, kapının sağladığı korumadan pahalı.
+
+**Karar.** Kapılar yalnız GİRDİYE bağlı ölçülere bağlandı. `search` artık arama
+evresine girilmiş her dönüşte var — başarıda da hatada da:
+
+```
+fieldSolveSpacingForZdiff / fieldSolveGcpwWidthForZ0
+  → { …, search: { evals, iterations, density } }        (başarı, eskisi gibi)
+  → { error, search: { evals, iterations, density } }    (YENİ: hata yolu)
+```
+
+`directedRoot`'un dört hata dönüşü de, kapanış analizinin hatası da bu kapsamda.
+Sayaç `seededEvaluator`'ın state'inde zaten tutuluyordu; genişleyen şey iki
+sentez fonksiyonunun dönüş zarfı — `directedRoot` genel yardımcı olarak kaldı.
+
+**Sınır bilinçli:** arama evresine HİÇ girilmemiş dönüşler (geçersiz hedef,
+geçersiz geometri) `search` taşımaz. Taşısalardı koşmamış bir aramayı koşmuş
+gibi bildirirlerdi ve kapılar hep 0 görüp sessizce geçerdi. Testle korunuyor.
+
+Ulaşılamayan Z_diff hedefinin kapısı üst sınır değil `evals === 0`: kapalı form
+plato ön kontrolü (§16) aramayı hiç başlatmadan reddeder, ve o ön kontrol
+sessizce devre dışı kalırsa yalnız bu eşitlik yakalar (mutasyonla doğrulandı:
+ön kontrol kapatılınca 6 değerlendirme koşuyor).
+
+## 20. İleri analiz kapıları: düğüm-güncelleme sayısı
+
+Üç kapı arama değil düz analiz ölçüyordu (`fieldMicrostrip`,
+`fieldDifferentialPair`, `fieldGroundedCpw`) — orada `search` yok. Deterministik
+karşılık zarfın zaten yayımladığı ızgara verisinden türetildi:
+
+```
+nodeUpdates(mesh) = Σ nx · ny · iterations       (test dosyasındaki yardımcı)
+```
+
+Tek başına iterasyon sayısı ızgara şişmesini kaçırırdı; düğüm-güncelleme ikisini
+birden yakalar. Ölçülen (M-serisi macbook, Node/vitest; iki koşumda birebir aynı):
+
+| Çağrı | Süre | Düğüm-güncelleme | Kapı |
+|---|---|---|---|
+| `fieldMicrostrip` (4 çözüm) | ~290 ms | 56.7 M | < 85 M |
+| `fieldDifferentialPair` (8 çözüm) | ~340 ms | 40.3 M | < 60 M |
+| `fieldGroundedCpw` (4 çözüm) | ~255 ms | 52.7 M | < 70 M |
+
+Süre yine `console.log` ile basılır — ölçüm bu dosyaya elle geçiyor — ama kapı
+değildir.
+
+İki uyarı kayda geçti:
+
+- **Çift zarfı toplam işi eksik sayar.** `fieldDifferentialPair` yalnız even/odd
+  İNCE ızgaraları yayımlar; kaba ızgaralar `mesh`te yok. Kapı olarak geçerli
+  (aynı girdi aynı sayı), ama başka çağrılarla mutlak karşılaştırmaya girmez.
+- **gcpw'nin payı ötekilerden dar (1.33 kat).** Yoğunluk şişirildiğinde gcpw'de
+  ızgara 3 katına çıkarken PCG iterasyonu 1924 → 1120'ye DÜŞÜYOR; net etki 1.47
+  kat. Geniş bir pay burada gerçek bir gerilemeyi geçiriyordu (ölçüldü: 77.3 M,
+  80 M kapısının altında kalıyordu).
+
+Beş kapının beşi de mutasyonla doğrulandı — kod bozuldu, kırmızı görüldü, geri
+alındı: hata yolundan `search` düşürüldü; plato ön kontrolü kapatıldı; doğrulama
+hatasına `search` eklendi; ileri analizin ince ızgara yoğunluğu şişirildi;
+yönlü yürüyüşün 1.8 çarpanı 1.12'ye indirildi (evals 7 → 35).

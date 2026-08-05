@@ -16,6 +16,26 @@ import {
 
 const relErr = (x, ref) => Math.abs(x - ref) / Math.abs(ref)
 
+// Performans kapılarının ölçüsü DUVAR SAATİ DEĞİLDİR. Duvar saati makinenin o
+// andaki yüküne bağlı; paralel koşumda bir kapı 5184 ms ile kırmızı vermiş ve
+// sökülmüştü — yanlış kırmızı, kapının sağladığı korumadan pahalıydı. Yerine
+// iki deterministik ölçü kullanılır ve ikisi de yalnız GİRDİYE bağlıdır:
+//
+//   - arama işi   → `r.search.evals` (kaç alan çözümü koştu)
+//   - analiz işi  → `nodeUpdates(r.mesh)` = Σ nx·ny·iterasyon, PCG'nin
+//                   gerçekten dokunduğu düğüm-güncelleme sayısı
+//
+// İkincisi hem ızgara şişmesini hem yakınsama yavaşlamasını yakalar; tek
+// başına iterasyon sayısı ızgara büyümesini kaçırırdı. Süre yine console.log
+// ile BASILIR (karar dosyasına elle geçiriliyor), ama artık kapı değildir.
+//
+// Uyarı: `fieldDifferentialPair` zarfı yalnız even/odd İNCE ızgaraları
+// yayımlar, kaba ızgaralar mesh'te görünmez — o çağrının nodeUpdates'i toplam
+// işi eksik sayar. Kapı olarak yine geçerlidir (aynı girdi aynı sayı), fakat
+// çağrılar arası mutlak karşılaştırma için kullanılmaz.
+const nodeUpdates = (mesh) =>
+  Object.values(mesh).reduce((sum, g) => sum + g.nx * g.ny * g.iterations, 0)
+
 describe('analitik çapa 1 — paralel plaka (Neumann yan duvarlar)', () => {
   it('C = ε·W/d makine hassasiyetine yakın', () => {
     const W = 2e-3
@@ -168,9 +188,12 @@ describe('performans bütçesi (brif: < 300 ms hedef, 1 s tavan)', () => {
     const r = fieldMicrostrip({ W: 0.4e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 })
     const ms = Date.now() - t0
     expect(r.error).toBeUndefined()
+    const nu = nodeUpdates(r.mesh)
     // eslint yok; ölçüm karar dosyasına elle geçirilir
-    console.log(`fieldMicrostrip varsayılan yoğunluk: ${ms} ms (ızgara ${r.mesh.fine.nx}×${r.mesh.fine.ny})`)
-    expect(ms).toBeLessThan(2000)
+    console.log(`fieldMicrostrip varsayılan yoğunluk: ${ms} ms, ${(nu / 1e6).toFixed(1)}M düğüm-güncelleme (ızgara ${r.mesh.fine.nx}×${r.mesh.fine.ny})`)
+    // Ölçülen: 56.7M (~290 ms). Sayı yalnız girdiye bağlı olduğu için pay dar
+    // tutuldu (1.5 kat): ızgara ya da yakınsama sessizce şişerse kırmızıya döner.
+    expect(nu).toBeLessThan(85e6)
   })
 })
 
@@ -437,7 +460,9 @@ describe('solver-in-loop sentez — hedef Z_diff için aralık (F3)', () => {
     expect(r.method).toBe(METHOD_FIELD_SOLVER)
     expect(r.search.evals).toBeGreaterThan(0)
     console.log(`fieldSolveSpacingForZdiff: ${ms} ms, ${r.search.evals} değerlendirme, S=${(r.S * 1e6).toFixed(1)} µm, Zdiff=${r.Zdiff.toFixed(2)}`)
-    expect(ms).toBeLessThan(10000)
+    // Ölçülen: 8 değerlendirme. Kısaltmalar (yalnız odd mod, ılık başlangıç,
+    // yönlü yürüyüş) bozulursa bu sayı katlanır — kapı orada durur.
+    expect(r.search.evals).toBeLessThanOrEqual(16)
   }, 30000)
 
   it('fiziksel aralıkta elde edilemeyen hedefte hata döner, tahmin üretmez', () => {
@@ -446,14 +471,23 @@ describe('solver-in-loop sentez — hedef Z_diff için aralık (F3)', () => {
     const ms = Date.now() - t0
     expect(r.error).toBe(FS_ERR_NO_SOLUTION)
     expect(r.S).toBeUndefined()
-    // Erken çıkış: iki uç değerlendirmesinden fazlası koşmamalı
-    console.log(`ulaşılamayan Zdiff hedefi: ${ms} ms`)
-    expect(ms).toBeLessThan(5000)
+    console.log(`ulaşılamayan Zdiff hedefi: ${ms} ms, ${r.search.evals} değerlendirme`)
+    // Erken çıkış TAM olarak sıfır alan çözümüdür: kapalı form plato kontrolü
+    // (2·Z₀ platosunun %8 üstündeki hedef) aramayı hiç başlatmadan reddeder.
+    // `toBe(0)` bunu üst sınırdan daha güçlü söyler — ön kontrol sessizce
+    // devre dışı kalırsa arama koşar ve test kırmızıya döner.
+    expect(r.search.evals).toBe(0)
   }, 30000)
 
   it('geçersiz girdi { error } döner', () => {
     expect(fieldSolveSpacingForZdiff({ ...g, target: 0 }).error).toBe(FS_ERR_INVALID)
     expect(fieldSolveSpacingForZdiff({ ...g, W: 0, target: 100 }).error).toBe(FS_ERR_INVALID)
+    // Arama sözleşmesinin sınırı: evreye HİÇ girilmediğinde `search` taşınmaz.
+    // Taşısaydı koşmamış bir aramayı koşmuş gibi bildirirdi ve bütçe kapıları
+    // hep sıfır görüp sessizce geçerdi.
+    expect(fieldSolveSpacingForZdiff({ ...g, target: 0 }).search).toBeUndefined()
+    expect(fieldSolveGcpwWidthForZ0({ S: 0.3e-3, H: 0.2e-3, epsR: 4.2, target: 0 }).search)
+      .toBeUndefined()
   })
 })
 
@@ -472,23 +506,26 @@ describe('solver-in-loop sentez — hedef Z₀ için grounded CPW genişliği (F
     expect(r.structure).toBe('gcpw')
     expect(r.search.evals).toBeGreaterThan(0)
     console.log(`fieldSolveGcpwWidthForZ0: ${ms} ms, ${r.search.evals} değerlendirme, W=${(r.W * 1e6).toFixed(1)} µm, Z0=${r.Z0.toFixed(2)}`)
-    expect(ms).toBeLessThan(10000)
+    // Ölçülen: 7 değerlendirme.
+    expect(r.search.evals).toBeLessThanOrEqual(16)
   }, 30000)
 
-  // Bu testin iddiası "hata döner"dir; süre yalnızca karar dosyasına geçmek
-  // üzere ÖLÇÜLÜR, kapı değildir. Duvar saati kapısı (`ms < 5000`) makinenin o
-  // andaki yüküne bağlı olduğu için paralel koşumda 5184 ms ile kırmızı verdi;
-  // aynı çağrı tek başına ~4900 ms sürüyor. Deterministik bir kapı ancak
-  // değerlendirme sayacına bağlanabilir, o da bugün YALNIZ başarı yolunda
-  // dönüyor (`r.search.evals`) — hata yolu sayaç taşımıyor. Sayaç hata
-  // dönüşüne de eklenene kadar burada kapı yok: yanlış kırmızı, kapının
-  // sağladığı korumadan daha pahalı.
+  // Bu testin duvar saati kapısı (`ms < 5000`) paralel koşumda 5184 ms ile
+  // kırmızı verdiği için sökülmüştü; aynı çağrı tek başına ~2500 ms sürüyor.
+  // Sayaç artık hata yolunda da döndüğü için kapı deterministik ölçüyle GERİ
+  // KONDU. Grounded CPW'nin kapalı formu yok, dolayısıyla spacing'teki gibi
+  // ucuz bir plato ön kontrolü de yok: arama gerçekten koşar ve alt sınıra
+  // (W = H/50) çarpar. 1.8 çarpanıyla H'den H/50'ye inmek ⌈log₁ˌ₈50⌉ = 7 adım.
   it('elde edilemeyen hedefte hata döner', () => {
     const t0 = Date.now()
     const r = fieldSolveGcpwWidthForZ0({ ...g, target: 400 })
     const ms = Date.now() - t0
     expect(r.error).toBe(FS_ERR_NO_SOLUTION)
-    console.log(`ulaşılamayan gcpw hedefi: ${ms} ms`)
+    expect(r.W).toBeUndefined()
+    console.log(`ulaşılamayan gcpw hedefi: ${ms} ms, ${r.search.evals} değerlendirme`)
+    // Ölçülen: 7. Yönlü yürüyüş bozulup iki yöne birden genişlerse ya da
+    // sınır kontrolü kaçarsa bu sayı 40 adımlık tavana doğru kaçar.
+    expect(r.search.evals).toBeLessThanOrEqual(16)
   }, 30000)
 })
 
@@ -498,8 +535,12 @@ describe('F2 performans ölçümü (karar dosyasına geçirilir)', () => {
     const r = fieldDifferentialPair({ structure: 'microstrip', W: 0.2e-3, S: 0.2e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 })
     const ms = Date.now() - t0
     expect(r.error).toBeUndefined()
-    console.log(`fieldDifferentialPair varsayılan yoğunluk: ${ms} ms (even ${r.mesh.even.nx}×${r.mesh.even.ny}, odd ${r.mesh.odd.nx}×${r.mesh.odd.ny})`)
-    expect(ms).toBeLessThan(2000)
+    const nu = nodeUpdates(r.mesh)
+    console.log(`fieldDifferentialPair varsayılan yoğunluk: ${ms} ms, ${(nu / 1e6).toFixed(1)}M düğüm-güncelleme (even ${r.mesh.even.nx}×${r.mesh.even.ny}, odd ${r.mesh.odd.nx}×${r.mesh.odd.ny})`)
+    // Ölçülen: 40.3M (~340 ms). Zarf yalnız ince ızgaraları yayımladığı için
+    // bu sayı toplam işi eksik sayar — kapı olarak yine geçerli (bkz. üstteki
+    // nodeUpdates notu), ama mikroşerit ölçümüyle yan yana konmaz.
+    expect(nu).toBeLessThan(60e6)
   })
 
   it('grounded CPW analizi (4 çözüm) tavanın altında kalır', () => {
@@ -507,7 +548,12 @@ describe('F2 performans ölçümü (karar dosyasına geçirilir)', () => {
     const r = fieldGroundedCpw({ W: 0.4e-3, S: 0.3e-3, H: 0.2e-3, t: 35e-6, epsR: 4.2 })
     const ms = Date.now() - t0
     expect(r.error).toBeUndefined()
-    console.log(`fieldGroundedCpw varsayılan yoğunluk: ${ms} ms (ızgara ${r.mesh.fine.nx}×${r.mesh.fine.ny})`)
-    expect(ms).toBeLessThan(2000)
+    const nu = nodeUpdates(r.mesh)
+    console.log(`fieldGroundedCpw varsayılan yoğunluk: ${ms} ms, ${(nu / 1e6).toFixed(1)}M düğüm-güncelleme (ızgara ${r.mesh.fine.nx}×${r.mesh.fine.ny})`)
+    // Ölçülen: 52.7M (~255 ms). Pay burada daha da dar (1.33 kat): ızgara
+    // sıklaşınca gcpw'nin PCG iterasyonu DÜŞÜYOR (ölçüldü: 3× düğüm, 1924 → 1120
+    // iterasyon), yani düğüm-güncelleme yoğunluk şişmesine ötekilerden az tepki
+    // veriyor. Geniş bir pay burada gerçek bir gerilemeyi geçirirdi.
+    expect(nu).toBeLessThan(70e6)
   })
 })
