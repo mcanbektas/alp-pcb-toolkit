@@ -3,7 +3,7 @@ import {
   edgeBandwidth, propagationVelocity, wavelength, stitchingSpacing,
   viaReactance, parallelViaInductance, eslTotal, selfResonantFrequency,
   capacitorBranch, inductiveVoltage, returnPathPlan,
-  BW_SINGLE_POLE, BW_CONSERVATIVE, RP_ERR_INVALID,
+  BW_SINGLE_POLE, BW_CONSERVATIVE, RP_ERR_INVALID, SPACING_DIVISORS,
 } from './returnPath'
 
 describe('kenar bant genişliği', () => {
@@ -149,5 +149,153 @@ describe('returnPathPlan', () => {
       .toBe(RP_ERR_INVALID)
     expect(returnPathPlan({ tr: 1e-9, eps: 0, viaLength: 1e-3, viaDiameter: 0.3e-3 }).error)
       .toBe(RP_ERR_INVALID)
+  })
+})
+
+// --- Ekranda/raporda basılan ama hiçbir testin okumadığı alanlar --------------
+//
+// `SPACING_DIVISORS`, `spacingLimits`, `returnVoltage` ve `capacitorBranch.phase`
+// yukarıdaki testlerin hiçbirinde geçmiyordu; buna rağmen üçü de kullanıcıya
+// sayı olarak gösteriliyor. Beklenen değerler elle hesaplanıp yazıldı.
+
+describe('spacingLimits — λ/N tablosunun tamamı', () => {
+  // t_r = 1 ns, muhafazakâr yöntem → f_kenar = 0.5/1e-9 = 500 MHz
+  // εeff = 4 → v_p = c/2 = 149 896 229 m/s
+  // λ = v_p/f = 149 896 229 / 5e8 = 0.299792458 m = 299.792458 mm
+  const r = returnPathPlan({
+    tr: 1e-9, eps: 4, viaLength: 1.6e-3, viaDiameter: 0.3e-3,
+  })
+
+  it('bölen listesi tam olarak [10, 20, 40]', () => {
+    // Ekranın seçicisi bu listeyi basar; sıra ve içerik sözleşmenin parçası.
+    expect(SPACING_DIVISORS).toEqual([10, 20, 40])
+  })
+
+  it('tablo üç bölenin hepsini taşır ve anahtarları listeyle aynıdır', () => {
+    expect(Object.keys(r.spacingLimits)).toEqual(['10', '20', '40'])
+  })
+
+  it('çıplak değerler: λ/10 = 29.9792458 mm, λ/20 = 14.9896229, λ/40 = 7.49481145', () => {
+    expect(r.lambda * 1e3).toBeCloseTo(299.792458, 6)
+    expect(r.spacingLimits[10] * 1e3).toBeCloseTo(29.9792458, 6)
+    expect(r.spacingLimits[20] * 1e3).toBeCloseTo(14.9896229, 6)
+    expect(r.spacingLimits[40] * 1e3).toBeCloseTo(7.49481145, 6)
+  })
+
+  it('N büyüdükçe sınır küçülür ve her kademe tam yarısıdır', () => {
+    // `lambda * divisor` mutasyonunda sıralama tersine dönerdi.
+    expect(r.spacingLimits[10]).toBeGreaterThan(r.spacingLimits[20])
+    expect(r.spacingLimits[20]).toBeGreaterThan(r.spacingLimits[40])
+    expect(r.spacingLimits[10] / r.spacingLimits[20]).toBeCloseTo(2, 12)
+    expect(r.spacingLimits[20] / r.spacingLimits[40]).toBeCloseTo(2, 12)
+    // Sınırların hepsi λ'nın altındadır.
+    expect(r.spacingLimits[10]).toBeLessThan(r.lambda)
+  })
+
+  it('seçilen bölenin sınırı tablodaki karşılığıyla aynı sayıdır', () => {
+    const r40 = returnPathPlan({
+      tr: 1e-9, eps: 4, viaLength: 1.6e-3, viaDiameter: 0.3e-3, spacingDivisor: 40,
+    })
+    expect(r40.spacingLimit).toBe(r40.spacingLimits[40])
+    expect(r40.spacingLimit * 1e3).toBeCloseTo(7.49481145, 6)
+  })
+})
+
+describe('returnVoltage — dönüş bağlantısının endüktif düşümü', () => {
+  // L_via = 0.2·H[mm]·(ln(4H/D) + 1) nH   (via.js, §5.1.10)
+  //   H = 1.6 mm, D = 0.3 mm → 4H/D = 21.3333 ; ln = 3.0602707
+  //   L_via = 0.2 × 1.6 × 4.0602707 = 1.29928665 nH
+  // 4 paralel via → L_eq = 1.29928665/4 = 0.32482166 nH
+  // f = 500 MHz → X_L = 2π × 5e8 × 0.32482166e-9 = 1.0204574 Ω
+  // I_pk = 0.1 A → V = 0.10204574 V
+  const r = returnPathPlan({
+    tr: 1e-9, eps: 4, viaLength: 1.6e-3, viaDiameter: 0.3e-3,
+    stitchingViaCount: 4, returnCurrentPeak: 0.1,
+  })
+
+  it('V = I_pk · 2πf · L_via,eq ≈ 102.05 mV (çıplak değer)', () => {
+    expect(r.returnVoltage * 1e3).toBeCloseTo(102.04574, 4)
+  })
+
+  it('TEK via değil, N paralel via eşdeğeri kullanılır', () => {
+    // Tek via ile 4 katı (≈408 mV) çıkardı — hangi endüktansın kullanıldığı
+    // sonucun kendisi kadar önemli, o yüzden ayrıca sınanır.
+    expect(r.returnVoltage).toBeCloseTo(0.1 * r.reactanceParallel, 12)
+    expect(r.returnVoltage * 1e3).not.toBeCloseTo(408.18, 1)
+  })
+
+  it('tepe akım verilmezse gerilim null kalır (uydurma akım yok)', () => {
+    const r0 = returnPathPlan({
+      tr: 1e-9, eps: 4, viaLength: 1.6e-3, viaDiameter: 0.3e-3, stitchingViaCount: 4,
+    })
+    expect(r0.returnVoltage).toBeNull()
+  })
+
+  it('akımla doğrusaldır', () => {
+    const r2 = returnPathPlan({
+      tr: 1e-9, eps: 4, viaLength: 1.6e-3, viaDiameter: 0.3e-3,
+      stitchingViaCount: 4, returnCurrentPeak: 0.2,
+    })
+    expect(r2.returnVoltage * 1e3).toBeCloseTo(204.09147, 4)
+  })
+})
+
+describe('capacitorBranch — faz açısı', () => {
+  // ESL = 1 nH, C = 10 µF → √(L·C) = √(1e-9 × 1e-5) = 1e-7 → ω_SRF = 1e7 rad/s.
+  // Üç frekans dekad aralıklı seçildi ki reaktans elle çıksın:
+  //   ω = 1e6 : ωL = 1e-3      , 1/(ωC) = 0.1   → X = −0.099 Ω (kapasitif)
+  //   ω = 1e7 : ωL = 0.01      , 1/(ωC) = 0.01  → X =  0     Ω (rezonans)
+  //   ω = 1e8 : ωL = 0.1       , 1/(ωC) = 1e-3  → X = +0.099 Ω (endüktif)
+  const esl = 1e-9
+  const c = 10e-6
+  const fOf = (omega) => omega / (2 * Math.PI)
+
+  it('SRF altında faz −45° (ESR = |X| seçildiği için tam çeyrek)', () => {
+    // R = 0.099 ve X = −0.099 → arg = atan2(−0.099, 0.099) = −π/4
+    const b = capacitorBranch({
+      esr: 0.099, esl, c, f: fOf(1e6),
+    })
+    expect(b.z.im).toBeCloseTo(-0.099, 9)
+    expect(b.phase).toBeCloseTo(-Math.PI / 4, 9)
+    expect(b.magnitude).toBeCloseTo(0.099 * Math.SQRT2, 9) // = 0.14000714
+  })
+
+  it('SRF de faz tam olarak 0 — kol saf dirençli', () => {
+    const b = capacitorBranch({
+      esr: 0.5, esl, c, f: fOf(1e7),
+    })
+    expect(b.phase).toBeCloseTo(0, 12)
+    expect(b.magnitude).toBeCloseTo(0.5, 12)
+  })
+
+  it('SRF üstünde faz +45° — işaret DÖNER', () => {
+    // arg = atan2(im, re) yerine atan2(re, im) yazılsaydı bu nokta yine +π/4
+    // verirdi (re = im); yakalayan, SRF ALTINDAKİ test olur — orada atan2(re, im)
+    // −π/4 değil +3π/4 döner. İki nokta birlikte kapatıyor.
+    const b = capacitorBranch({
+      esr: 0.099, esl, c, f: fOf(1e8),
+    })
+    expect(b.z.im).toBeCloseTo(0.099, 9)
+    expect(b.phase).toBeCloseTo(Math.PI / 4, 9)
+    expect(b.phase).toBeGreaterThan(0)
+  })
+
+  it('ESL sıfırken faz hiçbir frekansta pozitife dönmez', () => {
+    // ωESL terimi olmadan kol daima kapasitiftir; yukarıdaki +45° testi bu
+    // terimin gerçekten çalıştığının kanıtıdır.
+    const b = capacitorBranch({
+      esr: 0.099, esl: 0, c, f: fOf(1e8),
+    })
+    expect(b.phase).toBeLessThan(0)
+  })
+
+  it('faz (−π/2, +π/2] aralığında kalır — kol pasif', () => {
+    for (const omega of [1e4, 1e6, 1e7, 1e8, 1e10]) {
+      const b = capacitorBranch({
+        esr: 0.02, esl, c, f: fOf(omega),
+      })
+      expect(b.phase).toBeGreaterThan(-Math.PI / 2)
+      expect(b.phase).toBeLessThanOrEqual(Math.PI / 2)
+    }
   })
 })

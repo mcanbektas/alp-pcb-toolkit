@@ -111,6 +111,58 @@ describe('ölçülemeyen prominence', () => {
   })
 })
 
+// Buradaki bütün mevcut testlerde bir ucun İKİ YANINDAKİ karşı tip uçlar ya
+// eşit ya da tek taraflı. O yüzden prominenceOf'taki `Math.max(...refs)` /
+// `Math.min(...refs)` seçimi hiç sınanmıyor: ikisi de aynı sayıyı verirdi.
+// Prominence tanımı gereği DAHA SIĞ olan taraf kazanır — bir tepenin
+// belirginliği, ondan inip tekrar çıkmadan ulaşılabilen en yüksek komşu
+// çukura göre ölçülür.
+describe('iki yanı FARKLI derinlikte olan uç', () => {
+  const freqs = [1, 10, 100, 1e3, 1e4]
+
+  it('tepe: sığ olan çukura göre ölçülür (20 − 2 = 18, 20 − 0 = 20 DEĞİL)', () => {
+    // dB dizisi: 5, 0, 20, 2, 5
+    //   → çukur 0 dB (solda), tepe 20 dB (ortada), çukur 2 dB (sağda)
+    // Prominence = 20 − max(0, 2) = 18.  Math.max → Math.min mutasyonunda 20.
+    const r = findResonances(freqs, fromDb([5, 0, 20, 2, 5]))
+    expect(r.error).toBeUndefined()
+    expect(r.candidates.map((c) => c.kind)).toEqual(['valley', 'peak', 'valley'])
+    expect(r.peaks).toHaveLength(1)
+    expect(r.peaks[0].freq).toBe(100)
+    expect(r.peaks[0].prominence).toBeCloseTo(18, 9)
+  })
+
+  it('tepe: 19 dB eşiği bu tepeyi ELER — mutasyonda (20) elenmezdi', () => {
+    const r = findResonances(freqs, fromDb([5, 0, 20, 2, 5]), { threshold: 19 })
+    expect(r.peaks).toHaveLength(0)
+    // Soldaki çukur ise 20 dB prominence taşır (tek yanında tepe var: 20 − 0).
+    expect(r.valleys.map((v) => v.freq)).toEqual([10])
+    expect(r.valleys[0].prominence).toBeCloseTo(20, 9)
+  })
+
+  it('çukur: alçak olan tepeye göre ölçülür (10 − 3 = 7, 20 − 3 = 17 DEĞİL)', () => {
+    // dB dizisi: 0, 20, 3, 10, 0
+    //   → tepe 20 dB (solda), çukur 3 dB (ortada), tepe 10 dB (sağda)
+    // Prominence = min(20, 10) − 3 = 7.  Math.min → Math.max mutasyonunda 17.
+    const r = findResonances(freqs, fromDb([0, 20, 3, 10, 0]))
+    expect(r.error).toBeUndefined()
+    expect(r.candidates.map((c) => c.kind)).toEqual(['peak', 'valley', 'peak'])
+    expect(r.valleys).toHaveLength(1)
+    expect(r.valleys[0].freq).toBe(100)
+    expect(r.valleys[0].prominence).toBeCloseTo(7, 9)
+    // Aynı dizide soldaki tepenin prominence'ı 20 − 3 = 17 (tek yanlı ölçüm).
+    expect(r.peaks.map((p) => p.freq)).toEqual([10, 1e3])
+    expect(r.peaks[0].prominence).toBeCloseTo(17, 9)
+    expect(r.peaks[1].prominence).toBeCloseTo(7, 9)
+  })
+
+  it('çukur: 10 dB eşiği bu çukuru ELER — mutasyonda (17) elenmezdi', () => {
+    const r = findResonances(freqs, fromDb([0, 20, 3, 10, 0]), { threshold: 10 })
+    expect(r.valleys).toHaveLength(0)
+    expect(r.peaks.map((p) => p.freq)).toEqual([10]) // 17 dB geçer, 7 dB geçmez
+  })
+})
+
 describe('geçersiz girdi', () => {
   it('sıfır veya negatif büyüklük logaritmik eksende hatadır', () => {
     expect(findResonances([1, 10, 100], [1, 0, 1]).error).toBe(PEAKS_ERR_NONPOSITIVE)

@@ -29,8 +29,12 @@ const screens = readdirSync(here, { withFileTypes: true })
   .map((s) => ({ ...s, toolKey: s.source.match(/toolKey="([^"]+)"/)?.[1] ?? null }))
 
 describe('araç anahtarları', () => {
-  it('en az 29 araç ekranı bulunur', () => {
-    expect(screens.length).toBeGreaterThanOrEqual(29)
+  // Alt sınır KATALOGDAN türer, elle tutulmaz: sabit sayı (29) REV2'yle 17
+  // ekran eklenmesine rağmen güncellenmemişti ve bekçi zayıflamıştı — 15 ekran
+  // birden dizinden düşse bile `44 >= 29` geçiyordu.
+  it('katalogdaki aktif araç sayısı kadar ekran dizini bulunur', () => {
+    const aktif = CATEGORIES.flatMap((c) => c.tools ?? []).filter((t) => t.path).length
+    expect(screens.length).toBeGreaterThanOrEqual(aktif)
   })
 
   it.each(screens)('$dir ekranı bir toolKey verir', ({ toolKey }) => {
@@ -107,7 +111,8 @@ describe('TOOL_SCREENS eşlemesi', () => {
   )
 
   it('eşleme okunabildi', () => {
-    expect(mapped.size).toBeGreaterThanOrEqual(29)
+    const aktif = CATEGORIES.flatMap((c) => c.tools ?? []).filter((t) => t.path).length
+    expect(mapped.size).toBeGreaterThanOrEqual(aktif)
   })
 
   it('katalogdaki her aktif aracın rotası üretilir', () => {

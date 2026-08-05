@@ -5,6 +5,7 @@ import {
   dampingRatio, qualityFactor,
   inductorImpedance, capacitorImpedance, dampingBranchImpedance,
   seriesStage, shuntStage, cascadeAbcd,
+  twoPortTransfer, twoPortOutputImpedance,
   filterNetwork, filterResponse,
   converterInputImpedance, impedanceRatio,
   commonModeImpedance, differentialModeImpedance,
@@ -84,6 +85,62 @@ describe('inductorImpedance / capacitorImpedance / dampingBranchImpedance', () =
   })
 })
 
+// Yukarıdaki capacitorImpedance testleri ESL'i HİÇ VERMİYOR: `esl = 0`
+// varsayılanıyla ωESL terimi çarpılan sıfır olduğu için, o terim `esl/ω` yazılsa
+// bile fark etmezdi. Aşağıdaki blok ESL'i açık veriyor ve seri rezonansı sınıyor.
+describe('capacitorImpedance — ωESL terimi ve seri rezonans', () => {
+  // ESL = 1 nH, C = 10 µF seçildi çünkü √(L·C) = √(1e-9 · 1e-5) = 1e-7 ve
+  // ω_SRF = 1/√(L·C) = 1e7 rad/s TAM çıkıyor; f = ω/2π ile üç nokta elle çözülür.
+  const esl = 1e-9
+  const C = 10e-6
+  const esr = 0.02
+  const fOf = (omega) => omega / (2 * Math.PI)
+
+  it('SRF ün onda birinde kol kapasitif: X = 1e−3 − 0.1 = −0.099 Ω', () => {
+    // ω = 1e6 → ωESL = 1e6·1e-9 = 1e-3 ; 1/(ωC) = 1/(1e6·1e-5) = 0.1
+    const z = capacitorImpedance({ esr, esl, C, f: fOf(1e6) })
+    expect(z.re).toBeCloseTo(0.02, 12)
+    expect(z.im).toBeCloseTo(-0.099, 9)
+    // |Z| = √(0.02² + 0.099²) = √0.010201 = 0.101 (tam kare)
+    expect(mag(z)).toBeCloseTo(0.101, 9)
+  })
+
+  it('SRF de reaktans SIFIRLANIR ve |Z| tam olarak ESR ye iner', () => {
+    // ω = 1e7 → ωESL = 0.01 ; 1/(ωC) = 1/(1e7·1e-5) = 0.01 → fark 0
+    const z = capacitorImpedance({ esr, esl, C, f: fOf(1e7) })
+    expect(z.im).toBeCloseTo(0, 12)
+    expect(mag(z)).toBeCloseTo(0.02, 12)
+  })
+
+  it('SRF ün on katında kol ENDÜKTİF: X = 0.1 − 1e−3 = +0.099 Ω', () => {
+    // ω = 1e8 → ωESL = 0.1 ; 1/(ωC) = 1/(1e8·1e-5) = 1e-3
+    // İşaret POZİTİF olmak zorunda: ESL terimi olmasaydı (ya da `esl/ω`
+    // yazılsaydı) reaktans burada da negatif kalırdı.
+    const z = capacitorImpedance({ esr, esl, C, f: fOf(1e8) })
+    expect(z.im).toBeCloseTo(0.099, 9)
+    expect(z.im).toBeGreaterThan(0)
+    expect(mag(z)).toBeCloseTo(0.101, 9)
+  })
+
+  it('|Z| seri rezonansta MİNİMUMDUR — iki yanında dekad başına ~5 kat büyür', () => {
+    const below = mag(capacitorImpedance({ esr, esl, C, f: fOf(1e6) }))
+    const at = mag(capacitorImpedance({ esr, esl, C, f: fOf(1e7) }))
+    const above = mag(capacitorImpedance({ esr, esl, C, f: fOf(1e8) }))
+    expect(at).toBeLessThan(below)
+    expect(at).toBeLessThan(above)
+    // Simetri: ωESL ve 1/(ωC) rolleri takas olduğu için iki yan eşit çıkar.
+    expect(above).toBeCloseTo(below, 9)
+    // ESL yokken |Z| SRF üstünde 0.0200 e inerdi (yani minimum ORADA olurdu) —
+    // bu iddia o mutasyonda kırılır.
+    expect(above / at).toBeCloseTo(5.05, 2) // 0.101 / 0.02
+  })
+
+  it('ESL verilmeyen kol yüksek frekansta hâlâ kapasitiftir (varsayılan 0)', () => {
+    const z = capacitorImpedance({ esr, C, f: fOf(1e8) })
+    expect(z.im).toBeCloseTo(-1e-3, 12)
+  })
+})
+
 describe('İki-kapılı (ABCD) makinesi', () => {
   it('seriesStage: A=D=1, C=0, B=Z', () => {
     const z = { re: 3, im: 4 }
@@ -111,6 +168,101 @@ describe('İki-kapılı (ABCD) makinesi', () => {
     expect(identity).toEqual({
       A: { re: 1, im: 0 }, B: { re: 0, im: 0 }, C: { re: 0, im: 0 }, D: { re: 1, im: 0 },
     })
+  })
+})
+
+// --- Aracın ana fiziği: twoPortTransfer / twoPortOutputImpedance -------------
+//
+// Transfer fonksiyonunun TAMAMI bu iki bağıntıda: filterResponse yalnızca
+// kaynak/yük empedansını kurup bunları çağırıyor. Aşağıdaki vakalar bilerek
+// SAF DİRENÇLİ ve tek aşamalı seçildi — beklenen sayı devre teorisiyle elle
+// çözülüp yazıldı, motorun ifadesinden türetilmedi.
+
+const mag = (z) => Math.hypot(z.re, z.im)
+
+describe('twoPortTransfer — elle çözülebilir vakalar', () => {
+  it('birim ABCD (ağ yok): Vout/Vsource = Z_L/(Z_L+Z_s)', () => {
+    // Zs=10, ZL=30 → basit gerilim bölücü: 30/(30+10) = 0.75
+    const h = twoPortTransfer({
+      abcd: cascadeAbcd([]),
+      zSource: { re: 10, im: 0 },
+      zLoad: { re: 30, im: 0 },
+    })
+    expect(h.re).toBeCloseTo(0.75, 12)
+    expect(h.im).toBeCloseTo(0, 12)
+  })
+
+  it('yalnız seri empedans: Z_L/(Z+Z_L) — B terimi paydada görünmeli', () => {
+    // Z=10 seri, Zs=0, ZL=30 → 30/(10+30) = 0.75
+    // B (= seri empedans) paydadan düşerse sonuç 30/30 = 1 olurdu.
+    const h = twoPortTransfer({
+      abcd: seriesStage({ re: 10, im: 0 }),
+      zSource: { re: 0, im: 0 },
+      zLoad: { re: 30, im: 0 },
+    })
+    expect(h.re).toBeCloseTo(0.75, 12)
+    expect(h.im).toBeCloseTo(0, 12)
+  })
+
+  it('yalnız şönt empedans: Z_s ile (Z_şönt ∥ Z_L) arasındaki bölücü', () => {
+    // Z_şönt=30, ZL=30 → paralel 15 Ω. Zs=10 ile bölücü: 15/(10+15) = 0.6
+    // Motorun ifadesiyle de örtüşür: 30/(30 + 0 + (1/30)·10·30 + 10) = 30/50.
+    // C·Z_s·Z_L terimi paydadan düşerse 30/40 = 0.75 çıkardı.
+    const h = twoPortTransfer({
+      abcd: shuntStage({ re: 30, im: 0 }),
+      zSource: { re: 10, im: 0 },
+      zLoad: { re: 30, im: 0 },
+    })
+    expect(h.re).toBeCloseTo(0.6, 12)
+    expect(h.im).toBeCloseTo(0, 12)
+  })
+
+  it('seri reaktans X = R: |H| = 1/√2, yani −3.0103 dB', () => {
+    // Z = j10, ZL = 10, Zs = 0 → H = 10/(10+j10) = (1−j)/2 = 0.5 − j0.5
+    const h = twoPortTransfer({
+      abcd: seriesStage({ re: 0, im: 10 }),
+      zSource: { re: 0, im: 0 },
+      zLoad: { re: 10, im: 0 },
+    })
+    expect(h.re).toBeCloseTo(0.5, 12)
+    expect(h.im).toBeCloseTo(-0.5, 12) // işaret: endüktif seri kol fazı geriletir
+    expect(mag(h)).toBeCloseTo(0.7071067811865476, 12)
+    expect(20 * Math.log10(mag(h))).toBeCloseTo(-3.0103, 4)
+  })
+})
+
+describe('twoPortOutputImpedance — elle çözülebilir vakalar', () => {
+  it('birim ABCD (ağ yok): Z_out = Z_s', () => {
+    const z = twoPortOutputImpedance({
+      abcd: cascadeAbcd([]),
+      zSource: { re: 7, im: 0 },
+    })
+    // (0 + 7·1)/(1 + 7·0) = 7 — ağ yokken geriye bakılan tek şey kaynaktır.
+    // D terimi düşerse 0, C terimi bozulursa payda değişirdi.
+    expect(z.re).toBeCloseTo(7, 12)
+    expect(z.im).toBeCloseTo(0, 12)
+  })
+
+  it('yalnız seri empedans: Z_out = Z_s + Z (seri empedanslar toplanır)', () => {
+    // Zs=5, Z=10 → (10 + 5·1)/(1 + 5·0) = 15
+    const z = twoPortOutputImpedance({
+      abcd: seriesStage({ re: 10, im: 0 }),
+      zSource: { re: 5, im: 0 },
+    })
+    expect(z.re).toBeCloseTo(15, 12)
+    expect(z.im).toBeCloseTo(0, 12)
+  })
+
+  it('yalnız şönt empedans: Z_out = Z_s ∥ Z_şönt', () => {
+    // Zs=10, Z_şönt=30 → paralel = 10·30/40 = 7.5
+    // Motorun ifadesi: (0 + 10·1)/(1 + 10·(1/30)) = 10/(4/3) = 7.5 — aynı sayı.
+    // Paydadaki Z_s·C terimi düşerse 10 çıkardı (paralelleme kaybolurdu).
+    const z = twoPortOutputImpedance({
+      abcd: shuntStage({ re: 30, im: 0 }),
+      zSource: { re: 10, im: 0 },
+    })
+    expect(z.re).toBeCloseTo(7.5, 12)
+    expect(z.im).toBeCloseTo(0, 12)
   })
 })
 
@@ -187,6 +339,95 @@ describe('filterResponse — LC alçak geçiren davranışı', () => {
 
   it('geçersiz yük direncinde EMC_ERR_INVALID döner', () => {
     expect(filterResponse({ ...base, f: 1000, rLoad: 0 })).toEqual({ error: EMC_ERR_INVALID })
+  })
+})
+
+// Yukarıdaki cm-choke testi yalnızca `Number.isFinite(gainDb)` diyor — kazanç
+// SIFIR da olsa, işareti ters de olsa, DM ağı hiç kurulmasa da geçerdi. Aşağıdaki
+// çalışma noktası bilerek TAM SAYI çıkacak şekilde seçildi.
+describe('cm-choke DM yolu — çıplak kazanç değeri', () => {
+  // ω = 1e6 rad/s (f = ω/2π), L_leak = 60 µH, C_LL = 150 nF, R_s = 0, R_L = 10 Ω.
+  // Elle:
+  //   Z_leak = jωL      = j·1e6·60e-6      = j60 Ω
+  //   Z_C    = 1/(jωC)  = −j/(1e6·150e-9)  = −j6.6667 Ω
+  //   ABCD (seri Z_leak · şönt Z_C):
+  //     A = 1 + Z_leak/Z_C = 1 − ω²·L·C = 1 − 9 = −8
+  //     B = Z_leak = j60 ; C = 1/Z_C = j0.15 ; D = 1
+  //   Z_s = 0 olduğundan payda = A·Z_L + B = −8·10 + j60 = −80 + j60
+  //   |payda| = √(6400+3600) = √10000 = 100  →  |H| = 10/100 = 0.1
+  //   G = 20·log10(0.1) = −20 dB  (TAM)
+  const cm = {
+    topology: 'cm-choke',
+    network: { lLeak: 60e-6, cLL: 150e-9 },
+    rSource: 0,
+    lSource: 0,
+    rLoad: 10,
+    f: 1e6 / (2 * Math.PI),
+  }
+
+  it('kazanç tam olarak −20 dB (|H| = 0.1)', () => {
+    const r = filterResponse(cm)
+    expect(r.error).toBeUndefined()
+    expect(mag(r.h)).toBeCloseTo(0.1, 12)
+    expect(r.gainDb).toBeCloseTo(-20, 9)
+  })
+
+  it('kaynak empedansı sıfırken insertion loss tam olarak +20 dB', () => {
+    // Filtresiz durum: H₀ = Z_L/(Z_s+Z_L) = 10/10 = 1 → 0 dB.
+    // IL = 0 − (−20) = 20 dB.
+    const r = filterResponse(cm)
+    expect(r.insertionLossDb).toBeCloseTo(20, 9)
+  })
+
+  it('filtre çıkış empedansı Z_out = B/A = j60/(−8) = −j7.5 Ω', () => {
+    // Z_s = 0 olduğu için Z_out = B/A; saf kapasitif (negatif reaktans) çıkar.
+    const r = filterResponse(cm)
+    expect(r.zOutFilter.re).toBeCloseTo(0, 9)
+    expect(r.zOutFilter.im).toBeCloseTo(-7.5, 9)
+  })
+})
+
+// "f0 ün çok üstünde 60 dB düştü" iddiası mertebeyi HİÇ ölçmez: 20 dB/dekad
+// (birinci mertebe, yalnız seri L) da 40 dB/dekad (ikinci mertebe, L-C) da bu
+// eşiği geçer. Bu blok eğimin kendisini ölçer.
+describe('durdurma bandı — ikinci mertebe eğimi (dekad başına −40 dB)', () => {
+  // Kaynak/yük parazitiği bilerek yok: R_s = 0, L_s = 0 → payda = A·Z_L + B.
+  // f0 ün çok üstünde A ≈ −ω²LC olduğundan |H| ≈ 1/(ω²LC), yani ω² ile düşer.
+  //   L = 10 µH, C = 10 µF → LC = 1e-10
+  //   ω = 1e7 → ω²LC = 1e14·1e-10 = 1e4  → |H| ≈ 1e-4 → −80 dB
+  //   ω = 1e8 → ω²LC = 1e16·1e-10 = 1e6  → |H| ≈ 1e-6 → −120 dB
+  const pure = {
+    topology: 'lc',
+    network: { L: REF_L, C: REF_C },
+    rSource: 0,
+    lSource: 0,
+    rLoad: 10,
+  }
+  const gainAt = (omega) => filterResponse({ ...pure, f: omega / (2 * Math.PI) }).gainDb
+
+  it('ω = 1e7 rad/s te kazanç ≈ −80 dB', () => {
+    expect(gainAt(1e7)).toBeCloseTo(-80, 2)
+  })
+
+  it('ω = 1e8 rad/s te kazanç ≈ −120 dB', () => {
+    expect(gainAt(1e8)).toBeCloseTo(-120, 2)
+  })
+
+  it('bir dekad = 40 dB — birinci mertebe (20 dB/dekad) bu testi GEÇEMEZ', () => {
+    expect(gainAt(1e7) - gainAt(1e8)).toBeCloseTo(40, 2)
+    // Karşılaştırma tabanı: aynı seri bobin TEK BAŞINA (şönt kondansatör yok)
+    // dekad başına yalnız 20 dB düşerdi.
+    const firstOrder = (omega) => {
+      const h = twoPortTransfer({
+        abcd: seriesStage({ re: 0, im: omega * REF_L }),
+        zSource: { re: 0, im: 0 },
+        zLoad: { re: 10, im: 0 },
+      })
+      return 20 * Math.log10(mag(h))
+    }
+    const firstOrderSlope = firstOrder(1e7) - firstOrder(1e8)
+    expect(firstOrderSlope).toBeGreaterThan(19.5)
+    expect(firstOrderSlope).toBeLessThan(20.5)
   })
 })
 

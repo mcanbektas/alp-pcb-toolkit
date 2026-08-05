@@ -23,6 +23,8 @@ import { getText as clearanceText } from './ClearanceCreepagePadstack/text'
 import { getText as bgaText } from './BgaBreakout/text'
 import { getText as stackupText } from './StackupPlanner/text'
 import { getText as thermalText } from './ThermalRelief/text'
+import { getText as flexText } from './FlexPcbBendTrace/text'
+import { collectPaths, scanSource } from './textPathScan'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -31,33 +33,17 @@ const SCREENS = [
   { dir: 'BgaBreakout', getText: bgaText },
   { dir: 'StackupPlanner', getText: stackupText },
   { dir: 'ThermalRelief', getText: thermalText },
+  // REV2 ile geldi ve DFM makinesini kullanıyor (`DfmChecks` + `dfmText` +
+  // `lib/dfmCheck`) ama listeye eklenmemişti — CLAUDE.md: "Yeni bir üretim/DFM
+  // ekranı eklendiğinde listesine yazılır."
+  { dir: 'FlexPcbBendTrace', getText: flexText },
 ]
 
 const FILES = ['index.jsx', 'schematic.jsx', 'report.js']
 
-// `text.a.b.c` / `ui.x` / `dfm.a.b` yollarını yakalar. Köşeli parantezli
-// dinamik erişim (`text.chart.metrics[metric]`) kasten dışarıda bırakılır:
-// anahtarı çalışma anında belli olur, statik olarak çözülemez.
-const PATH_RE = /\b(text|ui|dfm)((?:\.[A-Za-z_$][\w$]*)+)\s*(\()?/g
-
-function collectPaths(source) {
-  const found = []
-  let m = PATH_RE.exec(source)
-  while (m !== null) {
-    found.push({ root: m[1], path: m[2].slice(1).split('.'), called: m[3] === '(' })
-    m = PATH_RE.exec(source)
-  }
-  return found
-}
-
-function resolve(objects, root, path) {
-  let node = objects[root]
-  for (const key of path) {
-    if (node === null || node === undefined) return { missing: true }
-    node = node[key]
-  }
-  return { value: node, missing: node === undefined }
-}
+// Tarama mantığı `textPathScan.js`te — bütün ekranları kapsayan
+// `textPaths.guard.test.js` ile aynı kaynak. Buradaki testler onun üstüne
+// üretim/DFM'e özgü denetimleri (boş metin, anahtar kümesi) ekler.
 
 describe.each(SCREENS)('$dir — metin yolları', ({ dir, getText }) => {
   const sources = FILES.map((name) => {
@@ -83,20 +69,7 @@ describe.each(SCREENS)('$dir — metin yolları', ({ dir, getText }) => {
   it.each(['tr', 'en'])('%s dilinde bütün yollar çözülür', (lang) => {
     const problems = []
     for (const { name, source } of sources) {
-      const roots = rootsFor(lang, name)
-      for (const { root, path, called } of collectPaths(source)) {
-        const { value, missing } = resolve(roots, root, path)
-        if (missing) {
-          problems.push(`${name}: ${root}.${path.join('.')} tanımsız`)
-          continue
-        }
-        if (called && typeof value !== 'function') {
-          problems.push(`${name}: ${root}.${path.join('.')} çağrılıyor ama fonksiyon değil`)
-        }
-        if (!called && typeof value === 'function') {
-          problems.push(`${name}: ${root}.${path.join('.')} fonksiyon ama çağrılmadan basılıyor`)
-        }
-      }
+      problems.push(...scanSource({ name, source, roots: rootsFor(lang, name) }))
     }
     expect(problems).toEqual([])
   })
