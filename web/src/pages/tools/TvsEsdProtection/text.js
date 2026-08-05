@@ -216,9 +216,14 @@ export function getText(lang) {
         })
       }
 
-      // REV2 §14.3: V_normal,max < V_RWM < V_BR < V_C sıralaması.
-      out.push(r.vClamp > r.vBR
-        ? {
+      // REV2 §14.3: V_normal,max < V_RWM < V_BR < V_C sıralaması. Eşitlik ne
+      // "üzerinde" ne "altında"dır ve hata da değildir: R_dyn girilmediğinde
+      // (alanın kendi ipucu "Bilinmiyorsa 0 bırakın") V_C = V_BR + 0·(I − I_T)
+      // = V_BR çıkar; bu belgelenmiş normal yoldur, üstelik varsayılan girdinin
+      // ta kendisidir. Yalnız KESİN olarak altında kalan durum danger'dır —
+      // aşağıdaki kardeş V_RWM kontrolüyle aynı desen.
+      if (r.vClamp > r.vBR) {
+        out.push({
           level: 'ok',
           text: t({
             tr: `Clamp gerilimi (${fmtVolt(r.vClamp)}) breakdown geriliminin (${fmtVolt(r.vBR)}) `
@@ -226,8 +231,21 @@ export function getText(lang) {
             en: `The clamp voltage (${fmtVolt(r.vClamp)}) is above the breakdown voltage `
               + `(${fmtVolt(r.vBR)}) — the expected ordering.`,
           }),
-        }
-        : {
+        })
+      } else if (r.vClamp === r.vBR) {
+        out.push({
+          level: 'ok',
+          text: t({
+            tr: `Clamp gerilimi (${fmtVolt(r.vClamp)}) breakdown gerilimine (${fmtVolt(r.vBR)}) `
+              + 'eşit — R_dyn girilmediğinde (0) clamp gerilimi sabit V_BR kabul edilir, '
+              + 'sıralama beklenen yönde.',
+            en: `The clamp voltage (${fmtVolt(r.vClamp)}) equals the breakdown voltage `
+              + `(${fmtVolt(r.vBR)}) — with R_dyn left at 0 the clamp voltage is taken as a `
+              + 'constant V_BR, so the ordering is as expected.',
+          }),
+        })
+      } else {
+        out.push({
           level: 'danger',
           text: t({
             tr: `Clamp gerilimi (${fmtVolt(r.vClamp)}) breakdown geriliminin (${fmtVolt(r.vBR)}) `
@@ -236,6 +254,7 @@ export function getText(lang) {
               + `(${fmtVolt(r.vBR)}) — check the R_dyn/I_T inputs.`,
           }),
         })
+      }
 
       if (r.vRWM != null) {
         out.push(r.vRWM < r.vBR

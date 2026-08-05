@@ -13,7 +13,9 @@
 import { fmt, fmtEng } from '../../../lib/num'
 import { pick } from '../../../lib/i18n'
 import { commonText } from '../../../data/uiText'
-import { STATUS_WARNING, STATUS_DANGER, STATUS_UNKNOWN } from '../../../lib/dfmCheck'
+import {
+  checkLimit, DIRECTION_MIN, STATUS_WARNING, STATUS_DANGER, STATUS_UNKNOWN,
+} from '../../../lib/dfmCheck'
 import { FLEX_ERR_NEGATIVE_INNER_LENGTH } from '../../../lib/flexPcb'
 import {
   REASON_INCOMPLETE, REASON_INVALID, BEND_DYNAMIC, EPS_SOURCE_ASSUMPTION,
@@ -426,31 +428,46 @@ N_f = A·ε^(−b)   (only if A and b are entered)`,
       if (!r.ok) return []
       const out = []
 
+      // Karşılaştırma ham `<` / `>=` ile yapılmaz: R = 2.4 mm ile
+      // K_b·t_total = 12 × 0.2 mm ikili tabanda eşit değildir (fark ≈ 4.3e-19)
+      // ve tam sınırdaki tasarım "sınırın ALTINDA" diye raporlanırdı — ekranda
+      // ikisi de 2.4 mm görünürken. Ortak sözleşme (lib/dfmCheck.js) bağıl payı
+      // zaten doğru uyguluyor; ikinci bir tolerans sabiti burada tanımlanmaz.
+      // `warnPercent` GEÇİLMEZ: ekranın kendi "uyarı marjı" alanı ayrı çalışır,
+      // burada ikinci bir uyarı bandı açmak davranış değişikliği olurdu.
+      // Seviye kararı da cümle seçimi de AYNI kontrol sonucundan okunur;
+      // ayrı ayrı karşılaştırılsalardı tutarsız kalabilirlerdi.
+      const radiusLimit = (id, required) => (required === null ? null : checkLimit({
+        id, actual: r.R, required, direction: DIRECTION_MIN,
+      }))
+      const vendorCheck = radiusLimit('flex-bend-radius-vendor', r.vendorMinRadius)
+      const strainCheck = radiusLimit('flex-bend-radius-strain', r.strainMinRadius)
+
       const radiusNotes = []
-      if (r.vendorMinRadius !== null) {
-        radiusNotes.push(r.R >= r.vendorMinRadius
+      if (vendorCheck !== null) {
+        radiusNotes.push(vendorCheck.status === STATUS_DANGER
           ? t({
-            tr: `üretici kuralının (${fmtLen(r.vendorMinRadius)}) üzerinde`,
-            en: `above the vendor rule (${fmtLen(r.vendorMinRadius)})`,
-          })
-          : t({
             tr: `üretici kuralının (${fmtLen(r.vendorMinRadius)}) ALTINDA`,
             en: `BELOW the vendor rule (${fmtLen(r.vendorMinRadius)})`,
-          }))
-      }
-      if (r.strainMinRadius !== null) {
-        radiusNotes.push(r.R >= r.strainMinRadius
-          ? t({
-            tr: `izin verilen strain sınırının gerektirdiği minimumun (${fmtLen(r.strainMinRadius)}) üzerinde`,
-            en: `above the minimum the allowed-strain limit requires (${fmtLen(r.strainMinRadius)})`,
           })
           : t({
-            tr: `izin verilen strain sınırının gerektirdiği minimumun (${fmtLen(r.strainMinRadius)}) ALTINDA`,
-            en: `BELOW the minimum the allowed-strain limit requires (${fmtLen(r.strainMinRadius)})`,
+            tr: `üretici kuralının (${fmtLen(r.vendorMinRadius)}) altında değil`,
+            en: `not below the vendor rule (${fmtLen(r.vendorMinRadius)})`,
           }))
       }
-      const belowSome = (r.vendorMinRadius !== null && r.R < r.vendorMinRadius)
-        || (r.strainMinRadius !== null && r.R < r.strainMinRadius)
+      if (strainCheck !== null) {
+        radiusNotes.push(strainCheck.status === STATUS_DANGER
+          ? t({
+            tr: `izin verilen strain sınırının gerektirdiği minimumun (${fmtLen(r.strainMinRadius)}) ALTINDA`,
+            en: `BELOW the minimum the allowed-strain limit requires (${fmtLen(r.strainMinRadius)})`,
+          })
+          : t({
+            tr: `izin verilen strain sınırının gerektirdiği minimumun (${fmtLen(r.strainMinRadius)}) altında değil`,
+            en: `not below the minimum the allowed-strain limit requires (${fmtLen(r.strainMinRadius)})`,
+          }))
+      }
+      const belowSome = vendorCheck?.status === STATUS_DANGER
+        || strainCheck?.status === STATUS_DANGER
 
       out.push(radiusNotes.length > 0
         ? {

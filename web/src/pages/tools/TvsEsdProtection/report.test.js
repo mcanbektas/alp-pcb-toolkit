@@ -190,6 +190,48 @@ describe('TvsEsdProtection — gerilim sıralaması yorumu (REV2 §14.3)', () =>
   })
 })
 
+// Regresyon: R_dyn = 0 BELGELENMİŞ normal yoldur (alanın kendi ipucu:
+// "Bilinmiyorsa 0 bırakın — clamp gerilimi sabit V_BR kabul edilir") ve
+// varsayılan girdinin ta kendisidir. O yolda V_C = V_BR + 0·(I − I_T) = V_BR
+// TAM OLARAK çıkar; sıralama kontrolü ikili (`>` / else) yazıldığı için
+// eşitlik danger dalına düşüyor ve "Clamp gerilimi (33 V) breakdown
+// geriliminin (33 V) ALTINDA" diyordu. Kardeş V_RWM kontrolü doğru deseni
+// zaten kurmuştu: eşitliği açıkça anan bir metin + yalnız kesin ihlalde danger.
+describe('TvsEsdProtection — V_C = V_BR eşitliği (R_dyn = 0) hata değildir', () => {
+  const BELOW = { tr: /ALTINDA/, en: /BELOW/ }
+  const CLAMP_NOTE = { tr: /^Clamp gerilimi/, en: /^The clamp voltage/ }
+
+  for (const lang of ['tr', 'en']) {
+    it(`${lang}: referans girdide clamp/breakdown notu ok'tur ve "altında" demez`, () => {
+      const localText = getText(lang)
+      const r = compute({ ...INITIAL_FORM }, localText.fieldLabels)
+      expect(r.ok).toBe(true)
+      expect(r.rDyn).toBe(0)
+      expect(r.vClamp).toBe(r.vBR) // 33 V, tam eşit
+
+      const notes = localText.commentary(r)
+      const clampNote = notes.find((n) => CLAMP_NOTE[lang].test(n.text))
+      expect(clampNote).toBeTruthy()
+      expect(clampNote.level).toBe('ok')
+      expect(clampNote.text).not.toMatch(BELOW[lang])
+      expect(notes.some((n) => n.level === 'danger')).toBe(false)
+    })
+  }
+
+  it('V_C gerçekten V_BR altındaysa hâlâ danger üretir (kontrol körleştirilmedi)', () => {
+    const r = {
+      ok: true,
+      vBR: 33, vClamp: 30, vNormalMax: 10, vRWM: 20, vProtectedMax: 50,
+      solver: { current: 30, method: 'analytic', clamped: false },
+      peakPower: 900, energy: null, overshoot: null, capacitanceCutoffHz: null, rDyn: -1,
+    }
+    const notes = text.commentary(r)
+    const clampNote = notes.find((n) => /^Clamp gerilimi/.test(n.text))
+    expect(clampNote.level).toBe('danger')
+    expect(clampNote.text).toMatch(/ALTINDA/)
+  })
+})
+
 describe('TvsEsdProtection rapor bölümü — İngilizce', () => {
   it('İngilizce metinle bölüm kurulur ve başlık/yöntem İngilizcedir', () => {
     const textEn = getText('en')

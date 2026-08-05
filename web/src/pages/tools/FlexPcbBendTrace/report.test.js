@@ -269,3 +269,56 @@ describe('FlexPcbBendTrace report.js', () => {
     expect(section.chart).toBeNull()
   })
 })
+
+// Regresyon: varsayılan girdi TAM SINIRDADIR — R = 2.4 mm, K_b = 12,
+// t_total = 0.2 mm → R_min,vendor = 12 × 0.2 mm = 2.4 mm. İkisi ikili tabanda
+// birbirine eşit DEĞİLDİR (2.4·1e-3 = 2.39999999999999978e-3 iken
+// 12·(0.2·1e-3) = 2.40000000000000022e-3; fark ≈ 4.3e-19), bu yüzden ham `<`
+// karşılaştırması ekranda ikisi de "2.4 mm" görünen bir tasarımı danger'a
+// düşürüp "üretici kuralının (2.4 mm) ALTINDA" diye raporluyordu. Kural
+// CLAUDE.md → dfmCheck maddesinde zaten yazılı: kayan nokta gürültüsü tam
+// sınırdaki bir tasarımı uyarıya düşürmemeli. Rapor bölümü notları
+// commentary()'den birebir aldığı için bu hata rapora da geçiyordu.
+describe('FlexPcbBendTrace — bend radius tam üretici sınırındayken (R = K_b · t_total)', () => {
+  const BELOW = { tr: /ALTINDA/, en: /BELOW/ }
+
+  for (const lang of ['tr', 'en']) {
+    it(`${lang}: radius notu danger olmaz ve "sınırın altında" demez`, () => {
+      const localText = getText(lang)
+      const f = INITIAL_FORM
+      const r = compute(f, localText.fieldLabels)
+      expect(r.ok).toBe(true)
+      // Ekranda ikisi de 2.4 mm olarak görünür; iddia da bu olmalı.
+      expect(r.R * 1e3).toBeCloseTo(2.4, 9)
+      expect(r.vendorMinRadius * 1e3).toBeCloseTo(2.4, 9)
+
+      const notes = localText.commentary(r, dfmText(lang))
+      const radiusNote = notes.find((n) => n.text.includes('strain') && n.text.includes('R='))
+      expect(radiusNote).toBeTruthy()
+      expect(radiusNote.level).not.toBe('danger')
+      expect(radiusNote.text).not.toMatch(BELOW[lang])
+    })
+  }
+
+  it('gerçekten sınırın altındaki bir R hâlâ danger üretir (düzeltme kontrolü körleştirmedi)', () => {
+    const f = { ...INITIAL_FORM, R: '2.0' } // 2.0 mm < 2.4 mm
+    const r = compute(f, text.fieldLabels)
+    const notes = text.commentary(r, dfm)
+    const radiusNote = notes.find((n) => n.text.includes('strain') && n.text.includes('R='))
+    expect(radiusNote.level).toBe('danger')
+    expect(radiusNote.text).toMatch(/ALTINDA/)
+  })
+
+  it('strain kuralı da aynı toleranslı karşılaştırmadan geçer (ε_allow tam sınırda)', () => {
+    // R = 2.4 mm, t_total = 0.2 mm → simetrik strain = 0.1/2.4 = %4.1666…
+    // ε_allow tam bu değere eşitlendiğinde R_min,strain = R çıkar.
+    const base = compute(INITIAL_FORM, text.fieldLabels)
+    const f = { ...INITIAL_FORM, epsilonAllow: String(base.strainPercent) }
+    const r = compute(f, text.fieldLabels)
+    expect(r.strainMinRadius).not.toBeNull()
+    const notes = text.commentary(r, dfm)
+    const radiusNote = notes.find((n) => n.text.includes('strain') && n.text.includes('R='))
+    expect(radiusNote.level).not.toBe('danger')
+    expect(radiusNote.text).not.toMatch(/ALTINDA/)
+  })
+})
