@@ -20,9 +20,13 @@ export function siteUrl() {
   if (!warned) {
     warned = true
     console.warn(
+      // Sayı yazılmıyor: burada duran sabit (76) katalog büyüdükçe eskidi ve
+      // her build'de yanlış bilgi bastı. Rota sayısı `indexablePages()`ten
+      // gelir, onu buraya import etmek build betiğine gereksiz bağımlılık
+      // eklerdi — uyarının işi sayı vermek değil, eksik ayarı bildirmek.
       'site-url: VITE_SITE_URL tanımlı değil, placeholder alan adı kullanılıyor '
-      + `(${PLACEHOLDER_SITE_URL}). Bu adres yalnız sitemap.xml'e değil, 76 sayfanın `
-      + "<head>'indeki canonical ve hreflang etiketlerine de yazılır. "
+      + `(${PLACEHOLDER_SITE_URL}). Bu adres yalnız sitemap.xml'e değil, üretilen `
+      + "HER sayfanın <head>'indeki canonical ve hreflang etiketlerine de yazılır. "
       + "Alan adı alınınca deploy/.env'e VITE_SITE_URL eklenir.",
     )
   }

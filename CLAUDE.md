@@ -114,12 +114,12 @@ HTML kabuğu dönmeyen yapılandırmada sayfa yenilendiğinde 404 alınır. Kar�
 ```
 vite build                                   → dist/ (boş kabuk + hash'li varlıklar)
 vite build --ssr scripts/prerender/…         → .prerender/ (Node paketi, depoya girmez)
-node scripts/build-prerender.mjs             → 76 sayfa + spa-fallback.html
-node scripts/build-sitemap.mjs               → dist/sitemap.xml (76 url)
+node scripts/build-prerender.mjs             → 106 sayfa + spa-fallback.html
+node scripts/build-sitemap.mjs               → dist/sitemap.xml (106 url)
 ```
 
 Site saf SPA'ydı ve JS koşturmayan bot her sayfada boş `<div id="root">` görüyordu.
-Artık `/`, 8 kategori ve `path`i olan 29 araç — **her biri iki dilde** — derleme sonrası
+Artık `/`, 8 kategori ve `path`i olan 44 araç — **her biri iki dilde** — derleme sonrası
 `react-dom/server` ile render edilip `dist/<yol>.html` olarak yazılıyor; `<title>` ve
 `<html lang>` de rota başına yazılıyor (`TitleSync` ile aynı kaynak ve kalıp). Her sayfa
 kendi `canonical` ve karşılıklı `hreflang` kümesini taşır (`tr`, `en`, `x-default` = tr).
@@ -256,7 +256,7 @@ soyut portu bilir.
      `statusChip(worst, count, ui)` `{cls, text}` döndürür. **İki tarihsel söz varlığını
      köprüler**: genel araçlar `'ok'|'warn'|'danger'`, DFM araçları
      `'ok'|'warning'|'danger'|'unknown'` — `'warn'` ile `'warning'` aynı `warn` sınıfına düşer.
-     29 ekran bu tek eşlemeyi kullanır; `pages/tools/statusChip.guard.test.js` kopya mantığın
+     44 ekran bu tek eşlemeyi kullanır; `pages/tools/statusChip.guard.test.js` kopya mantığın
      geri sızmasını engeller.
    - `savedCalculation.js` — projeye kaydedilmiş bir hesabın geri yüklenmesi. `restoreForm`
      kaydı aracın **mevcut** `INITIAL_FORM` şemasına süzer: tanınmayan alan atılır, eksik
