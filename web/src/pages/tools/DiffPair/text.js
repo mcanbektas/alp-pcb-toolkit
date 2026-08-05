@@ -84,8 +84,8 @@ export function getText(lang) {
     },
 
     structLabel: {
-      [STRUCT_MICROSTRIP]: 'Edge-coupled microstrip',
-      [STRUCT_STRIPLINE]: 'Edge-coupled stripline',
+      [STRUCT_MICROSTRIP]: t({ tr: 'Kenar kuplajlı microstrip', en: 'Edge-coupled microstrip' }),
+      [STRUCT_STRIPLINE]: t({ tr: 'Kenar kuplajlı stripline', en: 'Edge-coupled stripline' }),
     },
 
     methodNote: t({
@@ -347,11 +347,11 @@ Single-ended base — closed form:
     schematic: {
       title: t({ tr: 'Diferansiyel çift kesiti', en: 'Differential pair cross-section' }),
       captionMicrostrip: t({
-        tr: 'Edge-coupled microstrip — çift üst yüzeyde, altta tek düzlem',
+        tr: 'Kenar kuplajlı microstrip — çift üst yüzeyde, altta tek düzlem',
         en: 'Edge-coupled microstrip — pair on the top surface, single plane below',
       }),
       captionStripline: t({
-        tr: 'Edge-coupled stripline — çift iki düzlem arasında',
+        tr: 'Kenar kuplajlı stripline — çift iki düzlem arasında',
         en: 'Edge-coupled stripline — pair between two planes',
       }),
     },

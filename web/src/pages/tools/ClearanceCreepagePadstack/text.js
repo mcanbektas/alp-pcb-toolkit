@@ -348,20 +348,42 @@ export function getText(lang) {
     formulas: {
       clearance: {
         title: t({ tr: 'Clearance kararı', en: 'Clearance decision' }),
-        body: `S_profile,altitude = S_profile,base × k_altitude
+        body: t({
+          tr: `S_profil,rakım = S_profil,taban × k_rakım
+S_gerekli = max(S_profil,rakım, S_üretici, S_kullanıcı)
+M_mutlak = S_gerçek − S_gerekli
+M_yüzde = 100 × (S_gerçek − S_gerekli) / S_gerekli`,
+          en: `S_profile,altitude = S_profile,base × k_altitude
 S_required = max(S_profile,altitude, S_fab, S_user)
 M_absolute = S_actual − S_required
 M_percent = 100 × (S_actual − S_required) / S_required`,
+        }),
       },
       creepage: {
         title: t({ tr: 'Creepage kararı', en: 'Creepage decision' }),
-        body: `S_required = max(S_profile, S_fab, S_user)
+        body: t({
+          tr: `S_gerekli = max(S_profil, S_üretici, S_kullanıcı)
+M_mutlak = S_gerçek − S_gerekli
+M_yüzde = 100 × (S_gerçek − S_gerekli) / S_gerekli`,
+          en: `S_required = max(S_profile, S_fab, S_user)
 M_absolute = S_actual − S_required
 M_percent = 100 × (S_actual − S_required) / S_required`,
+        }),
       },
       padstack: {
         title: t({ tr: 'Padstack geometrisi', en: 'Padstack geometry' }),
-        body: `D_drill = D_finished + 2·t_plating + A_process
+        body: t({
+          tr: `D_matkap = D_bitmiş + 2·t_kaplama + A_proses
+D_pad = D_matkap + 2·A_R
+A_R,nominal = (D_pad − D_matkap) / 2
+A_R,min = (D_pad,min − D_matkap,max) / 2 − E_kayıt
+D_antipad = D_pad + 2·C_plane
+D_mask = D_pad + 2·E_mask
+G_bakır = P − (D_pad1 + D_pad2) / 2
+W_mask,web = P − (D_mask1 + D_mask2) / 2
+G_delik = P_delik − (D_matkap1 + D_matkap2) / 2
+AR = T_kart / D_matkap`,
+          en: `D_drill = D_finished + 2·t_plating + A_process
 D_pad = D_drill + 2·A_R
 A_R,nominal = (D_pad − D_drill) / 2
 A_R,min = (D_pad,min − D_drill,max) / 2 − E_registration
@@ -371,6 +393,7 @@ G_copper = P − (D_pad1 + D_pad2) / 2
 W_mask,web = P − (D_mask1 + D_mask2) / 2
 G_hole = P_hole − (D_drill1 + D_drill2) / 2
 AR = T_board / D_drill`,
+        }),
       },
     },
 

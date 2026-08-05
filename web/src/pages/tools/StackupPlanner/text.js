@@ -259,7 +259,19 @@ export function getText(lang) {
 
     formula: {
       title: t({ tr: 'Stack-up bağıntıları', en: 'Stack-up relations' }),
-      body: `T_dielectric = ΣH_core + ΣH_prepreg
+      body: t({
+        tr: `T_dielektrik = ΣH_core + ΣH_prepreg
+T_bitmiş = T_dielektrik + Σt_bakır + Σt_kaplama + Σt_mask
+h_min = h_nominal − tol_minus       h_max = h_nominal + tol_plus
+h_min = h_nominal·(1 − p_minus/100)  h_max = h_nominal·(1 + p_plus/100)
+T_min = Σh_i,min    T_nominal = Σh_i,nominal    T_max = Σh_i,max
+E_i = |h_i − h_ayna| / max((h_i + h_ayna)/2, ε)
+E_simetri,ağırlıklı = Σ|h_i − h_ayna| / Σ((h_i + h_ayna)/2)
+Dk_ağırlıklı = Σ(Dk_i·h_i) / Σh_i
+M_üst = Σ(t_bakır,i·doluluk_i)     M_alt = Σ(t_bakır,j·doluluk_j)
+B_bakır = 100·|M_üst − M_alt| / (M_üst + M_alt)
+AR = T_bitmiş / D_matkap`,
+        en: `T_dielectric = ΣH_core + ΣH_prepreg
 T_finished = T_dielectric + Σt_copper + Σt_coating + Σt_mask
 h_min = h_nominal − tol_minus       h_max = h_nominal + tol_plus
 h_min = h_nominal·(1 − p_minus/100)  h_max = h_nominal·(1 + p_plus/100)
@@ -270,6 +282,7 @@ Dk_weighted = Σ(Dk_i·h_i) / Σh_i
 M_top = Σ(t_copper,i·coverage_i)     M_bottom = Σ(t_copper,j·coverage_j)
 B_copper = 100·|M_top − M_bottom| / (M_top + M_bottom)
 AR = T_finished / D_drill`,
+      }),
     },
 
     detail: {

@@ -210,7 +210,21 @@ export function getText(lang) {
 
     formula: {
       title: t({ tr: 'BGA breakout geometrisi', en: 'BGA breakout geometry' }),
-      body: `G = P − D_L
+      body: t({
+        tr: `G = P − D_L
+W_max,1 = P − D_L − 2C
+nW + (n + 1)C ≤ G
+n_max = floor[(G − C) / (W + C)]
+M_koridor = G − [nW + (n + 1)C]
+P_diyag = P·√2
+W_max,diyag = P·√2 − D_L − 2C
+d_LV = P / √2
+D_V,max = P·√2 − D_L − 2C
+C_land,via = d_LV − (D_L + D_V) / 2
+C_via,via = P_via − (D_V1 + D_V2) / 2
+D_mask = D_L + 2·E_mask
+W_mask,web = P − D_mask`,
+        en: `G = P − D_L
 W_max,1 = P − D_L − 2C
 nW + (n + 1)C ≤ G
 n_max = floor[(G − C) / (W + C)]
@@ -223,6 +237,7 @@ C_land,via = d_LV − (D_L + D_V) / 2
 C_via,via = P_via − (D_V1 + D_V2) / 2
 D_mask = D_L + 2·E_mask
 W_mask,web = P − D_mask`,
+      }),
     },
 
     detail: {

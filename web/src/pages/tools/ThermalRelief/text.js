@@ -234,7 +234,21 @@ export function getText(lang) {
 
     formula: {
       title: t({ tr: 'Thermal relief bağıntıları', en: 'Thermal relief relations' }),
-      body: `ρ(T) = ρ_20·[1 + α·(T − 20)]
+      body: t({
+        tr: `ρ(T) = ρ_20·[1 + α·(T − 20)]
+R_s = ρ(T)·L_s / (W_s·t)
+R_s = ρ(T)·L / [t·(W_2 − W_1)]·ln(W_2 / W_1)
+R_relief = ρ(T)·L_s / (N·W_s·t)
+1/R_eq = Σ(1/R_i)     I_i = I·(1/R_i) / Σ(1/R_j)
+V_düşüm = I·R_relief    P_toplam = I²·R_relief = Σ(I_i²·R_i)
+A_toplam = N·W_s·t      J_s = I_s / (W_s·t)
+R_th,s = L_s / (k_Cu·W_s·t)
+R_th,relief = L_s / (k_Cu·N·W_s·t)
+G_th = 1 / R_th        Q = ΔT / R_th
+D_açıklık = D_pad + 2·G_thermal
+W_örtüşme = D_pad·sin(π / N)
+F_bridge = N·W_iç / (π·D_pad)`,
+        en: `ρ(T) = ρ_20·[1 + α·(T − 20)]
 R_s = ρ(T)·L_s / (W_s·t)
 R_s = ρ(T)·L / [t·(W_2 − W_1)]·ln(W_2 / W_1)
 R_relief = ρ(T)·L_s / (N·W_s·t)
@@ -247,6 +261,7 @@ G_th = 1 / R_th        Q = ΔT / R_th
 D_clear = D_pad + 2·G_thermal
 W_overlap = D_pad·sin(π / N)
 F_bridge = N·W_inner / (π·D_pad)`,
+      }),
     },
 
     detail: {

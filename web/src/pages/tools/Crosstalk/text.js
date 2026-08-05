@@ -136,8 +136,8 @@ export function getText(lang) {
     fextOn: t({ tr: 'FEXT hesapla — modal εeff gir', en: 'Compute FEXT — enter modal εeff' }),
     fextSolver: t({ tr: 'FEXT hesapla — çözücüden', en: 'Compute FEXT — from the solver' }),
     fextStructLabel: {
-      [FEXT_STRUCT_MICROSTRIP]: 'Edge-coupled microstrip',
-      [FEXT_STRUCT_STRIPLINE]: 'Edge-coupled stripline',
+      [FEXT_STRUCT_MICROSTRIP]: t({ tr: 'Kenar kuplajlı microstrip', en: 'Edge-coupled microstrip' }),
+      [FEXT_STRUCT_STRIPLINE]: t({ tr: 'Kenar kuplajlı stripline', en: 'Edge-coupled stripline' }),
     },
     fextSolverHint: t({
       tr: 'W ve S yukarıdaki kuplaj alanlarından alınır; 2B alan çözücü çiftin modal εeff değerlerini bu yığından hesaplar',

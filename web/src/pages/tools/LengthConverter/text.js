@@ -23,7 +23,7 @@ export function getText(lang) {
     }),
     title: t({ tr: 'Uzunluk Dönüştürücü', en: 'Length Converter' }),
     intro: t({
-      tr: 'PCB tasarımında sık karşılaşılan mm, µm, mil, inch, cm ve m birimleri arasında çift '
+      tr: 'PCB tasarımında sık karşılaşılan mm, µm, mil, inç, cm ve m birimleri arasında çift '
         + 'yönlü dönüşüm yapar; girilen uzunluğun tüm birimlerdeki karşılığını birlikte gösterir '
         + 've yuvarlatılmış 39.3701 kuralının nerede görünür hale geldiğini işaretler.',
       en: 'Converts both ways between the mm, µm, mil, inch, cm and m units common in PCB '
@@ -65,8 +65,8 @@ export function getText(lang) {
     unitLabel: {
       mm: t({ tr: 'milimetre (mm)', en: 'millimetre (mm)' }),
       'µm': t({ tr: 'mikrometre (µm)', en: 'micrometre (µm)' }),
-      mil: 'mil (0.001 inch)',
-      inch: 'inch (in)',
+      mil: t({ tr: 'mil (0.001 inç)', en: 'mil (0.001 inch)' }),
+      inch: t({ tr: 'inç (in)', en: 'inch (in)' }),
       cm: t({ tr: 'santimetre (cm)', en: 'centimetre (cm)' }),
       m: t({ tr: 'metre (m)', en: 'metre (m)' }),
     },
@@ -76,7 +76,7 @@ export function getText(lang) {
       mm: t({ tr: 'milimetre', en: 'millimetre' }),
       'µm': t({ tr: 'mikrometre', en: 'micrometre' }),
       mil: 'mil',
-      inch: 'inch',
+      inch: t({ tr: 'inç', en: 'inch' }),
       cm: t({ tr: 'santimetre', en: 'centimetre' }),
       m: t({ tr: 'metre', en: 'metre' }),
     },
@@ -95,7 +95,7 @@ export function getText(lang) {
       headBoard: t({ tr: 'Kart ölçüleri', en: 'Board dimensions' }),
       headBoardUnits: 'mm · µm · mil',
       headOther: t({ tr: 'Diğer birimler', en: 'Other units' }),
-      headOtherUnits: 'inch · cm · m',
+      headOtherUnits: t({ tr: 'inç · cm · m', en: 'inch · cm · m' }),
       targetTag: t({ tr: '(hedef)', en: '(target)' }),
     },
 
@@ -111,8 +111,8 @@ export function getText(lang) {
 
     formula: t({
       tr: `Tanım gereği tam:
-  1 inch = 25.4 mm
-  1 mil = 0.001 inch = 0.0254 mm
+  1 inç = 25.4 mm
+  1 mil = 0.001 inç = 0.0254 mm
   1 µm = 0.001 mm
 
 Dönüşüm daima SI (metre)
@@ -208,9 +208,9 @@ Display value:
     // --- Sağ panel: kullanılan tanımların kaynağı (spec §1) ---
     sourceNotes: [
       t({
-        tr: `Kaynak: 1 inch = ${fmt(MM_PER_INCH)} mm eşitliği ölçüm sonucu değil tanımdır ve `
+        tr: `Kaynak: 1 inç = ${fmt(MM_PER_INCH)} mm eşitliği ölçüm sonucu değil tanımdır ve `
           + `1959 tarihli uluslararası yard ve pound anlaşmasından gelir. Anlaşma `
-          + `1 yard = 0.9144 m'yi tam kabul eder; 0.9144 / 36 = 0.0254 m tam olarak bir inch `
+          + `1 yard = 0.9144 m'yi tam kabul eder; 0.9144 / 36 = 0.0254 m tam olarak bir inç `
           + `eder. Bu yüzden dönüşümün kendisinde belirsizlik yoktur.`,
         en: `Source: the equality 1 inch = ${fmt(MM_PER_INCH)} mm is a definition, not a `
           + `measurement, and comes from the international yard and pound agreement of 1959. `
@@ -218,7 +218,7 @@ Display value:
           + `one inch. The conversion itself therefore carries no uncertainty.`,
       }),
       t({
-        tr: `Mil ve mikrometre aynı tanım zincirinden türer: 1 mil = 0.001 inch = `
+        tr: `Mil ve mikrometre aynı tanım zincirinden türer: 1 mil = 0.001 inç = `
           + `${fmt(MM_PER_MIL)} mm; 1 µm = 0.001 mm, SI ön ek tanımı gereği (µ = 10⁻⁶).`,
         en: `Mil and micrometre derive from the same chain of definitions: 1 mil = 0.001 inch = `
           + `${fmt(MM_PER_MIL)} mm; 1 µm = 0.001 mm by the SI prefix definition (µ = 10⁻⁶).`,
@@ -236,8 +236,8 @@ Display value:
       t({
         tr: 'ABD arazi ölçümünde kullanılan survey inch ayrı bir tanımdır: 1 m = 39.37 survey '
           + 'inch bağıntısıyla verilir, yani 1 survey inch = 0.0254000508 m ve uluslararası '
-          + 'inch’ten yaklaşık 2 ppm büyüktür. Elektronik ve mekanik çizimlerde uluslararası '
-          + 'inch geçerlidir; bu ekran yalnızca onu kullanır.',
+          + 'inç’ten yaklaşık 2 ppm büyüktür. Elektronik ve mekanik çizimlerde uluslararası '
+          + 'inç geçerlidir; bu ekran yalnızca onu kullanır.',
         en: 'The survey inch used in US land surveying is a separate definition: it is given by '
           + '1 m = 39.37 survey inch, i.e. 1 survey inch = 0.0254000508 m, about 2 ppm larger '
           + 'than the international inch. Electronic and mechanical drawings use the '
