@@ -527,14 +527,6 @@ export default function StackupPlanner() {
                         : dfm.profile.copyButton}
                     </button>
                   </div>
-
-      {/* ---------- Alt: Denklemler ---------- */}
-      {/* Dar sağ sütunda uzun formüller kırpılıyordu; tam genişlikte
-          hiçbiri taşmıyor. Desen ViaProperties ile aynı. */}
-      <section className="formula-wide">
-        <h2>{ui.equations}</h2>
-        <pre className="formula">{text.formula.body}</pre>
-      </section>
                   {transferClipboard.state === COPY_FAILED && (
                     <p className="empty-note warn">{dfm.profile.copyFailed}</p>
                   )}
@@ -545,6 +537,17 @@ export default function StackupPlanner() {
           )}
         </section>
       </div>
+
+      {/* ---------- Alt: Denklemler ---------- */}
+      {/* Dar sağ sütunda uzun formüller kırpılıyordu; tam genişlikte
+          hiçbiri taşmıyor. Desen ViaProperties ve ThermalRelief ile aynı:
+          tool-grid'in dışında, koşulsuz. Önceden yanlışlıkla transferJson
+          şartının içindeydi — sinyal transferi katmanı seçilmeden hiç
+          görünmüyordu (prerender'da iki dilde de doğrulandı). */}
+      <section className="formula-wide">
+        <h2>{ui.equations}</h2>
+        <pre className="formula">{text.formula.body}</pre>
+      </section>
 
       {/* ---------- Alt: Parametrik grafik ---------- */}
       <section className="panel panel-chart">
