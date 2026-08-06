@@ -56,6 +56,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     strategy:
+      # api imajı web'in alan adı guard'ına takılıp iptal olmasın: ikisi
+      # birbirinden bağımsız yayınlanır.
+      fail-fast: false
       matrix:
         include:
           - name: api
@@ -64,6 +67,23 @@ jobs:
             dockerfile: web/Dockerfile
     steps:
       - uses: actions/checkout@v4
+
+      # VITE_SITE_URL DERLEME zamanı gömülür (web/Dockerfile:32) ve çalışma
+      # zamanında değiştirilemez; üretim ise hazır imajı `--no-build` ile
+      # çeker, yani deploy/.env'e yazılan değer bu imaja hiç ulaşmaz.
+      # Değer yokken derleme, 106 sayfanın canonical/hreflang'ine ve
+      # sitemap'e placeholder alan adı basar (web/scripts/site-url.mjs:13)
+      # ve yalnızca uyarı verip yeşil kalır. Yayınlanmış böyle bir imaj
+      # dağıtılamaz, o yüzden burada sessizce geçilmez.
+      - name: Alan adı tanımlı mı (yalnız web)
+        if: matrix.name == 'web' && vars.SITE_URL == ''
+        run: |
+          echo "::error::vars.SITE_URL tanımlı değil. Bu değer olmadan web imajı" \
+               "placeholder alan adıyla (https://alp-pcb-toolkit.example) derlenir" \
+               "ve dağıtılamaz. Depo ayarlarından tanımlayın:" \
+               "Settings > Secrets and variables > Actions > Variables >" \
+               "New repository variable, ad: SITE_URL, değer: https://<alan-adiniz>"
+          exit 1
 
       - uses: docker/setup-buildx-action@v3
 
@@ -91,6 +111,10 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
+          # api imajı bu ARG'ı tanımlamaz ve tüketmez; buildx yalnızca uyarı
+          # basar. Tek matris adımını ikiye bölmek yerine burada geçilir.
+          build-args: |
+            VITE_SITE_URL=${{ vars.SITE_URL }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
@@ -99,7 +123,12 @@ jobs:
       # Yayınlanan imaj bilinen açıklara karşı taranır. Yalnızca CRITICAL/HIGH
       # ve DÜZELTMESİ ÇIKMIŞ bulgular işi kırar: düzeltmesi olmayan bir taban
       # imaj CVE'si her push'u kırmızıya boyar ve tarama gürültüye dönüşürdü.
-      - uses: aquasecurity/trivy-action@0.28.0
+      #
+      # Etiket `v` ÖNEKLİ olmalı: eylem önekli etiketlemeye geçti ve öneksiz
+      # `0.28.0` artık çözülmüyor. Çözülemeyen bir eylem referansı işi ilk
+      # adımda değil KURULUM aşamasında düşürür — yani yukarıdaki push hiç
+      # koşmaz. Bu yüzden imaj yayını 31 Temmuz'dan beri sessizce durmuştu.
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:sha-${{ github.sha }}
           severity: CRITICAL,HIGH
