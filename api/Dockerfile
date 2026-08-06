@@ -21,7 +21,7 @@ COPY api/ ./
 RUN dotnet publish Alp.Api/Alp.Api.csproj -c Release -o /app/publish --no-restore
 
 # ---- çalışma ----
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
 # QuestPDF/SkiaSharp yerel bağımlılığı fontconfig'tir; kurulmazsa PDF üretimi
 # çalışma anında patlar (derlemede görünmez). DejaVu, Faz 3b'nin kendi yazı
