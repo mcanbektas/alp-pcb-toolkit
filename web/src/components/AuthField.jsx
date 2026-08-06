@@ -38,6 +38,20 @@ export default function AuthField({
   const isPassword = type === 'password'
   const toggleLabel = revealed ? ui.passwordHide : ui.passwordShow
 
+  // Enter, gönder düğmesine basılmış gibi davranır. Tek girdili olmayan bir
+  // formda tarayıcı bunu zaten yapar, ama yapmadığı durumlar var ve hepsi
+  // kullanıcıya "hiçbir şey olmadı" gibi görünüyor: parola yöneticisinin
+  // öneri listesi açıkken ilk Enter listeyi kapatır, formu göndermez.
+  // `requestSubmit` düğmeye tıklamakla AYNI yoldur — `onSubmit` çalışır ve
+  // tarayıcı doğrulaması atlanmaz; `form.submit()` ikisini de atlardı.
+  const handleEnter = (e) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
+    const form = e.currentTarget.form
+    if (!form) return
+    e.preventDefault()
+    form.requestSubmit()
+  }
+
   return (
     <label className="field">
       <span className="field-label">{label}</span>
@@ -47,6 +61,7 @@ export default function AuthField({
           value={value}
           autoComplete={autoComplete}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleEnter}
         />
         {isPassword && (
           <button
