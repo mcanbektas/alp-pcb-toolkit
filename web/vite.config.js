@@ -115,6 +115,19 @@ export default defineConfig(({ isSsrBuild }) => ({
   // koşturulunca `test.describe` bulunamadı diye patlar.
   test: {
     include: ['src/**/*.test.{js,jsx}'],
+    // Vitest'in varsayılan test zaman aşımı 5 sn'dir ve alan çözücü testleri
+    // için ÇOK DAR: 2B FDM ızgarası bu makinede tek testte 2.5 sn'ye çıkıyor,
+    // yüklü bir CI koşucusunda ise 5 sn'yi aşıp "Test timed out in 5000ms"
+    // ile düşüyor. Testin kendisi kararsız değil — çözücü saf ve deterministik,
+    // aynı girdiye aynı sayıyı veriyor; kararsız olan koşucunun hızı. Bu yüzden
+    // her koşumda BAŞKA bir alan çözücü testi düşüyor ve arıza gerçek bir
+    // regresyon gibi okunuyordu (ölçüldü: aynı commit'te bir iş akışında yeşil,
+    // diğerinde kırmızı).
+    //
+    // Tavan yavaşlığı meşrulaştırmak için değil, hız dalgalanmasını gerçek
+    // hatadan ayırmak için var: gözlenen en kötü CI süresinin ~4 katı. Gerçekten
+    // ASILI bir test hâlâ yakalanır, yalnızca 30 sn sonra.
+    testTimeout: 30_000,
   },
 
   // Kendi sunucumuzda barındırılır (GitHub Pages değil): kök '/'den servis
