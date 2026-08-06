@@ -38,6 +38,12 @@ const STATIC_ROUTES = {
   reports: { tr: '/raporlarim', en: '/en/reports' },
   account: { tr: '/hesabim', en: '/en/account' },
   project: { tr: '/proje/:id', en: '/en/project/:id' },
+  // Yönetim paneli. `indexablePages()` bunu DÖNDÜRMEZ — oturum ve rol ister,
+  // yani prerender'da boş kabuk üretir ve sitemap'e girmesi arama motoruna
+  // hiçbir zaman açılmayacak bir adres bildirmek olurdu.
+  admin: { tr: '/yonetim', en: '/en/admin' },
+  // Denetim izi günlüğü — aynı gerekçeyle `indexablePages()` dışı.
+  adminAudit: { tr: '/yonetim/gunluk', en: '/en/admin/audit' },
   // Yasal sayfalar. Kayıtları `data/legalPages.js`te; buradaki anahtarlar
   // LEGAL_DOCS anahtarlarıyla BİREBİR aynı olmak zorundadır (guard testi var).
   privacy: { tr: '/gizlilik', en: '/en/privacy' },

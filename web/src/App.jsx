@@ -135,6 +135,10 @@ const Projects = lazy(() => import('./pages/account/Projects'))
 const Project = lazy(() => import('./pages/account/Project'))
 const Reports = lazy(() => import('./pages/account/Reports'))
 const Account = lazy(() => import('./pages/account/Account'))
+// Yönetim paneli. Tembel yükleme burada ayrıca değerli: paketi yalnız yönetici
+// çeker, sıradan kullanıcı hiç indirmez.
+const AdminPanel = lazy(() => import('./pages/admin'))
+const AdminAuditLog = lazy(() => import('./pages/admin/audit'))
 
 // Uygulama geneli metinler. Ekran metni gibi bunlar da `pick()` ile çözülür:
 // doğrudan `DICT[lang]` indekslemesi eksik çeviride `undefined` verirdi, `pick`
@@ -150,6 +154,9 @@ const FOOTER = {
 // elle liste tutulmaz, yeni kategori eklendiğinde footer kendiliğinden büyür.
 const FOOTER_CATEGORIES = { tr: 'Kategoriler', en: 'Categories' }
 const FOOTER_ACCOUNT = { tr: 'Hesap', en: 'Account' }
+// Yönetim bağlantısının başlığı. Ekranın kendi sözlüğünden (pages/admin/text.js)
+// AYRI durur: burası altbilgi çerçevesi, orası sayfanın içi.
+const FOOTER_ADMIN = { tr: 'Yönetim', en: 'Administration' }
 const FOOTER_CONTACT = { tr: 'İletişim', en: 'Contact us' }
 const FOOTER_LEGAL = { tr: 'Yasal', en: 'Legal' }
 
@@ -313,6 +320,10 @@ const NOTICE_TIMEOUT_MS = 3000
 function Layout({ children }) {
   const { lang } = useLang()
   const { notice, dismissNotice } = useNotice()
+  // Yalnız altbilgideki yönetim bağlantısı için. Prerender'da ve ilk client
+  // render'ında `user` null olur (oturum asenkron yüklenir), yani hydration
+  // ayrışmaz — bağlantı sonradan belirir.
+  const { user } = useAuth()
 
   return (
     <>
@@ -366,6 +377,12 @@ function Layout({ children }) {
                 <li><LangLink to="/projelerim">{authText(lang).header.projects}</LangLink></li>
                 <li><LangLink to="/raporlarim">{authText(lang).header.reports}</LangLink></li>
                 <li><LangLink to="/hesabim">{authText(lang).header.account}</LangLink></li>
+                {/* Yalnız yöneticiye çizilir. Prerender'da ve ilk client
+                    render'ında `user` her zaman null olduğu için hydration
+                    ayrışmaz — bağlantı oturum yüklendikten sonra belirir. */}
+                {user?.isAdmin && (
+                  <li><LangLink to="/yonetim">{pick(FOOTER_ADMIN, lang)}</LangLink></li>
+                )}
               </ul>
             </nav>
 
@@ -436,6 +453,12 @@ function langRoutes(lang) {
     <Route key={`${lang}:projects`} path={staticPath('projects', lang)} element={<Projects />} />,
     <Route key={`${lang}:reports`} path={staticPath('reports', lang)} element={<Reports />} />,
     <Route key={`${lang}:account`} path={staticPath('account', lang)} element={<Account />} />,
+    // Rota herkese kayıtlıdır, içerik değil: yetkisiz kullanıcı sayfayı açar ve
+    // "yetkin yok" notunu görür. Rotayı hiç kurmamak bilinmeyen-yol ekranına
+    // düşürürdü ve yöneticinin kendi adresi de 404 olurdu (rol henüz yüklenmemiş
+    // olabilir). Asıl kapı sunucuda.
+    <Route key={`${lang}:admin`} path={staticPath('admin', lang)} element={<AdminPanel />} />,
+    <Route key={`${lang}:adminAudit`} path={staticPath('adminAudit', lang)} element={<AdminAuditLog />} />,
     <Route key={`${lang}:project`} path={staticPath('project', lang)} element={<Project />} />,
     // Yasal sayfalar tek bileşenden çizilir; rota kaydı listeden türer, elle
     // üç satır yazılmaz — yeni bir belge eklendiğinde rota kendiliğinden doğar.

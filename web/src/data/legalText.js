@@ -44,6 +44,13 @@ export function isControllerPlaceholder() {
 // göstermesi, hiç değişmemiş bir metni değişmiş gibi sunardı.
 export const LEGAL_UPDATED = '2026-08-06'
 
+// İşlem güvenliği kayıtlarının (denetim izi) en çok kaç gün saklandığı.
+// TEK kaynak burası DEĞİL: api/Alp.Api/appsettings.json → App:AuditRetentionDays
+// (AuditCleanupService bu sınırı uygular) ile AYNI değer olmak zorunda —
+// varsayılan orada da 365. Biri değişirse diğeri ELLE güncellenir, otomatik
+// eşitleme yoktur. docs/brifler/11-loglama.md §5 (F3).
+const AUDIT_RETENTION_DAYS = 365
+
 export function legalText(lang) {
   const t = (dict) => pick(dict, lang)
 
@@ -96,8 +103,8 @@ export function legalText(lang) {
                 en: 'The site contains no third-party tracking, analytics or advertising scripts. There are no external fonts, no external CDN and no cookie consent banner, because no tracking cookies are used.',
               }),
               t({
-                tr: 'Hesabınızı Hesabım ekranından kendiniz silebilirsiniz. Silme kalıcıdır: hesabınız, projeleriniz, kayıtlı hesaplarınız ve rapor geçmişiniz geri alınamaz biçimde gider.',
-                en: 'You can delete your account yourself from the Account screen. Deletion is permanent: your account, projects, saved calculations and report history are removed irreversibly.',
+                tr: 'Hesabınızın silinmesini aşağıdaki başvuru adresine yazarak isteyebilirsiniz. Silme kalıcıdır: hesabınız, projeleriniz, kayıtlı hesaplarınız ve rapor geçmişiniz geri alınamaz biçimde gider.',
+                en: 'You can request deletion of your account by writing to the contact address below. Deletion is permanent: your account, projects, saved calculations and report history are removed irreversibly.',
               }),
             ],
           },
@@ -181,6 +188,10 @@ export function legalText(lang) {
               t({
                 tr: 'Süresi dolmuş oturum yenileme kayıtları düzenli olarak silinir. İptal edilmiş ama süresi dolmamış kayıtlar, tekrar kullanım denemesini yakalayabilmek için süresi dolana kadar tutulur.',
                 en: 'Expired session refresh records are deleted regularly. Revoked but unexpired records are kept until expiry so that a replay attempt can be detected.',
+              }),
+              t({
+                tr: `İşlem güvenliği kayıtları (denetim izi — kim ne yaptı) en çok ${AUDIT_RETENTION_DAYS} gün saklanır; bu süreyi dolduran kayıtlar düzenli olarak silinir.`,
+                en: `Transaction security records (the audit trail of who did what) are kept for at most ${AUDIT_RETENTION_DAYS} days; records past this period are deleted regularly.`,
               }),
               t({
                 tr: 'Hiçbir rapora bağlı olmayan dondurulmuş bölüm içerikleri düzenli olarak toplanır. Kullanıcı başına ayrılan alan aşıldığında en eski rapor içerikleri düşürülür; raporun kütük kaydı kalır, içeriği gider.',
@@ -311,6 +322,15 @@ export function legalText(lang) {
             }),
           },
           {
+            heading: t({ tr: 'Saklama süresi', en: 'Retention period' }),
+            body: [
+              t({
+                tr: `İşlem güvenliği verisi (denetim izi — kim ne yaptı) en çok ${AUDIT_RETENTION_DAYS} gün saklanır; bu süreyi dolduran kayıtlar düzenli olarak silinir. Diğer veri türlerinin saklama süreleri için Gizlilik sayfasındaki "Saklama süreleri" bölümüne bakın.`,
+                en: `Transaction security data (the audit trail of who did what) is kept for at most ${AUDIT_RETENTION_DAYS} days; records past this period are deleted regularly. For the retention periods of other data types, see the "Retention" section on the Privacy page.`,
+              }),
+            ],
+          },
+          {
             heading: t({ tr: 'İlgili kişinin hakları (m. 11)', en: 'Rights of the data subject (Art. 11)' }),
             body: [
               t({
@@ -361,8 +381,8 @@ export function legalText(lang) {
                 en: 'You may send your requests to the contact address below, from the email address registered to your account. Applications are concluded within thirty days at the latest.',
               }),
               t({
-                tr: 'Silme hakkınızı beklemeden kendiniz kullanabilirsiniz: Hesabım ekranındaki “Hesabı sil” bölümü, parolanızı doğruladıktan sonra hesabınızı ve ona bağlı proje, hesap ve rapor kayıtlarını siler. Mevzuat gereği saklanması gereken kayıtlar varsa süresi dolana kadar saklanır. Dilerseniz talebinizi aşağıdaki adrese de iletebilirsiniz.',
-                en: 'You can exercise your right to erasure yourself without waiting: the “Delete account” section on the Account screen removes your account and the projects, calculations and reports attached to it once you confirm your password. Any records that must be retained by law are kept until their retention period ends. You may also send your request to the address below.',
+                tr: 'Silme talebiniz üzerine hesabınız ve ona bağlı proje, hesap ve rapor kayıtları geri alınamaz biçimde silinir. Mevzuat gereği saklanması gereken kayıtlar varsa süresi dolana kadar saklanır ve bunun dışındaki veriler bekletilmez.',
+                en: 'Upon your deletion request, your account and the projects, calculations and reports attached to it are removed irreversibly. Any records that must be retained by law are kept until their retention period ends; nothing beyond those is held back.',
               }),
             ],
           },

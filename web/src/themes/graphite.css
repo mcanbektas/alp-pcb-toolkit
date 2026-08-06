@@ -10,6 +10,18 @@
    kuralların gövdesi. */
 
 :root {
+
+  /* Gökkuşağı durakları — YALNIZ yönetim panelindeki `pro` plan rozeti
+     (.plan-pro) için. Palet dışına bilerek çıkar: rozetin işi "rengarenk"
+     olmak, temanın üç işlev rengi (accent/warn/danger) tayf vermiyor.
+     Tonlar orta parlaklıkta seçildi ki açık zeminde de koyu zeminde de
+     okunsun. Başka yerde KULLANILMAZ — işlev rengi değildir. */
+  --pro-1: #e5484d;
+  --pro-2: #f76b15;
+  --pro-3: #d4a017;
+  --pro-4: #2f9e44;
+  --pro-5: #3b82f6;
+  --pro-6: #8b5cf6;
   /* PALET KAYNAĞI: direnç renk kodu (spec §9.1).
      Arayüzdeki her renk bir direnç bandının TONUNDAN türetildi. Bantların
      kendi hex değerleri değişmedi — onlar fiziksel komponent renkleri ve
@@ -318,6 +330,39 @@ a:hover { text-decoration: underline; }
   color: var(--muted); white-space: nowrap;
 }
 .chip.on { border-color: var(--accent-dim); color: var(--accent); }
+
+/* Plan etiketi (yönetim paneli). Renk kararı ürün kararı: `free` dikkat
+   çeksin diye danger rengini ödünç alır (hata değil), `pro` tema paletinin
+   üç ana renginden akan degradeyle yazılır — "rengarenk" ama yine tema
+   değişkenlerinden, literal renk yok. Bilinmeyen plan değeri sınıf almaz ve
+   olağan soluk metinle kalır. */
+/* `.result-table .sub-line` rengi ezmesin diye tam zincir yazılır. */
+.result-table .sub-line.plan-free { color: var(--danger); }
+.result-table .sub-line.plan-pro {
+  /* `sub-line` blok: degrade kutusu hücre genişliğine yayılır ve üç harflik
+     metin yalnız ilk rengi gösterirdi. Kutu metne daraltılır, satır düzeni
+     (alt satırda durma) bozulmaz. */
+  width: fit-content;
+  /* Tayf başladığı renkle biter ve kutunun 3 katı genişliktedir: konum bir
+     tam tur kaydığında ek yeri görünmez — döngü dikişsiz akar. Duraklar
+     :root'taki --pro-* değişkenleri. */
+  background: linear-gradient(90deg, var(--pro-1), var(--pro-2), var(--pro-3), var(--pro-4), var(--pro-5), var(--pro-6), var(--pro-1));
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  font-weight: 600;
+  animation: plan-pro-akis 3s linear infinite;
+}
+@keyframes plan-pro-akis {
+  to { background-position: 300% 0; }
+}
+/* Hareket azaltma isteyen kullanıcıda animasyon durur; degrade kalır. */
+@media (prefers-reduced-motion: reduce) {
+  .result-table .sub-line.plan-pro { animation: none; }
+}
+
+/* Satır içi YIKICI eylem (yönetim panelindeki Sil): dinlenirken sessiz —
+   kırmızı tabloyu kaplamasın — üzerine gelince rengini belli eder. */
+.row-add.destructive:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
 
 /* Kart + kartın DIŞINDAKİ eylem düğmesi. <a> içine interaktif eleman konamaz
    (HTML5 içerik modeli), bu yüzden Projelerim'de silme düğmesi kartın kardeşi.
@@ -859,10 +904,19 @@ a.row-add { display: inline-block; text-decoration: none; }
 .result-table .mark.danger { color: var(--danger); }
 .result-table .mark.unknown { color: var(--muted); }
 
-.mini-head td {
+/* `th` de kapsanır: sütun başlığı olan tablolarda (yönetim panelindeki hesap
+   listesi) `<td>` yazmak başlığı veriden ayırmaz — ekran okuyucu sütunu
+   duyuramaz. Stil aynı kalsın diye `th`in tarayıcı varsayılanları (ortalı,
+   kalın) burada geri alınır. */
+.mini-head td, .mini-head th {
   font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase;
   letter-spacing: 0.12em; color: var(--muted); padding-top: 16px;
+  text-align: left; font-weight: 400;
 }
+/* Son sütunun başlığı da içeriği gibi SAĞA yaslanır: `.result-table
+   td:last-child` hücreyi sağa alıyor, başlık solda kalınca sütun kayık
+   görünüyordu (yönetim panelindeki İşlem sütunu). */
+.mini-head th:last-child { text-align: right; }
 
 .empty-note { color: var(--muted); font-size: 0.85rem; }
 .empty-note.warn { color: var(--warn); }

@@ -22,6 +22,11 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   busy = false,
+  // Onaydan önce doldurulması gereken alan varsa (yönetim panelinde silmeyi
+  // isteyenin parolası) buraya gelir. Verilmezse kart eskisi gibi yalnız
+  // mesaj + iki düğmedir; odak yine İPTAL düğmesindedir, yani alan eklenmiş
+  // olması Enter'ın yanlışlıkla onaylama riskini geri getirmez.
+  children = null,
 }) {
   const dialogRef = useRef(null)
   const cancelBtnRef = useRef(null)
@@ -80,6 +85,7 @@ export default function ConfirmDialog({
       <div className="confirm-dialog-body">
         <h2 id={titleId}>{title}</h2>
         <p id={messageId} className="confirm-dialog-message">{message}</p>
+        {children}
         <div className="confirm-dialog-actions">
           <button
             type="button"
