@@ -96,8 +96,8 @@ export function legalText(lang) {
                 en: 'The site contains no third-party tracking, analytics or advertising scripts. There are no external fonts, no external CDN and no cookie consent banner, because no tracking cookies are used.',
               }),
               t({
-                tr: 'Hesabınızı kendiniz silebileceğiniz bir düğme henüz yok. Silme talebinizi aşağıdaki başvuru adresine yazarsanız hesabınız ve verileriniz silinir.',
-                en: 'There is not yet a self-service button to delete your account. If you send a deletion request to the contact address below, your account and data will be deleted.',
+                tr: 'Hesabınızı Hesabım ekranından kendiniz silebilirsiniz. Silme kalıcıdır: hesabınız, projeleriniz, kayıtlı hesaplarınız ve rapor geçmişiniz geri alınamaz biçimde gider.',
+                en: 'You can delete your account yourself from the Account screen. Deletion is permanent: your account, projects, saved calculations and report history are removed irreversibly.',
               }),
             ],
           },
@@ -361,8 +361,8 @@ export function legalText(lang) {
                 en: 'You may send your requests to the contact address below, from the email address registered to your account. Applications are concluded within thirty days at the latest.',
               }),
               t({
-                tr: 'Hesabınızı arayüzden kendiniz silmenizi sağlayan bir özellik henüz bulunmamaktadır. Silme talebiniz üzerine hesabınız ve ona bağlı proje, hesap ve rapor kayıtları silinir; mevzuat gereği saklanması gereken kayıtlar varsa süresi dolana kadar saklanır.',
-                en: 'A feature allowing you to delete your account yourself from the interface is not yet available. Upon your deletion request, your account and the projects, calculations and reports attached to it are deleted; any records that must be retained by law are kept until their retention period ends.',
+                tr: 'Silme hakkınızı beklemeden kendiniz kullanabilirsiniz: Hesabım ekranındaki “Hesabı sil” bölümü, parolanızı doğruladıktan sonra hesabınızı ve ona bağlı proje, hesap ve rapor kayıtlarını siler. Mevzuat gereği saklanması gereken kayıtlar varsa süresi dolana kadar saklanır. Dilerseniz talebinizi aşağıdaki adrese de iletebilirsiniz.',
+                en: 'You can exercise your right to erasure yourself without waiting: the “Delete account” section on the Account screen removes your account and the projects, calculations and reports attached to it once you confirm your password. Any records that must be retained by law are kept until their retention period ends. You may also send your request to the address below.',
               }),
             ],
           },
