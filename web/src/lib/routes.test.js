@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { CATEGORIES } from '../data/categories'
+import { LEGAL_DOCS } from '../data/legalPages'
 import { LANGS } from './i18n'
 import {
   ROUTE_KEYS, categoryFromPath, categoryPath, categoryRoutePattern, indexablePages,
@@ -175,10 +176,24 @@ describe('translatePath', () => {
 })
 
 describe('indexablePages', () => {
-  it('ana sayfa + 8 kategori + aktif araçları kapsar', () => {
+  it('ana sayfa + yasal sayfalar + 8 kategori + aktif araçları kapsar', () => {
     const pages = indexablePages()
-    expect(pages.length).toBe(1 + CATEGORIES.length + ACTIVE_TOOLS.length)
+    expect(pages.length).toBe(1 + LEGAL_DOCS.length + CATEGORIES.length + ACTIVE_TOOLS.length)
     expect(pages.filter((p) => p.kind === 'home')).toHaveLength(1)
+    expect(pages.filter((p) => p.kind === 'legal')).toHaveLength(LEGAL_DOCS.length)
+  })
+
+  // Yasal sayfalar indekslenmeli: KVKK aydınlatma metninin aranabilir ve
+  // bulunabilir olması gerekir. Listeden düşerlerse ne prerender'lanır ne de
+  // sitemap'e girerler — ikisi de sessizce olur.
+  it('üç yasal sayfa da iki dilde listede', () => {
+    const pages = indexablePages().filter((p) => p.kind === 'legal')
+    for (const doc of LEGAL_DOCS) {
+      const page = pages.find((p) => p.legal.key === doc.key)
+      expect(page).toBeTruthy()
+      expect(page.tr).toBe(staticPath(doc.key, 'tr'))
+      expect(page.en).toBe(staticPath(doc.key, 'en'))
+    }
   })
 
   it('her sayfa iki dilin adresini de taşır ve adresler benzersizdir', () => {

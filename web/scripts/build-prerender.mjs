@@ -62,7 +62,7 @@ function routes(base) {
         url: page[lang],
         lang,
         title: pageTitle(page, lang),
-        description: page.kind === 'category' ? pick(page.category.desc, lang) : null,
+        description: pageDescription(page, lang),
         canonical: base + page[lang],
         alternates,
         xDefault: base + page[DEFAULT_HREFLANG],
@@ -77,7 +77,16 @@ function routes(base) {
 function pageTitle(page, lang) {
   if (page.kind === 'category') return `${pick(page.category.title, lang)} — ${TITLE_SUFFIX}`
   if (page.kind === 'tool') return `${pick(page.tool.name, lang)} — ${TITLE_SUFFIX}`
+  if (page.kind === 'legal') return `${pick(page.legal.title, lang)} — ${TITLE_SUFFIX}`
   return TITLE_SUFFIX
+}
+
+// Açıklama meta'sı yalnız kendi metni olan sayfalarda yazılır; olmayanlarda
+// kabuktaki genel açıklama korunur (boş bir `content=""` yazmaktan iyidir).
+function pageDescription(page, lang) {
+  if (page.kind === 'category') return pick(page.category.desc, lang)
+  if (page.kind === 'legal') return pick(page.legal.desc, lang)
+  return null
 }
 
 // HTML öznitelik değeri olarak güvenli hâle getirir. Katalog metni bizim

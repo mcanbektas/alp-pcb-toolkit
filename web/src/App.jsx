@@ -11,11 +11,13 @@ import { commonText } from './data/uiText'
 import { authText } from './data/authText'
 import { LANGS, LANG_LABEL, pick } from './lib/i18n'
 import {
-  categoryFromPath, categoryPath, categoryRoutePattern, staticPath, toolFromPath, toolPath,
-  translatePath,
+  categoryFromPath, categoryPath, categoryRoutePattern, legalFromPath, staticPath, toolFromPath,
+  toolPath, translatePath,
 } from './lib/routes'
 import logo from './assets/logo.png'
 import { CATEGORIES } from './data/categories'
+import { LEGAL_DOCS } from './data/legalPages'
+import LegalPage from './pages/LegalPage'
 import Home from './pages/Home'
 import CategoryPage from './pages/CategoryPage'
 import Login from './pages/auth/Login'
@@ -149,6 +151,7 @@ const FOOTER = {
 const FOOTER_CATEGORIES = { tr: 'Kategoriler', en: 'Categories' }
 const FOOTER_ACCOUNT = { tr: 'Hesap', en: 'Account' }
 const FOOTER_CONTACT = { tr: 'İletişim', en: 'Contact us' }
+const FOOTER_LEGAL = { tr: 'Yasal', en: 'Legal' }
 
 // Slogan çevrilirken kapsamı daraltılmaz ya da genişletilmez: iki dil aynı
 // alanı tarif eder. "Donanım mühendisliği" karşılığı "hardware engineering"dir;
@@ -229,7 +232,12 @@ function TitleSync() {
   useEffect(() => {
     const tool = toolFromPath(location.pathname)
     const category = tool ? null : categoryFromPath(location.pathname)
-    const name = tool ? pick(tool.name, lang) : (category && pick(category.title, lang))
+    const legal = tool || category ? null : legalFromPath(location.pathname)
+    const name = tool
+      ? pick(tool.name, lang)
+      : category
+        ? pick(category.title, lang)
+        : (legal && pick(legal.title, lang))
     document.title = name ? `${name} — ${TITLE_SUFFIX}` : TITLE_SUFFIX
   }, [location.pathname, lang])
   return null
@@ -370,6 +378,19 @@ function Layout({ children }) {
                 <li><a className="footer-mail" href="mailto:alperenisik1171@gmail.com">alperenisik1171@gmail.com</a></li>
               </ul>
             </nav>
+
+            {/* Yasal sayfalar altbilgide durur: KVKK aydınlatma metninin
+                kolayca bulunabilir olması gerekir ve altbilgi her sayfada. */}
+            <nav className="footer-col">
+              <h2>{pick(FOOTER_LEGAL, lang)}</h2>
+              <ul>
+                {LEGAL_DOCS.map((doc) => (
+                  <li key={doc.key}>
+                    <Link to={staticPath(doc.key, lang)}>{pick(doc.title, lang)}</Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </div>
 
           {/* Uyarı cümlesi footer'da SABİT durur (CLAUDE.md, "Sonuç sunumu") —
@@ -416,6 +437,15 @@ function langRoutes(lang) {
     <Route key={`${lang}:reports`} path={staticPath('reports', lang)} element={<Reports />} />,
     <Route key={`${lang}:account`} path={staticPath('account', lang)} element={<Account />} />,
     <Route key={`${lang}:project`} path={staticPath('project', lang)} element={<Project />} />,
+    // Yasal sayfalar tek bileşenden çizilir; rota kaydı listeden türer, elle
+    // üç satır yazılmaz — yeni bir belge eklendiğinde rota kendiliğinden doğar.
+    ...LEGAL_DOCS.map((doc) => (
+      <Route
+        key={`${lang}:${doc.key}`}
+        path={staticPath(doc.key, lang)}
+        element={<LegalPage docKey={doc.key} />}
+      />
+    )),
   ]
 
   for (const category of CATEGORIES) {

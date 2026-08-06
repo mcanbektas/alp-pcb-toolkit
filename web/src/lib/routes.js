@@ -18,6 +18,7 @@
 // dilinden düşmemeli. Kararların tamamı: docs/en-url-karari.md.
 
 import { CATEGORIES } from '../data/categories.js'
+import { LEGAL_DOCS } from '../data/legalPages.js'
 import { DEFAULT_LANG, LANGS, isLang } from './i18n.js'
 
 // Dil öneki. Varsayılan dil ÖNEKSİZDİR: TR yollar bu işten önce de böyleydi
@@ -37,6 +38,11 @@ const STATIC_ROUTES = {
   reports: { tr: '/raporlarim', en: '/en/reports' },
   account: { tr: '/hesabim', en: '/en/account' },
   project: { tr: '/proje/:id', en: '/en/project/:id' },
+  // Yasal sayfalar. Kayıtları `data/legalPages.js`te; buradaki anahtarlar
+  // LEGAL_DOCS anahtarlarıyla BİREBİR aynı olmak zorundadır (guard testi var).
+  privacy: { tr: '/gizlilik', en: '/en/privacy' },
+  kvkk: { tr: '/kvkk-aydinlatma-metni', en: '/en/data-protection-notice' },
+  terms: { tr: '/kullanim-sartlari', en: '/en/terms-of-use' },
 }
 
 export const ROUTE_KEYS = Object.keys(STATIC_ROUTES)
@@ -127,6 +133,17 @@ export function toolFromPath(pathname) {
   return TOOL_BY_PATH.get(normalize(pathname)) ?? null
 }
 
+// Yasal sayfa kaydı, yolun hangi dilde olduğuna bakılmaksızın.
+const LEGAL_BY_PATH = new Map()
+for (const doc of LEGAL_DOCS) {
+  for (const lang of LANGS) LEGAL_BY_PATH.set(staticPath(doc.key, lang), doc)
+}
+
+/** Tam yoldan yasal sayfa kaydı — `TitleSync` ve prerender aynı kaynağı okur. */
+export function legalFromPath(pathname) {
+  return LEGAL_BY_PATH.get(normalize(pathname)) ?? null
+}
+
 // Sabit rotanın yolunu anahtara çevirir. `:id` taşıyan kalıplar burada değil,
 // aşağıdaki segment karşılaştırmasında çözülür.
 const KEY_BY_PATH = new Map()
@@ -204,6 +221,17 @@ export function translatePath(to, lang) {
  */
 export function indexablePages() {
   const pages = [{ kind: 'home', tr: staticPath('home', 'tr'), en: staticPath('home', 'en') }]
+  // Yasal sayfalar indekslenir: oturum gerektirmezler ve herkese açık içeriktir.
+  // Ana sayfadan hemen sonra gelirler ki sitemap'te araç kalabalığının altında
+  // kaybolmasınlar.
+  for (const doc of LEGAL_DOCS) {
+    pages.push({
+      kind: 'legal',
+      legal: doc,
+      tr: staticPath(doc.key, 'tr'),
+      en: staticPath(doc.key, 'en'),
+    })
+  }
   for (const category of CATEGORIES) {
     pages.push({
       kind: 'category',

@@ -168,12 +168,21 @@ a:hover { text-decoration: underline; }
    Uyarı cümlesi buradan hiç çıkmaz (CLAUDE.md) — yalnızca alt satıra indi. */
 .footer-grid {
   display: grid; gap: 36px;
-  /* Marka + Kategoriler + Hesap solda küme durur; esneyen boşluk dördüncü
-     sütundadır ve İletişim'i sağ kenara iter. */
-  grid-template-columns: auto auto auto 1fr;
+  /* Marka + Kategoriler + Hesap + İletişim solda küme durur; esneyen boşluk
+     SON sütundadır ve Yasal'ı sağ kenara iter. Sütun sayısı öğe sayısıyla
+     birlikte büyür: eksik kalırsa son sütun alt satıra sarkar ve
+     `:last-of-type` kuralı yanlış sütunu sağa yaslar. */
+  grid-template-columns: auto auto auto auto 1fr;
   padding-bottom: 18px;
 }
 .footer-col:last-of-type { justify-self: end; }
+/* Beş sütun ancak geniş ekranda yan yana sığar; arada iki satıra bölünür.
+   Bu kırılım ÖLÇÜLDÜ: 5 sütunun içerik genişliği ~850 px, yani 900 px altında
+   son sütun taşar ve sayfa yana kayar. */
+@media (max-width: 900px) {
+  .footer-grid { grid-template-columns: auto auto 1fr; gap: 28px 36px; }
+  .footer-col:last-of-type { justify-self: start; }
+}
 @media (max-width: 720px) {
   .footer-grid { grid-template-columns: 1fr; gap: 20px; }
   .footer-col:last-of-type { justify-self: start; }
@@ -1068,3 +1077,61 @@ a.row-add { display: inline-block; text-decoration: none; }
 .row-list.cols-9 .row-list-item { grid-template-columns: 18px repeat(9, minmax(0, 1fr)) 22px; }
 .row-list.cols-10 .row-list-head,
 .row-list.cols-10 .row-list-item { grid-template-columns: 18px repeat(10, minmax(0, 1fr)) 22px; }
+
+/* ---------- Yasal sayfalar ---------- */
+
+/* Uzun düzyazı için ölçü sınırı: tam genişlikte satırlar okunamayacak kadar
+   uzuyordu. Araç ekranlarında bu sorun yok, orada içerik zaten ızgarada. */
+.legal-doc { max-width: 760px; padding-bottom: 8px; }
+/* .container > .panel + .panel kuralı yalnız doğrudan çocuklara işler; yasal
+   paneller `article` içinde durduğu için ritim burada tekrar kurulur. */
+.legal-doc .panel + .panel { margin-top: 18px; }
+
+.legal-doc p {
+  margin: 0 0 12px;
+  font-size: 0.88rem; line-height: 1.65;
+  color: var(--text);
+}
+.legal-doc p:last-child { margin-bottom: 0; }
+
+.legal-list { margin: 0 0 12px; padding-left: 20px; }
+.legal-list li {
+  font-size: 0.88rem; line-height: 1.65;
+  color: var(--text); margin-bottom: 9px;
+}
+.legal-list li:last-child { margin-bottom: 0; }
+
+/* Henüz kapatılmamış bir konuya düşülen not — gövdeden ayrışsın ki okuyucu
+   bunun geçici olduğunu görsün. */
+.legal-note {
+  color: var(--muted); font-size: 0.83rem;
+  border-left: 2px solid var(--line); padding-left: 12px;
+  margin-top: 14px;
+}
+
+/* Eksik kimlik bilgisi uyarısı. Sayfanın en üstünde ve uyarı renginde durur:
+   bu metin doldurulmadan yayına alınmamalı. */
+.legal-warn {
+  border: 1px solid var(--warn); border-radius: 6px;
+  padding: 12px 14px; margin: 0 0 18px;
+  color: var(--warn); font-size: 0.85rem; line-height: 1.55;
+}
+
+/* Veri sorumlusu kimlik bloğu — etiket/değer çiftleri. */
+.legal-meta { margin: 0; }
+.legal-meta-row {
+  display: grid; grid-template-columns: 190px 1fr; gap: 10px;
+  padding: 8px 0; border-top: 1px solid var(--line);
+}
+.legal-meta-row:first-child { border-top: 0; padding-top: 0; }
+.legal-meta dt {
+  font-family: var(--font-mono); font-size: 0.74rem;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+.legal-meta dd { margin: 0; font-size: 0.88rem; color: var(--text); }
+
+.legal-updated { color: var(--muted); font-size: 0.8rem; margin: 16px 0 0; }
+
+@media (max-width: 620px) {
+  .legal-meta-row { grid-template-columns: 1fr; gap: 3px; }
+}
