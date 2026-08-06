@@ -221,6 +221,28 @@ export function getText(lang) {
         en: 'The new password cannot be the same as the current one.',
       }),
 
+      // Hesap silme. Metin ne olacağını AÇIKÇA sayar ve geri alınamadığını
+      // söyler: onay kartına basmadan önce kullanıcının bedeli bilmesi gerekir.
+      deleteHeading: t({ tr: 'Hesabı sil', en: 'Delete account' }),
+      deleteIntro: t({
+        tr: 'Hesabın, projelerin, kayıtlı hesapların ve rapor geçmişin kalıcı olarak silinir. '
+          + 'Bu işlem geri alınamaz.',
+        en: 'Your account, projects, saved calculations and report history are permanently '
+          + 'deleted. This cannot be undone.',
+      }),
+      deletePasswordLabel: t({ tr: 'Parolanı doğrula', en: 'Confirm your password' }),
+      deleteLabel: t({ tr: 'Hesabımı sil', en: 'Delete my account' }),
+      deleting: t({ tr: 'Siliniyor…', en: 'Deleting…' }),
+      deleteTitle: t({ tr: 'Hesap silinsin mi?', en: 'Delete this account?' }),
+      deleteConfirm: t({
+        tr: 'Hesabın ve bütün verilerin kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+        en: 'Your account and all of your data will be permanently deleted. This cannot be undone.',
+      }),
+      deletePasswordMissing: t({
+        tr: 'Silmeyi onaylamak için parolanı gir.',
+        en: 'Enter your password to confirm deletion.',
+      }),
+      deleted: t({ tr: 'Hesabın silindi.', en: 'Your account has been deleted.' }),
 
       // Sunucu kodları buradan cümleye çevrilir; hata yükü dilsiz gelir
       // (kod + yapısal detay), cümle bu dosyada kurulur.
@@ -234,6 +256,12 @@ export function getText(lang) {
         }
         if (res.error === 'MISSING_FIELDS' && res.detail?.field === 'displayName') {
           return t({ tr: 'Ad boş olamaz.', en: 'The name cannot be empty.' })
+        }
+        // Hesap silmede yanlış parola. Sunucu bunu bilerek 401 değil 400 ile
+        // döner (401 oturumun düştüğü sanılıp kullanıcıyı çıkışa atardı), o
+        // yüzden burada olağan bir alan hatası gibi çevrilir.
+        if (res.error === 'INVALID_CREDENTIALS') {
+          return t({ tr: 'Parola yanlış.', en: 'The password is incorrect.' })
         }
         if (res.error === 'TOO_LONG') {
           return t({

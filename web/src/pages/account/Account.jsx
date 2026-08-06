@@ -8,10 +8,14 @@
 // gösterilir — kullanıcı hangi hesapta olduğunu görmeli.
 
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import LangLink from '../../components/LangLink'
+import ConfirmDialog from '../../components/ConfirmDialog'
 import { useAuth } from '../../hooks/useAuth'
 import { useLang } from '../../hooks/useLang'
 import { useNotice } from '../../hooks/useNotice'
+import { commonText } from '../../data/uiText'
+import { staticPath } from '../../lib/routes'
 import AuthField from '../../components/AuthField'
 // Parola politikası cümlesi ve Identity hata kodlarının çevirisi giriş/kayıt
 // ekranlarıyla ORTAK: ikinci bir kopya yazılırsa aynı kural iki ekranda
@@ -23,8 +27,10 @@ export default function Account() {
   const { lang } = useLang()
   const at = getText(lang).account
   const aut = authText(lang)
-  const { isLoading, isAuthenticated, user, api, refreshUser, changePassword } = useAuth()
+  const ui = commonText(lang)
+  const { isLoading, isAuthenticated, user, api, refreshUser, changePassword, logout } = useAuth()
   const { showNotice } = useNotice()
+  const navigate = useNavigate()
 
   const [displayName, setDisplayName] = useState('')
   const [company, setCompany] = useState('')
@@ -36,6 +42,11 @@ export default function Account() {
   const [newPassword2, setNewPassword2] = useState('')
   const [passwordBusy, setPasswordBusy] = useState(false)
   const [passwordError, setPasswordError] = useState(null)
+
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+  const [confirming, setConfirming] = useState(false)
 
   // Alanlar kullanıcı yüklendiğinde BİR KEZ doldurulur; sonraki tazelemeler
   // (`refreshUser`) kullanıcının yazdığını ezmemeli.
@@ -100,6 +111,45 @@ export default function Account() {
     setNewPassword('')
     setNewPassword2('')
     showNotice(at.passwordChanged)
+  }
+
+  // Form gönderimi hesabı SİLMEZ, yalnız onay kartını açar. Parola boşsa kart
+  // hiç açılmaz: kullanıcı geri alınamaz bir kartı, sonu baştan belli bir hata
+  // için görmemeli.
+  function askDelete(e) {
+    e.preventDefault()
+    setDeleteError(null)
+    if (!deletePassword) {
+      setDeleteError(at.deletePasswordMissing)
+      return
+    }
+    setConfirming(true)
+  }
+
+  function cancelDelete() {
+    if (deleteBusy) return
+    setConfirming(false)
+  }
+
+  async function confirmDelete() {
+    setDeleteBusy(true)
+    const res = await api.post('/api/me/delete', { currentPassword: deletePassword })
+    setDeleteBusy(false)
+    setConfirming(false)
+
+    if (!res.ok) {
+      setDeletePassword('')
+      setDeleteError(at.errorText(res))
+      return
+    }
+
+    // Hesap gitti ama tarayıcı hâlâ yenileme çerezini ve bellekteki erişim
+    // anahtarını taşıyor. `logout()` ikisini de temizler — atlanırsa uygulama
+    // bir sonraki açılışta silinmiş hesabın oturumunu kurmaya çalışır.
+    // Bildirim gezinmeden ÖNCE kurulur (App.jsx → onLogout ile aynı sıra).
+    await logout()
+    showNotice(at.deleted)
+    navigate(staticPath('home', lang))
   }
 
   if (isLoading) return null
@@ -218,6 +268,44 @@ export default function Account() {
         </form>
       </section>
 
+      {/* Hesap silme en altta ve kendi panelinde: geri alınamayan tek işlem,
+          profil ve parola formlarının arasına karışmamalı. */}
+      <section className="panel">
+        <h2>{at.deleteHeading}</h2>
+        <p className="field-hint">{at.deleteIntro}</p>
+
+        <form onSubmit={askDelete}>
+          <AuthField
+            label={at.deletePasswordLabel}
+            type="password"
+            autoComplete="current-password"
+            value={deletePassword}
+            onChange={setDeletePassword}
+          />
+
+          {deleteError && <p className="field-hint danger">{deleteError}</p>}
+
+          <div className="report-actions stretch">
+            <button type="submit" className="btn-danger" disabled={deleteBusy}>
+              {deleteBusy ? at.deleting : at.deleteLabel}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      {/* Parola doğru olsa bile tek tıkla silinmez: onay kartı ayrı bir adımdır
+          ve odağı iptal düğmesindedir (ConfirmDialog), yani Enter yanlışlıkla
+          onaylamaz. */}
+      <ConfirmDialog
+        open={confirming}
+        title={at.deleteTitle}
+        message={at.deleteConfirm}
+        confirmLabel={at.deleteLabel}
+        cancelLabel={ui.cancel}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        busy={deleteBusy}
+      />
     </>
   )
 }
