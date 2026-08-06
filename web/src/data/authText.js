@@ -77,6 +77,19 @@ export function authErrorText(res, lang) {
     }, lang)
   }
 
+  // Hız sınırı KODA değil DURUMA bakar: ASP.NET'in hız sınırlayıcısı isteği
+  // uçlara hiç ulaştırmadan reddeder ve gövde BOŞ döner (Program.cs →
+  // RejectionStatusCode). Boş gövde `parseBody`'den `null` çıkar, oradan
+  // `error: 'unknown'` olur ve aşağıdaki switch'in default dalına — "Bir
+  // şeyler ters gitti" — düşerdi. Kullanıcı o cümleden ne olduğunu da ne
+  // yapacağını da anlayamıyor; oysa yapılacak şey belli: beklemek.
+  if (res.status === 429) {
+    return pick({
+      tr: 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar deneyin.',
+      en: 'Too many attempts. Try again in a few minutes.',
+    }, lang)
+  }
+
   switch (res.error) {
     case 'MISSING_FIELDS':
       return pick({ tr: 'Lütfen tüm alanları doldurun.', en: 'Please fill in all fields.' }, lang)
