@@ -9,6 +9,18 @@ import { pick } from '../../lib/i18n'
 export function getText(lang) {
   const t = (dict) => pick(dict, lang)
 
+  // Tarih + saat, sayısal ve dilden bağımsız (audit ekranındaki formatDate ile
+  // aynı kalıp — `admin/audit/text.js`). Buradaki `formatDate` (aşağıda) tarih
+  // SÜTUNU için tarih-yalnız kalır; bu yalnızca kilit tooltip'i içindir.
+  const formatDateTime = (iso) => {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return '—'
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
+      + `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
   return {
     title: t({ tr: 'Yönetim', en: 'Administration' }),
     intro: t({
@@ -55,6 +67,17 @@ export function getText(lang) {
     confirmedYes: t({ tr: 'Doğrulandı', en: 'Confirmed' }),
     confirmedNo: t({ tr: 'Doğrulanmadı', en: 'Not confirmed' }),
 
+    // Kilit rozeti YALNIZ hesap gerçekten kilitliyken basılır (sunucu ham
+    // `lockoutEnd` verir, "kilitli mi" istemcide `lockoutEnd > şu an` ile
+    // türetilir — bkz. Contracts.cs → AdminUserRow yorumu). `confirmedNo`'nun
+    // aksine "kilitli değil" hâli YOK: satırda hiçbir şey basılmaz.
+    lockedBadge: t({ tr: 'Kilitli', en: 'Locked' }),
+    // Rozetin title tooltip'i — "ne zaman açılacak" bilgisini taşır.
+    lockedUntil: (iso) => t({
+      tr: `${formatDateTime(iso)} tarihine kadar kilitli`,
+      en: `Locked until ${formatDateTime(iso)}`,
+    }),
+
     // "Alp Test · ALP PCB Ltd." — firma yoksa yalnız ad. Ayırıcı orta nokta:
     // tire tarih alanıyla, eğik çizgi de yol gösterimiyle karışıyordu.
     accountMeta: (displayName, company) =>
@@ -84,6 +107,30 @@ export function getText(lang) {
       const pad = (n) => String(n).padStart(2, '0')
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
     },
+
+    // Plan değişimi (free ↔ pro) — parola istemez, DeleteUser'dan farklı risk
+    // sınıfı (geri alınabilir). İki küçük düğme mevcut değeri de gösterir:
+    // geçerli olan devre dışıdır, yalnız öteki tıklanabilir — segment seçici
+    // gibi okunur ama `.row-add` deseninin dışına çıkmaz (yeni CSS yok).
+    // `plan` kelimesi iki dilde de aynı yazılır (Türkçede de ödünç sözcük).
+    plan: t({ tr: 'Plan', en: 'Plan' }),
+    planMakeFree: t({ tr: 'Free yap', en: 'Make Free' }),
+    planMakePro: t({ tr: 'Pro yap', en: 'Make Pro' }),
+    planMakeFreeAria: (email) => t({
+      tr: `${email} hesabını Free yap`,
+      en: `Make ${email} Free`,
+    }),
+    planMakeProAria: (email) => t({
+      tr: `${email} hesabını Pro yap`,
+      en: `Make ${email} Pro`,
+    }),
+    // Plan değerinin kendisi ÇEVRİLMEZ — satırdaki ham `row.plan` ile aynı
+    // gerekçe (yukarıdaki yorum): bilinmeyen bir değer geldiğinde de teşhis
+    // edilebilir kalsın diye olduğu gibi basılır.
+    planChanged: (email, plan) => t({
+      tr: `${email} hesabının planı ${plan} oldu.`,
+      en: `${email}'s plan is now ${plan}.`,
+    }),
 
     deleteLabel: t({ tr: 'Sil', en: 'Delete' }),
     // Satırda düğmenin yazısı yalnız "Sil"; ekran okuyucu hangi satırda
@@ -154,6 +201,11 @@ export function getText(lang) {
           return t({
             tr: 'Hesap bulunamadı. Liste güncel olmayabilir.',
             en: 'Account not found. The list may be out of date.',
+          })
+        case 'INVALID_PLAN':
+          return t({
+            tr: 'Geçersiz plan değeri.',
+            en: 'That plan value is not valid.',
           })
         default:
           return t({

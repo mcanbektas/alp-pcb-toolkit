@@ -17,7 +17,8 @@ const PLAIN = [
   'loginRequired', 'loginLink', 'forbidden', 'homeLink',
   'searchLabel', 'searchHint',
   'loading', 'empty',
-  'confirmedYes', 'confirmedNo', 'adminBadge', 'adminNotDeletable',
+  'confirmedYes', 'confirmedNo', 'lockedBadge', 'adminBadge', 'adminNotDeletable',
+  'plan', 'planMakeFree', 'planMakePro',
   'deleteLabel', 'deleting', 'deleteTitle',
   'deletePasswordLabel', 'deletePasswordHint', 'deletePasswordMissing',
   'pagePrev', 'pageNext',
@@ -30,7 +31,7 @@ const COLUMNS = ['status', 'account', 'usage', 'createdAt', 'actions']
 // yanlış olduğunu öğrenemez.
 const ERROR_CODES = [
   'INVALID_CREDENTIALS', 'MISSING_FIELDS', 'FORBIDDEN',
-  'SELF_DELETE', 'ADMIN_TARGET', 'NOT_FOUND',
+  'SELF_DELETE', 'ADMIN_TARGET', 'NOT_FOUND', 'INVALID_PLAN',
 ]
 
 describe.each(LANGS)('yönetim metni (%s)', (lang) => {
@@ -64,6 +65,22 @@ describe.each(LANGS)('yönetim metni (%s)', (lang) => {
     expect(t.deleteAria('kim@ornek.test')).toContain('kim@ornek.test')
   })
 
+  // Plan değiştirme düğmelerinin erişilebilir adları hesabı söylüyor —
+  // silme düğmesindeki gerekçenin aynısı: ekran okuyucu hangi satırda
+  // olduğunu göremez.
+  it('plan düğmelerinin erişilebilir adı hesabı söylüyor', () => {
+    expect(t.planMakeFreeAria('kim@ornek.test')).toContain('kim@ornek.test')
+    expect(t.planMakeProAria('kim@ornek.test')).toContain('kim@ornek.test')
+  })
+
+  // Bildirim hem hesabı hem YENİ plan değerini taşır; plan değeri kendisi
+  // çevrilmez (row.plan ile aynı gerekçe), olduğu gibi geçer.
+  it('plan değişim bildirimi hesabı ve yeni planı taşır', () => {
+    expect(t.planChanged('kim@ornek.test', 'pro')).toContain('kim@ornek.test')
+    expect(t.planChanged('kim@ornek.test', 'pro')).toContain('pro')
+    expect(t.planChanged('kim@ornek.test', 'free')).toContain('free')
+  })
+
   it('hesap alt satırı firmasız da düzgün', () => {
     expect(t.accountMeta('Alp Test', 'ALP PCB Ltd.')).toBe('Alp Test · ALP PCB Ltd.')
     expect(t.accountMeta('Alp Test', null)).toBe('Alp Test')
@@ -85,6 +102,13 @@ describe.each(LANGS)('yönetim metni (%s)', (lang) => {
     expect(t.formatDate('2026-08-06T11:23:33.656879+00:00')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(t.formatDate(null)).toBe('—')
     expect(t.formatDate('anlamsız')).toBe('—')
+  })
+
+  // Kilit tooltip'i tarih+saat taşır — yalnız tarih değil, "ne zaman açılacak"
+  // sorusuna cevap vermesi gerekiyor (formatDate'in aksine).
+  it('kilit tooltip metni tarih ve saat içeriyor', () => {
+    const msg = t.lockedUntil('2026-08-06T11:23:33.656879+00:00')
+    expect(msg).toMatch(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/)
   })
 
   it('her sunucu hata kodunun kendi cümlesi var', () => {

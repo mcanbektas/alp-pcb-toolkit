@@ -16,6 +16,24 @@ const EVENT_LABELS = {
   'admin.user-deleted': { tr: 'Hesap silindi (yönetici)', en: 'Account deleted (admin)' },
   'admin.role-granted': { tr: 'Yönetim yetkisi verildi', en: 'Administrator role granted' },
   'admin.role-revoked': { tr: 'Yönetim yetkisi alındı', en: 'Administrator role revoked' },
+  'admin.plan-changed': { tr: 'Plan değiştirildi (yönetici)', en: 'Plan changed (admin)' },
+}
+
+// DetailJson alan adı → etiket sözlüğü. Kaynak, AuditLog.Write*Async
+// çağrılarına GERÇEKTEN geçirilen detail nesneleridir (JsonSerializerDefaults.Web
+// → camelCase):
+//   failedCount               → AuthEndpoints.cs Login (auth.lockout)
+//   projectCount, reportCount → AccountDeletion.cs DeleteAsync (admin.user-deleted)
+//   fromPlan, toPlan          → AdminEndpoints.cs ChangePlan (admin.plan-changed)
+// DetailJson'un kendisi yapısal ve dilsiz kalır (docs/brifler/11-loglama.md §3);
+// çeviri yalnız bu ekranın kartında yapılır. Sözlükte olmayan anahtar ham
+// adıyla düşer — sessizce kaybolmaz (bilinmeyen olay koduyla aynı kural).
+const DETAIL_LABELS = {
+  failedCount: { tr: 'Başarısız giriş denemesi', en: 'Failed sign-in attempts' },
+  projectCount: { tr: 'Silinen proje sayısı', en: 'Projects deleted' },
+  reportCount: { tr: 'Silinen rapor sayısı', en: 'Reports deleted' },
+  fromPlan: { tr: 'Önceki plan', en: 'Previous plan' },
+  toPlan: { tr: 'Yeni plan', en: 'New plan' },
 }
 
 // Olay kodunun öneki renk sınıfını belirler. CSS sınıfları `.result-table
@@ -86,19 +104,35 @@ export function getText(lang) {
         + `${pad(d.getHours())}:${pad(d.getMinutes())}`
     },
 
-    // DetailJson yapısal ve DİLSİZDİR (docs/brifler/11-loglama.md §3): alan
-    // adları ÇEVRİLMEZ, olduğu gibi "anahtar: değer" dizilir — cümle kurulmaz.
-    formatDetail: (detailJson) => {
-      if (!detailJson) return '—'
+    // Ayrıntı kartı: tablo hücresine ham JSON basılmaz, kartta etiket–değer
+    // satırları gösterilir. Hücre düğmesi yalnız satır varken çizilir — boş,
+    // bozuk ya da alansız DetailJson boş dizi döner ve hücre boş kalır.
+    detailView: t({ tr: 'Görüntüle', en: 'View' }),
+    detailViewAria: (event) => t({
+      tr: `${event} ayrıntısını görüntüle`,
+      en: `View detail of ${event}`,
+    }),
+    detailTitle: t({ tr: 'Olay ayrıntısı', en: 'Event detail' }),
+    detailClose: t({ tr: 'Kapat', en: 'Close' }),
+
+    // Bilinen alan adı DETAIL_LABELS'tan çevrilir; bilinmeyen ham adıyla ama
+    // yine etiket–değer satırı olarak düşer (sessiz boşluk yerine teşhis
+    // edilebilir değer — eventText ile aynı kural). Değer cümleye KURULMAZ:
+    // sayı sayı olarak basılır (docs/brifler/11-loglama.md §3).
+    detailRows: (detailJson) => {
+      if (!detailJson) return []
       let parsed
       try {
         parsed = JSON.parse(detailJson)
       } catch {
-        return '—'
+        return []
       }
-      const entries = Object.entries(parsed ?? {})
-      if (entries.length === 0) return '—'
-      return entries.map(([k, v]) => `${k}: ${v}`).join(', ')
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return []
+      return Object.entries(parsed).map(([key, value]) => ({
+        key,
+        label: DETAIL_LABELS[key] ? t(DETAIL_LABELS[key]) : key,
+        value: value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value),
+      }))
     },
 
     pagePrev: t({ tr: 'Önceki', en: 'Previous' }),

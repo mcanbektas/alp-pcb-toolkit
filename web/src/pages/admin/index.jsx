@@ -48,6 +48,13 @@ export default function AdminPanel() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
 
+  // Plan değişimi kendi hata/meşguliyet durumunu tutar: onay kartı yok, tek
+  // tıkla değişiyor (silmedeki ConfirmDialog gerekmiyor — geri alınabilir,
+  // düşük riskli işlem). `planBusyId` yalnız değişen SATIRI kilitler, bütün
+  // tabloyu değil.
+  const [planBusyId, setPlanBusyId] = useState(null)
+  const [planError, setPlanError] = useState(null)
+
   const isAdmin = user?.isAdmin === true
 
   const load = useCallback(async () => {
@@ -134,6 +141,24 @@ export default function AdminPanel() {
     await load()
   }
 
+  // Silme akışındaki state güncelleme deseninin aynısı: local satırı elle
+  // yamamak yerine `load()` ile yeniden çekiyoruz — tek kaynak liste
+  // sorgusudur, aramadan/sayfadan bağımsız hep tutarlı kalır.
+  async function changePlan(row, plan) {
+    setPlanError(null)
+    setPlanBusyId(row.id)
+    const res = await api.post(`/api/admin/users/${encodeURIComponent(row.id)}/plan`, { plan })
+    setPlanBusyId(null)
+
+    if (!res.ok) {
+      setPlanError(t.errorText(res))
+      return
+    }
+
+    showNotice(t.planChanged(row.email, plan))
+    await load()
+  }
+
   if (isLoading) return null
 
   if (!isAuthenticated) {
@@ -196,6 +221,7 @@ export default function AdminPanel() {
         </form>
 
         {error && <p className="field-hint danger">{error}</p>}
+        {planError && <p className="field-hint danger">{planError}</p>}
 
         {/* İlk yüklemede boş liste "Kayıt bulunamadı" DEĞİL "Yükleniyor…"
             der; sonraki aramalarda eski satırlar yanıt gelene dek yerinde
@@ -227,6 +253,22 @@ export default function AdminPanel() {
                     <span className={`mark ${row.emailConfirmed ? 'ok' : 'warning'}`}>
                       {row.emailConfirmed ? t.confirmedYes : t.confirmedNo}
                     </span>
+                    {/* Kilit rozeti YALNIZ gerçekten kilitliyken basılır — sunucu
+                        ham `lockoutEnd` verir (bkz. Contracts.cs → AdminUserRow),
+                        "kilitli mi" burada `lockoutEnd > şu an` ile türetilir.
+                        Kilitli değilse hiçbir şey basılmaz (confirmedNo'nun aksine
+                        "değil" hâli yok) — `.mark.danger`, Login'deki 423 yanıtıyla
+                        aynı ciddiyet sınıfı. `.mark` blok değil satır içi olduğu için
+                        önündeki `{' '}` "Doğrulandı"ya bitişmesin diye — tek boşluk,
+                        rozet basılmadığında görünmez kalır. */}
+                    {row.lockoutEnd && new Date(row.lockoutEnd) > new Date() && (
+                      <>
+                        {' '}
+                        <span className="mark danger" title={t.lockedUntil(row.lockoutEnd)}>
+                          {t.lockedBadge}
+                        </span>
+                      </>
+                    )}
                     {/* Plan sınıfı yalnız BİLİNEN değerlere verilir: sunucudan
                         gelen ham dizeyi sınıf adına yapıştırmak, yarın yeni bir
                         plan değeri geldiğinde tanımsız sınıf üretirdi. Bilinmeyen
@@ -235,6 +277,30 @@ export default function AdminPanel() {
                       className={`sub-line${row.plan === 'free' ? ' plan-free' : row.plan === 'pro' ? ' plan-pro' : ''}`}
                     >
                       {row.plan}
+                    </span>
+                    {/* Plan değiştirici: iki küçük `.row-add` düğmesi, yeni CSS
+                        yok. Geçerli değere karşılık gelen düğme devre dışı —
+                        yalnız ÖTEKİ tıklanabilir, tek tıkla değişir. Silmenin
+                        aksine onay kartı yok: geri alınabilir, düşük riskli. */}
+                    <span className="report-actions" role="group" aria-label={t.plan}>
+                      <button
+                        type="button"
+                        className="row-add"
+                        disabled={row.plan === 'free' || planBusyId === row.id}
+                        onClick={() => changePlan(row, 'free')}
+                        aria-label={t.planMakeFreeAria(row.email)}
+                      >
+                        {t.planMakeFree}
+                      </button>
+                      <button
+                        type="button"
+                        className="row-add"
+                        disabled={row.plan === 'pro' || planBusyId === row.id}
+                        onClick={() => changePlan(row, 'pro')}
+                        aria-label={t.planMakeProAria(row.email)}
+                      >
+                        {t.planMakePro}
+                      </button>
                     </span>
                   </td>
                   <td>
@@ -245,10 +311,27 @@ export default function AdminPanel() {
                   <td>{t.formatDate(row.createdAt)}</td>
                   <td>
                     {row.isAdmin ? (
-                      // `chip on` — dolu rozet: yöneticinin çerçeveli çipten
-                      // daha görünür olması gerekir, çünkü bu satırın "neden
-                      // silinemediğini" tek başına bu rozet anlatıyor.
-                      <span className="chip on" title={t.adminNotDeletable}>{t.adminBadge}</span>
+                      // `chip on admin-badge` — `on` yalnız pill iskeletini
+                      // (padding/radius) taşır, `admin-badge` dolgu/kenarlık/
+                      // rengi NÖTRLER (arka plansız, `--text`): ikon + büyük
+                      // harf zaten "yetki" anlamını taşıyor, ayrıca bir renk
+                      // açmaya gerek yok — bu depodaki tek "yetki" rozeti.
+                      <span className="chip on admin-badge" title={t.adminNotDeletable}>
+                        <svg
+                          className="icon"
+                          viewBox="0 0 20 20"
+                          aria-hidden="true"
+                          focusable="false"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M10 2l6.5 2.5v4.8c0 4.3-2.7 7.6-6.5 8.7-3.8-1.1-6.5-4.4-6.5-8.7V4.5L10 2Z" />
+                        </svg>
+                        {t.adminBadge}
+                      </span>
                     ) : (
                       // Satır içi düğme `.row-add`: bu depoda liste satırındaki
                       // eylemler (proje/rapor listesindeki Aç ve Sil) hep bu

@@ -296,7 +296,9 @@ function AccountArea() {
         <LangLink to="/projelerim">{text.header.projects}</LangLink>
         <LangLink to="/raporlarim">{text.header.reports}</LangLink>
         <LangLink to="/hesabim">{text.header.account}</LangLink>
-        <span className="header-user">{user.displayName}</span>
+        <span className={`header-user${user.plan === 'pro' ? ' plan-pro' : ''}`}>
+          {user.displayName}
+        </span>
         <button type="button" onClick={onLogout}>{text.header.logout}</button>
       </div>
     )

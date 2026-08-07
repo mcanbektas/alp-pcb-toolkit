@@ -12,6 +12,7 @@ const PLAIN = [
   'searchLabel', 'searchHint',
   'eventFilterLabel', 'eventAll',
   'loading', 'empty',
+  'detailView', 'detailTitle', 'detailClose',
   'pagePrev', 'pageNext',
 ]
 
@@ -28,7 +29,16 @@ const EVENT_CODES = [
   'admin.user-deleted',
   'admin.role-granted',
   'admin.role-revoked',
+  'admin.plan-changed',
 ]
+
+// AuditLog.Write*Async çağrılarına GERÇEKTEN geçirilen detail alanları
+// (JsonSerializerDefaults.Web → camelCase). Biri eksik kalırsa ayrıntı
+// kartında ham alan adı görünür:
+//   failedCount               → AuthEndpoints.cs Login (auth.lockout)
+//   projectCount, reportCount → AccountDeletion.cs DeleteAsync (admin.user-deleted)
+//   fromPlan, toPlan          → AdminEndpoints.cs ChangePlan (admin.plan-changed)
+const DETAIL_KEYS = ['failedCount', 'projectCount', 'reportCount', 'fromPlan', 'toPlan']
 
 describe.each(LANGS)('günlük metni (%s)', (lang) => {
   const t = getText(lang)
@@ -80,11 +90,40 @@ describe.each(LANGS)('günlük metni (%s)', (lang) => {
     expect(t.formatDate('anlamsız')).toBe('—')
   })
 
-  it('ayrıntı yapısal alanları anahtar: değer olarak dizer, cümle kurmaz', () => {
-    expect(t.formatDetail('{"projectCount":1,"reportCount":2}')).toBe('projectCount: 1, reportCount: 2')
-    expect(t.formatDetail(null)).toBe('—')
-    expect(t.formatDetail('{}')).toBe('—')
-    expect(t.formatDetail('bozuk-json')).toBe('—')
+  // Olay kodu bekçisiyle aynı desen: DetailJson'a yazılan her bilinen alanın
+  // bu dilde bir etiketi olmalı — yoksa kartta ham anahtar görünür.
+  it('DetailJson alanlarının hepsinin etiketi var', () => {
+    for (const key of DETAIL_KEYS) {
+      const rows = t.detailRows(`{"${key}":1}`)
+      expect(rows, `${key} satıra dönüşmedi`).toHaveLength(1)
+      expect(rows[0].label, `${key} çevrilmemiş`).not.toBe(key)
+      expect(rows[0].label.length, `${key} etiketi boş`).toBeGreaterThan(0)
+    }
+  })
+
+  it('ayrıntı satırları etiket–değer verir, değer cümleye kurulmaz', () => {
+    const rows = t.detailRows('{"projectCount":1,"reportCount":2}')
+    expect(rows.map((r) => r.key)).toEqual(['projectCount', 'reportCount'])
+    expect(rows.map((r) => r.value)).toEqual(['1', '2'])
+  })
+
+  // Sessiz boşluk yerine teşhis edilebilir değer — sözlükte olmayan alan ham
+  // adıyla ama yine satır olarak düşer (bilinmeyen olay koduyla aynı kural).
+  it('bilinmeyen alan ham adıyla düşer, sessizce kaybolmaz', () => {
+    expect(t.detailRows('{"bilinmeyenAlan":7}')).toEqual([
+      { key: 'bilinmeyenAlan', label: 'bilinmeyenAlan', value: '7' },
+    ])
+  })
+
+  it('boş, alansız ya da bozuk ayrıntı boş liste döner (hücre boş kalır)', () => {
+    expect(t.detailRows(null)).toEqual([])
+    expect(t.detailRows('{}')).toEqual([])
+    expect(t.detailRows('bozuk-json')).toEqual([])
+    expect(t.detailRows('[1,2]')).toEqual([])
+  })
+
+  it('görüntüle düğmesinin erişilebilir adı olay adını taşır', () => {
+    expect(t.detailViewAria('X')).toContain('X')
   })
 
   it('sayfa durumu sayıları içerir', () => {
@@ -107,5 +146,14 @@ it('İngilizce metin Türkçenin kopyası değil', () => {
   const tr = getText('tr')
   const en = getText('en')
   const same = PLAIN.filter((k) => tr[k] === en[k])
+  expect(same, `çevrilmemiş olabilir: ${same.join(', ')}`).toEqual([])
+})
+
+it('ayrıntı etiketlerinin İngilizcesi Türkçenin kopyası değil', () => {
+  const tr = getText('tr')
+  const en = getText('en')
+  const same = DETAIL_KEYS.filter(
+    (key) => tr.detailRows(`{"${key}":1}`)[0].label === en.detailRows(`{"${key}":1}`)[0].label,
+  )
   expect(same, `çevrilmemiş olabilir: ${same.join(', ')}`).toEqual([])
 })

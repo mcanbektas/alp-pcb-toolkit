@@ -2,9 +2,10 @@
 // `LangLink`, dolayısıyla AYRI adres (rota), sayfanın iç durumu değil: geri/
 // ileri tuşu çalışsın ve bağlantı paylaşılabilsin diye.
 //
-// `.lang-switch` sınıfı ödünç alınır: aria-current'lı hap biçimli bağlantı
-// grubu ihtiyacı LangSwitch'le (App.jsx) birebir aynı — yeni CSS yazmaya
-// gerek yok (CLAUDE.md: "Ekrana özel CSS yazma").
+// `.admin-tabs` kendi sınıfı: metnin altında akan accent çizgili ("underline
+// tab") bir desen, `.lang-switch`in hap biçimli dil düğmeleriyle görsel
+// dili paylaşmıyor — CSS dördü tema dosyasında tanımlı (CLAUDE.md: "Ekrana
+// özel CSS yazma", ortak sınıf olarak tema dosyalarında kalmalı).
 //
 // Kendi çerçeve metnini `useLang()`den DOĞRUDAN okur — LangLink'le aynı
 // istisna gerekçesi: iki ekranda BİREBİR aynı iki etiket, prop olarak
@@ -22,7 +23,7 @@ const LABELS = {
 export default function AdminTabs({ active }) {
   const { lang } = useLang()
   return (
-    <nav className="lang-switch" aria-label={pick(NAV_LABEL, lang)}>
+    <nav className="admin-tabs" aria-label={pick(NAV_LABEL, lang)}>
       <LangLink to="/yonetim" aria-current={active === 'users' ? 'page' : undefined}>
         {pick(LABELS.users, lang)}
       </LangLink>

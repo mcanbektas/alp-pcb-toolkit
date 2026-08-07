@@ -6,6 +6,7 @@
 // başındaki not, burada tekrar edilmiyor.
 
 import { useCallback, useEffect, useState } from 'react'
+import InfoDialog from '../../../components/InfoDialog'
 import LangLink from '../../../components/LangLink'
 import SelectField from '../../../components/SelectField'
 import { useAuth } from '../../../hooks/useAuth'
@@ -29,6 +30,9 @@ export default function AdminAuditLog() {
   const [total, setTotal] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  // Ayrıntı kartında gösterilen satır. Kart kapalıyken null; sayfa/filtre
+  // değişince liste yenilense de sorun yok — kart o anki satırın kopyasını tutar.
+  const [detailRow, setDetailRow] = useState(null)
 
   const isAdmin = user?.isAdmin === true
 
@@ -154,7 +158,7 @@ export default function AdminAuditLog() {
                 <th scope="col">{t.columns.event}</th>
                 <th scope="col">{t.columns.actor}</th>
                 <th scope="col">{t.columns.target}</th>
-                <th scope="col">{t.columns.detail}</th>
+                <th scope="col" className="detail-cell">{t.columns.detail}</th>
               </tr>
             </thead>
             <tbody>
@@ -166,7 +170,22 @@ export default function AdminAuditLog() {
                   </td>
                   <td>{row.actorEmail ?? '—'}</td>
                   <td>{row.targetEmail ?? '—'}</td>
-                  <td><span className="sub-line">{t.formatDetail(row.detailJson)}</span></td>
+                  <td className="detail-cell">
+                    {/* Ham JSON hücrede basılmaz; ayrıntı kartta gösterilir.
+                        Çoğu olayda ayrıntı yok — hücre o zaman boş kalır.
+                        Satır içi düğme `.row-add`: liste satırındaki eylemler
+                        bu depoda hep bu sınıfı alır (Kullanıcılar → Sil). */}
+                    {t.detailRows(row.detailJson).length > 0 && (
+                      <button
+                        type="button"
+                        className="row-add"
+                        onClick={() => setDetailRow(row)}
+                        aria-label={t.detailViewAria(t.eventText(row.event))}
+                      >
+                        {t.detailView}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -195,6 +214,29 @@ export default function AdminAuditLog() {
           </div>
         )}
       </section>
+
+      {/* Ayrıntı kartı — etiketler iki dilli sözlükten (text.js → detailRows),
+          değerler yapısal hâliyle. Etiket–değer dizilimi `.result-table`ın
+          kendi deseni: ilk sütun soluk etiket, ikincisi değer. */}
+      <InfoDialog
+        open={detailRow !== null}
+        title={t.detailTitle}
+        closeLabel={t.detailClose}
+        onClose={() => setDetailRow(null)}
+      >
+        {detailRow !== null && (
+          <table className="result-table">
+            <tbody>
+              {t.detailRows(detailRow.detailJson).map((r) => (
+                <tr key={r.key}>
+                  <td>{r.label}</td>
+                  <td>{r.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </InfoDialog>
     </>
   )
 }
