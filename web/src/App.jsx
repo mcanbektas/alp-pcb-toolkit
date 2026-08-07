@@ -141,6 +141,7 @@ const Account = lazy(() => import('./pages/account/Account'))
 // çeker, sıradan kullanıcı hiç indirmez.
 const AdminPanel = lazy(() => import('./pages/admin'))
 const AdminAuditLog = lazy(() => import('./pages/admin/audit'))
+const AdminLogs = lazy(() => import('./pages/admin/logs'))
 
 // Uygulama geneli metinler. Ekran metni gibi bunlar da `pick()` ile çözülür:
 // doğrudan `DICT[lang]` indekslemesi eksik çeviride `undefined` verirdi, `pick`
@@ -507,6 +508,7 @@ function langRoutes(lang) {
     // olabilir). Asıl kapı sunucuda.
     <Route key={`${lang}:admin`} path={staticPath('admin', lang)} element={<AdminPanel />} />,
     <Route key={`${lang}:adminAudit`} path={staticPath('adminAudit', lang)} element={<AdminAuditLog />} />,
+    <Route key={`${lang}:adminLogs`} path={staticPath('adminLogs', lang)} element={<AdminLogs />} />,
     <Route key={`${lang}:project`} path={staticPath('project', lang)} element={<Project />} />,
     // Yasal sayfalar tek bileşenden çizilir; rota kaydı listeden türer, elle
     // üç satır yazılmaz — yeni bir belge eklendiğinde rota kendiliğinden doğar.

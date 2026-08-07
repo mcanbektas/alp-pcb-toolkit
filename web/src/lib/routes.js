@@ -48,6 +48,9 @@ const STATIC_ROUTES = {
   admin: { tr: '/yonetim', en: '/en/admin' },
   // Denetim izi günlüğü — aynı gerekçeyle `indexablePages()` dışı.
   adminAudit: { tr: '/yonetim/gunluk', en: '/en/admin/audit' },
+  // Operasyonel log ekranı (docs/brifler/12-loglama-ekrani.md §4) — aynı
+  // gerekçeyle `indexablePages()` dışı.
+  adminLogs: { tr: '/yonetim/loglar', en: '/en/admin/logs' },
   // Yasal sayfalar. Kayıtları `data/legalPages.js`te; buradaki anahtarlar
   // LEGAL_DOCS anahtarlarıyla BİREBİR aynı olmak zorundadır (guard testi var).
   privacy: { tr: '/gizlilik', en: '/en/privacy' },

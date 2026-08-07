@@ -18,6 +18,7 @@ const NAV_LABEL = { tr: 'Yönetim sekmeleri', en: 'Administration tabs' }
 const LABELS = {
   users: { tr: 'Kullanıcılar', en: 'Users' },
   audit: { tr: 'Günlük', en: 'Log' },
+  logs: { tr: 'Loglar', en: 'Logs' },
 }
 
 export default function AdminTabs({ active }) {
@@ -29,6 +30,9 @@ export default function AdminTabs({ active }) {
       </LangLink>
       <LangLink to="/yonetim/gunluk" aria-current={active === 'audit' ? 'page' : undefined}>
         {pick(LABELS.audit, lang)}
+      </LangLink>
+      <LangLink to="/yonetim/loglar" aria-current={active === 'logs' ? 'page' : undefined}>
+        {pick(LABELS.logs, lang)}
       </LangLink>
     </nav>
   )
