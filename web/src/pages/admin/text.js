@@ -137,9 +137,22 @@ export function getText(lang) {
       tr: `${email} hesabını Pro yap`,
       en: `Make ${email} Pro`,
     }),
+    // Onay kartı: tek tık artık değiştirmiyor, ara bir adım var — bitişik iki
+    // küçük düğmede yanlışlıkla ötekine basmak kolaydı, düzeltmesi (audit'e
+    // iki gereksiz satır + admin fark etmezse geçici yanlış görünen plan)
+    // "geri alınabilir" olsa da bedelsiz değildi. Şifre İSTEMEZ — silmedeki
+    // gibi kimlik doğrulaması değil, yalnız niyet doğrulaması.
     // Plan değerinin kendisi ÇEVRİLMEZ — satırdaki ham `row.plan` ile aynı
     // gerekçe (yukarıdaki yorum): bilinmeyen bir değer geldiğinde de teşhis
     // edilebilir kalsın diye olduğu gibi basılır.
+    planConfirmTitle: (plan) => t({
+      tr: `Plan ${plan} yapılsın mı?`,
+      en: `Change plan to ${plan}?`,
+    }),
+    planConfirmMessage: (email, plan) => t({
+      tr: `${email} hesabının planı ${plan} olacak.`,
+      en: `${email}'s plan will become ${plan}.`,
+    }),
     planChanged: (email, plan) => t({
       tr: `${email} hesabının planı ${plan} oldu.`,
       en: `${email}'s plan is now ${plan}.`,

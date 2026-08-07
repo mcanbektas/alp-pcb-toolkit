@@ -82,6 +82,15 @@ describe.each(LANGS)('yönetim metni (%s)', (lang) => {
     expect(t.planChanged('kim@ornek.test', 'free')).toContain('free')
   })
 
+  // Onay kartının başlığı hedef planı, mesajı hem hesabı hem hedef planı
+  // taşır — silmedeki deleteConfirm ile aynı gerekçe: yanlış satıra
+  // basıldıysa kart bunu adıyla söylemeli.
+  it('plan onay kartı hesabı ve hedef planı taşır', () => {
+    expect(t.planConfirmTitle('pro')).toContain('pro')
+    expect(t.planConfirmMessage('kim@ornek.test', 'free')).toContain('kim@ornek.test')
+    expect(t.planConfirmMessage('kim@ornek.test', 'free')).toContain('free')
+  })
+
   // Kilit açma düğmesinin erişilebilir adı ve başarı bildirimi hesabı söylüyor
   // — silme/plan düğmelerindeki gerekçenin aynısı.
   it('kilit açma düğmesinin erişilebilir adı ve bildirimi hesabı söylüyor', () => {

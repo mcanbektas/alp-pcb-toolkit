@@ -48,12 +48,14 @@ export default function AdminPanel() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
 
-  // Plan değişimi kendi hata/meşguliyet durumunu tutar: onay kartı yok, tek
-  // tıkla değişiyor (silmedeki ConfirmDialog gerekmiyor — geri alınabilir,
-  // düşük riskli işlem). `planBusyId` yalnız değişen SATIRI kilitler, bütün
-  // tabloyu değil.
+  // Plan değişimi kendi hata/meşguliyet durumunu tutar. `planBusyId` yalnız
+  // değişen SATIRI kilitler, bütün tabloyu değil. `planTarget` onay kartı
+  // açıkken hangi satır+hangi yeni plan bekliyor bilgisini tutar — silmedeki
+  // `target` deseninin küçük kopyası, parola alanı yok (bkz. text.js →
+  // planConfirmTitle yorumu).
   const [planBusyId, setPlanBusyId] = useState(null)
   const [planError, setPlanError] = useState(null)
+  const [planTarget, setPlanTarget] = useState(null)
 
   // Kilit açma da AYNI desen — kendi kopyası, plan durumuyla paylaşılmıyor:
   // ikisi aynı anda farklı satırlarda tetiklenebilir (plan değişimi bir
@@ -148,20 +150,32 @@ export default function AdminPanel() {
     await load()
   }
 
+  function askPlanChange(row, plan) {
+    setPlanError(null)
+    setPlanTarget({ row, plan })
+  }
+
+  function cancelPlanChange() {
+    if (planBusyId !== null) return
+    setPlanTarget(null)
+  }
+
   // Silme akışındaki state güncelleme deseninin aynısı: local satırı elle
   // yamamak yerine `load()` ile yeniden çekiyoruz — tek kaynak liste
   // sorgusudur, aramadan/sayfadan bağımsız hep tutarlı kalır.
-  async function changePlan(row, plan) {
-    setPlanError(null)
+  async function confirmPlanChange() {
+    const { row, plan } = planTarget
     setPlanBusyId(row.id)
     const res = await api.post(`/api/admin/users/${encodeURIComponent(row.id)}/plan`, { plan })
     setPlanBusyId(null)
 
     if (!res.ok) {
+      setPlanTarget(null)
       setPlanError(t.errorText(res))
       return
     }
 
+    setPlanTarget(null)
     showNotice(t.planChanged(row.email, plan))
     await load()
   }
@@ -319,14 +333,15 @@ export default function AdminPanel() {
                     </span>
                     {/* Plan değiştirici: iki küçük `.row-add` düğmesi, yeni CSS
                         yok. Geçerli değere karşılık gelen düğme devre dışı —
-                        yalnız ÖTEKİ tıklanabilir, tek tıkla değişir. Silmenin
-                        aksine onay kartı yok: geri alınabilir, düşük riskli. */}
+                        yalnız ÖTEKİ tıklanabilir. Tık doğrudan değiştirmez,
+                        alttaki onay kartını açar (bitişik iki düğmede yanlış
+                        tıklama kolaydı — bkz. text.js → planConfirmTitle). */}
                     <span className="report-actions" role="group" aria-label={t.plan}>
                       <button
                         type="button"
                         className="row-add"
                         disabled={row.plan === 'free' || planBusyId === row.id}
-                        onClick={() => changePlan(row, 'free')}
+                        onClick={() => askPlanChange(row, 'free')}
                         aria-label={t.planMakeFreeAria(row.email)}
                       >
                         {t.planMakeFree}
@@ -335,7 +350,7 @@ export default function AdminPanel() {
                         type="button"
                         className="row-add"
                         disabled={row.plan === 'pro' || planBusyId === row.id}
-                        onClick={() => changePlan(row, 'pro')}
+                        onClick={() => askPlanChange(row, 'pro')}
                         aria-label={t.planMakeProAria(row.email)}
                       >
                         {t.planMakePro}
@@ -449,6 +464,20 @@ export default function AdminPanel() {
         {deleteError && <p className="field-hint danger">{deleteError}</p>}
         {deleteBusy && <p className="field-hint">{t.deleting}</p>}
       </ConfirmDialog>
+
+      {/* Plan onayı: şifre alanı YOK (children boş) — kimlik değil niyet
+          doğrulanıyor, silme kartından farklı risk sınıfı. */}
+      <ConfirmDialog
+        open={planTarget !== null}
+        title={planTarget ? t.planConfirmTitle(planTarget.plan) : ''}
+        message={planTarget ? t.planConfirmMessage(planTarget.row.email, planTarget.plan) : ''}
+        confirmLabel={planTarget?.plan === 'free' ? t.planMakeFree : t.planMakePro}
+        cancelLabel={ui.cancel}
+        onConfirm={confirmPlanChange}
+        onCancel={cancelPlanChange}
+        busy={planTarget !== null && planBusyId === planTarget.row.id}
+        danger={false}
+      />
     </>
   )
 }

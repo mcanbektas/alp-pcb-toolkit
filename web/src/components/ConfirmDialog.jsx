@@ -22,6 +22,12 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   busy = false,
+  // Onay düğmesinin rengi: varsayılan (yıkıcı eylem, `.btn-danger`) kartın
+  // asıl tasarım amacı. `danger={false}` geri alınabilir/düşük riskli bir
+  // niyeti doğrulatırken (yönetim panelinde plan değiştirme gibi) kırmızının
+  // yanlış "bu tehlikeli" sinyalini vermesin diye `.btn-primary`ya düşer —
+  // kartın geri kalanı (odak, Escape, örtü) aynı kalır, yalnız renk değişir.
+  danger = true,
   // Onaydan önce doldurulması gereken alan varsa (yönetim panelinde silmeyi
   // isteyenin parolası) buraya gelir. Verilmezse kart eskisi gibi yalnız
   // mesaj + iki düğmedir; odak yine İPTAL düğmesindedir, yani alan eklenmiş
@@ -98,7 +104,7 @@ export default function ConfirmDialog({
           </button>
           <button
             type="button"
-            className="btn-danger"
+            className={danger ? 'btn-danger' : 'btn-primary'}
             disabled={busy}
             onClick={() => onConfirm?.()}
           >
