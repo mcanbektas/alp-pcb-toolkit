@@ -175,20 +175,20 @@ export default function AdminAuditLog() {
                       <td>{row.actorEmail ?? '—'}</td>
                       <td>{row.targetEmail ?? '—'}</td>
                       <td className="detail-cell">
-                        {/* Ham JSON hücrede basılmaz; ayrıntı kartta gösterilir.
-                            Çoğu olayda ayrıntı yok — hücre o zaman boş kalır.
-                            Satır içi düğme `.row-add`: liste satırındaki eylemler
-                            bu depoda hep bu sınıfı alır (Kullanıcılar → Sil). */}
-                        {t.detailRows(row.detailJson).length > 0 && (
-                          <button
-                            type="button"
-                            className="row-add"
-                            onClick={() => setDetailRow(row)}
-                            aria-label={t.detailViewAria(t.eventText(row.event))}
-                          >
-                            {t.detailView}
-                          </button>
-                        )}
+                        {/* Düğme HER satırda çizilir: kart artık satırın yapısal
+                            kaydını da taşıyor (zaman, olay kodu, yapan, hedef,
+                            kayıt no) — DetailJson boş olsa da "Görüntüle"nin
+                            gösterecek bir şeyi var. Satır içi düğme `.row-add`:
+                            liste satırındaki eylemler bu depoda hep bu sınıfı
+                            alır (Kullanıcılar → Sil). */}
+                        <button
+                          type="button"
+                          className="row-add"
+                          onClick={() => setDetailRow(row)}
+                          aria-label={t.detailViewAria(t.eventText(row.event))}
+                        >
+                          {t.detailView}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -221,9 +221,11 @@ export default function AdminAuditLog() {
         </div>
       </section>
 
-      {/* Ayrıntı kartı — etiketler iki dilli sözlükten (text.js → detailRows),
-          değerler yapısal hâliyle. Etiket–değer dizilimi `.result-table`ın
-          kendi deseni: ilk sütun soluk etiket, ikincisi değer. */}
+      {/* Ayrıntı kartı — satırın yapısal kaydı (zaman/olay/yapan/hedef/kayıt
+          no) + varsa sunucunun yazdığı DetailJson alanları, hepsi
+          `text.js` → `recordRows`ten TEK listede gelir. Etiket–değer
+          dizilimi `.result-table`ın kendi deseni: ilk sütun soluk etiket,
+          ikincisi değer. */}
       <InfoDialog
         open={detailRow !== null}
         title={t.detailTitle}
@@ -233,7 +235,7 @@ export default function AdminAuditLog() {
         {detailRow !== null && (
           <table className="result-table">
             <tbody>
-              {t.detailRows(detailRow.detailJson).map((r) => (
+              {t.recordRows(detailRow).map((r) => (
                 <tr key={r.key}>
                   <td>{r.label}</td>
                   <td>{r.value}</td>

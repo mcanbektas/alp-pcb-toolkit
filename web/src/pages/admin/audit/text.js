@@ -100,6 +100,39 @@ const GROUP_HEADINGS = {
 export function getText(lang) {
   const t = (dict) => pick(dict, lang)
   const eventAllLabel = t({ tr: '(hepsi)', en: '(all)' })
+  const eventTextFor = (code) => (EVENT_LABELS[code] ? t(EVENT_LABELS[code]) : code)
+  const columns = {
+    time: t({ tr: 'Zaman', en: 'Time' }),
+    event: t({ tr: 'Olay', en: 'Event' }),
+    actor: t({ tr: 'Yapan', en: 'Actor' }),
+    target: t({ tr: 'Hedef', en: 'Target' }),
+    detail: t({ tr: 'Ayrıntı', en: 'Detail' }),
+  }
+  const recordIdLabel = t({ tr: 'Kayıt no', en: 'Record ID' })
+  const dash = '—'
+  const formatDateSecondsFor = (iso) => {
+    if (!iso) return dash
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return dash
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
+      + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  }
+  const detailRowsFor = (detailJson) => {
+    if (!detailJson) return []
+    let parsed
+    try {
+      parsed = JSON.parse(detailJson)
+    } catch {
+      return []
+    }
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return []
+    return Object.entries(parsed).map(([key, value]) => ({
+      key,
+      label: DETAIL_LABELS[key] ? t(DETAIL_LABELS[key]) : key,
+      value: value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value),
+    }))
+  }
 
   return {
     title: t({ tr: 'Günlük', en: 'Audit log' }),
@@ -152,19 +185,13 @@ export function getText(lang) {
     // Bilinmeyen kod ham hâliyle döner: sessiz boşluk yerine teşhis edilebilir
     // bir değer (`text.js` desenindeki genel kural — `pick` de eksik çeviride
     // aynı gerekçeyle Türkçeye düşer, burada düşecek ikinci dil yok).
-    eventText: (code) => (EVENT_LABELS[code] ? t(EVENT_LABELS[code]) : code),
+    eventText: eventTextFor,
     eventMarkClass: markClassFor,
 
     loading: t({ tr: 'Yükleniyor…', en: 'Loading…' }),
     empty: t({ tr: 'Kayıt bulunamadı.', en: 'No events found.' }),
 
-    columns: {
-      time: t({ tr: 'Zaman', en: 'Time' }),
-      event: t({ tr: 'Olay', en: 'Event' }),
-      actor: t({ tr: 'Yapan', en: 'Actor' }),
-      target: t({ tr: 'Hedef', en: 'Target' }),
-      detail: t({ tr: 'Ayrıntı', en: 'Detail' }),
-    },
+    columns,
 
     // Kullanıcılar ekranındaki tarih biçiminin (yalnız gün) üstüne saat:dakika
     // eklenir — denetim izinde ne zaman sorusu dakika hassasiyeti ister.
@@ -177,10 +204,15 @@ export function getText(lang) {
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
         + `${pad(d.getHours())}:${pad(d.getMinutes())}`
     },
+    // Ayrıntı kartındaki tam zaman — tablo hücresi dakikada durur (satırları
+    // ayırt etmek yeter), kart saniyeye iner: iki olay aynı dakikada
+    // düşebilir ve kart "hangisi bu" sorusuna cevap vermeli.
+    formatDateSeconds: formatDateSecondsFor,
 
     // Ayrıntı kartı: tablo hücresine ham JSON basılmaz, kartta etiket–değer
-    // satırları gösterilir. Hücre düğmesi yalnız satır varken çizilir — boş,
-    // bozuk ya da alansız DetailJson boş dizi döner ve hücre boş kalır.
+    // satırları gösterilir. Düğme HER satırda çizilir (`recordRows` hiçbir
+    // zaman boş dönmez — bkz. aşağıdaki not); DetailJson'suz bir olayda kart
+    // yine de "ne, kim, ne zaman, hangi kayıt" sorularına cevap verir.
     detailView: t({ tr: 'Görüntüle', en: 'View' }),
     detailViewAria: (event) => t({
       tr: `${event} ayrıntısını görüntüle`,
@@ -193,21 +225,24 @@ export function getText(lang) {
     // yine etiket–değer satırı olarak düşer (sessiz boşluk yerine teşhis
     // edilebilir değer — eventText ile aynı kural). Değer cümleye KURULMAZ:
     // sayı sayı olarak basılır (docs/brifler/11-loglama.md §3).
-    detailRows: (detailJson) => {
-      if (!detailJson) return []
-      let parsed
-      try {
-        parsed = JSON.parse(detailJson)
-      } catch {
-        return []
-      }
-      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return []
-      return Object.entries(parsed).map(([key, value]) => ({
-        key,
-        label: DETAIL_LABELS[key] ? t(DETAIL_LABELS[key]) : key,
-        value: value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value),
-      }))
-    },
+    detailRows: detailRowsFor,
+
+    // Ayrıntı kartının TAM içeriği: satırın yapısal kaydı (zaman, olay,
+    // yapan, hedef, kayıt no) + varsa `detailRows`. Çoğu olayda ikinci grup
+    // boştur (docs/brifler/11-loglama.md §3 — detay yalnız gerçekten bilgi
+    // taşıyorsa sunucuda yazılır) ama İLK grup hiçbir zaman boş değildir; bu
+    // yüzden "Görüntüle" düğmesi artık her satırda çizilir, DetailJson'a
+    // bakılmaz (bkz. `pages/admin/audit/index.jsx`). Olay hücresi ham kodu da
+    // taşır (`kod (event.code)`): tablo yalnız çeviriyi gösteriyor, kart
+    // destek/loglarla eşleştirmek için tam kodu da versin diye.
+    recordRows: (row) => [
+      { key: 'time', label: columns.time, value: formatDateSecondsFor(row.occurredAt) },
+      { key: 'event', label: columns.event, value: `${eventTextFor(row.event)} (${row.event})` },
+      { key: 'actor', label: columns.actor, value: row.actorEmail ?? dash },
+      { key: 'target', label: columns.target, value: row.targetEmail ?? dash },
+      { key: 'id', label: recordIdLabel, value: String(row.id) },
+      ...detailRowsFor(row.detailJson),
+    ],
 
     pagePrev: t({ tr: 'Önceki', en: 'Previous' }),
     pageNext: t({ tr: 'Sonraki', en: 'Next' }),

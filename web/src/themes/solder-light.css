@@ -393,7 +393,21 @@ a:hover { text-decoration: underline; }
 }
 /* Hareket azaltma isteyen kullanıcıda animasyon durur; degrade kalır. */
 @media (prefers-reduced-motion: reduce) {
-  .result-table .sub-line.plan-pro, .header-user.plan-pro { animation: none; }
+  .result-table .sub-line.plan-pro, .header-user.plan-pro, .confirm-dialog-body .plan-pro {
+    animation: none;
+  }
+}
+/* Plan onay kartındaki (yönetim paneli) hedef plan kelimesi — tablodaki/
+   üst çubuktaki renklerle AYNI, üçüncü kopya. `.confirm-dialog-body` genel
+   bir kart gövdesi olduğu için sınıf DAR tutulur, yoksa kartın içindeki
+   başka bir `.plan-pro`/`.plan-free` (yok ama ileride olabilir) de boyanır. */
+.confirm-dialog-body .plan-free { color: var(--danger); }
+.confirm-dialog-body .plan-pro {
+  background: linear-gradient(90deg, var(--pro-1), var(--pro-2), var(--pro-3), var(--pro-4), var(--pro-5), var(--pro-6), var(--pro-1));
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  font-weight: 600;
+  animation: plan-pro-akis 3s linear infinite;
 }
 
 /* Satır içi YIKICI eylem (yönetim panelindeki Sil): dinlenirken sessiz —
@@ -654,7 +668,8 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.55); }
   display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;
 }
 .confirm-dialog-actions .btn-ghost,
-.confirm-dialog-actions .btn-danger { width: auto; margin-top: 0; }
+.confirm-dialog-actions .btn-danger,
+.confirm-dialog-actions .btn-primary { width: auto; margin-top: 0; }
 
 /* ---------- Bildirim ---------- */
 
@@ -920,6 +935,13 @@ a.row-add { display: inline-block; text-decoration: none; }
    ve sarmalanabilir (kardeş `.sub-line` zaten böyle). Miras alındığında uzun
    bir not hücreyi zorluyor ve dar ekranda sayfa yana kayıyordu. */
 .result-table td .sub { color: var(--muted); font-size: 0.76rem; white-space: normal; }
+/* Ayrıntı kartındaki (InfoDialog, `.confirm-dialog-body`) değer sütunu SAYI
+   değildir — "Hesap oluşturuldu (account.registered)" gibi cümle + ham kod
+   da olabilir (audit → recordRows). Yukarıdaki `nowrap`/sağa yaslama SAYI
+   içindir; burada uygulanırsa 420px'lik dar kartı yatay taşırdı. */
+.confirm-dialog-body .result-table td:last-child {
+  white-space: normal; text-align: left; word-break: break-word;
+}
 
 /* DFM kontrol tablosu: ikinci satır (sınır, marj, kaynak, neden) ve durum
    imi. Renkler durum sınıfından gelir, satır içine yazılmaz. */

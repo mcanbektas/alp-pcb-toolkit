@@ -152,6 +152,42 @@ describe.each(LANGS)('günlük metni (%s)', (lang) => {
     expect(t.detailRows('[1,2]')).toEqual([])
   })
 
+  // Kart artık her satırda dolu: `recordRows` DetailJson'suz bir olayda bile
+  // beş satır döner (zaman/olay/yapan/hedef/kayıt no) — "Görüntüle" düğmesi
+  // bu yüzden koşulsuz çizilir (index.jsx).
+  it('DetailJson\'suz olayda bile yapısal kayıt satırları dolu gelir', () => {
+    const rows = t.recordRows({
+      id: 42,
+      occurredAt: '2026-08-06T11:23:33.656879+00:00',
+      event: 'auth.password-changed',
+      actorEmail: 'kisi@ornek.test',
+      targetEmail: null,
+      detailJson: null,
+    })
+    expect(rows).toHaveLength(5)
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r]))
+    expect(byKey.time.value).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+    expect(byKey.event.value).toContain('auth.password-changed')
+    expect(byKey.actor.value).toBe('kisi@ornek.test')
+    expect(byKey.target.value).toBe('—')
+    expect(byKey.id.value).toBe('42')
+  })
+
+  // DetailJson doluysa `recordRows` beş yapısal satırın ARDINDAN onu ekler —
+  // `detailRows` tek başına da hâlâ çalışır (yukarıdaki testler), burada
+  // ikisinin birleştiği sıra sınanıyor.
+  it('DetailJson\'lu olayda yapısal satırların ardından ayrıntı satırları gelir', () => {
+    const rows = t.recordRows({
+      id: 7,
+      occurredAt: '2026-08-06T11:23:33.656879+00:00',
+      event: 'admin.plan-changed',
+      actorEmail: 'yonetici@ornek.test',
+      targetEmail: 'kullanici@ornek.test',
+      detailJson: '{"fromPlan":"free","toPlan":"pro"}',
+    })
+    expect(rows.map((r) => r.key)).toEqual(['time', 'event', 'actor', 'target', 'id', 'fromPlan', 'toPlan'])
+  })
+
   it('görüntüle düğmesinin erişilebilir adı olay adını taşır', () => {
     expect(t.detailViewAria('X')).toContain('X')
   })
