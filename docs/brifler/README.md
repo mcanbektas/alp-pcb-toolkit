@@ -37,7 +37,7 @@ modeldeyse uygulamayı `Agent` çağrılarında `model: "sonnet"` ile dağıt.
 | 10 | **10-kalan-isler.md** | bölüm başına | bölüm başına | **TAZE OTURUMUN GİRİŞ NOKTASI** — kalan her şey burada sıralı |
 | 11 | 11-arac-bolunmesi.md | Sonnet 5 | ultracode (yoksa max) | BRİF HAZIR (2026-08-04) — SMD sökümü + rc-crystal ve led-ohm-rlc'nin 5 araca ayrılması; kararlar brifte verildi |
 | 11b | 11-loglama.md | faz başına (brifte) | faz başına | ✓ bitti (2026-08-06, F1-F4) — denetim izi + Günlük paneli + saklama + docker log sınırları |
-| 12 | 12-loglama-ekrani.md | F1-F2: Sonnet 5 | F1 high, F2 medium | BRİF HAZIR (2026-08-07) — operasyonel log ekranı (bellek içi halka tampon + `/yonetim/loglar` sekmesi); mimari kararlar brifte verildi, faz başına ayrı oturum |
+| 12 | 12-loglama-ekrani.md | F3: Sonnet 5 | medium | ✓ F1-F2 bitti (2026-08-07, `bd751b9`/`8f68a5d`) — bellek içi halka tampon + `/yonetim/loglar` paneli; yol boyunca kritik bir token-sızıntısı regresyonu bulunup düzeltildi (brifte not var). **F3 (opsiyonel) KALDI, istenirse.** |
 
 1-5, 7 ve 8 sunucusuz yapıldı. 6 sunucu gününe bağlı. 9 hazır bekliyor:
 brifi artık karar çerçevesi değil, uygulanabilir spec — taze oturum

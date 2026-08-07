@@ -1,7 +1,23 @@
 # Brif 12 — Operasyonel log ekranı (canlı kuyruk paneli)
 
-Durum: **brif hazır (2026-08-07), uygulama başlamadı.** Sunucu BEKLEMEZ —
-tamamı yerelde yazılır ve `npm run stack` ile doğrulanır.
+Durum (2026-08-07): **F1 ve F2 TAMAM ve commitli** (`bd751b9`, `8f68a5d`).
+F3 (opsiyonel cilalar) HENÜZ YAPILMADI — taze oturum burada başlar.
+
+**F1/F2 sırasında bulunan ve düzeltilen kritik güvenlik regresyonu:**
+`ConsoleEmailSender` dev'de e-posta gövdesini (doğrulama/parola sıfırlama
+TOKEN'ı dahil) stdout'a yazar — bilinçli, `IEmailSender.cs`teki gerekçe:
+"log'u okuyabilen herkese hesap devralma yolu". LogBufferSink eklenince bu
+satır otomatik olarak panele de düştü: token artık SSH/terminal değil, web
+admin girişiyle görülebiliyordu. `Program.cs`te bu kaynak sink'e giden
+Serilog dalında filtrelendi (`Filter.ByExcluding` +
+`Matching.FromSource<ConsoleEmailSender>()`), stdout'ta aynen kalıyor.
+Regresyon testi: `LogBufferTests.cs` →
+`console_email_sender_kaynakli_satirlar_tampona_hic_girmez`. **Ders — yeni
+bir log kaynağı eklenirse ya da mevcut bir `logger.LogInformation` çağrısı
+değişirse önce sorulmalı: bu satır hassas veri (token, parola, kimlik
+doğrulama sırrı) taşıyabilir mi? Taşıyorsa aynı filtre deseni genişletilir.**
+
+Sunucu BEKLEMEZ — tamamı yerelde yazılır ve `npm run stack` ile doğrulanır.
 
 Zemin: `docs/brifler/11-loglama.md` §7 (F5) bu işi "YAPILMAZ, gerçek ihtiyaç
 doğarsa ayrı brifle açılır" diye kayda geçirmişti. İhtiyaç doğdu (kullanıcı
