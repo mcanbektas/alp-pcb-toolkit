@@ -18,6 +18,7 @@ const PLAIN = [
   'searchLabel', 'searchHint',
   'loading', 'empty',
   'confirmedYes', 'confirmedNo', 'lockedBadge', 'adminBadge', 'adminNotDeletable',
+  'unlockLabel',
   'plan', 'planMakeFree', 'planMakePro',
   'deleteLabel', 'deleting', 'deleteTitle',
   'deletePasswordLabel', 'deletePasswordHint', 'deletePasswordMissing',
@@ -79,6 +80,13 @@ describe.each(LANGS)('yönetim metni (%s)', (lang) => {
     expect(t.planChanged('kim@ornek.test', 'pro')).toContain('kim@ornek.test')
     expect(t.planChanged('kim@ornek.test', 'pro')).toContain('pro')
     expect(t.planChanged('kim@ornek.test', 'free')).toContain('free')
+  })
+
+  // Kilit açma düğmesinin erişilebilir adı ve başarı bildirimi hesabı söylüyor
+  // — silme/plan düğmelerindeki gerekçenin aynısı.
+  it('kilit açma düğmesinin erişilebilir adı ve bildirimi hesabı söylüyor', () => {
+    expect(t.unlockAria('kim@ornek.test')).toContain('kim@ornek.test')
+    expect(t.unlocked('kim@ornek.test')).toContain('kim@ornek.test')
   })
 
   it('hesap alt satırı firmasız da düzgün', () => {

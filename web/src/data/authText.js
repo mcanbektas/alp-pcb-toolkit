@@ -222,5 +222,26 @@ export function authText(lang) {
       }),
       loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
     },
+
+    // Kilitlenme postasındaki "kilidi aç" bağlantısı — ConfirmEmail ile BİREBİR
+    // aynı desen (pending/success/failure/invalidLink), yalnızca hedefi farklı:
+    // parolayı DEĞİŞTİRMEZ, yalnızca kilidi kaldırır (POST /api/auth/unlock).
+    unlockAccount: {
+      title: t({ tr: 'Hesap kilidini aç', en: 'Unlock account' }),
+      pending: t({ tr: 'Kilit açılıyor…', en: 'Unlocking…' }),
+      success: t({
+        tr: 'Hesabının kilidi açıldı. Şimdi giriş yapabilirsin.',
+        en: 'Your account is unlocked. You can sign in now.',
+      }),
+      failure: t({
+        tr: 'Kilit açma bağlantısı geçersiz veya süresi dolmuş.',
+        en: 'The unlock link is invalid or has expired.',
+      }),
+      invalidLink: t({
+        tr: 'Bu bağlantı eksik. E-postandaki bağlantıyı tekrar aç.',
+        en: 'This link is incomplete. Open the link from your email again.',
+      }),
+      loginLink: t({ tr: 'Giriş yap', en: 'Sign in' }),
+    },
   }
 }

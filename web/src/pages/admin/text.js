@@ -78,6 +78,19 @@ export function getText(lang) {
       en: `Locked until ${formatDateTime(iso)}`,
     }),
 
+    // Kilit açma düğmesi — badge'in yanında, YALNIZ kilitliyken çizilir.
+    // Parola istemez (yanlış kilitlenmeyi düzeltmek için var, sürtünme
+    // gerekmiyor — ChangePlan'daki gerekçenin aynısı) ve onay kartı yok.
+    unlockLabel: t({ tr: 'Kilidi aç', en: 'Unlock' }),
+    unlockAria: (email) => t({
+      tr: `${email} hesabının kilidini aç`,
+      en: `Unlock the account ${email}`,
+    }),
+    unlocked: (email) => t({
+      tr: `${email} hesabının kilidi açıldı.`,
+      en: `The account ${email} has been unlocked.`,
+    }),
+
     // "Alp Test · ALP PCB Ltd." — firma yoksa yalnız ad. Ayırıcı orta nokta:
     // tire tarih alanıyla, eğik çizgi de yol gösterimiyle karışıyordu.
     accountMeta: (displayName, company) =>

@@ -34,6 +34,10 @@ const STATIC_ROUTES = {
   forgotPassword: { tr: '/parola-unuttum', en: '/en/forgot-password' },
   resetPassword: { tr: '/parola-sifirla', en: '/en/reset-password' },
   confirmEmail: { tr: '/e-posta-dogrula', en: '/en/confirm-email' },
+  // Kilitlenme postasındaki "kilidi aç" bağlantısı. `confirmEmail` ile aynı
+  // gerekçeyle `indexablePages()` dışı — bu fonksiyon yalnızca `home`, yasal
+  // sayfalar, kategoriler ve araçları döndürür, bu anahtara hiç dokunmaz.
+  unlockAccount: { tr: '/kilit-ac', en: '/en/unlock-account' },
   projects: { tr: '/projelerim', en: '/en/projects' },
   reports: { tr: '/raporlarim', en: '/en/reports' },
   account: { tr: '/hesabim', en: '/en/account' },

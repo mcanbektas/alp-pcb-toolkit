@@ -31,6 +31,7 @@ function serverPaths(name) {
 const TABLES = [
   { name: 'ConfirmEmailPaths', route: 'confirmEmail' },
   { name: 'ResetPasswordPaths', route: 'resetPassword' },
+  { name: 'UnlockAccountPaths', route: 'unlockAccount' },
 ]
 
 describe('Kimlik postası bağlantı bekçisi', () => {

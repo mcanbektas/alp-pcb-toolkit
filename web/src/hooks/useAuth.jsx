@@ -85,14 +85,18 @@ export function AuthProvider({ children }) {
   // yoksa oturum çerezi olarak mı (tarayıcı kapanınca silinir) yazacağını
   // buna bakarak seçer. Erişim token'ı her iki durumda da yalnızca bellekte
   // kalır — "beni kaydet" hiçbir şeyi localStorage'a yazmaz.
+  // `lang` giriş isteğinde de gider: eşiği aşan başarısız deneme hesabı
+  // kilitler ve sunucu kullanıcıya iki bağlantılı bir bilgilendirme postalar
+  // (kilidi aç / parolayı sıfırla). Postanın dilini başka hiçbir kaynaktan
+  // okuyamaz — kayıt ve parola sıfırlamayla aynı kural.
   const login = useCallback(async (email, password, rememberMe = false) => {
-    const res = await api.post('/api/auth/login', { email, password, rememberMe }, { auth: false })
+    const res = await api.post('/api/auth/login', { email, password, rememberMe, lang }, { auth: false })
     if (res.ok) {
       tokenRef.current = res.data.accessToken
       await loadMe()
     }
     return res
-  }, [api, loadMe])
+  }, [api, loadMe, lang])
 
   const register = useCallback((email, password, displayName) => (
     api.post('/api/auth/register', { email, password, displayName, lang }, { auth: false })
@@ -128,6 +132,13 @@ export function AuthProvider({ children }) {
     return api.get(`/api/auth/confirm-email?${q}`, { auth: false })
   }, [api])
 
+  // Kilitlenme postasındaki "kilidi aç" bağlantısının ucu. `confirmEmail` ile
+  // aynı `userId`/`token` çiftini taşır ama GET değil POST'tur (bkz.
+  // AuthEndpoints.Unlock) — parolayı değiştirmez, yalnızca kilidi kaldırır.
+  const unlockAccount = useCallback((userId, token) => (
+    api.post('/api/auth/unlock', { userId, token }, { auth: false })
+  ), [api])
+
   // Profil (ad/firma) değiştikten sonra başlıktaki ad ve rapor formundaki
   // "Hazırlayan" varsayılanı da tazelenmeli; ekran kendi kopyasını tutarsa
   // ikisi ayrışır. `loadMe` zaten oturum durumunu da doğru bırakır.
@@ -146,11 +157,12 @@ export function AuthProvider({ children }) {
     resetPassword,
     changePassword,
     confirmEmail,
+    unlockAccount,
     // Auth dışı uçlar (rapor, proje) için: token ekleme ve 401'de sessiz
     // yenileme burada zaten çözülmüş durumda, ekran yeniden kurmaz.
     api,
   }), [status, user, refreshUser, login, register, logout, forgotPassword, resetPassword,
-    changePassword, confirmEmail, api])
+    changePassword, confirmEmail, unlockAccount, api])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

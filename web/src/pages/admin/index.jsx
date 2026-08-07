@@ -55,6 +55,13 @@ export default function AdminPanel() {
   const [planBusyId, setPlanBusyId] = useState(null)
   const [planError, setPlanError] = useState(null)
 
+  // Kilit açma da AYNI desen — kendi kopyası, plan durumuyla paylaşılmıyor:
+  // ikisi aynı anda farklı satırlarda tetiklenebilir (plan değişimi bir
+  // satırda meşgulken kilit açma başka satırda), tek bir `busyId` bunu
+  // ayıramazdı.
+  const [unlockBusyId, setUnlockBusyId] = useState(null)
+  const [unlockError, setUnlockError] = useState(null)
+
   const isAdmin = user?.isAdmin === true
 
   const load = useCallback(async () => {
@@ -159,6 +166,24 @@ export default function AdminPanel() {
     await load()
   }
 
+  // Plan değiştirme akışıyla birebir aynı şekil: onay kartı yok (düşük
+  // riskli, geri alınabilir — kilit tekrar oluşabilir), başarıda `load()`
+  // ile liste yenilenir ki rozet gerçekten kaybolsun.
+  async function unlockUser(row) {
+    setUnlockError(null)
+    setUnlockBusyId(row.id)
+    const res = await api.post(`/api/admin/users/${encodeURIComponent(row.id)}/unlock`, undefined)
+    setUnlockBusyId(null)
+
+    if (!res.ok) {
+      setUnlockError(t.errorText(res))
+      return
+    }
+
+    showNotice(t.unlocked(row.email))
+    await load()
+  }
+
   if (isLoading) return null
 
   if (!isAuthenticated) {
@@ -222,6 +247,7 @@ export default function AdminPanel() {
 
         {error && <p className="field-hint danger">{error}</p>}
         {planError && <p className="field-hint danger">{planError}</p>}
+        {unlockError && <p className="field-hint danger">{unlockError}</p>}
 
         {/* İlk yüklemede boş liste "Kayıt bulunamadı" DEĞİL "Yükleniyor…"
             der; sonraki aramalarda eski satırlar yanıt gelene dek yerinde
@@ -267,6 +293,19 @@ export default function AdminPanel() {
                         <span className="mark danger" title={t.lockedUntil(row.lockoutEnd)}>
                           {t.lockedBadge}
                         </span>
+                        {' '}
+                        {/* Onay kartı YOK: düşük riskli, geri alınabilir (kilit
+                            yeniden oluşabilir) — plan düğmeleriyle aynı gerekçe.
+                            Yalnız kilitliyken basılır, badge'in kendisi gibi. */}
+                        <button
+                          type="button"
+                          className="row-add"
+                          disabled={unlockBusyId === row.id}
+                          onClick={() => unlockUser(row)}
+                          aria-label={t.unlockAria(row.email)}
+                        >
+                          {t.unlockLabel}
+                        </button>
                       </>
                     )}
                     {/* Plan sınıfı yalnız BİLİNEN değerlere verilir: sunucudan

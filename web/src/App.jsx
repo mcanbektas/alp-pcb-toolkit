@@ -26,6 +26,7 @@ import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import ConfirmEmail from './pages/auth/ConfirmEmail'
+import UnlockAccount from './pages/auth/UnlockAccount'
 
 // Araç ekranları tembel yüklenir: 25 ekranın hesap motoru, şeması ve metni tek
 // pakette gelince ilk boyama gereksiz büyüyordu. Ana sayfa ve kategori sayfası
@@ -491,6 +492,11 @@ function langRoutes(lang) {
       key={`${lang}:confirmEmail`}
       path={staticPath('confirmEmail', lang)}
       element={<ConfirmEmail />}
+    />,
+    <Route
+      key={`${lang}:unlockAccount`}
+      path={staticPath('unlockAccount', lang)}
+      element={<UnlockAccount />}
     />,
     <Route key={`${lang}:projects`} path={staticPath('projects', lang)} element={<Projects />} />,
     <Route key={`${lang}:reports`} path={staticPath('reports', lang)} element={<Reports />} />,
