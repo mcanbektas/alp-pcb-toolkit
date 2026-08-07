@@ -14,6 +14,8 @@ const PLAIN = [
   'refresh', 'autoRefreshLabel',
   'loading', 'empty',
   'detailView', 'detailTitle', 'detailClose',
+  'propertiesTitle', 'exceptionTitle',
+  'copyDetail', 'copyDetailDone', 'copyFailed', 'copyVisible', 'copyVisibleDone',
 ]
 
 const COLUMNS = ['time', 'level', 'source', 'message', 'detail']
@@ -81,19 +83,114 @@ describe.each(LANGS)('loglar metni (%s)', (lang) => {
     expect(t.errorText({ ok: false, error: 'SERVER_ERROR' }).length).toBeGreaterThan(0)
   })
 
-  it('recordRows tüm alanları taşır, exception yoksa satır eklemez', () => {
-    const withoutException = t.recordRows({
-      occurredAt: '2026-01-01T00:00:00Z', level: 'Information', message: 'mesaj',
-      sourceContext: null, requestPath: null, userId: null, exception: null,
-    })
-    expect(withoutException.some((r) => r.key === 'exception')).toBe(false)
-    expect(withoutException.map((r) => r.key)).toEqual(['time', 'level', 'source', 'path', 'user', 'message'])
-
-    const withException = t.recordRows({
+  // F2'den beri istisna ARTIK recordRows'ta değil — kendi bölümü var
+  // (index.jsx `detailRow.exception` doğrudan okur), tek `.result-table`
+  // uzun bir yığın iziyle okunmaz hâle gelmesin diye.
+  it('recordRows tüm alanları taşır, exception hiç dahil değildir', () => {
+    const row = t.recordRows({
       occurredAt: '2026-01-01T00:00:00Z', level: 'Error', message: 'mesaj',
-      sourceContext: 'Kaynak', requestPath: '/api/x', userId: 'u1', exception: 'boom',
+      sourceContext: 'Kaynak', requestPath: '/api/x', userId: 'u1',
+      requestId: '0123456789abcdef0123456789abcdef', exception: 'boom',
     })
-    const exceptionRow = withException.find((r) => r.key === 'exception')
-    expect(exceptionRow?.value).toBe('boom')
+    expect(row.map((r) => r.key))
+      .toEqual(['time', 'level', 'source', 'path', 'user', 'requestId', 'message'])
+    const requestIdRow = row.find((r) => r.key === 'requestId')
+    expect(requestIdRow?.value).toBe('0123456789abcdef0123456789abcdef')
+  })
+
+  it('recordRows boş alanlarda tire döner', () => {
+    const row = t.recordRows({
+      occurredAt: '2026-01-01T00:00:00Z', level: 'Information', message: 'mesaj',
+      sourceContext: null, requestPath: null, userId: null, requestId: null, exception: null,
+    })
+    expect(row.find((r) => r.key === 'source')?.value).toBe('—')
+    expect(row.find((r) => r.key === 'requestId')?.value).toBe('—')
+  })
+
+  it('propertyRows bilinen adları çevirir, bilinmeyeni ham bırakır', () => {
+    const rows = t.propertyRows({
+      properties: { StatusCode: '500', Elapsed: '830.5', GaripOzellik: 'deger' },
+    })
+    expect(rows).toHaveLength(3)
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r]))
+    expect(byKey.StatusCode.value).toBe('500')
+    expect(byKey.StatusCode.label).not.toBe('StatusCode') // çevrildi
+    expect(byKey.GaripOzellik.label).toBe('GaripOzellik') // ham kaldı
+  })
+
+  it('propertyRows properties yoksa/boşsa boş dizi döner', () => {
+    expect(t.propertyRows({})).toEqual([])
+    expect(t.propertyRows({ properties: {} })).toEqual([])
+  })
+
+  it('truncatedPropertyNote sayıyı içerir', () => {
+    expect(t.truncatedPropertyNote(6)).toContain('6')
+  })
+
+  // Yapısal iddialar (yalnız `toContain` değil): satır sayısı, çift boş
+  // satır yok, sondaki satır sonu yok, bölüm sınırları tam yerinde —
+  // review'da "tek satıra mıhlanmış metin de toContain'i geçer" diye
+  // yakalandı.
+  it('copyableText üst blok + özellikler + istisnayı tek metinde birleştirir', () => {
+    const withAll = t.copyableText({
+      occurredAt: '2026-01-01T00:00:00Z', level: 'Error', message: 'patladi',
+      sourceContext: 'Kaynak', requestPath: '/api/x', userId: 'u1',
+      requestId: '0123456789abcdef0123456789abcdef',
+      properties: { StatusCode: '500' },
+      exception: 'System.Exception: boom\n   at Foo()',
+    })
+    const [statusRow] = t.propertyRows({ properties: { StatusCode: '500' } })
+    const lines = withAll.split('\n')
+    // Üst blok 7 satır (indeks 0-6: zaman/seviye/kaynak/yol/kullanıcı/
+    // istekKimliği/mesaj), sonra boş ayraç.
+    expect(lines[7]).toBe('')
+    expect(lines[8]).toBe(`${t.propertiesTitle}:`)
+    expect(lines[9]).toBe(`${statusRow.label}: ${statusRow.value}`)
+    expect(lines[10]).toBe('') // özelliklerden sonra boş ayraç
+    expect(lines[11]).toBe(`${t.exceptionTitle}:`)
+    expect(lines.slice(12).join('\n')).toBe('System.Exception: boom\n   at Foo()')
+
+    // Kart kırpma notunu gösteriyorsa kopya da göstermeli — "sessiz kırpma
+    // YOK" sözü panele özel değil (F3'ün kendi review bulgusu).
+    const truncated = t.copyableText({
+      occurredAt: '2026-01-01T00:00:00Z', level: 'Information', message: 'mesaj',
+      sourceContext: null, requestPath: null, userId: null, requestId: null,
+      properties: { A: '1' }, truncatedPropertyCount: 3, exception: null,
+    })
+    expect(truncated).toContain(t.truncatedPropertyNote(3))
+
+    // Özellik/istisna yoksa o bölümler hiç eklenmez — boş başlıklı bölüm yok,
+    // çift boş satır yok, sondaki satır sonu yok.
+    const bare = t.copyableText({
+      occurredAt: '2026-01-01T00:00:00Z', level: 'Information', message: 'mesaj',
+      sourceContext: null, requestPath: null, userId: null, requestId: null,
+      properties: {}, exception: null,
+    })
+    expect(bare.split('\n')).toHaveLength(7)
+    expect(bare).not.toMatch(/\n\n/)
+    expect(bare.endsWith('\n')).toBe(false)
+    expect(bare).not.toContain(`${t.propertiesTitle}:`)
+    expect(bare).not.toContain(`${t.exceptionTitle}:`)
+  })
+
+  it('rowsToTsv satır başına 4 sekme-ayrılı alan üretir, sekme/satır sonunu boşluğa indirger', () => {
+    const tsv = t.rowsToTsv([
+      { occurredAt: '2026-01-01T00:00:00Z', level: 'Information', sourceContext: 'Kaynak.Tam', message: 'ilk satır' },
+      { occurredAt: '2026-01-01T00:00:05Z', level: 'Error', sourceContext: null, message: 'sekme\tiçeren\nmesaj' },
+    ])
+    const lines = tsv.split('\n')
+    expect(lines).toHaveLength(2)
+    expect(lines[0].split('\t')).toEqual(['2026-01-01T00:00:00Z', 'Information', 'Kaynak.Tam', 'ilk satır'])
+    // Sanitize gerçekten DEĞER'i düzeltiyor mu (yalnız sütun sayısı değil) —
+    // sekme/satır sonu SİLİNMİYOR, boşluğa dönüyor; silinseydi sütun sayısı
+    // yine 4 kalırdı ama değer "sekmeiçerenmesaj" olurdu, bu da bir regresyon.
+    const secondLine = lines[1].split('\t')
+    expect(secondLine).toHaveLength(4)
+    expect(secondLine[2]).toBe('') // null sourceContext → boş hücre (tire DEĞİL — tablo hücresi değil)
+    expect(secondLine[3]).toBe('sekme içeren mesaj')
+  })
+
+  it('rowsToTsv boş listede boş dize döner', () => {
+    expect(t.rowsToTsv([])).toBe('')
   })
 })

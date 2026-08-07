@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import FacetList from '../../../components/FacetList'
 import InfoDialog from '../../../components/InfoDialog'
 import LangLink from '../../../components/LangLink'
+import useClipboard, { COPY_DONE, COPY_FAILED } from '../../../hooks/useClipboard'
 import { useAuth } from '../../../hooks/useAuth'
 import { useLang } from '../../../hooks/useLang'
 import AdminTabs from '../AdminTabs'
@@ -36,6 +37,12 @@ export default function AdminLogs() {
   const [detailRow, setDetailRow] = useState(null)
 
   const isAdmin = user?.isAdmin === true
+
+  // F3 — kopyalama (brif §4). İki ayrı `useClipboard` örneği: liste ve
+  // ayrıntı kartı bağımsız "Kopyalandı" geri bildirimi taşır, biri
+  // yanarken öteki sönmez.
+  const listClipboard = useClipboard()
+  const detailClipboard = useClipboard()
 
   // Otomatik yenile ile elle "Yenile" aynı isteği paylaşır — bindirme kapısı
   // (`loadingRef`) ikisi için de geçerli: 5 sn'lik bir yanıt gecikirse ikinci
@@ -155,6 +162,9 @@ export default function AdminLogs() {
     )
   }
 
+  // Ayrıntı kartı iki kez okuyordu (uzunluk kontrolü + map) — tek sefere indirildi.
+  const propertyRows = detailRow !== null ? t.propertyRows(detailRow) : []
+
   return (
     <>
       <div className="tool-header">
@@ -238,7 +248,22 @@ export default function AdminLogs() {
               <button type="button" className="btn-ghost" onClick={() => load()} disabled={busy}>
                 {t.refresh}
               </button>
+              {/* `disabled`, gizleme DEĞİL — komşu Yenile düğmesiyle AYNI
+                  desen (review'da tutarlılık için önerildi). Boş listede
+                  devre dışı kalması yalnız kozmetik değil: `rowsToTsv([])`
+                  boş dize döner ve `useClipboard.copy('')` sahte bir
+                  COPY_FAILED yanıp söndürürdü — disabled düğme hiç
+                  tıklanamadığı için bu hiç oluşmaz. */}
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => listClipboard.copy(t.rowsToTsv(rows))}
+                disabled={rows.length === 0}
+              >
+                {listClipboard.state === COPY_DONE ? t.copyVisibleDone : t.copyVisible}
+              </button>
             </div>
+            {listClipboard.state === COPY_FAILED && <p className="field-hint danger">{t.copyFailed}</p>}
             <label className="check-row">
               <input
                 type="checkbox"
@@ -263,16 +288,66 @@ export default function AdminLogs() {
         wide
       >
         {detailRow !== null && (
-          <table className="result-table">
-            <tbody>
-              {t.recordRows(detailRow).map((r) => (
-                <tr key={r.key}>
-                  <td>{r.label}</td>
-                  <td>{r.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <div className="report-actions">
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => detailClipboard.copy(t.copyableText(detailRow))}
+              >
+                {detailClipboard.state === COPY_DONE ? t.copyDetailDone : t.copyDetail}
+              </button>
+            </div>
+            {detailClipboard.state === COPY_FAILED && <p className="field-hint danger">{t.copyFailed}</p>}
+
+            <table className="result-table">
+              <tbody>
+                {t.recordRows(detailRow).map((r) => (
+                  <tr key={r.key}>
+                    <td>{r.label}</td>
+                    <td>{r.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* F2 — özellikler (docs/brifler/14-loglama-altyapi.md §3):
+                istek-tamamlama olayının Yöntem/Durum kodu/Süre/IP gibi
+                zenginleştirmeleri, sunucunun tavanlı kopyası. */}
+            {propertyRows.length > 0 && (
+              <>
+                <h2 className="section">{t.propertiesTitle}</h2>
+                <table className="result-table">
+                  <tbody>
+                    {propertyRows.map((r) => (
+                      <tr key={r.key}>
+                        <td>{r.label}</td>
+                        <td>{r.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {detailRow.truncatedPropertyCount > 0 && (
+                  <p className="field-hint">{t.truncatedPropertyNote(detailRow.truncatedPropertyCount)}</p>
+                )}
+              </>
+            )}
+
+            {/* Artık TAM metin (brif 12'nin "yalnız ilk satır" kararının
+                bilinçli revizyonu). `.formula` TEK BAŞINA (satır kaydırmasız
+                + tavansız) burada yanlış seçimdi — bir yığın izinin uzun
+                satırları yatay kaydırma ister, 4000 karakter kartı tüple
+                döndürür. `.formula.summary-box` (DfmSummaryBox'ın kullandığı
+                AYNI çift sınıf) `max-height` + iç kaydırma + satır sarma
+                ekliyor — hâlâ ekrana özel CSS YOK, ikinci hazır sınıf
+                birleşimi. */}
+            {detailRow.exception && (
+              <>
+                <h2 className="section">{t.exceptionTitle}</h2>
+                <pre className="formula summary-box">{detailRow.exception}</pre>
+              </>
+            )}
+          </>
         )}
       </InfoDialog>
     </>
