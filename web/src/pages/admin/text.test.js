@@ -20,6 +20,7 @@ const PLAIN = [
   'confirmedYes', 'confirmedNo', 'lockedBadge', 'adminBadge', 'adminNotDeletable',
   'unlockLabel',
   'plan', 'planMakeFree', 'planMakePro',
+  'planConfirmTitleBefore', 'planConfirmTitleAfter', 'planConfirmMessageAfter',
   'deleteLabel', 'deleting', 'deleteTitle',
   'deletePasswordLabel', 'deletePasswordHint', 'deletePasswordMissing',
   'pagePrev', 'pageNext',
@@ -82,13 +83,12 @@ describe.each(LANGS)('yönetim metni (%s)', (lang) => {
     expect(t.planChanged('kim@ornek.test', 'free')).toContain('free')
   })
 
-  // Onay kartının başlığı hedef planı, mesajı hem hesabı hem hedef planı
-  // taşır — silmedeki deleteConfirm ile aynı gerekçe: yanlış satıra
-  // basıldıysa kart bunu adıyla söylemeli.
-  it('plan onay kartı hesabı ve hedef planı taşır', () => {
-    expect(t.planConfirmTitle('pro')).toContain('pro')
-    expect(t.planConfirmMessage('kim@ornek.test', 'free')).toContain('kim@ornek.test')
-    expect(t.planConfirmMessage('kim@ornek.test', 'free')).toContain('free')
+  // Onay kartının mesajı hesabı taşır — silmedeki deleteConfirm ile aynı
+  // gerekçe: yanlış satıra basıldıysa kart bunu adıyla söylemeli. Hedef plan
+  // kelimesinin kendisi artık dizede DEĞİL: index.jsx onu ayrı bir `<span>`
+  // olarak (renk sınıfıyla) before/after'ın arasına koyuyor.
+  it('plan onay kartı hesabı taşır', () => {
+    expect(t.planConfirmMessageBefore('kim@ornek.test')).toContain('kim@ornek.test')
   })
 
   // Kilit açma düğmesinin erişilebilir adı ve başarı bildirimi hesabı söylüyor

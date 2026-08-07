@@ -466,11 +466,31 @@ export default function AdminPanel() {
       </ConfirmDialog>
 
       {/* Plan onayı: şifre alanı YOK (children boş) — kimlik değil niyet
-          doğrulanıyor, silme kartından farklı risk sınıfı. */}
+          doğrulanıyor, silme kartından farklı risk sınıfı. Başlık/mesaj
+          içindeki plan kelimesi tablodaki/üst çubuktaki rozetle AYNI sınıfı
+          taşır (`plan-free`/`plan-pro`, CSS'te `.confirm-dialog-body` ile
+          kapsamlı ayrı bir kural — `.result-table .sub-line`e bağlı olan
+          asıl kural buraya erişemez, header-user'daki gibi tekrarlanır). */}
       <ConfirmDialog
         open={planTarget !== null}
-        title={planTarget ? t.planConfirmTitle(planTarget.plan) : ''}
-        message={planTarget ? t.planConfirmMessage(planTarget.row.email, planTarget.plan) : ''}
+        title={planTarget && (
+          <>
+            {t.planConfirmTitleBefore}
+            <span className={planTarget.plan === 'free' ? 'plan-free' : 'plan-pro'}>
+              {planTarget.plan}
+            </span>
+            {t.planConfirmTitleAfter}
+          </>
+        )}
+        message={planTarget && (
+          <>
+            {t.planConfirmMessageBefore(planTarget.row.email)}
+            <span className={planTarget.plan === 'free' ? 'plan-free' : 'plan-pro'}>
+              {planTarget.plan}
+            </span>
+            {t.planConfirmMessageAfter}
+          </>
+        )}
         confirmLabel={planTarget?.plan === 'free' ? t.planMakeFree : t.planMakePro}
         cancelLabel={ui.cancel}
         onConfirm={confirmPlanChange}

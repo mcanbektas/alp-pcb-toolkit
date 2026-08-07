@@ -145,14 +145,20 @@ export function getText(lang) {
     // Plan değerinin kendisi ÇEVRİLMEZ — satırdaki ham `row.plan` ile aynı
     // gerekçe (yukarıdaki yorum): bilinmeyen bir değer geldiğinde de teşhis
     // edilebilir kalsın diye olduğu gibi basılır.
-    planConfirmTitle: (plan) => t({
-      tr: `Plan ${plan} yapılsın mı?`,
-      en: `Change plan to ${plan}?`,
+    //
+    // Önce/sonra İKİYE bölünmüş — tabloyu/üst çubuğu boyayan `plan-free`/
+    // `plan-pro` sınıflarıyla AYNI renk burada da plan kelimesinin ÜZERİNDE
+    // dursun diye (kırmızı `free`, rengarenk akan `pro`). Cümleyi tek dizeye
+    // yazıp içinden `plan` kelimesini regex'le ayıklamak kırılgan olurdu —
+    // dizi ikiye bölünüp kelime index.jsx'te ayrı bir `<span>` olarak araya
+    // giriyor, `t()` yine tek kaynak kalıyor.
+    planConfirmTitleBefore: t({ tr: 'Plan ', en: 'Change plan to ' }),
+    planConfirmTitleAfter: t({ tr: ' yapılsın mı?', en: '?' }),
+    planConfirmMessageBefore: (email) => t({
+      tr: `${email} hesabının planı `,
+      en: `${email}'s plan will become `,
     }),
-    planConfirmMessage: (email, plan) => t({
-      tr: `${email} hesabının planı ${plan} olacak.`,
-      en: `${email}'s plan will become ${plan}.`,
-    }),
+    planConfirmMessageAfter: t({ tr: ' olacak.', en: '.' }),
     planChanged: (email, plan) => t({
       tr: `${email} hesabının planı ${plan} oldu.`,
       en: `${email}'s plan is now ${plan}.`,
