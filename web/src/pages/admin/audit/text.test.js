@@ -10,7 +10,7 @@ const PLAIN = [
   'title', 'intro',
   'loginRequired', 'loginLink', 'forbidden', 'homeLink',
   'searchLabel', 'searchHint',
-  'eventFilterLabel', 'eventAll',
+  'eventFilterLabel',
   'loading', 'empty',
   'detailView', 'detailTitle', 'detailClose',
   'pagePrev', 'pageNext',
@@ -26,10 +26,12 @@ const EVENT_CODES = [
   'auth.password-changed',
   'auth.password-reset',
   'auth.lockout',
+  'auth.lockout-cleared',
   'admin.user-deleted',
   'admin.role-granted',
   'admin.role-revoked',
   'admin.plan-changed',
+  'admin.lockout-cleared',
 ]
 
 // AuditLog.Write*Async çağrılarına GERÇEKTEN geçirilen detail alanları
@@ -38,7 +40,10 @@ const EVENT_CODES = [
 //   failedCount               → AuthEndpoints.cs Login (auth.lockout)
 //   projectCount, reportCount → AccountDeletion.cs DeleteAsync (admin.user-deleted)
 //   fromPlan, toPlan          → AdminEndpoints.cs ChangePlan (admin.plan-changed)
-const DETAIL_KEYS = ['failedCount', 'projectCount', 'reportCount', 'fromPlan', 'toPlan']
+//   previousLockoutEnd       → AdminEndpoints.cs UnlockUser (admin.lockout-cleared)
+const DETAIL_KEYS = [
+  'failedCount', 'projectCount', 'reportCount', 'fromPlan', 'toPlan', 'previousLockoutEnd', 'via',
+]
 
 describe.each(LANGS)('günlük metni (%s)', (lang) => {
   const t = getText(lang)
@@ -63,19 +68,44 @@ describe.each(LANGS)('günlük metni (%s)', (lang) => {
     }
   })
 
-  it('olay filtre seçenekleri tüm kodları kapsar', () => {
-    const values = t.eventOptions.map((o) => o.value)
+  it('facet grupları tüm kodları kapsar, "hepsi" başlıksız ilk grupta', () => {
+    const [all, ...families] = t.eventGroups
+    expect(all.heading).toBeNull()
+    expect(all.options).toEqual([{ value: '', label: expect.any(String) }])
+
+    const values = families.flatMap((g) => g.options.map((o) => o.value))
     expect(values.slice().sort()).toEqual([...EVENT_CODES].sort())
-    for (const opt of t.eventOptions) {
-      expect(opt.label.length, `${opt.value} etiketi boş`).toBeGreaterThan(0)
+    for (const group of families) {
+      expect(group.heading.length, `${group.key} başlığı boş`).toBeGreaterThan(0)
+      for (const opt of group.options) {
+        expect(opt.label.length, `${opt.value} etiketi boş`).toBeGreaterThan(0)
+        expect(opt.dotClass, `${opt.value} nokta rengi yok`).toBeTruthy()
+      }
     }
   })
 
-  it('olay renk sınıfı önekine göre belirlenir', () => {
+  // Renk ÖNEKTEN değil olayın niteliğinden gelir — aynı ailede (`auth.*`,
+  // `admin.*`) hem olumlu hem yıkıcı olay olabilir, bu yüzden bir grubun
+  // renklerinin tek tip olması BEKLENMEZ (eski önek-bazlı tasarımın tersi).
+  it('olay renk sınıfı niteliğe göre belirlenir, öneke göre değil', () => {
+    // Aynı `auth.` önekinde zıt iki renk: kilitlenmek tehlike, açılmak olumlu.
+    expect(t.eventMarkClass('auth.lockout')).toBe('danger')
+    expect(t.eventMarkClass('auth.lockout-cleared')).toBe('ok')
+    // Aynı `admin.` önekinde de zıt iki renk: silmek yıkıcı, kilit açmak olumlu.
     expect(t.eventMarkClass('admin.user-deleted')).toBe('danger')
-    expect(t.eventMarkClass('auth.lockout')).toBe('warning')
+    expect(t.eventMarkClass('admin.lockout-cleared')).toBe('ok')
+    expect(t.eventMarkClass('admin.role-granted')).toBe('warning')
     expect(t.eventMarkClass('account.registered')).toBe('ok')
     expect(t.eventMarkClass('bilinmeyen.kod')).toBe('unknown')
+  })
+
+  // Her bilinen kod ÜÇ renkten birine düşmeli — `unknown`, sözlüğe işlenmemiş
+  // bir kodun sessizce "nötr" görünmesidir ve bu ekranda hiçbir EVENT_CODE
+  // için olmamalı.
+  it('bilinen hiçbir olay kodu "unknown" renk almaz', () => {
+    for (const code of EVENT_CODES) {
+      expect(t.eventMarkClass(code), `${code} sınıflandırılmamış`).not.toBe('unknown')
+    }
   })
 
   // Sessiz boşluk yerine teşhis edilebilir değer — sözlükte olmayan bir kod

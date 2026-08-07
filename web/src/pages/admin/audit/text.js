@@ -13,10 +13,17 @@ const EVENT_LABELS = {
   'auth.password-changed': { tr: 'Parola değiştirildi', en: 'Password changed' },
   'auth.password-reset': { tr: 'Parola sıfırlandı', en: 'Password reset' },
   'auth.lockout': { tr: 'Hesap kilitlendi', en: 'Account locked out' },
+  // Kilidin KULLANICI tarafından temizlenmesi (postadaki bağlantı ya da parola
+  // sıfırlama) — `admin.lockout-cleared` ile KARIŞTIRILMAMALI, o yönetim
+  // panelinden açmanın ayrı kodu. İkisi de `markClassFor`da `ok`: kilidin
+  // açılması olumlu bir sonuçtur, rengi kimin açtığını değil SONUCU anlatır
+  // (bkz. markClassFor üstündeki not).
+  'auth.lockout-cleared': { tr: 'Kilit açıldı', en: 'Lockout cleared' },
   'admin.user-deleted': { tr: 'Hesap silindi (yönetici)', en: 'Account deleted (admin)' },
   'admin.role-granted': { tr: 'Yönetim yetkisi verildi', en: 'Administrator role granted' },
   'admin.role-revoked': { tr: 'Yönetim yetkisi alındı', en: 'Administrator role revoked' },
   'admin.plan-changed': { tr: 'Plan değiştirildi (yönetici)', en: 'Plan changed (admin)' },
+  'admin.lockout-cleared': { tr: 'Kilit açıldı (yönetici)', en: 'Lockout cleared (admin)' },
 }
 
 // DetailJson alan adı → etiket sözlüğü. Kaynak, AuditLog.Write*Async
@@ -25,29 +32,74 @@ const EVENT_LABELS = {
 //   failedCount               → AuthEndpoints.cs Login (auth.lockout)
 //   projectCount, reportCount → AccountDeletion.cs DeleteAsync (admin.user-deleted)
 //   fromPlan, toPlan          → AdminEndpoints.cs ChangePlan (admin.plan-changed)
+//   previousLockoutEnd       → AdminEndpoints.cs UnlockUser (admin.lockout-cleared)
+//                               ve AuthEndpoints.cs Unlock/ResetPassword (auth.lockout-cleared)
+//   via                       → AuthEndpoints.cs Unlock/ResetPassword (auth.lockout-cleared)
 // DetailJson'un kendisi yapısal ve dilsiz kalır (docs/brifler/11-loglama.md §3);
 // çeviri yalnız bu ekranın kartında yapılır. Sözlükte olmayan anahtar ham
 // adıyla düşer — sessizce kaybolmaz (bilinmeyen olay koduyla aynı kural).
+// `via` bir ENUM'DUR (`unlock-link` | `password-reset`) ama DEĞERİ yine de
+// çevrilmez — yalnız alan ADI (`label`) çevrilir. `plan` (free/pro) alanının
+// nasıl gösterildiğiyle AYNI kural: `detailRows` her değeri `String(value)`
+// ile ham basar, ikinci bir değer-çeviri katmanı yoktur.
 const DETAIL_LABELS = {
   failedCount: { tr: 'Başarısız giriş denemesi', en: 'Failed sign-in attempts' },
   projectCount: { tr: 'Silinen proje sayısı', en: 'Projects deleted' },
   reportCount: { tr: 'Silinen rapor sayısı', en: 'Reports deleted' },
   fromPlan: { tr: 'Önceki plan', en: 'Previous plan' },
   toPlan: { tr: 'Yeni plan', en: 'New plan' },
+  previousLockoutEnd: { tr: 'Önceki kilit açılma tarihi', en: 'Previous lockout expiry' },
+  via: { tr: 'Açılma yöntemi', en: 'Unlock method' },
 }
 
-// Olay kodunun öneki renk sınıfını belirler. CSS sınıfları `.result-table
-// .mark` altında hazır (ok/warning/danger/unknown) — Kullanıcılar ekranındaki
-// doğrulama imiyle aynı sözlük.
+// Olay kodu → renk sınıfı. ÖNEKTEN DEĞİL, olayın NİTELİĞİNDEN gelir: önek
+// yalnızca kimin (hesap/kimlik akışı/yönetici) yaptığını söyler, "başarılı mı
+// tehlikeli mi" sorusuna cevap vermez — bir yönetici kilidi AÇARSA (olumlu)
+// bu önceki (önek-bazlı) tasarımda hesap SİLMESİYLE (yıkıcı) aynı kırmızıyı
+// alıyordu. CSS sınıfları `.result-table .mark` altında hazır
+// (ok/warning/danger/unknown) — Kullanıcılar ekranındaki doğrulama imiyle
+// aynı sözlük. Sözlükte olmayan (yeni eklenip buraya işlenmemiş) kod sessizce
+// yeşile düşmez, `unknown` olur — aşağıdaki bekçi testi kapsamı denetler.
+const OK_CODES = new Set([
+  'account.registered',
+  'account.email-confirmed',
+  'auth.password-changed',
+  'auth.lockout-cleared',
+  'admin.lockout-cleared',
+])
+const WARNING_CODES = new Set([
+  'auth.password-reset',
+  'admin.role-granted',
+  'admin.role-revoked',
+  'admin.plan-changed',
+])
+const DANGER_CODES = new Set([
+  'auth.lockout',
+  'admin.user-deleted',
+])
+
 function markClassFor(code) {
-  if (code.startsWith('admin.')) return 'danger'
-  if (code.startsWith('auth.')) return 'warning'
-  if (code.startsWith('account.')) return 'ok'
+  if (OK_CODES.has(code)) return 'ok'
+  if (WARNING_CODES.has(code)) return 'warning'
+  if (DANGER_CODES.has(code)) return 'danger'
   return 'unknown'
+}
+
+// Olay kodunun aile öneki (`account`/`auth`/`admin`) → facet listesindeki
+// grup başlığı. Bu gruplama KİMİN yaptığını sorar (hesap/kimlik akışı/
+// yönetici); nokta rengi (`markClassFor`) SONUCUN niteliğini sorar — ikisi
+// bilerek farklı eksenler, aynı grupta yeşil de kırmızı da nokta görünebilir.
+// Önek dördüncüsü (bilinmeyen) olmaz çünkü EVENT_LABELS'taki her kod bu
+// üçünden biriyle başlar (aşağıdaki bekçi testi bunu doğrular).
+const GROUP_HEADINGS = {
+  account: { tr: 'Hesap', en: 'Account' },
+  auth: { tr: 'Kimlik', en: 'Identity' },
+  admin: { tr: 'Yönetim', en: 'Administration' },
 }
 
 export function getText(lang) {
   const t = (dict) => pick(dict, lang)
+  const eventAllLabel = t({ tr: '(hepsi)', en: '(all)' })
 
   return {
     title: t({ tr: 'Günlük', en: 'Audit log' }),
@@ -73,8 +125,30 @@ export function getText(lang) {
     }),
 
     eventFilterLabel: t({ tr: 'Olay türü', en: 'Event type' }),
-    eventAll: t({ tr: '(hepsi)', en: '(all)' }),
-    eventOptions: Object.keys(EVENT_LABELS).map((code) => ({ value: code, label: t(EVENT_LABELS[code]) })),
+    // Facet listesi (`FacetList`) için aileleştirilmiş seçenekler. İlk grup
+    // başlıksız tek satır ("hepsi", value: ''); sonrakiler `EVENT_LABELS`teki
+    // kod sırasına göre (account → auth → admin) kendiliğinden oluşur — kod
+    // eklendiğinde burada elle bir şey güncellenmez.
+    eventGroups: (() => {
+      const order = []
+      const byPrefix = new Map()
+      for (const code of Object.keys(EVENT_LABELS)) {
+        const prefix = code.split('.')[0]
+        if (!byPrefix.has(prefix)) {
+          byPrefix.set(prefix, [])
+          order.push(prefix)
+        }
+        byPrefix.get(prefix).push({ value: code, label: t(EVENT_LABELS[code]), dotClass: markClassFor(code) })
+      }
+      return [
+        { key: 'all', heading: null, options: [{ value: '', label: eventAllLabel }] },
+        ...order.map((prefix) => ({
+          key: prefix,
+          heading: GROUP_HEADINGS[prefix] ? t(GROUP_HEADINGS[prefix]) : prefix,
+          options: byPrefix.get(prefix),
+        })),
+      ]
+    })(),
     // Bilinmeyen kod ham hâliyle döner: sessiz boşluk yerine teşhis edilebilir
     // bir değer (`text.js` desenindeki genel kural — `pick` de eksik çeviride
     // aynı gerekçeyle Türkçeye düşer, burada düşecek ikinci dil yok).

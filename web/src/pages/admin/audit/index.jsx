@@ -6,9 +6,9 @@
 // başındaki not, burada tekrar edilmiyor.
 
 import { useCallback, useEffect, useState } from 'react'
+import FacetList from '../../../components/FacetList'
 import InfoDialog from '../../../components/InfoDialog'
 import LangLink from '../../../components/LangLink'
-import SelectField from '../../../components/SelectField'
 import { useAuth } from '../../../hooks/useAuth'
 import { useLang } from '../../../hooks/useLang'
 import AdminTabs from '../AdminTabs'
@@ -117,7 +117,6 @@ export default function AdminAuditLog() {
   const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, total)
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const eventOptions = [{ value: '', label: t.eventAll }, ...t.eventOptions]
 
   return (
     <>
@@ -128,91 +127,98 @@ export default function AdminAuditLog() {
       </div>
 
       <section className="panel">
-        <form onSubmit={onSearch}>
-          <label className="field">
-            <span className="field-label">{t.searchLabel}</span>
-            <span className="field-row">
-              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </span>
-            <span className="field-hint center">{t.searchHint}</span>
-          </label>
-        </form>
+        <div className="audit-layout">
+          <aside className="audit-facets">
+            <span className="field-label">{t.eventFilterLabel}</span>
+            <FacetList
+              groups={t.eventGroups}
+              value={eventFilter}
+              onChange={onEventChange}
+              label={t.eventFilterLabel}
+            />
+          </aside>
 
-        <SelectField
-          label={t.eventFilterLabel}
-          value={eventFilter}
-          onChange={onEventChange}
-          options={eventOptions}
-        />
+          <div className="audit-main">
+            <form onSubmit={onSearch}>
+              <label className="field">
+                <span className="field-label">{t.searchLabel}</span>
+                <span className="field-row">
+                  <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} />
+                </span>
+                <span className="field-hint center">{t.searchHint}</span>
+              </label>
+            </form>
 
-        {error && <p className="field-hint danger">{error}</p>}
+            {error && <p className="field-hint danger">{error}</p>}
 
-        {busy && rows.length === 0 && !error && <p className="empty-note">{t.loading}</p>}
-        {!error && rows.length === 0 && !busy && <p className="empty-note">{t.empty}</p>}
+            {busy && rows.length === 0 && !error && <p className="empty-note">{t.loading}</p>}
+            {!error && rows.length === 0 && !busy && <p className="empty-note">{t.empty}</p>}
 
-        {rows.length > 0 && (
-          <table className="result-table">
-            <thead>
-              <tr className="mini-head">
-                <th scope="col">{t.columns.time}</th>
-                <th scope="col">{t.columns.event}</th>
-                <th scope="col">{t.columns.actor}</th>
-                <th scope="col">{t.columns.target}</th>
-                <th scope="col" className="detail-cell">{t.columns.detail}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{t.formatDate(row.occurredAt)}</td>
-                  <td>
-                    <span className={`mark ${t.eventMarkClass(row.event)}`}>{t.eventText(row.event)}</span>
-                  </td>
-                  <td>{row.actorEmail ?? '—'}</td>
-                  <td>{row.targetEmail ?? '—'}</td>
-                  <td className="detail-cell">
-                    {/* Ham JSON hücrede basılmaz; ayrıntı kartta gösterilir.
-                        Çoğu olayda ayrıntı yok — hücre o zaman boş kalır.
-                        Satır içi düğme `.row-add`: liste satırındaki eylemler
-                        bu depoda hep bu sınıfı alır (Kullanıcılar → Sil). */}
-                    {t.detailRows(row.detailJson).length > 0 && (
-                      <button
-                        type="button"
-                        className="row-add"
-                        onClick={() => setDetailRow(row)}
-                        aria-label={t.detailViewAria(t.eventText(row.event))}
-                      >
-                        {t.detailView}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+            {rows.length > 0 && (
+              <table className="result-table">
+                <thead>
+                  <tr className="mini-head">
+                    <th scope="col">{t.columns.time}</th>
+                    <th scope="col">{t.columns.event}</th>
+                    <th scope="col">{t.columns.actor}</th>
+                    <th scope="col">{t.columns.target}</th>
+                    <th scope="col" className="detail-cell">{t.columns.detail}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id}>
+                      <td>{t.formatDate(row.occurredAt)}</td>
+                      <td>
+                        <span className={`mark ${t.eventMarkClass(row.event)}`}>{t.eventText(row.event)}</span>
+                      </td>
+                      <td>{row.actorEmail ?? '—'}</td>
+                      <td>{row.targetEmail ?? '—'}</td>
+                      <td className="detail-cell">
+                        {/* Ham JSON hücrede basılmaz; ayrıntı kartta gösterilir.
+                            Çoğu olayda ayrıntı yok — hücre o zaman boş kalır.
+                            Satır içi düğme `.row-add`: liste satırındaki eylemler
+                            bu depoda hep bu sınıfı alır (Kullanıcılar → Sil). */}
+                        {t.detailRows(row.detailJson).length > 0 && (
+                          <button
+                            type="button"
+                            className="row-add"
+                            onClick={() => setDetailRow(row)}
+                            aria-label={t.detailViewAria(t.eventText(row.event))}
+                          >
+                            {t.detailView}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
 
-        {total > 0 && <p className="field-hint">{t.pageStatus(from, to, total)}</p>}
-        {lastPage > 1 && (
-          <div className="report-actions">
-            <button
-              type="button"
-              className="btn-ghost"
-              disabled={page <= 1 || busy}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              {t.pagePrev}
-            </button>
-            <button
-              type="button"
-              className="btn-ghost"
-              disabled={page >= lastPage || busy}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              {t.pageNext}
-            </button>
+            {total > 0 && <p className="field-hint">{t.pageStatus(from, to, total)}</p>}
+            {lastPage > 1 && (
+              <div className="report-actions">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={page <= 1 || busy}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  {t.pagePrev}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={page >= lastPage || busy}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  {t.pageNext}
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </section>
 
       {/* Ayrıntı kartı — etiketler iki dilli sözlükten (text.js → detailRows),
