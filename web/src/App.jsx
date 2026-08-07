@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useRef } from 'react'
 import Toast from './components/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import LangLink from './components/LangLink'
@@ -11,9 +11,10 @@ import { commonText } from './data/uiText'
 import { authText } from './data/authText'
 import { LANGS, LANG_LABEL, pick } from './lib/i18n'
 import {
-  categoryFromPath, categoryPath, categoryRoutePattern, legalFromPath, staticPath, toolFromPath,
-  toolPath, translatePath,
+  categoryFromPath, categoryPath, categoryRoutePattern, isLangPrefPath, langFromPath, legalFromPath,
+  staticPath, toolFromPath, toolPath, translatePath,
 } from './lib/routes'
+import { readLangPref, writeLangPref } from './lib/langPref'
 import logo from './assets/logo.png'
 import { CATEGORIES } from './data/categories'
 import { LEGAL_DOCS } from './data/legalPages'
@@ -247,6 +248,45 @@ function TitleSync() {
         : (legal && pick(legal.title, lang))
     document.title = name ? `${name} — ${TITLE_SUFFIX}` : TITLE_SUFFIX
   }, [location.pathname, lang])
+  return null
+}
+
+// Dil tercihinin OTURUMLA İLGİLİ, indekslenmeyen sayfalara uygulanması
+// (`/yonetim`, `/giris`, `/projelerim`, ...). Kapsam `isLangPrefPath` ile
+// dardır: ana sayfa, kategori, araç ve yasal sayfalar dokunulmaz — onlarda TR
+// adres hâlâ kanoniktir ve bot/kullanıcı aynı sayfayı görür
+// (docs/en-url-karari.md §3, §10). Dil KAYNAĞI hâlâ URL'dir, bu yalnız "son
+// seçilen dile dön" katmanıdır.
+//
+// Yönlendirme kararı yalnız bu SAYFA YÜKLEMESİNİN İLK COMMIT'İNDE verilir
+// (`checkedRef`) — adres çubuğuna yazılan/yer iminden açılan/dıştan gelen bir
+// bağlantı budur. Sonraki SPA-içi gezinmelerde (aynı sekme, aynı mount) bir
+// DAHA kontrol edilmez, yalnız tercih güncel sayfaya göre TAZELENİR. Bu ayrım
+// olmadan `LangSwitch`in kendisi kırılıyordu: kullanıcı `/yonetim`deyken (TR
+// tercih yazılı) EN'e basınca `/en/admin`e gider, ama efekt bunu "tercihle
+// uyuşmuyor" sanıp AZ ÖNCEKİ tıklamayı geri alıp `/yonetim`e döndürüyordu —
+// kullanıcının o anki açık seçimi, eski tercih tarafından eziliyordu.
+//
+// `replace: true`: geri tuşu kullanıcıyı bir önceki dile değil, geldiği
+// sayfaya götürsün — yönlendirme geçmişte ikinci bir durak açmamalı.
+function LangPrefRedirect() {
+  const { pathname, search, hash } = useLocation()
+  const navigate = useNavigate()
+  const currentLang = langFromPath(pathname)
+  const checkedRef = useRef(false)
+  useEffect(() => {
+    if (!checkedRef.current) {
+      checkedRef.current = true
+      if (isLangPrefPath(pathname)) {
+        const pref = readLangPref()
+        if (pref && pref !== currentLang) {
+          navigate(translatePath(`${pathname}${search}${hash}`, pref), { replace: true })
+          return
+        }
+      }
+    }
+    writeLangPref(currentLang)
+  }, [pathname, search, hash, navigate, currentLang])
   return null
 }
 
@@ -508,6 +548,7 @@ export function AppRoutes() {
   return (
     <LangProvider>
       <TitleSync />
+      <LangPrefRedirect />
       <AuthProvider>
         <Layout>
           {/* Hata sınırı Suspense'in DIŞINDA: chunk indirme hatası

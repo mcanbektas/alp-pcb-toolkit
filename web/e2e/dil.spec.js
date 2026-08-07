@@ -70,6 +70,64 @@ test('dil bağlantısı seçili durumunu duyurur', async ({ page }) => {
   await expect(tr).not.toHaveAttribute('aria-current', 'page')
 })
 
+// Dil TERCİHİ — kaynak yine URL'dir (yukarıdaki testler), ama OTURUMLA
+// İLGİLİ, indekslenmeyen sayfalarda (`/giris`, `/yonetim`, ...) son gezinilen
+// dil anımsanır (`lib/langPref.js`, `App.jsx` → `LangPrefRedirect`). Kapsam
+// bilerek dar: açık/taranan sayfalar (ana sayfa, kategori, araç, yasal)
+// dokunulmaz, üçüncü test bunu doğruluyor — TR adres kanonik kalmalı,
+// yoksa bot ile kullanıcı farklı sayfa görür (docs/en-url-karari.md §3).
+
+test('İngilizce gezinen kullanıcı TR /giris adresini açınca /en/login’e döner', async ({ page }) => {
+  await page.goto('/en/tool/trace-width')
+  // Tercih ekranın kendi `useEffect`iyle yazılır; bir sonraki `goto` bu
+  // commit'i beklemeden sayfayı yok etmesin diye ilk sayfanın oturmasını
+  // bekliyoruz — gerçek kullanıcı da tıklamadan önce sayfayı görür.
+  await expect(page.locator('h1')).toHaveText(/trace width/i)
+
+  await page.goto('/giris')
+
+  await expect(page).toHaveURL('http://localhost:3000/en/login')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+})
+
+test('Türkçe gezinen kullanıcı EN /en/admin adresini açınca /yonetim’e döner', async ({ page }) => {
+  await page.goto('/arac/trace-width')
+  await expect(page.locator('h1')).toHaveText(/yol genişliği/i)
+
+  await page.goto('/en/admin')
+
+  await expect(page).toHaveURL('http://localhost:3000/yonetim')
+})
+
+test('tercih açık/taranan sayfaya uygulanmaz: TR araç adresi EN tercihe rağmen TR kalır', async ({ page }) => {
+  await page.goto('/en/tool/trace-width')
+  await expect(page.locator('h1')).toHaveText(/trace width/i)
+
+  await page.goto('/arac/trace-width')
+
+  await expect(page).toHaveURL('http://localhost:3000/arac/trace-width')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'tr')
+})
+
+test('LangSwitch tıklaması eski tercih tarafından geri alınmaz', async ({ page }) => {
+  await page.goto('/en/tool/trace-width')
+  await expect(page.locator('h1')).toHaveText(/trace width/i)
+
+  // İlk commit'te tercih (en) ile adres (tr) uyuşmuyor, /en/login'e döner —
+  // yukarıdaki testlerle aynı mekanizma.
+  await page.goto('/giris')
+  await expect(page).toHaveURL('http://localhost:3000/en/login')
+
+  // Kullanıcı şimdi SPA içinde TR'ye geçiyor: tercih hâlâ "en", adres "tr" —
+  // otomatik yönlendirmeyle AYNI uyuşmazlık örüntüsü ama bu kez kullanıcının
+  // kendi tıklaması. `checkedRef` olmasaydı efekt bunu da "yanlış sayfa"
+  // sanıp /en/login'e geri döndürürdü.
+  await page.getByRole('link', { name: 'TR', exact: true }).click()
+
+  await expect(page).toHaveURL('http://localhost:3000/giris')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'tr')
+})
+
 test('dil değişince ?hesap= bağı kaybolmaz', async ({ page }) => {
   // Kayıt bağı paylaşılabilir olmak zorunda (CLAUDE.md → Kaydedilmiş hesap
   // bağı). Parametre adı iki ağaçta da Türkçedir ve dil geçişinde taşınır;

@@ -293,3 +293,84 @@ yol tablosunun istemciyle ayrışmasını bir bekçi test engeller.
   yalnız anonim akışları kapsıyor). Giriş yapılıp aynı araçtan iki dilde
   rapor indirildi: biri Türkçe, biri İngilizce çıktı ve ekran kendi dilinde
   kaldı — yani geçici geçersiz kılma da geri alma da çalışıyor (§3).
+
+## 10. Dil TERCİHİ — yalnız oturumla ilgili, indekslenmeyen sayfalar (2026-08-07)
+
+Bulgu: `/en` ağacında gezinen kullanıcı `/yonetim` yazınca (ya da başlıktan
+"Yönetim" bağlantısına basınca — ki bu bağlantı `LangLink` ile kendi dilinde
+kalması gerekirken kaynakta hep TR yazılıdır) Türkçeye düşüyordu. §3'ün
+kararı ("dil KAYNAĞI yalnız URL, depo yok") hâlâ geçerli ve bu yeni katman
+onu BOZMAZ — yalnızca dar bir sınıf sayfada üstüne "son gezinilen dile dön"
+ekler.
+
+**Kapsam bilinçli olarak dar: yalnız `indexablePages()` DIŞI statik
+sayfalar** (`/giris`, `/kayit`, `/parola-unuttum`, `/parola-sifirla`,
+`/e-posta-dogrula`, `/projelerim`, `/raporlarim`, `/hesabim`, `/proje/:id`,
+`/yonetim`, `/yonetim/gunluk`) — `lib/routes.js` → `isLangPrefPath()`,
+kaynağı `STATIC_ROUTES` eksi `home` eksi yasal sayfalar. Ana sayfa, kategori,
+araç ve yasal sayfalar KAPSAM DIŞI:
+
+1. Bu sayfalar Google'ca indeksleniyor ve her biri `canonical`/`hreflang`
+   ile "ben TR (ya da EN) içeriğim" diye beyan ediyor. Depodaki tercihe göre
+   yönlendirmek botun gördüğü ile kullanıcının gördüğünü ayrıştırır — Google
+   otomatik dil yönlendirmesine zaten karşı tavsiye veriyor (§3 madde 4).
+2. Paylaşılan bağlantı sorunu: biri TR bir araç linkini paylaşır, alıcının
+   tercihi EN ise başka sayfaya düşer.
+3. Bu sayfalar prerender'lı TR/EN HTML olarak geliyor; yönlendirme client'ta
+   çalışacağından önce doğru dil karesi, sonra zıplama görünürdü.
+
+Kapsamdaki sayfalarda bu riskler yok: sitemap'te değiller, prerender'da
+yoklar (`STATIC_ROUTES` → admin/adminAudit yorumu ve `indexablePages()`
+zaten bunları dışlıyordu), paylaşım bağlantısı değiller.
+
+**Uygulama** (`lib/langPref.js`, `App.jsx` → `LangPrefRedirect`):
+
+- Tercih `localStorage`ta tek anahtar (`alp-lang-pref`) — §3'te kaldırılan
+  eski `readLang`/`writeLang` ile KARIŞTIRILMAMALI: o dilin KAYNAĞIYDI, bu
+  yalnız bir hatırlama katmanı ve tek bir indekslenen sayfayı bile
+  yönlendirmiyor.
+- `LangPrefRedirect`, `LangProvider`nın içinde `TitleSync`in yanına
+  eklendi (`AppRoutes`). Konum önemli: `useLocation`/`useNavigate`
+  yönlendiricinin İÇİNDE olmayı gerektiriyor, `TitleSync` zaten aynı yerde
+  aynı gerekçeyle duruyordu.
+- **Okuma ve yazma TEK effect'te**, ayrı tutulmuyor. İlk denemede yazma
+  `useLang.jsx`de (URL'in dili değiştikçe) ayrı bir effect'ti ve bu bir YARIŞ
+  yarattı: `LangPrefRedirect` mismatch görüp `navigate()` çağırdıktan HEMEN
+  SONRA, aynı commit'te `LangProvider`nın kendi effect'i (post-order'da ondan
+  sonra ateşlenir ama o render'ın `urlLang`'i hâlâ ESKİ sayfanınkidir) tercihi
+  eski sayfanın diliyle EZİYORDU. Bir sonraki render yeni mismatch'i görüp
+  GERİ yönlendiriyor, bu da tercihi tekrar eziyor — sonsuz ping-pong
+  (`console`da "Maximum update depth exceeded"). Ders: URL'i okuyup yazan iki
+  ayrı effect aynı state'e bakıyorsa ve biri diğerinin sonucunu
+  değiştirebilecek bir yönlendirme yapıyorsa, ikisi TEK effect'e birleşmeli —
+  sıralamaya güvenmek kırılgan.
+- **Yönlendirme kararı yalnız SAYFA YÜKLEMESİNİN İLK COMMIT'İNDE verilir**
+  (`checkedRef`, bir `useRef`). İkinci bulgu birinciden sonra çıktı: tek
+  effect'e birleştirmek ping-pong'u çözdü ama başka bir hatayı ortaya
+  çıkardı — `LangSwitch`in KENDİSİ kırılmıştı. Kullanıcı `/yonetim`deyken
+  (tercih "tr" olarak yazılı) başlıktaki EN'e basınca `/en/admin`e SPA içi
+  gidiyor, ama efekt konum değişikliğinde HER SEFERİNDE mismatch kontrolü
+  yaptığından bunu da "tercihle uyuşmuyor" sanıp az önceki tıklamayı geri
+  alıp `/yonetim`e döndürüyordu — kullanıcının o anki açık seçimi, eski
+  tercih tarafından eziliyordu. Çözüm: mismatch kontrolü yalnız bu `App`
+  ağacının bu mount'taki İLK effect çalışmasında yapılır (adres çubuğuna
+  yazılan/yer iminden açılan/dıştan gelen bağlantı budur); sonraki SPA-içi
+  gezinmelerde (aynı sekme, aynı mount — `LangSwitch` dahil) bir daha
+  kontrol edilmez, tercih yalnız güncel sayfaya göre tazelenir. Ders: "aynı
+  state'e bak, gerekirse geri yönlendir" deseni, kullanıcının O AN yaptığı
+  gezinmeyle geçmişte biriken tercihi ayırt edemezse kullanıcının kendi
+  eylemini geri alabilir — tetikleyiciyi (dıştan gelen yükleme) SPA-içi
+  gezinmeden ayırmak şart.
+- `replace: true`: geri tuşu kullanıcıyı bir önceki dile değil, geldiği
+  sayfaya götürsün diye — yönlendirme geçmişte ikinci bir durak açmaz.
+
+**Doğrulama**: `e2e/dil.spec.js`e dört test — EN gezip TR `/giris` açınca
+`/en/login`'e dönüyor, TR gezip EN `/en/admin` açınca `/yonetim`'e dönüyor,
+kapsam dışı kontrolü (EN gezip TR bir ARAÇ adresi doğrudan açılınca TR kalıyor,
+redirect YOK) ve `LangSwitch` regresyon testi (mismatch'li bir sayfada SPA
+içinde dil değiştirmek geri alınmıyor — `checkedRef` kaldırılıp testin
+gerçekten kırmızı olduğu doğrulandı, sonra geri konuldu). Testler ilk
+sayfanın `h1`ini bekliyor — `goto()` lazy-chunk (Suspense) yüklenmeden döner
+ve tercih henüz `useEffect`te yazılmamış olabilir; beklemeden ikinci `goto`
+ilk sayfayı yok ederdi. Ayrıca `npm test` (3068) ve tam `playwright test`
+(32) yeşil.

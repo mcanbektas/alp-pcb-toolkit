@@ -214,6 +214,31 @@ export function translatePath(to, lang) {
   return prefixed + suffix
 }
 
+// Dil tercihi yönlendirmesinin (App.jsx → LangPrefRedirect) kapsadığı
+// anahtarlar: STATIC_ROUTES eksi `home` eksi yasal sayfalar. Kapsam dar —
+// açık/taranan sayfalar (ana sayfa, kategori, araç, yasal) buraya GİRMEZ,
+// çünkü onlarda TR adres kanoniktir ve bot/kullanıcı aynı sayfayı görmek
+// zorundadır (docs/en-url-karari.md §3). Kalan anahtarların hepsi zaten
+// `indexablePages()` dışıdır (giriş, /yonetim, /projelerim, /proje/:id, ...)
+// — yani burada yönlendirme SEO'ya dokunmaz.
+const LEGAL_KEYS = new Set(LEGAL_DOCS.map((doc) => doc.key))
+const LANG_PREF_KEYS = new Set(
+  ROUTE_KEYS.filter((key) => key !== 'home' && !LEGAL_KEYS.has(key)),
+)
+
+/** Yol dil tercihi yönlendirmesine açık mı — bkz. LANG_PREF_KEYS üstündeki not. */
+export function isLangPrefPath(pathname) {
+  const path = normalize(pathname)
+  const key = KEY_BY_PATH.get(path)
+  if (key) return LANG_PREF_KEYS.has(key)
+  for (const route of PARAM_ROUTES) {
+    for (const { prefix } of route.prefixes) {
+      if (path.startsWith(`${prefix}/`)) return LANG_PREF_KEYS.has(route.key)
+    }
+  }
+  return false
+}
+
 /**
  * Prerender ve sitemap'in ortak kaynağı: indekslenebilir sayfaların iki dilli
  * listesi — ana sayfa + 8 kategori + `path`i olan araçlar. Her kayıt kendi
