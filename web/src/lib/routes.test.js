@@ -4,7 +4,7 @@ import { LEGAL_DOCS } from '../data/legalPages'
 import { LANGS } from './i18n'
 import {
   ROUTE_KEYS, categoryFromPath, categoryPath, categoryRoutePattern, indexablePages,
-  langFromPath, projectPath, staticPath, toolFromPath, toolPath, translatePath,
+  isAdminPath, langFromPath, projectPath, staticPath, toolFromPath, toolPath, translatePath,
 } from './routes'
 
 // İki dilli URL ağacının değişmezleri. Buradaki hataların hepsi build'den,
@@ -13,6 +13,29 @@ import {
 // Kararlar: docs/en-url-karari.md.
 
 const ACTIVE_TOOLS = CATEGORIES.flatMap((c) => c.tools).filter((t) => t.path)
+
+// Brif 13 — hangi sayfalar site genelinin genişlik sözleşmesinden ayrışıyor
+// (`App.jsx` → `Layout`). Yanlış-pozitif en pahalı hata: `/yonetimx` gibi
+// varsayımsal bir yolun geniş düzene düşmesi — bu yüzden ayrıca test edilir.
+describe('isAdminPath', () => {
+  it.each([
+    ['tr kök', '/yonetim', true],
+    ['tr kök, sondaki eğik çizgi', '/yonetim/', true],
+    ['tr alt yol — günlük', '/yonetim/gunluk', true],
+    ['tr alt yol — loglar', '/yonetim/loglar', true],
+    ['en kök', '/en/admin', true],
+    ['en alt yol — audit', '/en/admin/audit', true],
+    ['en alt yol — logs', '/en/admin/logs', true],
+    ['çıplak startsWith tuzağı', '/yonetimx', false],
+    ['en tarafın aynı tuzağı', '/en/administration', false],
+    ['ilgisiz yol', '/giris', false],
+    ['kök', '/', false],
+    ['boş dize', '', false],
+    ['undefined', undefined, false],
+  ])('%s: %s → %s', (_label, path, expected) => {
+    expect(isAdminPath(path)).toBe(expected)
+  })
+})
 
 describe('langFromPath', () => {
   it.each([

@@ -138,6 +138,11 @@ a:hover { text-decoration: underline; }
 }
 
 .container { max-width: 1360px; margin: 0 auto; padding: 0 24px; }
+/* Yalnız yönetim sayfaları (`lib/routes.js` → `isAdminPath`) — bu istisna ve
+   gerekçesi CLAUDE.md'de. Admin oturumları veri-yoğun tablo taşıyor ve site
+   genelinin genişlik sözleşmesine uymak zorunda değil; tavan (`none` değil,
+   1720px) çok geniş monitörde de satırı okunur tutar. */
+.container-wide { max-width: 1720px; }
 
 /* ---------- Header ---------- */
 
@@ -335,6 +340,15 @@ a:hover { text-decoration: underline; }
 .table-scroll { overflow-x: auto; }
 .table-scroll .result-table th,
 .table-scroll .result-table td { white-space: nowrap; }
+/* Opt-in istisna (brif 13 F2): mesaj gibi uzun bir hücre `nowrap`i kırıp
+   sarar. `min-width` şart — yoksa dar ekranda kolon 50px'e ezilip harf harf
+   kırılır; onun yerine `.table-scroll` yine yatay kaydırır, 9cf34fc'nin
+   mobil düzeltmesi (e-posta hücreleri üst üste binmesin) korunur. */
+.table-scroll .result-table td.cell-wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 280px;
+}
 
 /* Denetim izi süzme paneli — sol facet + sağ tablo (Yönetim → Günlük).
    Yalnız yönetici gördüğü için sığdırma derdi yok: dar ekranda tek kolona
@@ -674,6 +688,10 @@ dialog.confirm-dialog {
   color: var(--text);
   padding: 20px;
 }
+/* Yalnız içeriği gerçekten geniş çağıranlar için (brif 13 F2, `InfoDialog`
+   `wide` prop'u) — 420px'in fazla sıkıştırdığı tam kaynak adı/uzun mesaj/
+   istisna metni için. ConfirmDialog ve düz `.confirm-dialog` DEĞİŞMEZ. */
+dialog.confirm-dialog.dialog-wide { max-width: 720px; }
 /* ::backdrop CSS DEĞİŞKENLERİNİ MİRAS ALMAZ — burada var(--…) tanımsız kalır ve
    kural tümüyle düşer. Literal renk yasağının tek istisnası budur. */
 dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.5); }

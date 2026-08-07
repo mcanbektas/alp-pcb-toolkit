@@ -9,10 +9,15 @@
 // Metin ÜRETMEZ: başlık, kapat etiketi ve içerik prop olarak gelir. Gösterdiği
 // cümle çerçeve metni değil, çağıranın metnidir (ConfirmDialog/Toast ile aynı
 // gerekçe) — bu yüzden `useLang()` istisnasına katılmaz.
+//
+// `wide`: varsayılan 420px yerine 720px (`.dialog-wide`, brif 13 F2).
+// Yalnız içeriği gerçekten geniş olan çağıran (ör. Loglar ayrıntı kartı —
+// tam kaynak adı, uzun mesaj, istisna metni) bu prop'u verir; ConfirmDialog
+// ve mevcut 420px kullanımlar DEĞİŞMEZ.
 
 import { useEffect, useId, useRef } from 'react'
 
-export default function InfoDialog({ open, title, closeLabel, onClose, children }) {
+export default function InfoDialog({ open, title, closeLabel, onClose, children, wide = false }) {
   const dialogRef = useRef(null)
   const closeBtnRef = useRef(null)
   const titleId = useId()
@@ -53,7 +58,7 @@ export default function InfoDialog({ open, title, closeLabel, onClose, children 
   return (
     <dialog
       ref={dialogRef}
-      className="confirm-dialog"
+      className={wide ? 'confirm-dialog dialog-wide' : 'confirm-dialog'}
       aria-labelledby={titleId}
       onCancel={handleCancelEvent}
       onClose={handleClose}

@@ -655,6 +655,12 @@ devreye girecek ve `.method-note` metni buna göre değişecek.
 - **Ekranlar arası tutarlılık zorunlu.** Panel düzeni (Girdiler / Sonuç / Teknik detay + alt
   parametrik grafik), terminoloji (Analiz/Sentez, Nominal, Önerilen, worst-case), durum çipi
   eşikleri ve tablo yoğunluğu tüm ekranlarda birebir aynı kalır.
+  **Bilinçli istisna — YALNIZ genişlik boyutunda (`docs/brifler/13-yonetim-genis-duzen.md`):**
+  yönetim sayfaları (`/yonetim`, `/yonetim/gunluk`, `/yonetim/loglar` ve `/en/admin` ağacı —
+  `lib/routes.js` → `isAdminPath`) `themes/*.css`teki `.container` tavanı (1400/1360px) yerine
+  `.container-wide` (1720px) kullanır; indekslenmez, yalnız Admin rolüne görünür, veri-yoğun
+  tablo taşır. Panel düzeni, terminoloji, durum çipi eşikleri ve tablo yoğunluğu admin
+  ailesinde de AYNEN geçerlidir — istisna yalnız genişliktir, kuralın geri kalanı değil.
 
 - **Durum çipi tek kurala bağlıdır:** ekranın ürettiği bulguların en kötü seviyesi gösterilir
   (`ok` → "Tüm kontroller geçti", `warn` → "Sınıra yakın — N uyarı", `danger` →

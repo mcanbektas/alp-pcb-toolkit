@@ -97,6 +97,19 @@ export function staticPath(key, lang) {
   return route[lang0(lang)] ?? route[DEFAULT_LANG]
 }
 
+// Yönetim rotası mı — kök (`/yonetim`, `/en/admin`) ya da alt yol
+// (`/yonetim/loglar`, ...). `+ '/'` şartı bilinçli: çıplak `startsWith`
+// varsayımsal bir `/yonetimx` yolunu da yakalardı. Brif 13 — admin ailesi
+// site genelinin genişlik sözleşmesine uymuyor, `App.jsx` bu yardımcıyla
+// karar veriyor.
+export function isAdminPath(pathname) {
+  const p = normalize(pathname)
+  for (const root of [STATIC_ROUTES.admin.tr, STATIC_ROUTES.admin.en]) {
+    if (p === root || p.startsWith(`${root}/`)) return true
+  }
+  return false
+}
+
 export function projectPath(id, lang) {
   return staticPath('project', lang).replace(':id', encodeURIComponent(id))
 }

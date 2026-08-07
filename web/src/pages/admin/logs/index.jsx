@@ -216,7 +216,7 @@ export default function AdminLogs() {
                           <span className={`mark ${t.levelMarkClass(row.level)}`}>{row.level}</span>
                         </td>
                         <td>{t.sourceShort(row.sourceContext)}</td>
-                        <td>{row.message}</td>
+                        <td className="cell-wrap">{row.message}</td>
                         <td className="detail-cell">
                           <button
                             type="button"
@@ -260,6 +260,7 @@ export default function AdminLogs() {
         title={t.detailTitle}
         closeLabel={t.detailClose}
         onClose={() => setDetailRow(null)}
+        wide
       >
         {detailRow !== null && (
           <table className="result-table">

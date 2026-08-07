@@ -11,8 +11,8 @@ import { commonText } from './data/uiText'
 import { authText } from './data/authText'
 import { LANGS, LANG_LABEL, pick } from './lib/i18n'
 import {
-  categoryFromPath, categoryPath, categoryRoutePattern, isLangPrefPath, langFromPath, legalFromPath,
-  staticPath, toolFromPath, toolPath, translatePath,
+  categoryFromPath, categoryPath, categoryRoutePattern, isAdminPath, isLangPrefPath, langFromPath,
+  legalFromPath, staticPath, toolFromPath, toolPath, translatePath,
 } from './lib/routes'
 import { readLangPref, writeLangPref } from './lib/langPref'
 import logo from './assets/logo.png'
@@ -368,6 +368,12 @@ function Layout({ children }) {
   // render'ında `user` null olur (oturum asenkron yüklenir), yani hydration
   // ayrışmaz — bağlantı sonradan belirir.
   const { user } = useAuth()
+  // Brif 13: yönetim sayfaları (yalnız Admin'e görünür, indekslenmez) site
+  // genelinin 1400/1360px genişlik sözleşmesine uymak zorunda değil — geniş
+  // tablolar sığmıyordu. Yalnız `<main>` genişler; başlık/altbilgi hizası
+  // site geneliyle aynı kalır (CLAUDE.md'deki istisna notuna bkz.).
+  const { pathname } = useLocation()
+  const mainClassName = isAdminPath(pathname) ? 'container container-wide' : 'container'
 
   return (
     <>
@@ -391,7 +397,7 @@ function Layout({ children }) {
             oturum durumuna göre değişiyor. Bkz. components/TraceMotif.jsx. */}
         <TraceMotif />
       </header>
-      <main className="container">{children}</main>
+      <main className={mainClassName}>{children}</main>
       <footer className="site-footer">
         <div className="container">
           <div className="footer-grid">
