@@ -1,7 +1,7 @@
 # Brif 12 — Operasyonel log ekranı (canlı kuyruk paneli)
 
-Durum (2026-08-07): **F1 ve F2 TAMAM ve commitli** (`bd751b9`, `8f68a5d`).
-F3 (opsiyonel cilalar) HENÜZ YAPILMADI — taze oturum burada başlar.
+Durum (2026-08-07): **F1, F2 ve F3 TAMAM ve commitli** (`bd751b9`, `8f68a5d`,
+`5a8abcc`). **Brif 12 TÜMÜYLE BİTTİ.**
 
 **F1/F2 sırasında bulunan ve düzeltilen kritik güvenlik regresyonu:**
 `ConsoleEmailSender` dev'de e-posta gövdesini (doğrulama/parola sıfırlama
