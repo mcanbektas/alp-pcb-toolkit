@@ -8,7 +8,7 @@
 // kayan pencere, toplam sayı taşımaz), elle "Yenile" düğmesi VAR (tampon
 // zaman içinde değişir, kullanıcı F5'siz tazeleyebilmeli).
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import FacetList from '../../../components/FacetList'
 import InfoDialog from '../../../components/InfoDialog'
 import LangLink from '../../../components/LangLink'
@@ -30,28 +30,48 @@ export default function AdminLogs() {
   const [capacity, setCapacity] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [autoRefresh, setAutoRefresh] = useState(false)
   // Ayrıntı kartında gösterilen satır. Kart kapalıyken null; yenileme/filtre
   // değişince liste tazelense de sorun yok — kart o anki satırın kopyasını tutar.
   const [detailRow, setDetailRow] = useState(null)
 
   const isAdmin = user?.isAdmin === true
 
-  const load = useCallback(async () => {
-    setBusy(true)
-    setError(null)
+  // Otomatik yenile ile elle "Yenile" aynı isteği paylaşır — bindirme kapısı
+  // (`loadingRef`) ikisi için de geçerli: 5 sn'lik bir yanıt gecikirse ikinci
+  // tık/tik isteği atlar, çakışan yanıtlar satırları rastgele sırayla ezmez.
+  const loadingRef = useRef(false)
+
+  const load = useCallback(async (opts = {}) => {
+    if (loadingRef.current) return
+    loadingRef.current = true
+    // Sessiz (otomatik) tikte yükleniyor/hata durumu YAZILMAZ — aksi hâlde
+    // dolu bir tampon bile 5 sn'de bir "Yükleniyor…"a yanıp söner.
+    const silent = opts.silent === true
+    if (!silent) {
+      setBusy(true)
+      setError(null)
+    }
     const params = new URLSearchParams()
     if (search) params.set('q', search)
     if (levelFilter) params.set('level', levelFilter)
     const qs = params.toString()
     const res = await api.get(`/api/admin/logs${qs ? `?${qs}` : ''}`)
-    setBusy(false)
+    loadingRef.current = false
+    if (!silent) setBusy(false)
 
     if (!res.ok) {
-      // Günlük ekranındaki gerekçenin aynısı: `t` bağımlılığa alınmaz,
-      // `getText(lang)` her render'da yeni nesne döner ve effect'i sonsuz
-      // tetikler.
-      setError(getText(lang).errorText(res))
-      setRows([])
+      // network dışı bir hata (403/5xx) otomatik yenilemeyi kapatır — aksi
+      // hâlde yetki geri alınmış ya da sunucu çökmüş bir sekme sınırsız,
+      // hız sınırsız bir uca 5 sn'de bir istek atmayı sürdürür.
+      if (res.error !== 'network') setAutoRefresh(false)
+      if (!silent) {
+        // Günlük ekranındaki gerekçenin aynısı: `t` bağımlılığa alınmaz,
+        // `getText(lang)` her render'da yeni nesne döner ve effect'i sonsuz
+        // tetikler.
+        setError(getText(lang).errorText(res))
+        setRows([])
+      }
       return
     }
     setRows(res.data?.items ?? [])
@@ -69,6 +89,34 @@ export default function AdminLogs() {
     }, 350)
     return () => clearTimeout(id)
   }, [query])
+
+  // F3 — otomatik yenile (brif §5). Sekme arka plandayken (`visibilitychange`)
+  // zamanlayıcı tamamen durur, geri dönünce yeniden kurulur; kapalıyken
+  // dinleyici de eklenmez.
+  useEffect(() => {
+    if (!autoRefresh || !isAdmin) return undefined
+
+    let intervalId = null
+    const stop = () => {
+      if (intervalId !== null) clearInterval(intervalId)
+      intervalId = null
+    }
+    const start = () => {
+      if (intervalId !== null) return
+      intervalId = setInterval(() => load({ silent: true }), 5000)
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') start()
+      else stop()
+    }
+
+    if (document.visibilityState === 'visible') start()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [autoRefresh, isAdmin, load])
 
   function onSearch(e) {
     e.preventDefault()
@@ -187,10 +235,18 @@ export default function AdminLogs() {
             )}
 
             <div className="report-actions">
-              <button type="button" className="btn-ghost" onClick={load} disabled={busy}>
+              <button type="button" className="btn-ghost" onClick={() => load()} disabled={busy}>
                 {t.refresh}
               </button>
             </div>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+              />
+              {t.autoRefreshLabel}
+            </label>
 
             {capacity > 0 && <p className="field-hint">{t.capacityNote(capacity)}</p>}
           </div>

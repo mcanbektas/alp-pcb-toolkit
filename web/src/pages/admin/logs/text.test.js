@@ -11,7 +11,7 @@ const PLAIN = [
   'loginRequired', 'loginLink', 'forbidden', 'homeLink',
   'searchLabel', 'searchHint',
   'levelFilterLabel',
-  'refresh',
+  'refresh', 'autoRefreshLabel',
   'loading', 'empty',
   'detailView', 'detailTitle', 'detailClose',
 ]

@@ -95,6 +95,13 @@ export function getText(lang) {
     levelMarkClass,
 
     refresh: t({ tr: 'Yenile', en: 'Refresh' }),
+    // Sekme arka plandayken zamanlayıcı tamamen durur (döngü kurulmaz) —
+    // etiket bunu "sekme aktifken" diye açık söyler, sessiz bir varsayım
+    // bırakmaz.
+    autoRefreshLabel: t({
+      tr: 'Otomatik yenile (5 sn, sekme aktifken)',
+      en: 'Auto-refresh (5s, while tab is active)',
+    }),
 
     loading: t({ tr: 'Yükleniyor…', en: 'Loading…' }),
     empty: t({ tr: 'Tamponda kayıt yok.', en: 'The buffer is empty.' }),
