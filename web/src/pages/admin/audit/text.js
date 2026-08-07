@@ -110,6 +110,12 @@ export function getText(lang) {
   }
   const recordIdLabel = t({ tr: 'Kayıt no', en: 'Record ID' })
   const dash = '—'
+  // Yapan boşsa kimliği doğrulanmış bir fail yok demektir: AdminSeeder'ın
+  // yapılandırmadan verdiği/aldığı yetki ya da oturumsuz kimlik akışı
+  // (kilitlenme, postadaki bağlantıyla kilit açma — AuthEndpoints `actor: null`
+  // çağrıları). Burada da "—" basmak hedef yokluğuyla aynı işareti iki ayrı
+  // anlama bindiriyordu; yapan tarafında bu etiket basılır, hedef "—" kalır.
+  const actorSystemLabel = t({ tr: 'sistem', en: 'system' })
   const formatDateSecondsFor = (iso) => {
     if (!iso) return dash
     const d = new Date(iso)
@@ -192,10 +198,13 @@ export function getText(lang) {
     empty: t({ tr: 'Kayıt bulunamadı.', en: 'No events found.' }),
 
     columns,
+    actorSystem: actorSystemLabel,
 
     // Kullanıcılar ekranındaki tarih biçiminin (yalnız gün) üstüne saat:dakika
     // eklenir — denetim izinde ne zaman sorusu dakika hassasiyeti ister.
     // Sayısal ve dile göre değişmez (num.js kuralıyla aynı gerekçe).
+    // Aynı dakikaya birden çok kayıt düştüğünde liste bu biçimle satırları
+    // ayırt edemez; o satırlarda ekran `formatDateSeconds`a geçer (index.jsx).
     formatDate: (iso) => {
       if (!iso) return '—'
       const d = new Date(iso)
@@ -204,9 +213,9 @@ export function getText(lang) {
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
         + `${pad(d.getHours())}:${pad(d.getMinutes())}`
     },
-    // Ayrıntı kartındaki tam zaman — tablo hücresi dakikada durur (satırları
-    // ayırt etmek yeter), kart saniyeye iner: iki olay aynı dakikada
-    // düşebilir ve kart "hangisi bu" sorusuna cevap vermeli.
+    // Tam zaman. Kart her zaman bununla basar; tablo hücresi normalde dakikada
+    // durur ve yalnız aynı dakikayı paylaşan satırlarda buna geçer — iki olay
+    // aynı dakikada düşebilir ve "hangisi önce" listeden okunabilmeli.
     formatDateSeconds: formatDateSecondsFor,
 
     // Ayrıntı kartı: tablo hücresine ham JSON basılmaz, kartta etiket–değer
@@ -238,7 +247,7 @@ export function getText(lang) {
     recordRows: (row) => [
       { key: 'time', label: columns.time, value: formatDateSecondsFor(row.occurredAt) },
       { key: 'event', label: columns.event, value: `${eventTextFor(row.event)} (${row.event})` },
-      { key: 'actor', label: columns.actor, value: row.actorEmail ?? dash },
+      { key: 'actor', label: columns.actor, value: row.actorEmail ?? actorSystemLabel },
       { key: 'target', label: columns.target, value: row.targetEmail ?? dash },
       { key: 'id', label: recordIdLabel, value: String(row.id) },
       ...detailRowsFor(row.detailJson),

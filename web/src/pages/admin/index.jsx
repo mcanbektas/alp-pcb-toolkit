@@ -270,143 +270,147 @@ export default function AdminPanel() {
         {!error && rows.length === 0 && !busy && <p className="empty-note">{t.empty}</p>}
 
         {rows.length > 0 && (
-          <table className="result-table">
-            {/* Başlık satırı `mini-head`: bu depoda tablo başlığının ortak
-                biçimi odur (mono, küçük, muted). `<th scope="col">` semantik
-                için — ekran okuyucu her hücreyi sütununa bağlayabilsin. */}
-            <thead>
-              <tr className="mini-head">
-                <th scope="col">{t.columns.status}</th>
-                <th scope="col">{t.columns.account}</th>
-                <th scope="col">{t.columns.usage}</th>
-                <th scope="col">{t.columns.createdAt}</th>
-                <th scope="col">{t.columns.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  {/* Durum İLK sütun: `.result-table td:first-child` bu depoda
-                      muted çizer, yani ana bilgi oraya konmaz. Doğrulanmamış
-                      hesap taranarak bulunabilsin diye de solda duruyor. */}
-                  <td>
-                    <span className={`mark ${row.emailConfirmed ? 'ok' : 'warning'}`}>
-                      {row.emailConfirmed ? t.confirmedYes : t.confirmedNo}
-                    </span>
-                    {/* Kilit rozeti YALNIZ gerçekten kilitliyken basılır — sunucu
-                        ham `lockoutEnd` verir (bkz. Contracts.cs → AdminUserRow),
-                        "kilitli mi" burada `lockoutEnd > şu an` ile türetilir.
-                        Kilitli değilse hiçbir şey basılmaz (confirmedNo'nun aksine
-                        "değil" hâli yok) — `.mark.danger`, Login'deki 423 yanıtıyla
-                        aynı ciddiyet sınıfı. `.mark` blok değil satır içi olduğu için
-                        önündeki `{' '}` "Doğrulandı"ya bitişmesin diye — tek boşluk,
-                        rozet basılmadığında görünmez kalır. */}
-                    {row.lockoutEnd && new Date(row.lockoutEnd) > new Date() && (
-                      <>
-                        {' '}
-                        <span className="mark danger" title={t.lockedUntil(row.lockoutEnd)}>
-                          {t.lockedBadge}
-                        </span>
-                        {' '}
-                        {/* Onay kartı YOK: düşük riskli, geri alınabilir (kilit
-                            yeniden oluşabilir) — plan düğmeleriyle aynı gerekçe.
-                            Yalnız kilitliyken basılır, badge'in kendisi gibi. */}
+          /* Sarmal `.table-scroll`: gerekçe günlük ekranındaki sarmalla aynı —
+             dar ekranda hücreler üst üste binmesin, tablo yatay kaysın. */
+          <div className="table-scroll">
+            <table className="result-table">
+              {/* Başlık satırı `mini-head`: bu depoda tablo başlığının ortak
+                  biçimi odur (mono, küçük, muted). `<th scope="col">` semantik
+                  için — ekran okuyucu her hücreyi sütununa bağlayabilsin. */}
+              <thead>
+                <tr className="mini-head">
+                  <th scope="col">{t.columns.status}</th>
+                  <th scope="col">{t.columns.account}</th>
+                  <th scope="col">{t.columns.usage}</th>
+                  <th scope="col">{t.columns.createdAt}</th>
+                  <th scope="col">{t.columns.actions}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    {/* Durum İLK sütun: `.result-table td:first-child` bu depoda
+                        muted çizer, yani ana bilgi oraya konmaz. Doğrulanmamış
+                        hesap taranarak bulunabilsin diye de solda duruyor. */}
+                    <td>
+                      <span className={`mark ${row.emailConfirmed ? 'ok' : 'warning'}`}>
+                        {row.emailConfirmed ? t.confirmedYes : t.confirmedNo}
+                      </span>
+                      {/* Kilit rozeti YALNIZ gerçekten kilitliyken basılır — sunucu
+                          ham `lockoutEnd` verir (bkz. Contracts.cs → AdminUserRow),
+                          "kilitli mi" burada `lockoutEnd > şu an` ile türetilir.
+                          Kilitli değilse hiçbir şey basılmaz (confirmedNo'nun aksine
+                          "değil" hâli yok) — `.mark.danger`, Login'deki 423 yanıtıyla
+                          aynı ciddiyet sınıfı. `.mark` blok değil satır içi olduğu için
+                          önündeki `{' '}` "Doğrulandı"ya bitişmesin diye — tek boşluk,
+                          rozet basılmadığında görünmez kalır. */}
+                      {row.lockoutEnd && new Date(row.lockoutEnd) > new Date() && (
+                        <>
+                          {' '}
+                          <span className="mark danger" title={t.lockedUntil(row.lockoutEnd)}>
+                            {t.lockedBadge}
+                          </span>
+                          {' '}
+                          {/* Onay kartı YOK: düşük riskli, geri alınabilir (kilit
+                              yeniden oluşabilir) — plan düğmeleriyle aynı gerekçe.
+                              Yalnız kilitliyken basılır, badge'in kendisi gibi. */}
+                          <button
+                            type="button"
+                            className="row-add"
+                            disabled={unlockBusyId === row.id}
+                            onClick={() => unlockUser(row)}
+                            aria-label={t.unlockAria(row.email)}
+                          >
+                            {t.unlockLabel}
+                          </button>
+                        </>
+                      )}
+                      {/* Plan sınıfı yalnız BİLİNEN değerlere verilir: sunucudan
+                          gelen ham dizeyi sınıf adına yapıştırmak, yarın yeni bir
+                          plan değeri geldiğinde tanımsız sınıf üretirdi. Bilinmeyen
+                          değer olağan soluk metinle kalır. */}
+                      <span
+                        className={`sub-line${row.plan === 'free' ? ' plan-free' : row.plan === 'pro' ? ' plan-pro' : ''}`}
+                      >
+                        {row.plan}
+                      </span>
+                      {/* Plan değiştirici: iki küçük `.row-add` düğmesi, yeni CSS
+                          yok. Geçerli değere karşılık gelen düğme devre dışı —
+                          yalnız ÖTEKİ tıklanabilir. Tık doğrudan değiştirmez,
+                          alttaki onay kartını açar (bitişik iki düğmede yanlış
+                          tıklama kolaydı — bkz. text.js → planConfirmTitle). */}
+                      <span className="report-actions" role="group" aria-label={t.plan}>
                         <button
                           type="button"
                           className="row-add"
-                          disabled={unlockBusyId === row.id}
-                          onClick={() => unlockUser(row)}
-                          aria-label={t.unlockAria(row.email)}
+                          disabled={row.plan === 'free' || planBusyId === row.id}
+                          onClick={() => askPlanChange(row, 'free')}
+                          aria-label={t.planMakeFreeAria(row.email)}
                         >
-                          {t.unlockLabel}
+                          {t.planMakeFree}
                         </button>
-                      </>
-                    )}
-                    {/* Plan sınıfı yalnız BİLİNEN değerlere verilir: sunucudan
-                        gelen ham dizeyi sınıf adına yapıştırmak, yarın yeni bir
-                        plan değeri geldiğinde tanımsız sınıf üretirdi. Bilinmeyen
-                        değer olağan soluk metinle kalır. */}
-                    <span
-                      className={`sub-line${row.plan === 'free' ? ' plan-free' : row.plan === 'pro' ? ' plan-pro' : ''}`}
-                    >
-                      {row.plan}
-                    </span>
-                    {/* Plan değiştirici: iki küçük `.row-add` düğmesi, yeni CSS
-                        yok. Geçerli değere karşılık gelen düğme devre dışı —
-                        yalnız ÖTEKİ tıklanabilir. Tık doğrudan değiştirmez,
-                        alttaki onay kartını açar (bitişik iki düğmede yanlış
-                        tıklama kolaydı — bkz. text.js → planConfirmTitle). */}
-                    <span className="report-actions" role="group" aria-label={t.plan}>
-                      <button
-                        type="button"
-                        className="row-add"
-                        disabled={row.plan === 'free' || planBusyId === row.id}
-                        onClick={() => askPlanChange(row, 'free')}
-                        aria-label={t.planMakeFreeAria(row.email)}
-                      >
-                        {t.planMakeFree}
-                      </button>
-                      <button
-                        type="button"
-                        className="row-add"
-                        disabled={row.plan === 'pro' || planBusyId === row.id}
-                        onClick={() => askPlanChange(row, 'pro')}
-                        aria-label={t.planMakeProAria(row.email)}
-                      >
-                        {t.planMakePro}
-                      </button>
-                    </span>
-                  </td>
-                  <td>
-                    {row.email}
-                    <span className="sub-line">{t.accountMeta(row.displayName, row.company)}</span>
-                  </td>
-                  <td>{t.usageText(row.projectCount, row.reportCount)}</td>
-                  <td>{t.formatDate(row.createdAt)}</td>
-                  <td>
-                    {row.isAdmin ? (
-                      // `chip on admin-badge` — `on` yalnız pill iskeletini
-                      // (padding/radius) taşır, `admin-badge` dolgu/kenarlık/
-                      // rengi NÖTRLER (arka plansız, `--text`): ikon + büyük
-                      // harf zaten "yetki" anlamını taşıyor, ayrıca bir renk
-                      // açmaya gerek yok — bu depodaki tek "yetki" rozeti.
-                      <span className="chip on admin-badge" title={t.adminNotDeletable}>
-                        <svg
-                          className="icon"
-                          viewBox="0 0 20 20"
-                          aria-hidden="true"
-                          focusable="false"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                        <button
+                          type="button"
+                          className="row-add"
+                          disabled={row.plan === 'pro' || planBusyId === row.id}
+                          onClick={() => askPlanChange(row, 'pro')}
+                          aria-label={t.planMakeProAria(row.email)}
                         >
-                          <path d="M10 2l6.5 2.5v4.8c0 4.3-2.7 7.6-6.5 8.7-3.8-1.1-6.5-4.4-6.5-8.7V4.5L10 2Z" />
-                        </svg>
-                        {t.adminBadge}
+                          {t.planMakePro}
+                        </button>
                       </span>
-                    ) : (
-                      // Satır içi düğme `.row-add`: bu depoda liste satırındaki
-                      // eylemler (proje/rapor listesindeki Aç ve Sil) hep bu
-                      // sınıfı alır ve dar kalır. `destructive` eki dinlenirken
-                      // sessizdir, üzerine gelince kırmızıya döner — kırmızı
-                      // tabloyu kaplamaz ama düğme niyetini saklamaz. Asıl
-                      // yıkıcı vurgu onay kartında.
-                      <button
-                        type="button"
-                        className="row-add destructive"
-                        onClick={() => askDelete(row)}
-                        aria-label={t.deleteAria(row.email)}
-                      >
-                        {t.deleteLabel}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td>
+                      {row.email}
+                      <span className="sub-line">{t.accountMeta(row.displayName, row.company)}</span>
+                    </td>
+                    <td>{t.usageText(row.projectCount, row.reportCount)}</td>
+                    <td>{t.formatDate(row.createdAt)}</td>
+                    <td>
+                      {row.isAdmin ? (
+                        // `chip on admin-badge` — `on` yalnız pill iskeletini
+                        // (padding/radius) taşır, `admin-badge` dolgu/kenarlık/
+                        // rengi NÖTRLER (arka plansız, `--text`): ikon + büyük
+                        // harf zaten "yetki" anlamını taşıyor, ayrıca bir renk
+                        // açmaya gerek yok — bu depodaki tek "yetki" rozeti.
+                        <span className="chip on admin-badge" title={t.adminNotDeletable}>
+                          <svg
+                            className="icon"
+                            viewBox="0 0 20 20"
+                            aria-hidden="true"
+                            focusable="false"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M10 2l6.5 2.5v4.8c0 4.3-2.7 7.6-6.5 8.7-3.8-1.1-6.5-4.4-6.5-8.7V4.5L10 2Z" />
+                          </svg>
+                          {t.adminBadge}
+                        </span>
+                      ) : (
+                        // Satır içi düğme `.row-add`: bu depoda liste satırındaki
+                        // eylemler (proje/rapor listesindeki Aç ve Sil) hep bu
+                        // sınıfı alır ve dar kalır. `destructive` eki dinlenirken
+                        // sessizdir, üzerine gelince kırmızıya döner — kırmızı
+                        // tabloyu kaplamaz ama düğme niyetini saklamaz. Asıl
+                        // yıkıcı vurgu onay kartında.
+                        <button
+                          type="button"
+                          className="row-add destructive"
+                          onClick={() => askDelete(row)}
+                          aria-label={t.deleteAria(row.email)}
+                        >
+                          {t.deleteLabel}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* Durum metni düğmelerin ARASINDA değil ÜSTÜNDE: bu depoda düğmeler

@@ -118,6 +118,16 @@ export default function AdminAuditLog() {
   const to = Math.min(page * PAGE_SIZE, total)
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
+  // Zaman hücresi normalde dakikada durur; ama bir dakikaya birden çok kayıt
+  // düşmüşse (kilitlenme patlaması, toplu yönetim işi) dakika o satırları
+  // ayırt edemez — yalnız çakışan satırlarda saniyeli biçime geçilir
+  // (bkz. text.js → formatDate / formatDateSeconds).
+  const minuteCounts = new Map()
+  for (const row of rows) {
+    const key = t.formatDate(row.occurredAt)
+    minuteCounts.set(key, (minuteCounts.get(key) ?? 0) + 1)
+  }
+
   return (
     <>
       <div className="tool-header">
@@ -155,45 +165,53 @@ export default function AdminAuditLog() {
             {!error && rows.length === 0 && !busy && <p className="empty-note">{t.empty}</p>}
 
             {rows.length > 0 && (
-              <table className="result-table">
-                <thead>
-                  <tr className="mini-head">
-                    <th scope="col">{t.columns.time}</th>
-                    <th scope="col">{t.columns.event}</th>
-                    <th scope="col">{t.columns.actor}</th>
-                    <th scope="col">{t.columns.target}</th>
-                    <th scope="col" className="detail-cell">{t.columns.detail}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td>{t.formatDate(row.occurredAt)}</td>
-                      <td>
-                        <span className={`mark ${t.eventMarkClass(row.event)}`}>{t.eventText(row.event)}</span>
-                      </td>
-                      <td>{row.actorEmail ?? '—'}</td>
-                      <td>{row.targetEmail ?? '—'}</td>
-                      <td className="detail-cell">
-                        {/* Düğme HER satırda çizilir: kart artık satırın yapısal
-                            kaydını da taşıyor (zaman, olay kodu, yapan, hedef,
-                            kayıt no) — DetailJson boş olsa da "Görüntüle"nin
-                            gösterecek bir şeyi var. Satır içi düğme `.row-add`:
-                            liste satırındaki eylemler bu depoda hep bu sınıfı
-                            alır (Kullanıcılar → Sil). */}
-                        <button
-                          type="button"
-                          className="row-add"
-                          onClick={() => setDetailRow(row)}
-                          aria-label={t.detailViewAria(t.eventText(row.event))}
-                        >
-                          {t.detailView}
-                        </button>
-                      </td>
+              /* Sarmal `.table-scroll`: beş sütunlu tablo dar ekranda sıkışınca
+                 e-posta hücreleri üst üste biniyordu — tablo doğal genişliğinde
+                 kalır, taşan kısım yatay kayar (bkz. temalardaki kural). */
+              <div className="table-scroll">
+                <table className="result-table">
+                  <thead>
+                    <tr className="mini-head">
+                      <th scope="col">{t.columns.time}</th>
+                      <th scope="col">{t.columns.event}</th>
+                      <th scope="col">{t.columns.actor}</th>
+                      <th scope="col">{t.columns.target}</th>
+                      <th scope="col" className="detail-cell">{t.columns.detail}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => {
+                      const minute = t.formatDate(row.occurredAt)
+                      return (
+                        <tr key={row.id}>
+                          <td>{minuteCounts.get(minute) > 1 ? t.formatDateSeconds(row.occurredAt) : minute}</td>
+                          <td>
+                            <span className={`mark ${t.eventMarkClass(row.event)}`}>{t.eventText(row.event)}</span>
+                          </td>
+                          <td>{row.actorEmail ?? t.actorSystem}</td>
+                          <td>{row.targetEmail ?? '—'}</td>
+                          <td className="detail-cell">
+                            {/* Düğme HER satırda çizilir: kart artık satırın yapısal
+                                kaydını da taşıyor (zaman, olay kodu, yapan, hedef,
+                                kayıt no) — DetailJson boş olsa da "Görüntüle"nin
+                                gösterecek bir şeyi var. Satır içi düğme `.row-add`:
+                                liste satırındaki eylemler bu depoda hep bu sınıfı
+                                alır (Kullanıcılar → Sil). */}
+                            <button
+                              type="button"
+                              className="row-add"
+                              onClick={() => setDetailRow(row)}
+                              aria-label={t.detailViewAria(t.eventText(row.event))}
+                            >
+                              {t.detailView}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {total > 0 && <p className="field-hint">{t.pageStatus(from, to, total)}</p>}

@@ -11,6 +11,7 @@ const PLAIN = [
   'loginRequired', 'loginLink', 'forbidden', 'homeLink',
   'searchLabel', 'searchHint',
   'eventFilterLabel',
+  'actorSystem',
   'loading', 'empty',
   'detailView', 'detailTitle', 'detailClose',
   'pagePrev', 'pageNext',

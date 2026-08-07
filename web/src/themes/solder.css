@@ -297,6 +297,15 @@ a:hover { text-decoration: underline; }
 }
 .chip.admin-badge .icon { width: 12px; height: 12px; flex: none; }
 
+/* Geniş listeleme tabloları (Yönetim → Kullanıcılar / Günlük): beş sütunun
+   ikisi e-posta taşır, e-posta kırılmaz ve dar ekranda hücreler üst üste
+   biner. Sarmal tabloyu doğal genişliğine bırakır, taşan kısım yatay kayar —
+   `.schematic`teki çözümün aynısı. nowrap hücre İÇİNİ tek satır tutar; sarmal
+   olmadan nowrap taşmayı büyütür, ikisi birlikte anlamlıdır. */
+.table-scroll { overflow-x: auto; }
+.table-scroll .result-table th,
+.table-scroll .result-table td { white-space: nowrap; }
+
 /* Denetim izi süzme paneli — sol facet + sağ tablo (Yönetim → Günlük).
    Yalnız yönetici gördüğü için sığdırma derdi yok: dar ekranda tek kolona
    düşer (mobil-önce, `.tool-grid`teki aynı teknik: temel tek kolon, geniş
