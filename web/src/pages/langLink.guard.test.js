@@ -27,6 +27,10 @@ const ALLOWED = new Set([
   'pages/Home.jsx',               // categoryPath
   'pages/CategoryPage.jsx',       // categoryPath / toolPath
   'pages/account/CalculationList.jsx', // openHref çağırandan hazır gelir
+  // useLangSuggestion() zaten translatePath ile HEDEF dilde üretilmiş bir
+  // yol döner (docs/brifler/15-dil-onerisi-seridi.md) — çevrilecek kanonik
+  // bir yol yok, LangSwitch ile aynı istisna sınıfı.
+  'components/LangSuggestionBanner.jsx',
 ])
 
 function walk(dir) {

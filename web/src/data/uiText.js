@@ -127,5 +127,15 @@ export function commonText(lang) {
       tr: `${n} araç`,
       en: `${n} tool${n === 1 ? '' : 's'}`,
     }),
+
+    // Dil önerisi şeridi (LangSuggestionBanner) — çağıran bunu HEDEF dille
+    // okur, sayfanın diliyle değil: kullanıcı anlamadığı dildeki sayfada
+    // öneriyi kendi dilinde okumalı (docs/brifler/15-dil-onerisi-seridi.md §4).
+    langSuggestNote: t({
+      tr: 'Bu sayfanın Türkçesi var.',
+      en: 'This page is available in English.',
+    }),
+    langSuggestGo: t({ tr: 'Türkçeye geç', en: 'Switch to English' }),
+    langSuggestDismiss: t({ tr: 'Öneriyi kapat', en: 'Dismiss suggestion' }),
   }
 }

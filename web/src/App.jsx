@@ -3,10 +3,12 @@ import { Suspense, lazy, useEffect, useRef } from 'react'
 import Toast from './components/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import LangLink from './components/LangLink'
+import LangSuggestionBanner from './components/LangSuggestionBanner'
 import TraceMotif from './components/TraceMotif'
 import { NoticeProvider, useNotice } from './hooks/useNotice'
 import { LangProvider, useLang } from './hooks/useLang'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { useLangSuggestion } from './hooks/useLangSuggestion'
 import { commonText } from './data/uiText'
 import { authText } from './data/authText'
 import { LANGS, LANG_LABEL, pick } from './lib/i18n'
@@ -374,6 +376,7 @@ function Layout({ children }) {
   // site geneliyle aynı kalır (CLAUDE.md'deki istisna notuna bkz.).
   const { pathname } = useLocation()
   const mainClassName = isAdminPath(pathname) ? 'container container-wide' : 'container'
+  const langSuggestion = useLangSuggestion()
 
   return (
     <>
@@ -384,6 +387,7 @@ function Layout({ children }) {
         autoCloseNote={commonText(lang).toastAutoClose(NOTICE_TIMEOUT_MS / 1000)}
         timeoutMs={NOTICE_TIMEOUT_MS}
       />
+      <LangSuggestionBanner suggestion={langSuggestion} />
       <header className="site-header">
         <div className="container">
           <LangLink to="/" className="wordmark" aria-label={pick(HOME_LINK, lang)}>

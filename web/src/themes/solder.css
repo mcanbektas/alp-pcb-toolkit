@@ -687,6 +687,22 @@ dialog.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.62); }
 
 /* ---------- Bildirim ---------- */
 
+/* Dil önerisi şeridi (LangSuggestionBanner.jsx) — sayfanın en üstünde, site
+   başlığının bile üstünde akış içi bir bant. Modal değil, kapatılabilir. */
+.lang-suggestion { background: var(--surface); border-bottom: 1px solid var(--line); }
+.lang-suggestion-inner {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px;
+  padding: 8px 22px; font-size: 0.85rem;
+}
+.lang-suggestion-note { margin: 0; color: var(--text); }
+.lang-suggestion-go { color: var(--accent); font-weight: 700; text-decoration: none; }
+.lang-suggestion-go:hover { text-decoration: underline; }
+.lang-suggestion-dismiss {
+  margin-left: auto; background: none; border: none; border-radius: var(--radius);
+  color: var(--muted); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 4px 8px;
+}
+.lang-suggestion-dismiss:hover { color: var(--text); }
+
 /* Kısa süreli bildirim kartı (Toast.jsx) — ekranın ortasında durur.
    MODAL DEĞİL: arkayı karartmaz, odağı hapsetmez, tıklamayı yutmaz. Dış alan
    `pointer-events: none` taşır, yalnızca kartın kendisi tıklanabilir; arkadaki

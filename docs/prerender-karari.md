@@ -206,3 +206,23 @@ nginx üzerinden (docker yığını ayakta) ayrıca doğrulandı: araç/kategori
 sayfaları 200 + rota başına `<title>` + gövdede `<h1>`, yönlendirme yok;
 `/giris` ve bilinmeyen yol geri düşüş kabuğunu alıyor; HTML'de `no-store`,
 `/fonts/` altında `immutable`.
+
+### 8.1 `vite preview` hydration ölçümü için KULLANILMAZ (2026-08-08, ölçüldü)
+
+`vite preview` 6. karardaki `try_files` zincirini **taklit etmez**: prerender'lı
+bir dosyası olmayan yola (`/giris`, `/projelerim`, bilinmeyen yol) boş kabuğu
+değil **`dist/index.html`i** — yani prerender'lı ANA SAYFAYI — döndürür.
+Ölçüldü: `/giris` isteği 6641 bayt, `index.html` ile bayt bayt aynı;
+`spa-fallback.html` 1287 bayt ve `<div id="root">` boş. Aynı istek gerçek
+nginx'te 1287 bayt ve boş kök döner.
+
+Sonucu şudur: React ana sayfanın HTML'ini `/giris` ağacına hydrate etmeye
+çalışır ve **her zaman** mismatch verir (React #418/#422/#425). Bu hata
+**üretimde yoktur** ve kodda bir kusura işaret etmez — ölçüm aracının
+yanılgısıdır. Dil önerisi şeridi (brif 15) doğrulanırken tam olarak bu tuzağa
+düşüldü: hata önce koda atfedildi, `git stash` ile değişiklik geri alınıp aynı
+hatanın temiz ağaçta da çıktığı görülünce ayrıldı.
+
+**Kural: hydration ve geri düşüş davranışı yalnız `npm run stack:docker`
+üzerinde (gerçek nginx) ölçülür.** `vite preview` yalnız prerender'lı
+sayfalar için (`/`, kategori, araç) güvenilirdir.
