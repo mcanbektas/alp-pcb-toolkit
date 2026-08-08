@@ -101,12 +101,16 @@ Elenenler:
   volume yönetimi ve disk dolduğunda API'nin durması. Kazancı — konteyner
   silinse de geçmişin kalması — sunucu alınana kadar teoriktir, çünkü şu an
   kalıcı bir sunucu yok.
-- **Seq / merkezi hedef.** Yığına dördüncü bir servis ekler ve bakım yükü
+- ~~**Seq / merkezi hedef.** Yığına dördüncü bir servis ekler ve bakım yükü
   getirir. Sunucu günü (brif 06) geldiğinde stdout'tan bir log driver'a
-  yönlendirmek tek satırlık iştir; şimdi kurmak erken.
+  yönlendirmek tek satırlık iştir; şimdi kurmak erken.~~ **2026-08-08'de geri
+  alındı, bkz. §12.** Gerekçe değişmedi (bakım yükü hâlâ gerçek), ama uygulama
+  büyüdükçe stdout'u elle okumanın maliyeti bakım yükünü geçti. stdout hedefi
+  KALKMADI — Seq stdout'un yanına eklendi, yerine geçmedi.
 
-Bu kararın bedeli açıkça kabul edildi: **konteyner silinince log geçmişi
-gider.** Sunucu gününde tekrar bakılacak.
+Bu kararın bedeli — konteyner silinince stdout log geçmişi gider — hâlâ
+geçerli, ama artık tek kopya değil: Seq ayrı bir volume'da kalıcı tutuyor
+(§12). Dosya sink + volume kararı (yukarıdaki madde) değişmedi.
 
 ## 4. İstek özeti: `UseSerilogRequestLogging`
 
@@ -243,7 +247,8 @@ ikisi birlikte durursa hangisinin kazandığı okunmaz olur.
 
 - **Dosya sink / log rotasyonu** — 3. karar. Paket grafiğinde `Sinks.File`
   var ama kullanılmıyor; bir sink'in gelmiş olması onu kurma gerekçesi değil.
-- **Seq, Loki, merkezi toplama** — sunucu günü (brif 06).
+- ~~**Seq, Loki, merkezi toplama** — sunucu günü (brif 06).~~ Seq artık
+  kapsamda, bkz. §12. Loki hâlâ kapsam dışı (gerek yok, Seq karşılıyor).
 - **17 çağrının şablon revizyonu** — 8. karar.
 - **İstek/yanıt gövdesi loglama** — hiç yapılmayacak: parola ve token tam
   olarak orada akıyor.
@@ -282,3 +287,38 @@ Kapsam bu sekiz maddedir. 17 mevcut çağrıya, testlere ve
 7. `/api/health` bilerek 500'e zorlanırsa kayıt **girmeli** (6. karar).
 8. Parola sıfırlama iste: geliştirmede bağlantı log'da görünmeli, `Production`
    ortamında görünmemeli (7.1).
+
+## 12. Seq eklendi (2026-08-08) — sunucu gününü beklemeden
+
+§3'teki "Seq erken, sunucu gününde" kararı geri alındı. Sunucu (brif 06) hâlâ
+yok — bu değişmedi. Değişen şey: kategori sayısı ve log hacmi büyüdükçe
+"stdout'u `docker compose logs` ile elle okumak" yönteminin kendisi darboğaz
+oldu; sorgulanabilir bir hedefin maliyeti (tek ek konteyner, ~250 MB RAM)
+bu darboğazdan daha ucuz hale geldi. §0'daki "hangi araç" sorusuna cevap:
+**Seq**, çünkü Serilog'un yapılandırılmış alanlarını (`RequestId`, `UserId`,
+`ClientIp`, kategori) hiç dönüştürmeden sorgulanabilir yapıyor — Loki gibi bir
+etiketleme/parse katmanı gerekmiyor.
+
+**Kapsam bilerek dar tutuldu, sunucu kararını önceden almaz:**
+
+- Seq yalnız **local `docker-compose.yml`**'e eklendi (`npm run stack:docker`
+  yolunda). `docker-compose.prod.yml`'e **dokunulmadı** — orada retention,
+  erişim/kimlik doğrulama ve dışa açık port gibi kararlar gerekir ve bunlar
+  hâlâ §7'nin belirttiği gibi sunucu gününe kalıyor. Sunucu geldiğinde aynı
+  servis prod compose'a taşınırken bu kararlar o gün verilir.
+- stdout hedefi **kalkmadı**, Seq onun yanına eklendi (Program.cs'te ikinci
+  bir `WriteTo`). `docker logs` / `docker compose logs` yolu hâlâ çalışır.
+- Bağlantı **koşullu**: `Seq:Url` config değeri boşsa sink hiç eklenmez.
+  `appsettings.json`'daki varsayılan boş — yani düz `dotnet run` /
+  `npm run stack` (Docker'sız günlük iş akışı) hiç etkilenmez, Seq'e
+  bağlanmaya çalışıp hata basmaz. Yalnız `docker-compose.yml` ortam
+  değişkeniyle (`Seq__Url=http://seq`) açılır.
+- Seq container'ının portu yalnız `127.0.0.1`'e bağlı — dışarıya kapalı,
+  yalnız geliştiricinin kendi makinesinden `localhost:5341` ile erişilir.
+- **Retention politikası otomatik kurulmadı.** Seq açık kaynak sürümünde
+  saklama süresi arayüzden (Settings → Retention) ayarlanır; env değişkeniyle
+  güvenilir biçimde scriptlenemiyor. İlk açılışta elle 14 gün gibi bir sınır
+  konmalı — konulmazsa Seq'in kendi volume'u sınırsız büyür. Bu adım burada
+  bilerek otomatikleştirilmedi (ek init script = ek bakım yükü, kapsamı
+  büyütür); sunucu gününde kalıcı bir volume'a taşınırken tekrar gözden
+  geçirilmeli.
