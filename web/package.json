@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "stack": "node scripts/dev-stack.mjs",
-    "stack:docker": "docker compose -f ../deploy/docker-compose.yml up -d --build",
-    "stack:docker:down": "docker compose -f ../deploy/docker-compose.yml down",
+    "stack:docker": "docker compose -f ../../alp-platform/deploy/docker-compose.yml -f ../../alp-platform/deploy/docker-compose.pcb-local.yml up -d --build",
+    "stack:docker:down": "docker compose -f ../../alp-platform/deploy/docker-compose.yml -f ../../alp-platform/deploy/docker-compose.pcb-local.yml down",
     "build": "vite build && vite build --ssr scripts/prerender/entry-server.jsx --outDir .prerender && node scripts/build-prerender.mjs && node scripts/build-sitemap.mjs",
     "preview": "vite preview",
     "test": "vitest run",

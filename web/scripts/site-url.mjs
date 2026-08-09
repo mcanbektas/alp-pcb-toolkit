@@ -5,8 +5,9 @@
 // bulamaz hâle gelebilirdi.
 //
 // Alan adı henüz alınmadı. `VITE_SITE_URL` verilmezse placeholder yazılır ve
-// konsola uyarı basılır; alan adı alınınca değişken `deploy/.env`e eklenir
-// (bkz. `deploy/README.md`).
+// konsola uyarı basılır. Alan adı alınınca iki yerde tanımlanır: yayınlanan
+// imaj için bu deponun `SITE_URL` Actions değişkeni, yerel yığın için
+// alp-platform deposundaki `deploy/.env` (bkz. o deponun `deploy/README.md`).
 
 import process from 'node:process'
 
@@ -27,7 +28,8 @@ export function siteUrl() {
       'site-url: VITE_SITE_URL tanımlı değil, placeholder alan adı kullanılıyor '
       + `(${PLACEHOLDER_SITE_URL}). Bu adres yalnız sitemap.xml'e değil, üretilen `
       + "HER sayfanın <head>'indeki canonical ve hreflang etiketlerine de yazılır. "
-      + "Alan adı alınınca deploy/.env'e VITE_SITE_URL eklenir.",
+      + 'Alan adı alınınca: depo değişkeni SITE_URL (Actions) ve alp-platform '
+      + "deposundaki deploy/.env → VITE_SITE_URL.",
     )
   }
   return PLACEHOLDER_SITE_URL

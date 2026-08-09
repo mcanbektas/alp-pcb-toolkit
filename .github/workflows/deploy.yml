@@ -46,25 +46,13 @@ jobs:
         working-directory: web
       - run: npm test
         working-directory: web
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-      - run: dotnet test api/Alp.Api.sln -c Release
 
+  # Tek imaj kaldı (web): api artık alp-platform deposunda kendi imajını
+  # yayınlıyor, o yüzden matris de kaldırıldı.
   images:
-    name: ${{ matrix.name }} imajı
+    name: web imajı
     needs: test
     runs-on: ubuntu-latest
-    strategy:
-      # api imajı web'in alan adı guard'ına takılıp iptal olmasın: ikisi
-      # birbirinden bağımsız yayınlanır.
-      fail-fast: false
-      matrix:
-        include:
-          - name: api
-            dockerfile: api/Dockerfile
-          - name: web
-            dockerfile: web/Dockerfile
     steps:
       - uses: actions/checkout@v4
 
@@ -75,8 +63,8 @@ jobs:
       # sitemap'e placeholder alan adı basar (web/scripts/site-url.mjs:13)
       # ve yalnızca uyarı verip yeşil kalır. Yayınlanmış böyle bir imaj
       # dağıtılamaz, o yüzden burada sessizce geçilmez.
-      - name: Alan adı tanımlı mı (yalnız web)
-        if: matrix.name == 'web' && vars.SITE_URL == ''
+      - name: Alan adı tanımlı mı
+        if: vars.SITE_URL == ''
         run: |
           echo "::error::vars.SITE_URL tanımlı değil. Bu değer olmadan web imajı" \
                "placeholder alan adıyla (https://alp-pcb-toolkit.example) derlenir" \
@@ -96,29 +84,29 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
+          images: ${{ env.IMAGE_PREFIX }}/web
           # Hem `latest` hem commit sha'sı basılır. Geri alma sha etiketiyle
-          # yapılır: deploy/.env içinde IMAGE_TAG değiştirilip yığın yeniden
-          # ayağa kaldırılır — yeniden derleme gerekmez.
+          # yapılır: platform deposundaki deploy/.env içinde PCB_IMAGE_TAG
+          # değiştirilip yığın yeniden ayağa kaldırılır — yeniden derleme
+          # gerekmez. Etiket ürün başına ayrıdır: PCB'yi geri almak platformu
+          # ya da öteki ürünleri etkilemez.
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long
 
       - uses: docker/build-push-action@v6
         with:
-          # Derleme bağlamı depo kökü: her iki Dockerfile da kökten yol verir
-          # (web imajı deploy/nginx.conf'u da kopyalar).
+          # Derleme bağlamı depo kökü: Dockerfile web/ altına kökten yol verir
+          # (kaynak ve web/nginx.conf).
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: web/Dockerfile
           push: true
-          # api imajı bu ARG'ı tanımlamaz ve tüketmez; buildx yalnızca uyarı
-          # basar. Tek matris adımını ikiye bölmek yerine burada geçilir.
           build-args: |
             VITE_SITE_URL=${{ vars.SITE_URL }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
 
       # Yayınlanan imaj bilinen açıklara karşı taranır. Yalnızca CRITICAL/HIGH
       # ve DÜZELTMESİ ÇIKMIŞ bulgular işi kırar: düzeltmesi olmayan bir taban
@@ -130,7 +118,7 @@ jobs:
       # koşmaz. Bu yüzden imaj yayını 31 Temmuz'dan beri sessizce durmuştu.
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:sha-${{ github.sha }}
+          image-ref: ${{ env.IMAGE_PREFIX }}/web:sha-${{ github.sha }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'

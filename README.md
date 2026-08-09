@@ -6,13 +6,13 @@ PCB tasarımı için çevrim içi donanım mühendisliği karar destek araçlar�
 bütün araçlar tam çalışır. Backend yalnızca üyelik, proje/hesap kaydı ve PDF/Excel rapor
 üretimi için vardır.
 
-Depo iki parçadır:
+Bu depo **arayüzdür**: `web/` — Vite + React 18 + react-router-dom, bütün hesap motorlarıyla
+birlikte. Oturum açılmamışken her araç tam çalışır, yani depo tek başına geliştirilebilir.
 
-| dizin | ne | yığın |
-| --- | --- | --- |
-| `web/` | arayüz ve bütün hesap motorları | Vite + React 18 + react-router-dom |
-| `api/` | üyelik, proje/hesap kaydı, rapor üretimi | ASP.NET Core 9, Identity + JWT, EF Core, QuestPDF/ClosedXML |
-| `deploy/` | kendi sunucumuza dağıtım yığını | nginx + api + postgres, Docker Compose |
+Sunucu tarafı (üyelik, proje/hesap kaydı, rapor üretimi) ve dağıtım yığını
+**[alp-platform](https://github.com/mcanbektas/alp-platform)** deposundadır — ALP artık tek
+ürün değil, bir süit (PCB + Comm + sonrakiler) ve kimlik/veritabanı/rapor/dağıtım katmanı
+hepsi için ortaktır. Bu depo kendi imajını yayınlar, platform onu çeker.
 
 Arayüz iki dillidir — **Türkçe / English** — ve dil başlıktaki düğmeden değiştirilir. Varsayılan
 Türkçedir: araç adlarının ve mühendislik terimlerinin karşılığı önce Türkçe yazıldı, İngilizce
@@ -48,22 +48,25 @@ npm run test:e2e    # playwright — anonim akışlar, dil ağacı, klavye model
 npm run fonts       # src/fonts.css'i yeniden üretir (bkz. "Yazı tipleri")
 ```
 
+`npm run stack` API'yi **kardeş depodan** başlatır. İki depo yan yana klonlanır:
+
 ```bash
-cd api
-dotnet build Alp.Api.sln
-dotnet test Alp.Api.sln               # xunit — sunucu kuralları, bkz. aşağıdaki not
-dotnet run --project Alp.Api          # http://localhost:5289, uçlar /api altında
+git clone https://github.com/mcanbektas/alp-pcb-toolkit.git
+git clone https://github.com/mcanbektas/alp-platform.git      # api + deploy
 ```
+
+Başka bir yerdeyse: `ALP_PLATFORM_DIR=/yol/alp-platform npm run stack`. Sunucu komutları
+(`dotnet build/test/run`) o deponun README'sindedir.
 
 Docker yığını günlük iş için **gerekmez**. Yalnız derlenmiş çıktıyı doğrulamak için
 kaldırılır — prerender'lı HTML, nginx `try_files` zinciri, `canonical`/`hreflang` ve
 service worker ancak orada görünür:
 
 ```bash
-cd deploy
+cd ../alp-platform/deploy
 cp .env.example .env                  # en az POSTGRES_PASSWORD ve JWT_KEY doldurulur
-cd ../web
-npm run stack:docker                  # http://localhost:8080 (nginx + api + postgres)
+cd ../../alp-pcb-toolkit/web
+npm run stack:docker                  # http://localhost:8080 — SPA'yı yerelde derler
 npm run stack:docker:down
 ```
 
@@ -81,12 +84,9 @@ denetiminden kaçar.
 junction sıcaklığı, direnç kodu, yüklü gerilim bölücü) ilgili motor eklendiğinde teste
 dönüşür; motor testsiz merge edilmez.
 
-Sunucu tarafında `api/Alp.Api.Tests` (xunit) var ve kapsamı orada da kural bazlıdır: rapor
-önizlemesi süzmesi, boyutsuz SVG kapısı, kalınlık kayıtlarında ad tekliği ve
-50 kayıt sınırı, proje-hesap sahipliği. Uçlar HTTP üzerinden değil, işleyicileri doğrudan
-çağırarak sınanır; veritabanı bellek içi SQLite'tır ve şema modelden kurulur, çünkü `InMemory`
-sağlayıcısı benzersiz dizin zorlamaz. CI ayrı bir adımda koşturur, veritabanı servisi
-gerekmez. Kapsam dışı bırakılanlar ve gerekçeleri: `docs/uyelik-ve-rapor-plani.md` §25.
+Sunucu testleri (`api/Alp.Api.Tests`, xunit) **platform deposundadır** ve orada koşar; bu
+deponun CI'ı onları çalıştırmaz. Kapsam dışı bırakılanlar ve gerekçeleri yine burada:
+`docs/uyelik-ve-rapor-plani.md` §25 — karar tarihçesi ayrıştırmada taşınmadı.
 
 ### Yazı tipleri
 
@@ -95,10 +95,11 @@ servis edilir; sayfa hiçbir dış kaynağa istek atmaz. İki dizin, iki tüketi
 
 - `web/public/fonts/` — sitenin indirdiği `woff2` alt kümeleri (`latin`, `latin-ext`, `greek`
   ve bizim kestiğimiz `symbols`). Yalnız bunlar `dist/`e ve web imajına girer.
-- `assets/report-fonts/` — PDF raporuna gömülen tam kapsamlı `ttf`ler. api imajı bunları
-  `/app/fonts` altına alır (`api/Dockerfile`), `Reports__FontsPath` oraya bakar. Site bu
-  dosyaları hiç indirmez; `public/` altında dururlarken yine de `dist/`e ve web imajına
-  giriyorlardı.
+- Rapora gömülen tam kapsamlı `ttf`ler **platform deposundadır** (`assets/report-fonts/`) —
+  ayrıştırmada api ile birlikte taşındılar, çünkü tüketicileri PDF dizgisidir. Site onları
+  hiç indirmez; bir zamanlar `public/` altında dururken gereksiz yere `dist/`e ve web
+  imajına giriyorlardı. **Üç aile iki depoda ayrı biçimlerde durur** (burada woff2 alt
+  kümeleri, orada ttf) — aile değişirse iki taraf birlikte güncellenir.
 
 Lisans: SIL Open Font License 1.1; metin her iki dizinde `OFL-*.txt` olarak durur.
 
@@ -215,7 +216,10 @@ Sayı akışı: form state **string** tutar, ayrıştırma yalnızca `compute()`
 Ayrıntılı kurallar ve bilinen sapmalar: [`CLAUDE.md`](CLAUDE.md). Formüllerin kaynağı:
 [`docs/spec.md`](docs/spec.md).
 
-### Backend (`api/`)
+### Backend — [alp-platform](https://github.com/mcanbektas/alp-platform) deposunda
+
+Aşağıdaki uç sözleşmesi bu SPA'nın tükettiği yüzeydir, o yüzden burada duruyor; kaynak kod
+ve sunucu kararları platform deposundadır.
 
 Dört proje: `Alp.Api` (uçlar), `Alp.Data` (EF Core bağlamı + migration), `Alp.Domain`
 (varlıklar), `Alp.Reports` (PDF/Excel dizgisi). Repository/service katmanı **yoktur** ve bu
@@ -394,21 +398,21 @@ mevcut kod çelişirse dur ve sor.
 edilir: `vite.config.js` içinde `base: '/'`, `App.jsx` içinde `BrowserRouter`.
 
 `BrowserRouter` derin bağlantıda sunucudan SPA geri dönüşü ister; karşılığı
-`deploy/nginx.conf` içindeki `try_files $uri $uri/ /index.html` satırıdır. Düşerse site ilk
+`web/nginx.conf` içindeki `try_files $uri $uri/ /index.html` satırıdır. Düşerse site ilk
 açılışta çalışır, **sayfa yenilendiğinde 404 verir** — her dağıtımda ilk kontrol budur.
 
-Yığın, ayrıntılar ve sunucu runbook'u: [`deploy/README.md`](deploy/README.md).
+Bu depo yalnızca **kendi imajını** yayınlar (`ghcr.io/mcanbektas/alp-pcb-toolkit/web`) ve
+`web/nginx.conf` o imaja gömülür. Yığının kendisi — postgres, api, ürün SPA'ları, TLS,
+certbot — platform deposundadır; ayrıntılar ve sunucu runbook'u için
+[alp-platform → `deploy/README.md`](https://github.com/mcanbektas/alp-platform/blob/main/deploy/README.md).
 
-- `deploy/docker-compose.yml` imajları yerelde derler; `deploy/docker-compose.prod.yml` onun
-  üstüne binip `ghcr.io`'daki hazır imajları kullanır, TLS ve certbot ekler.
-- Sırlar `deploy/.env`'dedir ve depoya girmez. Şablon `.env.example`.
-- `.github/workflows/ci.yml` her dalda test/derleme koşar; `deploy.yml` yalnızca `main`'de
-  imaj derleyip `ghcr.io`'ya iter. **Sunucuya bağlanan adım bilerek yoktur** — sunucu henüz
-  yok, kullanılmayan bir SSH sırrı depoda durmaz.
-- Şema açılışta uygulanır (`Database__MigrateOnStartup`); konteynerde `dotnet ef` yoktur.
-  Ayar tek kopyalı dağıtım içindir.
-- SMTP verilmezse postalar yalnızca günlüğe yazılır. **Üretimde bu bir arızadır:** e-posta
-  doğrulaması zorunlu olduğu için doğrulama postası gitmezse hiçbir kullanıcı giriş yapamaz.
+- `.github/workflows/ci.yml` her dalda web testi/derlemesi koşar; `deploy.yml` yalnızca
+  `main`'de web imajını derleyip `ghcr.io`'ya iter. **Sunucuya bağlanan adım bilerek
+  yoktur** — sunucu henüz yok, kullanılmayan bir SSH sırrı depoda durmaz.
+- **Sürüm bağımsızdır**: platform bu imajı `PCB_IMAGE_TAG` ile çeker, yani PCB'yi geri almak
+  platformu ya da öteki ürünleri etkilemez.
+- `vars.SITE_URL` (Actions değişkeni) imaj derlemesinin şartıdır: yokken iş kasten kırılır,
+  çünkü placeholder alan adıyla derlenmiş bir imaj dağıtılamaz.
 
 ## Notlar
 
