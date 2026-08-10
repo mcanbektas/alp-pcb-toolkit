@@ -589,7 +589,7 @@ export function AppRoutes() {
 export default function App() {
   return (
     <AppProviders>
-      <BrowserRouter>
+      <BrowserRouter basename="/pcb">
         <AppRoutes />
       </BrowserRouter>
     </AppProviders>

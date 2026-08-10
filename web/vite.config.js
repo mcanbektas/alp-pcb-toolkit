@@ -36,21 +36,21 @@ export default defineConfig(({ isSsrBuild }) => ({
         // (i18n.js → DEFAULT_LANG) yazılır.
         lang: 'tr',
         dir: 'ltr',
-        start_url: '/',
-        scope: '/',
+        start_url: '/pcb/',
+        scope: '/pcb/',
         display: 'standalone',
         // index.html'deki `theme-color` ile aynı değer — ayrışırsa tarayıcı
         // çubuğu ile yüklü uygulama farklı renk gösterir.
         theme_color: '#070c08',
         background_color: '#070c08',
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/pcb/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pcb/icon-512.png', sizes: '512x512', type: 'image/png' },
           // `maskable`: Android ikonu kendi maskesine kırpar. Ayrı bir dosya
           // üretilmedi, aynı kare kullanılıyor — işaretin kenar boşluğu zaten
           // geniş. İkonlar 64 px favicon'dan büyütüldü ve gerçek marka
           // varlığı geldiğinde değiştirilmeli (docs/pwa-karari.md §4).
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/pcb/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -130,9 +130,10 @@ export default defineConfig(({ isSsrBuild }) => ({
     testTimeout: 30_000,
   },
 
-  // Kendi sunucumuzda barındırılır (GitHub Pages değil): kök '/'den servis
-  // edilir, BrowserRouter kullanılır. docs/uyelik-ve-rapor-plani.md §6.2
-  base: '/',
+  // Süit edge'i altında yayınlanır (GitHub Pages değil): edge `/pcb/`
+  // önekini KORUYARAK vekilliyor, App.jsx'teki BrowserRouter basename'i de
+  // aynı önek. docs/uyelik-ve-rapor-plani.md §6.2
+  base: '/pcb/',
   server: {
     port: 3000,
     strictPort: true,
