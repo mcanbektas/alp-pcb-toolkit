@@ -6,10 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ALP PCB Toolkit — PCB tasarımı için çevrim içi donanım mühendisliği hesap araçları.
 
-İki parça: **`web/`** (Vite + React 18 + react-router-dom) ve **`api/`** (ASP.NET Core,
-Identity + JWT, EF Core, PDF/Excel rapor üretimi). Hesap motorlarının tamamı hâlâ
-tarayıcıda çalışır — hiçbir hesap sunucuya gitmez. Backend yalnızca üyelik, proje/hesap
-kaydı ve rapor indirme için vardır; oturum açılmamışken bütün araçlar tam çalışır.
+**Bu depo yalnızca SPA'dır (`web/`, Vite + React 18 + react-router-dom).** Sunucu tarafı
+2026-08-09'da **alp-platform** deposuna taşındı: ALP artık tek ürün değil, bir süit
+(PCB + Comm + sonrakiler) ve kimlik/veritabanı/rapor/dağıtım katmanı hepsi için ortaktır.
+Bu depo kendi imajını yayınlar (`ghcr.io/mcanbektas/alp-pcb-toolkit/web`), platform onu
+çeker. Karşılıklı bağımlılık kuralları için o deponun `CLAUDE.md`'si okunur.
+
+Hesap motorlarının tamamı hâlâ tarayıcıda çalışır — hiçbir hesap sunucuya gitmez. Backend
+yalnızca üyelik, proje/hesap kaydı ve rapor indirme için vardır; **oturum açılmamışken
+bütün araçlar tam çalışır**, yani platform deposu olmadan da bu depo tek başına
+geliştirilebilir (`npm run dev`).
 
 **Arayüz iki dillidir (tr / en), varsayılan Türkçe. Kod yorumları Türkçedir ve çevrilmez.**
 **URL de iki dillidir**: Türkçe yol kanoniktir (`/arac/gerilim-bolucu`), İngilizce sürüm
@@ -35,9 +41,16 @@ açık olduğunu hatırlamak iş çıkarıyordu. `npm run stack` ikisini birlikt
 BİRLİKTE söndürür (biri düşerse öteki de kapanır, yarım yığın kalıp bir dahaki sefere
 "port kullanımda" hatası vermez). Yeni bağımlılık eklemez: `web/scripts/dev-stack.mjs`.
 
-**API portu 5289'dur ve tek yerde değişmez**: `api/…/Properties/launchSettings.json` ile
-`web/vite.config.js`teki proxy hedefi aynı olmak zorunda. Ayrıştıklarında uygulama açılır
-ama `/api` istekleri sessizce 404 döner — giriş de rapor da çalışmaz, hata mesajı çıkmaz.
+**`npm run stack` API'yi KARDEŞ DEPODAN başlatır** (`../alp-platform/api`). Depo orada
+değilse betik tek cümleyle durur ve klonlama komutunu basar; başka yerdeyse
+`ALP_PLATFORM_DIR=/yol/alp-platform npm run stack`. Yalnız arayüzle çalışacaksan API
+gerekmez — `npm run dev` yeter, oturumsuz her araç tam çalışır.
+
+**API portu 5289'dur ve tek yerde değişmez**: platform deposundaki
+`api/…/Properties/launchSettings.json` ile buradaki `web/vite.config.js` proxy hedefi aynı
+olmak zorunda. Ayrıştıklarında uygulama açılır ama `/api` istekleri sessizce 404 döner —
+giriş de rapor da çalışmaz, hata mesajı çıkmaz. **İki depoda durdukları için artık aynı
+commit'te değişemezler**: port değişirse iki depo birlikte güncellenir.
 
 Docker yığını (8080) günlük iş için GEREKMEZ; yalnız DERLENMİŞ çıktıyı doğrulamak için
 kaldırılır — prerender'lı HTML, nginx `try_files` zinciri, canonical/hreflang ve service
@@ -63,25 +76,19 @@ düşerse geri kalanların yeşilliği anlamsızdır, çünkü ağ hiç kesilmem
 
 CI'da e2e job'ı henüz yok — süreyi şişirmesin diye sunucu gününe bırakıldı.
 
-Sunucu tarafının kendi testleri var (`api/Alp.Api.Tests`, xunit): `dotnet test Alp.Api.sln`.
-Kapsam orada da dar ve kural bazlı — rapor önizlemesi süzmesi, boyutsuz SVG kapısı, proje-hesap sahipliği. Uçlar HTTP
-üzerinden değil, işleyicileri doğrudan çağırarak sınanır (test edilen üyeler `internal` +
-`InternalsVisibleTo`); veritabanı bellek içi SQLite'tır ve şema modelden kurulur, çünkü
-`InMemory` sağlayıcısı benzersiz dizin ZORLAMAZ. Ayrıntı ve kapsam dışı bırakılanlar:
-`docs/uyelik-ve-rapor-plani.md` §25. **Yeni bir uç yazarken kuralını da test et** — sahiplik,
-sınır ve tür doğrulaması için desen bu sınıflarda hazırdır.
+Sunucu tarafının kendi testleri **alp-platform deposundadır** (`api/Alp.Api.Tests`, xunit):
+`dotnet test api/Alp.Api.sln`. Bu deponun CI'ı onları koşmaz — orada kendi CI'ı var.
 
-**Rapor DOSYASI saklanmaz, rapor BÖLÜMLERİ saklanır.** PDF/XLSX baytları hiçbir yere
-yazılmaz (gerekçe: tek kullanıcı günde ~290 MB üretebiliyor); ama geçmişten indirme de
-projenin güncel hâlini basmaz — üretim anındaki bölüm kayıtlarının ham kopyası
-`SectionBlobs` + `ReportSnapshotSections` tablolarında **içerik adresli** olarak donar
-(`Alp.Api/Reports/ReportSnapshot.cs`). Böylece belge yine dizgi anında üretilir, dil hâlâ
-indirme isteğinden seçilir ve dizgi düzeltmeleri geçmişe de uygular; donan şey içeriktir.
-Künyenin donan parçaları `Reports` tablosundadır (`Company`, `SchemaVersion`). Manifesti
-olmayan rapor (göç öncesi kayıtlar, kotayla geriletilenler) eski davranışa düşer ve bu
-ayrım `GET /api/reports` → `hasSnapshot` ile dışarı verilir. Kota
-(`App:SnapshotQuotaBytes`, varsayılan 100 MB) raporu REDDETMEZ, en eski snapshot'ları
-düşürür. Karar ve elenen seçenekler: `docs/rapor-snapshot-karari.md`.
+Sunucu davranışının bu depoyu ilgilendiren yüzü — rapor snapshot modeli, kimlik postası
+metinleri, uç sözleşmeleri — platform deposunun `CLAUDE.md`'sinde anlatılır. Karar
+tarihçesi ise **burada** kaldı: `docs/uyelik-ve-rapor-plani.md`,
+`docs/rapor-snapshot-karari.md`, `docs/loglama-karari.md`, `docs/eposta-dili-karari.md`,
+`docs/brifler/06|11|12|14-*.md`. Ayrıştırmada kopyalanmadılar — kopya ayrışır.
+
+**Bu deponun bilmesi gereken tek sunucu kuralı:** rapor DOSYASI saklanmaz, rapor
+BÖLÜMLERİ saklanır. Geçmişten indirme projenin güncel hâlini basmaz; belge yine dizgi
+anında üretilir, dil indirme isteğinden seçilir. `GET /api/reports` → `hasSnapshot` alanı
+manifesti olan/olmayan kaydı ayırır ve arayüz buna bakar.
 
 Saf sayılan ve bu yüzden test edilen üç yer: `src/lib/`, ekranların `report.js` dosyaları
 ve ekranların `text.js` sözlükleri. Sonuncusu `dfmTextPaths.test.js`'te kaynak dosyaları
@@ -104,7 +111,7 @@ taşır — kullanıcıların kayıtlı bağlantıları kırılmasın diye duruy
 
 `BrowserRouter` derin bağlantıda sunucudan SPA geri dönüşü ister: `/giris` isteğine bir
 HTML kabuğu dönmeyen yapılandırmada sayfa yenilendiğinde 404 alınır. Karşılığı
-`deploy/nginx.conf` içindeki `try_files` satırıdır; düşerse site ilk açılışta çalışır,
+`web/nginx.conf` içindeki `try_files` satırıdır; düşerse site ilk açılışta çalışır,
 **sayfa yenilendiğinde 404 verir**. Her dağıtımda ilk kontrol budur.
 
 ### Prerender (SSG) — araç ve kategori sayfaları
@@ -174,34 +181,34 @@ Site service worker ile ağsız da tam çalışır — bütün hesap motorları 
 - **İkonlar teknik borç**: `public/icon-{192,512}.png` 64 px favicon'dan büyütüldü.
   Gerçek marka varlığı geldiğinde değiştirilmeli.
 
-### Dağıtım (Faz 8)
+### Dağıtım
 
-Yığın `deploy/` altındadır: `nginx` (statik `web/dist` + `/api` ters vekili) + `api` +
-`postgres`, Docker Compose ile. Ayrıntı ve sunucu runbook'u: **`deploy/README.md`**.
+**Yığın bu depoda değil, alp-platform'da** (`deploy/` — postgres + api + ürün SPA'ları +
+seq, Docker Compose). Sunucu runbook'u orada: `deploy/README.md`. Bu depo yalnızca **kendi
+imajını** yayınlar; platform onu ghcr'dan çeker (`PCB_IMAGE_PREFIX` / `PCB_IMAGE_TAG`) —
+yani PCB sürümü platformdan ve öteki ürünlerden bağımsız yükselir ve bağımsız geri alınır.
 
-- `deploy/docker-compose.yml` imajları yerelde derler; `deploy/docker-compose.prod.yml`
-  onun üstüne binip `ghcr.io`'daki hazır imajları kullanır, TLS ve certbot ekler.
-  Üretimde `--no-build` verilir — temel dosyadaki `build:` anahtarı örtüde silinemez.
-- Sırlar `deploy/.env`'dedir ve depoya girmez (`.gitignore`). Şablon `.env.example`.
-- `.github/workflows/ci.yml` her dalda test/derleme koşar; `deploy.yml` yalnızca `main`'de
-  imaj derleyip `ghcr.io`'ya iter. **Sunucuya bağlanan adım bilerek yoktur** — sunucu
-  henüz yok, kullanılmayan SSH sırrı depoda durmaz.
+- `web/nginx.conf` imaja gömülür (TLS'siz sunum: SPA geri düşüşü + `/api` ters vekili).
+  **Ayrıştırmada `deploy/`den buraya taşındı**: sunum yapılandırması imajın kendi işidir,
+  imajı üreten depoda durur. Üretimde platform bunun üstüne `nginx.prod.conf`u bağlar ve
+  iki dosyanın SPA/`/api` blokları birebir aynı tutulur — biri değişirse öteki de.
+- `.github/workflows/ci.yml` her dalda web testi/derlemesi koşar; `deploy.yml` yalnızca
+  `main`'de web imajını derleyip `ghcr.io`'ya iter. **Sunucuya bağlanan adım bilerek
+  yoktur** — sunucu henüz yok, kullanılmayan SSH sırrı depoda durmaz.
+- `vars.SITE_URL` bu deponun Actions değişkenidir ve **imaj derlemesinin şartıdır**:
+  yokken iş kasten kırılır, çünkü placeholder alan adıyla derlenmiş bir imaj dağıtılamaz.
 - API `/api` önekli çalışır ve sağlık uçları da oradadır (`/api/health`,
   `/api/health/ready`). nginx yalnızca `/api/` konumunu vekile geçirdiği için önek dışına
   yazılan bir uç dışarıdan istendiğinde `index.html` döner.
-- Konteynerde TLS sonlandırma nginx'tedir: `App__HttpsRedirection=false`,
-  `App__KnownProxyNetworks` compose ağının alt ağını taşır. İkincisi verilmezse
-  `X-Forwarded-For` yok sayılır, bütün istekler nginx'in tek IP'sine düşer ve hız sınırı
-  tek kova olur.
-- Şema açılışta uygulanır (`Database__MigrateOnStartup`). Konteynerde `dotnet ef` yoktur;
-  ayar tek kopyalı dağıtım içindir, kopya sayısı artarsa kapatılıp ayrı adıma taşınır.
-- `IEmailSender`'ın gerçek uygulaması `SmtpEmailSender` (MailKit). `Smtp:Host` ve
-  `Smtp:FromAddress` boşken `ConsoleEmailSender`'a düşülür — geliştirmede SMTP hesabı
-  gerekmesin diye. **Üretimde bu düşüş bir arızadır:** e-posta doğrulaması zorunludur,
-  doğrulama postası gitmezse hiçbir kullanıcı giriş yapamaz. Uygulama açılışta uyarı basar.
 - nginx'te `add_header` **miras alınmaz**: kendi `add_header`'ını yazan her `location`,
   sunucu seviyesindeki güvenlik başlıklarının hepsini o konumda düşürür. Bu yüzden
   başlıklar `/assets/` ve `= /index.html` içinde tekrar yazılır — silinmemeli.
+- Sunucu tarafı ayarları (TLS sonlandırma, `App__KnownProxyNetworks`, migration, SMTP
+  düşüşü) artık platform deposunun konusu — oradaki `CLAUDE.md`.
+
+**Faz 4 uyarısı:** süit yüzü kurulunca (landing + edge nginx + `/pcb` `/comm` path
+routing) bu imajın `/api` vekilliği edge'e taşınacak ve `web/nginx.conf` yalnız statik
+sunuma inecek. O gün geldiğinde bu bölüm yeniden yazılır.
 
 ## Mimari
 
@@ -421,13 +428,17 @@ Bu sınıftan bir hata (`text.table.pctOfSupply is not a function`) bir ekranı 
   ve kullanıcının kendi girdiği veri (örn. kaydedilmiş bir DFM profilinin adı).
 - **Kimlik postaları bu kuralın dışındadır: metin SUNUCUDA durur.** Doğrulama, parola
   sıfırlama ve kayıt denemesi postalarının konusu ve gövdesi iki dilli olarak
-  `api/Alp.Api/Auth/AuthEmailText.cs`tedir; istemciden gelen tek şey **dil kodudur**
-  (`lang` alanı — `RegisterRequest`, `ForgotPasswordRequest`, `ResendConfirmationRequest`;
-  verilmezse Türkçe). Rapor çerçevesindeki gibi metni yükle taşımak burada kimlik avı
-  yüzeyi açardı: gövdeyi istemci belirlerse uç, bizim alan adımızdan çıkan ve markamızı
-  taşıyan serbest metni istenen adrese POSTALAYAN bir araca döner. Postadaki bağlantı
-  yolları da orada, `routes.js`in ikinci kopyası olarak durur; kopyanın ayrışması kırık
-  doğrulama bağlantısı demek ve `web/src/lib/authMailPaths.guard.test.js` bunu bekler.
+  platform deposundaki `api/Alp.Api/Auth/AuthEmailText.cs`tedir; istemciden gelen tek şey
+  **dil kodudur** (`lang` alanı — `RegisterRequest`, `ForgotPasswordRequest`,
+  `ResendConfirmationRequest`; verilmezse Türkçe). Rapor çerçevesindeki gibi metni yükle
+  taşımak burada kimlik avı yüzeyi açardı: gövdeyi istemci belirlerse uç, bizim alan
+  adımızdan çıkan ve markamızı taşıyan serbest metni istenen adrese POSTALAYAN bir araca
+  döner. Postadaki bağlantı yolları da orada, `routes.js`in ikinci kopyası olarak durur.
+  **AYRIŞTIRMA SONRASI:** kopyayı karşılaştıran bekçi
+  (`web/src/lib/authMailPaths.guard.test.js`) iki depo kardeş dizinlerde duruyorsa koşar,
+  bulamazsa kendini atlar — CI'da atlanır, yani koruma artık yerelde. **Bu yolları
+  değiştirirken platform tarafını aynı gün güncelle.** Kalıcı çözüm Faz 3: auth mail
+  yolları ürün başına yapılandırmaya taşınacak (Comm'un da kendi doğrulama sayfası olacak).
   Karar ve elenen seçenekler: `docs/eposta-dili-karari.md`.
 
 **Bilinçli sapma — kalınlık kayıtları kaldırıldı (2026-07-30).** Spec §4.3'ün "kayıtlı

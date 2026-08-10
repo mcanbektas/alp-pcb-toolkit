@@ -16,6 +16,7 @@
 // kancası yetiyor.
 
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
 import process from 'node:process'
@@ -23,6 +24,15 @@ import { fileURLToPath } from 'node:url'
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const repoDir = path.resolve(webDir, '..')
+
+// API ARTIK BU DEPODA DEĞİL: süit ayrıştırmasında alp-platform'a taşındı
+// (ortak kimlik/veritabanı/rapor katmanı, bütün ürünler onu kullanır).
+// Kardeş dizin varsayımı — başka yerdeyse ALP_PLATFORM_DIR ile geçilir:
+//   ALP_PLATFORM_DIR=/yol/alp-platform npm run stack
+const platformDir = process.env.ALP_PLATFORM_DIR
+  ? path.resolve(process.env.ALP_PLATFORM_DIR)
+  : path.resolve(repoDir, '..', 'alp-platform')
+const apiDir = path.join(platformDir, 'api')
 
 // API portu `vite.config.js`teki proxy hedefiyle AYNI olmak zorunda; ayrıştığı
 // gün istekler sessizce 404 döner (uygulama açılır, giriş çalışmaz).
@@ -87,10 +97,22 @@ if (dolu.length) {
 console.log(`dev-stack: API :${API_PORT}, web :${WEB_PORT} → http://localhost:${WEB_PORT}`)
 console.log('  (docker yığını 8080 ayrı ve gerekmiyor — bkz. npm run stack:docker)')
 
+// Platform deposu bulunamazsa dotnet'in "proje bulunamadı" yığın izi yerine
+// tek cümle basılır — sebep neredeyse her zaman aynı: depo klonlanmamış ya da
+// kardeş dizinde değil.
+if (!existsSync(apiDir)) {
+  console.error(`dev-stack: platform deposu bulunamadı → ${apiDir}`)
+  console.error('  API alp-platform deposundadır. Yan yana klonlayın:')
+  console.error(`    git clone https://github.com/mcanbektas/alp-platform.git ${platformDir}`)
+  console.error('  Başka bir yerdeyse: ALP_PLATFORM_DIR=/yol/alp-platform npm run stack')
+  console.error('  Yalnız arayüzle çalışacaksanız API gerekmez: npm run dev')
+  process.exit(1)
+}
+
 baslat(
   'API',
   'dotnet',
   ['run', '--project', 'Alp.Api/Alp.Api.csproj', '--urls', `http://localhost:${API_PORT}`],
-  path.join(repoDir, 'api'),
+  apiDir,
 )
 baslat('web', 'npx', ['vite'], webDir)

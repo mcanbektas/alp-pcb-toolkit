@@ -39,7 +39,7 @@ const SHELL_FILE = path.join(DIST_DIR, 'index.html')
 // sayfa; geri düşüş onu göstermeye devam etseydi `/giris` isteği ana sayfanın
 // HTML'ini alır ve hydration her açılışta ayrışırdı. Boş kabuk bu yüzden
 // ayrı bir dosyaya kopyalanır ve nginx geri düşüşü onu gösterir
-// (bkz. deploy/nginx.conf, docs/prerender-karari.md §6).
+// (bkz. web/nginx.conf, docs/prerender-karari.md §6).
 const FALLBACK_FILE = path.join(DIST_DIR, 'spa-fallback.html')
 // `vite build --ssr` çıktısı. `dist/` ALTINDA DEĞİL: oraya konsa web imajına
 // ve tarayıcıya servis edilen dosyalar arasına girerdi.
