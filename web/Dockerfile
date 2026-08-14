@@ -3,7 +3,7 @@
 # örtüsü `context: ../../alp-pcb-toolkit` ile aynı komutu kurabilsin.)
 
 # ---- derleme ----
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /src
 
 COPY web/package.json web/package-lock.json* ./
