@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test'
 // NotFound notu). Bu, build'den ve birim testlerinden kaçan bir durumdu.
 
 test('bilinmeyen yol "sayfa bulunamadı" ekranını gösterir', async ({ page }) => {
-  await page.goto('/olmayan-yol')
+  await page.goto('olmayan-yol')
 
   await expect(page.locator('h1')).toHaveText(/sayfa bulunamadı/i)
   // Ana alan boş kalmamalı — asıl gerileme buydu.
@@ -13,11 +13,14 @@ test('bilinmeyen yol "sayfa bulunamadı" ekranını gösterir', async ({ page })
 })
 
 test('bulunamadı ekranındaki bağlantı ana sayfaya götürür', async ({ page }) => {
-  await page.goto('/olmayan-yol/derin/bir/yol')
+  await page.goto('olmayan-yol/derin/bir/yol')
 
   await page.locator('main a.backlink').click()
 
-  await expect(page).toHaveURL('http://localhost:3000/')
+  // Yönlendirici köke gidince adres `basename`in kendisi olur (`/pcb`),
+  // sondaki eğik çizgi YOK. Göreli `'.'` beklentisi `/pcb/` üretir ve
+  // yalnız bu tek fark yüzünden kırmızı verirdi; kalıp ikisini de kabul eder.
+  await expect(page).toHaveURL(/\/pcb\/?$/)
   await expect(page.locator('h1')).toBeVisible()
 })
 
@@ -26,7 +29,7 @@ test('derin bağlantı yenilendiğinde de araç ekranı gelir', async ({ page })
   // geri düşüşü vermezse sayfa YENİLENDİĞİNDE 404 alınır — dağıtımın ilk
   // doğrulanacak maddesi (CLAUDE.md → dağıtım). Burada karşılığı vite dev
   // sunucusudur; üretimdeki karşılığı nginx `try_files` zinciridir.
-  await page.goto('/arac/skew')
+  await page.goto('arac/skew')
   await expect(page.locator('h1')).toBeVisible()
 
   await page.reload()

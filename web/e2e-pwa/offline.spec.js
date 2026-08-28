@@ -27,7 +27,7 @@ async function serviceWorkerHazir(page) {
 }
 
 test('araç ekranı ağ kesildikten sonra da açılır ve hesap yapar', async ({ page, context }) => {
-  await page.goto('/arac/trace-width')
+  await page.goto('arac/trace-width')
   await expect(page.locator('section.panel[aria-live] .big-result .value')).toBeVisible()
   await serviceWorkerHazir(page)
 
@@ -52,11 +52,11 @@ test('çevrimdışıyken hiç ziyaret edilmemiş araç da açılır', async ({ p
   // Bu, precache kararının sınavı: JS paketleri önden alındığı için ağ
   // yokken de rota çizilebilmeli. Sayfa kabuğu önbellekte olmadığından
   // `spa-fallback.html` devreye girer (precacheFallback).
-  await page.goto('/')
+  await page.goto('.')
   await serviceWorkerHazir(page)
 
   await context.setOffline(true)
-  await page.goto('/arac/gerilim-bolucu')
+  await page.goto('arac/gerilim-bolucu')
 
   await expect(page.locator('h1')).toBeVisible()
   await expect(page.locator('section.panel[aria-live] .big-result')).toBeVisible()
@@ -67,11 +67,11 @@ test('çevrimdışıyken İngilizce adres de doğru dilde açılır', async ({ p
   // Dil URL'den okunduğu için (docs/en-url-karari.md §3) ağsız gelen bir
   // İngilizce rota yine İngilizce çizilmeli — ikinci bir kabuk üretmeye gerek
   // kalmamasının şartı budur.
-  await page.goto('/')
+  await page.goto('.')
   await serviceWorkerHazir(page)
 
   await context.setOffline(true)
-  await page.goto('/en/tool/voltage-divider')
+  await page.goto('en/tool/voltage-divider')
 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page.locator('h1')).toHaveText(/voltage divider/i)
@@ -83,7 +83,7 @@ test('service worker API isteklerini önbelleğe almaz', async ({ page, context 
   // kesiyorsa, service worker'ın dokunmadığı bir istek çevrimdışında
   // BAŞARISIZ olmalı. Hepsi başarılı olsaydı testler yanlış-pozitif olurdu —
   // ağ hiç kesilmemiş, sayfa da ağdan gelmiş olurdu.
-  await page.goto('/arac/trace-width')
+  await page.goto('arac/trace-width')
   await serviceWorkerHazir(page)
   await context.setOffline(true)
 
@@ -113,7 +113,7 @@ test('service worker API isteklerini önbelleğe almaz', async ({ page, context 
 })
 
 test('çevrimdışıyken uygulama içi gezinme çalışır', async ({ page, context }) => {
-  await page.goto('/')
+  await page.goto('.')
   await serviceWorkerHazir(page)
 
   await context.setOffline(true)

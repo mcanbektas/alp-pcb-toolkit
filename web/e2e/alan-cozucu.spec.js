@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test'
 const resultPanel = (page) => page.locator('section.panel[aria-live]')
 
 test('tek uçlu ekranda çözücü satırı worker üzerinden gelir', async ({ page }) => {
-  await page.goto('/arac/tek-uclu-empedans')
+  await page.goto('arac/tek-uclu-empedans')
 
   // Kapalı form sonucu hemen gelir
   await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
@@ -28,7 +28,7 @@ test('tek uçlu ekranda çözücü satırı worker üzerinden gelir', async ({ p
 })
 
 test('coplanar yapıda çözücü satırı sunulmaz (F1 kapsamı)', async ({ page }) => {
-  await page.goto('/arac/tek-uclu-empedans')
+  await page.goto('arac/tek-uclu-empedans')
   await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
 
   // Yapıyı CPW'ye çevir; çözücü satırı ve "hesaplıyor" notu görünmemeli
@@ -40,7 +40,7 @@ test('coplanar yapıda çözücü satırı sunulmaz (F1 kapsamı)', async ({ pag
 
 // F2: grounded CPW yalnız çözücüyle çözülür — ana sayı worker'dan düşer.
 test('grounded CPW yapısında ana sonuç çözücüden gelir', async ({ page }) => {
-  await page.goto('/arac/tek-uclu-empedans')
+  await page.goto('arac/tek-uclu-empedans')
   await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
 
   await page.getByLabel('Yapı').selectOption({ index: 3 })
@@ -53,7 +53,7 @@ test('grounded CPW yapısında ana sonuç çözücüden gelir', async ({ page })
 
 // F2: diferansiyel çiftin sayıları çözücüden gelir (kapasitans matrisi rotası)
 test('diferansiyel çift ekranında Z_diff worker üzerinden gelir', async ({ page }) => {
-  await page.goto('/arac/diferansiyel-cift')
+  await page.goto('arac/diferansiyel-cift')
 
   // Kapalı form tek uçlu taban hemen; çiftin ana sayısı çözücüden düşer
   await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
@@ -70,7 +70,7 @@ test('diferansiyel çift ekranında Z_diff worker üzerinden gelir', async ({ pa
 
 // F3: W sabit sentezde kök arama çözücünün içinde koşar; S worker'dan düşer
 test('diferansiyel çift sentezi aralığı çözücü içinde arar', async ({ page }) => {
-  await page.goto('/arac/diferansiyel-cift')
+  await page.goto('arac/diferansiyel-cift')
   await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
 
   await page.getByRole('radio', { name: /Sentez/ }).click()
@@ -85,7 +85,7 @@ test('diferansiyel çift sentezi aralığı çözücü içinde arar', async ({ p
 
 // F3: Crosstalk FEXT modal εeff'leri çözücüden alabilir
 test('crosstalk ekranında FEXT çözücüden hesaplanır', async ({ page }) => {
-  await page.goto('/arac/crosstalk')
+  await page.goto('arac/crosstalk')
   await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
 
   await page.getByRole('radio', { name: /çözücüden/ }).click()
@@ -98,7 +98,7 @@ test('crosstalk ekranında FEXT çözücüden hesaplanır', async ({ page }) => 
 
 // F3: Skew εeff kaynağı olarak çift çözücüsünü kullanabilir (odd mod)
 test('skew ekranında εeff çözücüden gelir', async ({ page }) => {
-  await page.goto('/arac/skew')
+  await page.goto('arac/skew')
   await expect(resultPanel(page).locator('.big-result .value')).toBeVisible()
 
   await page.getByRole('radio', { name: /Alan çözücüden/ }).click()

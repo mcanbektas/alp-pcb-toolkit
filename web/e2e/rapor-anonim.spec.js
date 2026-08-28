@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test'
 // özel bir uç ise açılmıyor (docs/brifler/05-playwright-e2e.md).
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/arac/trace-width')
+  await page.goto('arac/trace-width')
 })
 
 test('anonim kullanıcı hesabı görebilir', async ({ page }) => {

@@ -36,7 +36,7 @@ async function loginIsteklerini(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/giris')
+  await page.goto('giris')
 })
 
 test('parola alanında Enter formu gönderir', async ({ page }) => {

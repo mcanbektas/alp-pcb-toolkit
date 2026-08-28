@@ -20,7 +20,12 @@ export default defineConfig({
   reporter: process.env.CI ? 'list' : [['list'], ['html', { open: 'never' }]],
 
   use: {
-    baseURL: 'http://localhost:3000',
+    // Süit öneki ADRESTE durur: uygulama `/pcb/` altında yayınlanır
+    // (`vite.config.js` → `base`), kökte 404 vardır. Sondaki eğik çizgi
+    // ZORUNLU — `new URL('arac/x', base)` onsuz son parçayı yutar ve test
+    // sessizce `/arac/x`e, yani 404'e gider. Bu yüzden spec'lerdeki yollar
+    // GÖRELİ yazılır (`arac/trace-width`), başında eğik çizgi olmaz.
+    baseURL: 'http://localhost:3000/pcb/',
     // İlk denemede iz tutulmaz (yavaş); yalnız yeniden denenen testte.
     trace: 'on-first-retry',
   },
@@ -34,7 +39,7 @@ export default defineConfig({
   // `reuseExistingServer`: geliştirirken zaten açık olan sunucuyu kullanır.
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3000/pcb/',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

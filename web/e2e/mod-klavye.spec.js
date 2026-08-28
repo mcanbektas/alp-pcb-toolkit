@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test'
 const resultPanel = (page) => page.locator('section.panel[aria-live]')
 
 test('ok tuşu modu değiştirir ve odağı birlikte taşır', async ({ page }) => {
-  await page.goto('/arac/trace-width')
+  await page.goto('arac/trace-width')
 
   const radios = page.getByRole('radio')
   await expect(radios).toHaveCount(2)
@@ -32,7 +32,7 @@ test('ok tuşu modu değiştirir ve odağı birlikte taşır', async ({ page }) 
 })
 
 test('grup tek durakla gezilir', async ({ page }) => {
-  await page.goto('/arac/trace-width')
+  await page.goto('arac/trace-width')
   const radios = page.getByRole('radio')
 
   // Yalnızca seçili düğme sekme sırasındadır; diğeri -1 taşır. Aksi hâlde
@@ -48,7 +48,7 @@ test('grup tek durakla gezilir', async ({ page }) => {
 })
 
 test('ok tuşu grubun başında ve sonunda dönerek dolaşır', async ({ page }) => {
-  await page.goto('/arac/trace-width')
+  await page.goto('arac/trace-width')
   const radios = page.getByRole('radio')
 
   await radios.nth(0).focus()

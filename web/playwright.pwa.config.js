@@ -22,7 +22,9 @@ export default defineConfig({
   reporter: 'list',
 
   use: {
-    baseURL: 'http://localhost:4173',
+    // Süit öneki adreste: uygulama `/pcb/` altından servis edilir, kök 404.
+    // Sondaki eğik çizgi zorunlu (bkz. playwright.config.js).
+    baseURL: 'http://localhost:4173/pcb/',
     trace: 'on-first-retry',
   },
 
@@ -36,7 +38,7 @@ export default defineConfig({
   // doğruladığı şeyin az önce derlenen sürüm olmadığı anlamına gelir.
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    url: 'http://localhost:4173/pcb/',
     reuseExistingServer: false,
     timeout: 180_000,
   },

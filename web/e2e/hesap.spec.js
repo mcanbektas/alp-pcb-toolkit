@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test'
 const resultPanel = (page) => page.locator('section.panel[aria-live]')
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/arac/trace-width')
+  await page.goto('arac/trace-width')
 })
 
 test('varsayılan girdilerle sayısal bir sonuç üretir', async ({ page }) => {
