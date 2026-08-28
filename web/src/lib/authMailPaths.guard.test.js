@@ -12,10 +12,12 @@
 // CI'da ve imaj derlemesinde atlanır, çünkü orada yalnız bu depo checkout
 // edilir. Yani koruma yerelde kalır, boru hattında kalmaz.
 //
-// Kalıcı çözüm Faz 3'e bırakıldı ve sabit tabloyu tümden değiştirecek: auth
-// mail yolları ÜRÜN BAŞINA yapılandırmaya taşınacak (Comm'un da kendi
-// doğrulama sayfası olacak, tek sabit tablo zaten yetmeyecek). O gün bu dosya
-// da yerini o modelin testine bırakır.
+// ÜRÜN BAŞINA YAPILANDIRMA GELDİ: tablolar artık `AuthEmailText.cs`te değil,
+// `ProductMail.cs`te ve iki katmanlı — önce ürün (`pcb`/`comm`), sonra dil.
+// Bekçi yalnız `pcb` satırını denetler; Comm kendi SPA'sını kurunca kendi
+// deposunda kendi bekçisini yazar. Sunucu tarafında bu varsayılanlar
+// `App:Products:<ürün>:ConfirmEmailPath:<dil>` ile ezilebilir — bekçi ezmeyi
+// GÖRMEZ, yalnız derlemeye gömülü varsayılanı doğrular.
 //
 // Karar ve elenen seçenekler: docs/eposta-dili-karari.md §3.
 
@@ -28,12 +30,15 @@ import { LANGS } from './i18n.js'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 // Kardeş dizin varsayımı: <bir dizin>/alp-pcb-toolkit + <bir dizin>/alp-platform
-const serverFile = join(repoRoot, '..', 'alp-platform', 'api', 'Alp.Api', 'Auth', 'AuthEmailText.cs')
+const serverFile = join(repoRoot, '..', 'alp-platform', 'api', 'Alp.Api', 'Auth', 'ProductMail.cs')
 const source = existsSync(serverFile) ? readFileSync(serverFile, 'utf8') : null
 
-// `private static readonly Dictionary<string, string> <Ad> = new() { ["tr"] = "…", … };`
+// `Dictionary<string, Dictionary<string, string>> <Ad> = new() { [Pcb] = new()
+//  { ["tr"] = "…", ["en"] = "…" }, [Comm] = new() { … } };`
+// Dış blok `[Pcb]` satırına kadar okunur, dil sözlüğü o satırdan çıkarılır.
 function serverPaths(name) {
-  const block = new RegExp(`${name}\\s*=\\s*new\\(\\)\\s*\\{([^}]*)\\}`).exec(source)?.[1]
+  const outer = new RegExp(`${name}\\s*=\\s*new\\(\\)\\s*\\{([\\s\\S]*?)\\n\\s*\\};`).exec(source)?.[1]
+  const block = outer ? /\[Pcb\]\s*=\s*new\(\)\s*\{([^}]*)\}/.exec(outer)?.[1] : null
   if (!block) return null
   const out = {}
   for (const [, lang, path] of block.matchAll(/\["(\w+)"\]\s*=\s*"([^"]+)"/g)) out[lang] = path
@@ -41,9 +46,9 @@ function serverPaths(name) {
 }
 
 const TABLES = [
-  { name: 'ConfirmEmailPaths', route: 'confirmEmail' },
-  { name: 'ResetPasswordPaths', route: 'resetPassword' },
-  { name: 'UnlockAccountPaths', route: 'unlockAccount' },
+  { name: 'DefaultConfirmEmailPath', route: 'confirmEmail' },
+  { name: 'DefaultResetPasswordPath', route: 'resetPassword' },
+  { name: 'DefaultUnlockAccountPath', route: 'unlockAccount' },
 ]
 
 // Sunucu kaynağı yoksa bekçi ATLANIR — kırmızı vermez. Kırmızı vermesi
