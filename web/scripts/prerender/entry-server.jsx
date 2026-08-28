@@ -11,6 +11,7 @@ import { Writable } from 'node:stream'
 import { renderToPipeableStream } from 'react-dom/server'
 import { StaticRouter } from 'react-router-dom/server'
 import { AppProviders, AppRoutes } from '../../src/App'
+import { ROUTER_BASENAME } from '../../src/lib/basePath.js'
 
 // `renderToString` DEĞİL: araç ekranları `lazy()` ile yükleniyor ve
 // `renderToString` Suspense sınırında fallback basıp durur — 29 aracın
@@ -18,6 +19,14 @@ import { AppProviders, AppRoutes } from '../../src/App'
 // ile bütün lazy chunk'lar çözüldükten SONRA tetiklenir, yani tam gövde
 // elde edilir. Karşılığı: akış bitene dek beklenir (SEO çıktısı için doğru
 // olan da bu — kısmi HTML indekslenmez).
+// `url` önek TAŞIMAZ (`/arac/...`), çünkü çıktı dosyaları diskte kökte durur
+// ve edge `/pcb/` önekini rewrite ile düşürür. Yönlendirici ise önekli
+// adres bekler: `basename` verilip `location` öneksiz bırakılırsa React
+// Router hiçbir rotayı eşleştirmez ve sayfa BOŞ üretilir.
+function prefixed(url) {
+  return ROUTER_BASENAME === '/' ? url : ROUTER_BASENAME + url
+}
+
 export function renderRoute(url) {
   return new Promise((resolve, reject) => {
     let didError = null
@@ -36,7 +45,7 @@ export function renderRoute(url) {
 
     const stream = renderToPipeableStream(
       <AppProviders>
-        <StaticRouter location={url}>
+        <StaticRouter location={prefixed(url)} basename={ROUTER_BASENAME}>
           <AppRoutes />
         </StaticRouter>
       </AppProviders>,

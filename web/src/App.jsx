@@ -29,6 +29,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import ConfirmEmail from './pages/auth/ConfirmEmail'
 import UnlockAccount from './pages/auth/UnlockAccount'
+import { ROUTER_BASENAME } from './lib/basePath.js'
 
 // Araç ekranları tembel yüklenir: 25 ekranın hesap motoru, şeması ve metni tek
 // pakette gelince ilk boyama gereksiz büyüyordu. Ana sayfa ve kategori sayfası
@@ -589,7 +590,7 @@ export function AppRoutes() {
 export default function App() {
   return (
     <AppProviders>
-      <BrowserRouter basename="/pcb">
+      <BrowserRouter basename={ROUTER_BASENAME}>
         <AppRoutes />
       </BrowserRouter>
     </AppProviders>

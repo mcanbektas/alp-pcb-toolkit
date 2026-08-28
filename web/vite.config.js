@@ -10,6 +10,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 // eski revizyonla aynı sayılıp güncellenmez.
 const buildId = new Date().toISOString()
 
+// Süit öneki — PCB, süit edge'i altında `/pcb/` ile yayınlanır. Vite `base`,
+// PWA manifesti ve service worker kuralları AYNI değeri kullanmak zorundadır:
+// biri kökte kalırsa hata sessiz olur (service worker precache'i 404 alır,
+// kurulum düşer, çevrimdışı desteği hiç açılmaz — sayfa yine de açıldığı için
+// fark edilmez). Yönlendirici tarafı aynı değeri `import.meta.env.BASE_URL`
+// üzerinden okur (src/lib/basePath.js).
+const BASE = '/pcb/'
+
 // `isSsrBuild`: prerender'ın Node paketi de Vite ile derleniyor
 // (`vite build --ssr`). PWA eklentisi orada koşarsa `.prerender/` altına ikinci
 // bir service worker ve manifest yazar — o çıktı tarayıcıya hiç gitmez, yani
@@ -36,21 +44,21 @@ export default defineConfig(({ isSsrBuild }) => ({
         // (i18n.js → DEFAULT_LANG) yazılır.
         lang: 'tr',
         dir: 'ltr',
-        start_url: '/pcb/',
-        scope: '/pcb/',
+        start_url: BASE,
+        scope: BASE,
         display: 'standalone',
         // index.html'deki `theme-color` ile aynı değer — ayrışırsa tarayıcı
         // çubuğu ile yüklü uygulama farklı renk gösterir.
         theme_color: '#070c08',
         background_color: '#070c08',
         icons: [
-          { src: '/pcb/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pcb/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: `${BASE}icon-192.png`, sizes: '192x192', type: 'image/png' },
+          { src: `${BASE}icon-512.png`, sizes: '512x512', type: 'image/png' },
           // `maskable`: Android ikonu kendi maskesine kırpar. Ayrı bir dosya
           // üretilmedi, aynı kare kullanılıyor — işaretin kenar boşluğu zaten
           // geniş. İkonlar 64 px favicon'dan büyütüldü ve gerçek marka
           // varlığı geldiğinde değiştirilmeli (docs/pwa-karari.md §4).
-          { src: '/pcb/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: `${BASE}icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -63,7 +71,7 @@ export default defineConfig(({ isSsrBuild }) => ({
         // istemez — precache'te 160 KB boşuna dururdu. `favicon.png` ve
         // `assets/` altındaki logo hariç: onları sayfanın kendisi kullanıyor.
         globIgnores: ['icon-*.png'],
-        additionalManifestEntries: [{ url: '/spa-fallback.html', revision: buildId }],
+        additionalManifestEntries: [{ url: `${BASE}spa-fallback.html`, revision: buildId }],
         // Navigasyonun geri düşüşü aşağıdaki NetworkFirst kuralının
         // `precacheFallback`ıdır; Workbox'ın kendi `navigateFallback`ı
         // kapatılır, yoksa iki NavigationRoute kaydedilir.
@@ -84,12 +92,12 @@ export default defineConfig(({ isSsrBuild }) => ({
               // kullanıcı süresiz beklemesin.
               networkTimeoutSeconds: 4,
               expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 },
-              precacheFallback: { fallbackURL: '/spa-fallback.html' },
+              precacheFallback: { fallbackURL: `${BASE}spa-fallback.html` },
             },
           },
           {
             // Yazı tipleri: dosya adı içeriğiyle sabit, cache-first güvenli.
-            urlPattern: ({ url }) => url.pathname.startsWith('/fonts/'),
+            urlPattern: ({ url }) => url.pathname.startsWith(`${BASE}fonts/`),
             handler: 'CacheFirst',
             options: {
               cacheName: 'alp-fonts',
@@ -133,7 +141,7 @@ export default defineConfig(({ isSsrBuild }) => ({
   // Süit edge'i altında yayınlanır (GitHub Pages değil): edge `/pcb/`
   // önekini KORUYARAK vekilliyor, App.jsx'teki BrowserRouter basename'i de
   // aynı önek. docs/uyelik-ve-rapor-plani.md §6.2
-  base: '/pcb/',
+  base: BASE,
   server: {
     port: 3000,
     strictPort: true,
